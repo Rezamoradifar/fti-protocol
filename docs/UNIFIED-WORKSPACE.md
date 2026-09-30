@@ -3,7 +3,9 @@
 The public landing page and the wallet application share port **3090**:
 
 - `/`: English protocol landing page.
-- `/app/`: member workspace; sections use `#overview`, `#network`, `#trade`, `#rewards`, `#activity` and `#admin`.
+- `/app/`: member workspace: overview, membership, rewards and activity.
+- `/token/`: token overview, buy/sell, transfers and token availability.
+- `/admin/`: governance and settlement administration.
 - `/api/`, `/rpc`, `/abi/`, `/vendor/`: same-origin backend routes.
 - `/health`: current backend health and network.
 
@@ -51,3 +53,7 @@ The local chain is ephemeral. `UI_QA=1 node scripts/local.mjs` runs the browser 
 The browser journey checks registration, adding units, quotes, purchase, a blocked locked sale, a sale after a **local-only** time advance, transfer, auto-buy settings, reward claim, council proposal, responsive navigation, deep-link reload, and activity-service failure/retry. Screenshots are saved locally under `qa/`; summarized results are in `docs/ui-test-results.json`.
 
 This is frontend and routing validation, not an independent security audit or a guarantee about protocol economics.
+
+## HTTPS domain
+
+See [DOMAIN-SETUP.md](DOMAIN-SETUP.md) for connecting `ftiprotocol.com`, TLS and the four separate entry points.

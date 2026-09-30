@@ -1,4 +1,5 @@
 import {JsonRpcProvider,BrowserProvider,Contract,parseEther,formatEther,ZeroAddress,ZeroHash,randomBytes,hexlify,isAddress} from '/vendor/ethers.js';
+import {surface,surfacePages,defaultPage,pagePath} from './surfaces.js';
 const $=s=>document.querySelector(s);
 const text=(id,value)=>{document.getElementById(id).textContent=value;};
 async function json(url){const response=await fetch(url,{signal:AbortSignal.timeout(25000),cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to read contract data.');return data;}
@@ -6,7 +7,7 @@ const cfg=await json('/api/config');
 const rpc=new JsonRpcProvider(location.origin+'/rpc',undefined,{cacheTimeout:-1});rpc.pollingInterval=1000;
 const names={binary:'BinaryPlan',token:'FTIToken',usd:'MockUSD',council:'Council',timelock:'FTITimelock'},read={};
 await Promise.all(Object.entries(names).map(async([key,name])=>{read[key]=new Contract(cfg[key],await json('/abi/'+name),rpc);}));
-let signer,address,state,busy=false,connecting=false,transactionAddress,refreshSequence=0,autoDirty=false;
+let signer,address,state,busy=false,connecting=false,transactionAddress,refreshSequence=0,autoDirty=false,councilOwner=false;
 const ranks=['Member','Builder 1','Builder 2','Builder 3','Builder 4'];
 const thresholds=[100n,200n,500n,1000n];
 const explorer=cfg.chainId===97?'https://testnet.bscscan.com':null;
@@ -18,7 +19,7 @@ function status(message,error=false){text('status',message);$('#status').classLi
 function reason(error){if(error.code===4001||error.code==='ACTION_REJECTED')return 'Request cancelled in your wallet.';return error.reason||error.shortMessage||error.message||'The request could not be completed.';}
 function wallet(){return address&&state?.wallet?.address?.toLowerCase()===address.toLowerCase()?state.wallet:null;}
 function syncActions(){
- const w=wallet();const enabled={wallet:!!signer,member:!!signer&&!!w?.exists,buyer:!!signer&&BigInt(w?.units||0)>0n,reward:!!signer&&BigInt(w?.claimable||0)>0n,unlocked:!!signer&&BigInt(w?.unlocked||0)>0n,auto:!!signer&&BigInt(w?.autoPending||0)>0n};
+ const w=wallet();const enabled={council:!!signer&&councilOwner,wallet:!!signer,member:!!signer&&!!w?.exists,buyer:!!signer&&BigInt(w?.units||0)>0n,reward:!!signer&&BigInt(w?.claimable||0)>0n,unlocked:!!signer&&BigInt(w?.unlocked||0)>0n,auto:!!signer&&BigInt(w?.autoPending||0)>0n};
  document.querySelectorAll('[data-write]').forEach(button=>{button.disabled=busy||button.dataset.executed==='true'||(button.dataset.requires&&!enabled[button.dataset.requires]);});
  $('#connect').disabled=busy||connecting;$('#local-accounts').disabled=busy||connecting;
  $('#copy-address').disabled=!address;$('#copy-referral').disabled=!w?.exists;
@@ -41,32 +42,34 @@ async function approve(spender,amount){
  const current=await read.usd.allowance(address,spender);
  if(current<amount){status('Approve test USD spending in your wallet.');if(current>0n)await send(write('usd').approve(spender,0));await send(write('usd').approve(spender,amount));}
 }
-async function connect(){
+async function connect({silent=false}={}){
  if(connecting||busy)return;connecting=true;syncActions();
  try{
   let nextSigner;
   if(cfg.mode==='local')nextSigner=await rpc.getSigner($('#local-accounts').value);
   else{
    if(!window.ethereum)throw Error('Open this site in your wallet’s browser or use a browser with a wallet extension.');
-   await window.ethereum.request({method:'eth_requestAccounts'});
+   const accounts=await window.ethereum.request({method:silent?'eth_accounts':'eth_requestAccounts'});if(!accounts.length)return;
    const chain=Number(await window.ethereum.request({method:'eth_chainId'}));
-   if(chain!==cfg.chainId){try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]});}catch{throw Error('Switch your wallet to BNB Smart Chain Testnet (chain ID 97), then connect again.');}}
+   if(chain!==cfg.chainId){if(silent)throw Error('Switch your wallet to BNB Testnet and connect again.');try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]});}catch{throw Error('Switch your wallet to BNB Smart Chain Testnet (chain ID 97), then connect again.');}}
    const provider=new BrowserProvider(window.ethereum);if(Number((await provider.getNetwork()).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');nextSigner=await provider.getSigner();
   }
-  const nextAddress=await nextSigner.getAddress();if(address!==nextAddress)autoDirty=false;signer=nextSigner;address=nextAddress;text('connect-label',short(address));await refresh();status('Wallet connected. Contract data loaded.');
+  const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}await refresh();status('Wallet connected. Contract data loaded.');
  }catch(error){status(reason(error),true);}finally{connecting=false;syncActions();}
 }
 $('#connect').onclick=connect;
-if(window.ethereum){window.ethereum.on?.('accountsChanged',()=>{signer=null;address=null;state=null;autoDirty=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');status('Wallet account changed. Connect to continue.');refresh().catch(e=>status(reason(e),true));});window.ethereum.on?.('chainChanged',()=>location.reload());}
+if(window.ethereum){window.ethereum.on?.('accountsChanged',()=>{try{sessionStorage.removeItem('fti-wallet-connected');}catch{}signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');status('Wallet account changed. Connect to continue.');refresh().catch(e=>status(reason(e),true));});window.ethereum.on?.('chainChanged',()=>location.reload());}
 if(cfg.mode==='local'){
  $('#local-accounts').hidden=false;$('#dev-controls').hidden=false;
  cfg.accounts.forEach((a,i)=>{const option=document.createElement('option');option.value=a;option.textContent=`${i+1}. ${i<31?'Genesis':i<36?'Council':'New member'} ${short(a)}`;$('#local-accounts').append(option);});
+ try{const saved=sessionStorage.getItem('fti-local-account');if(cfg.accounts.includes(saved))$('#local-accounts').value=saved;}catch{}
  $('#local-accounts').onchange=connect;
 }
-const network=cfg.mode==='local'?'Local chain · 31337':'BNB Testnet · 97';text('network-name',network);text('account-network',network);
-const titles={overview:'Overview',network:'Membership & network',trade:'Buy & sell FTI',rewards:'Your rewards',activity:'Protocol activity',admin:'Governance & settlement'};
+const network=cfg.mode==='local'?'Local chain · 31337':'BNB Testnet · 97';text('network-name',network);text('account-network',network);text('token-network',network);
+const titles={'token-home':'FTI token',overview:'Overview',network:'Membership & network',trade:'Buy & sell FTI',rewards:'Your rewards',activity:'Protocol activity',admin:'Governance & settlement'};
 function navigate(page,focus=false){
- if(!titles[page])page='overview';document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==page);
+ if(!titles[page])page=defaultPage;
+ if(!surfacePages.some(([id])=>id===page)){location.assign(pagePath(page));return;}document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==page);
  document.querySelectorAll('[data-page]').forEach(button=>{const active=button.dataset.page===page;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');});
  text('page-title',titles[page]);document.title=titles[page]+' · FTI Protocol';
  if(location.hash!=='#'+page)history.replaceState(null,'','#'+page);
@@ -79,13 +82,14 @@ $('#theme').onclick=()=>{document.body.classList.toggle('light');try{localStorag
 try{if(localStorage.getItem('fti-theme')==='light')document.body.classList.add('light');}catch{}
 async function refresh(){
  const sequence=++refreshSequence,requestedAddress=address;
- const d=await json('/api/state'+(requestedAddress?'?wallet='+encodeURIComponent(requestedAddress):''));
+ const [d,isOwner]=await Promise.all([json('/api/state'+(requestedAddress?'?wallet='+encodeURIComponent(requestedAddress):'')),requestedAddress&&surface==='admin'?read.council.isOwner(requestedAddress):Promise.resolve(false)]);
  if(sequence!==refreshSequence||requestedAddress!==address)return;
- state=d;
- for(const[id,value]of Object.entries({price:fmt(d.price,6),reserve:fmt(d.reserve),reserve2:fmt(d.reserve),members:integer(d.count),'point-pool':fmt(d.pointPool),buyback:fmt(d.bb),floor:fmt(d.floor),supply:fmt(d.supply),epoch:'Epoch '+integer(d.epoch),phase:['Accepting deposits','Matching points','Allocating rewards'][d.phase]||'Processing',protection:integer(d.level),'epoch-end':utc(d.epochEnd),accounting:d.account1[0]===d.account1[1]&&d.account2[0]===d.account2[1]?'Balanced':'Review required',queue:`Volume queue: ${d.jobCursor} / ${d.jobCount}\nSettlement phase: ${d.phase} · Member cursor: ${d.cursor}`,'lock-clock':'Wallet counter '+integer(d.clock),'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))text(id,value);
+ state=d;councilOwner=isOwner;
+ for(const[id,value]of Object.entries({'token-spot':fmt(d.price,6),'token-reserve':fmt(d.reserve),'token-supply':fmt(d.supply),'token-bb':fmt(d.bb),'token-floor':fmt(d.floor),'token-status':d.tokenPaused?'Paused':'Active',price:fmt(d.price,6),reserve:fmt(d.reserve),reserve2:fmt(d.reserve),members:integer(d.count),'point-pool':fmt(d.pointPool),buyback:fmt(d.bb),floor:fmt(d.floor),supply:fmt(d.supply),epoch:'Epoch '+integer(d.epoch),phase:['Accepting deposits','Matching points','Allocating rewards'][d.phase]||'Processing',protection:integer(d.level),'epoch-end':utc(d.epochEnd),accounting:d.account1[0]===d.account1[1]&&d.account2[0]===d.account2[1]?'Balanced':'Review required',queue:`Volume queue: ${d.jobCursor} / ${d.jobCount}\nSettlement phase: ${d.phase} · Member cursor: ${d.cursor}`,'lock-clock':'Wallet counter '+integer(d.clock),'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))text(id,value);
  renderWallet();syncActions();
 }
 function renderWallet(){
+ text('admin-role',!address?'READ ONLY':councilOwner?'COUNCIL OWNER':'PUBLIC CALLER');text('admin-access-copy',!address?'Connect a wallet to check its council role.':councilOwner?'Your connected wallet can propose and approve council actions. Three approvals are required to execute a proposal.':'This wallet is not a council owner. You can process settlement and execute operations that are already authorized and ready.');
  const w=wallet();const locked=w?BigInt(w.ftiBalance)-BigInt(w.unlocked):0n;
  for(const[id,value]of Object.entries({claimable:w?fmt(w.claimable):'—','reward-claimable':w?fmt(w.claimable):'—',rank:w?.exists?ranks[w.rank]:address?'Not registered':'Not connected','wallet-address':address||'No wallet connected','usd-balance':w?fmt(w.usdBalance):'—','fti-balance':w?fmt(w.ftiBalance,5):'—',unlocked:w?fmt(w.unlocked,5):'—',allowance:w?fmt(w.remaining):'—',units:w?integer(w.units):'—','account-units':w?integer(w.units):'—',lifetime:w?`${integer(w.lifetimeL)} / ${integer(w.lifetimeR)}`:'—',carry:w?`${integer(w.carryL)} / ${integer(w.carryR)}`:'—','auto-pending':w?fmt(w.autoPending):'—','trade-balance':w?fmt(w.ftiBalance,5):'—','trade-unlocked':w?fmt(w.unlocked,5):'—','trade-locked':w?fmt(locked,5):'—','locked-summary':w?fmt(locked,5)+' FTI locked':'Connect to view token locks','buy-available':w?`Balance: ${fmt(w.usdBalance)} USD · Allowance: ${fmt(w.remaining)} USD`:'Connect to view your balance and allowance.','sell-available':w?'Available: '+fmt(w.unlocked,6)+' FTI':'Available: — FTI','membership-status':w?.exists?'Registered member':address?'Not registered':'Not connected','auto-status':w?.exists?(w.autoEnabled?'Enabled':'Disabled'):'Not connected'}))text(id,value);
  text('welcome-copy',w?.exists?'Your membership, tokens and rewards — connected to your wallet and read directly from the chain.':'Connect a wallet, get test assets and register with a sponsor to begin.');
@@ -99,7 +103,7 @@ function renderWallet(){
  text('registration-title',registered?'Add membership units':'Join the network');text('register-button',registered?'Add units':'Register membership');
  text('sponsor-help',registered?'Your sponsor and position stay unchanged when you add units.':'New positions fill the sponsor’s left slot first, then the right. Both slots must not be full.');
  for(const[id,done]of [['step-wallet',!!signer],['step-funds',BigInt(w?.usdBalance||0)>0n],['step-member',registered]])$('#'+id).classList.toggle('done',done);
- $('#referral-link').value=registered?location.origin+location.pathname+'?sponsor='+address+'#network':'';
+ $('#referral-link').value=registered?location.origin+'/app/?sponsor='+address+'#network':'';
  $('#tree').replaceChildren();for(const[label,key]of [['Sponsor','parent'],['Left branch','left'],['Right branch','right']]){const node=document.createElement('div');node.textContent=label;const value=document.createElement('small');value.textContent=w&&w[key]!==ZeroAddress?w[key]:w?'Empty position':'Connect to view';node.append(value);$('#tree').append(node);}
  $('#locks').replaceChildren();
  if(w?.locks.length){for(const l of w.locks){const tr=document.createElement('tr');for(const value of [fmt(l.amount,6),integer(l.clock),utc(l.deadline),BigInt(state.clock)>=BigInt(l.clock)||state.timestamp>=Number(l.deadline)?'Unlocked':'Locked']){const td=document.createElement('td');td.textContent=value;tr.append(td);}$('#locks').append(tr);}}
@@ -142,12 +146,13 @@ async function loadEvents(){
 }
 $('#refresh-events').onclick=loadEvents;
 for(const[key,name]of Object.entries(names)){const el=document.createElement('div');el.textContent=name;const code=document.createElement('code');code.textContent=cfg[key];if(explorer){const a=document.createElement('a');a.href=explorer+'/address/'+cfg[key];a.target='_blank';a.rel='noreferrer';a.append(code);el.append(a);}else el.append(code);$('#contracts').append(el);}
-async function loadProposals(){try{const count=Number(await read.council.count());$('#proposals').replaceChildren();if(!count)text('proposals','No governance proposals yet.');for(let i=count-1;i>=Math.max(0,count-20);i--){const p=await read.council.proposal(i),box=document.createElement('div');box.className='proposal';const title=document.createElement('p');title.textContent=`Proposal ${i} · ${p[2]} of 3 approvals · ${p[3]?'Executed':'Pending'}`;box.append(title);for(const[label,fn]of [['Approve',()=>write('council').approve(i)],['Execute proposal',()=>write('council').execute(i)]]){const button=document.createElement('button');button.className='secondary';button.textContent=label;button.dataset.write='';button.dataset.requires='wallet';button.dataset.executed=String(p[3]);button.onclick=()=>transaction(async()=>{await send(fn());await loadProposals();});box.append(button);}$('#proposals').append(box);}syncActions();}catch(error){text('proposals','Proposals could not be loaded. Reopen this section to retry.');status(reason(error),true);}}
+async function loadProposals(){try{const count=Number(await read.council.count());$('#proposals').replaceChildren();if(!count)text('proposals','No governance proposals yet.');for(let i=count-1;i>=Math.max(0,count-20);i--){const p=await read.council.proposal(i),box=document.createElement('div');box.className='proposal';const title=document.createElement('p');title.textContent=`Proposal ${i} · ${p[2]} of 3 approvals · ${p[3]?'Executed':'Pending'}`;box.append(title);for(const[label,fn]of [['Approve',()=>write('council').approve(i)],['Execute proposal',()=>write('council').execute(i)]]){const button=document.createElement('button');button.className='secondary';button.textContent=label;button.dataset.write='';button.dataset.requires=label==='Approve'?'council':'wallet';button.dataset.executed=String(p[3]);button.onclick=()=>transaction(async()=>{await send(fn());await loadProposals();});box.append(button);}$('#proposals').append(box);}syncActions();}catch(error){text('proposals','Proposals could not be loaded. Reopen this section to retry.');status(reason(error),true);}}
 $('#proposal-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const action=e.target.elements.action.value;let target,data;
  if(action==='pauseBinary'||action==='pauseToken'){const key=action==='pauseBinary'?'binary':'token';target=cfg[key];data=read[key].interface.encodeFunctionData('pause');}
  else{const key=action==='unpauseBinary'?'binary':'token';const inner=read[key].interface.encodeFunctionData(action==='milestone'?'advancePriceMilestone':'unpause');target=cfg.timelock;data=read.timelock.interface.encodeFunctionData('schedule',[cfg[key],0,inner,ZeroHash,hexlify(randomBytes(32)),259200]);}
  await send(write('council').propose(target,data));await loadProposals();});};
 $('#timelock-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const p=await read.council.proposal(BigInt(e.target.elements.id.value));if(p[0].toLowerCase()!==cfg.timelock.toLowerCase()||!p[3])throw Error('The scheduling proposal has not been executed.');const args=read.timelock.interface.decodeFunctionData('schedule',p[1]);await send(write('timelock').execute(args[0],args[1],args[2],args[3],args[4]));});};
-renderWallet();syncActions();navigate(location.hash.slice(1)||((sponsor&&isAddress(sponsor))?'network':'overview'));
-try{if(cfg.mode==='local')await connect();else{await refresh();status('Contract data loaded. Connect a wallet to manage your account.');}}catch(error){status(reason(error),true);}
+text('token-address',cfg.token);$('#token-explorer').hidden=!explorer;if(explorer)$('#token-explorer').href=explorer+'/address/'+cfg.token;
+renderWallet();syncActions();navigate(location.hash.slice(1)||((sponsor&&isAddress(sponsor))?'network':defaultPage));
+try{if(cfg.mode==='local')await connect();else{await refresh();status('Contract data loaded. Connect a wallet to manage your account.');let reconnect=false;try{reconnect=sessionStorage.getItem('fti-wallet-connected')==='yes';}catch{}if(reconnect&&window.ethereum)await connect({silent:true});}}catch(error){status(reason(error),true);}
 setInterval(()=>{if(!busy&&!connecting)refresh().catch(error=>status('Connection unavailable: '+reason(error),true));},15000);

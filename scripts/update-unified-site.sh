@@ -52,11 +52,11 @@ const h=JSON.parse(fs.readFileSync(process.argv[2]));
 if(!h.ok||h.chainId!==97||h.mode!=='testnet')throw Error('Unexpected backend network or mode.');
 console.log('PASS testnet health');
 NODE
-for route in / /app/ /app/app.js /app/style.css /api/config /abi/FTIToken /vendor/ethers.js; do
+for route in / /app/ /token/ /admin/ /app/app.js /token/app.js /admin/app.js /app/style.css /api/config /abi/FTIToken /vendor/ethers.js; do
  curl --fail --silent --show-error "http://127.0.0.1:3090$route" -o /dev/null
  printf 'PASS %s\n' "$route"
 done
 trap - ERR
-printf '\nUnified website is ready on port 3090. Member panel: /app/\n'
+printf '\nUnified website is ready on port 3090. Member panel: /app/; token: /token/; administration: /admin/\n'
 printf 'Existing port 3080 remains available. No contracts were deployed.\n'
 printf 'Frontend rollback files: %s\n' "$FTI_BACKUP"

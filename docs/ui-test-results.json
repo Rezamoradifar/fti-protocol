@@ -1,5 +1,5 @@
 {
-  "routing": "Nginx same-origin landing, /app/ and backend asset/API routes verified",
+  "routing": "Nginx landing, /app/, /token/, /admin/ and backend asset/API routes verified",
   "viewport": {
     "desktop": "1440x1000",
     "mobile": "390x844"
@@ -12,8 +12,9 @@
   "transfer": "confirmed",
   "autoPreference": "saved",
   "rewardClaim": "confirmed",
-  "governanceProposal": "confirmed by council owner",
-  "navigation": "six pages, no mobile overflow, deep link reload passed",
+  "governanceProposal": "public caller disabled, council role checked on-chain and proposal confirmed",
+  "navigation": "separate member/token/admin entry points, seven views, no mobile overflow, deep link reload passed",
   "activity": "loaded; service-error and retry verified",
-  "pageErrors": []
+  "pageErrors": [],
+  "tls": "HTTP and HTTPS Nginx templates validated locally; certificate-validated TLS response and HTTP/www redirects checked with a local test certificate. Public Let\u2019s Encrypt issuance requires running setup-domain.sh on the VPS."
 }
