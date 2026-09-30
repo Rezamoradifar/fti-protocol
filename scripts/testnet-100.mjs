@@ -1,3 +1,4 @@
+import {sellUnlocked} from './journey-sale.mjs';
 // 100 distinct testnet members; no mainnet, no production collateral.
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -63,12 +64,18 @@ try{
     }
     const balance=await token.balanceOf(w.address),unlocked=await token.unlocked(w.address);
     if(balance>unlocked){let reason='';try{await token.connect(w).sell.staticCall(balance,0,(await p.getBlock('latest')).timestamp+1200);}catch(e){reason=e.reason||'';}assert.match(reason,/lock/i,'Expected lock-specific sell rejection');}
-    await account();console.log(`USER ${i+1}/100 PASS`,w.address);
+    if(!j.done['sell-'+i]){
+     const sale=await sellUnlocked({wallet:w,token,usd,submit:(method,args)=>call(w,token,method,args,'sell-'+i),now:async()=>(await p.getBlock('latest')).timestamp});
+     console.log('SELL',i+1,sale.status,sale.reason||('received '+formatEther(sale.receivedUSD)+' test USD'));
+     if(sale.status==='PENDING'){j.sellPending??={};j.sellPending[i]=sale;save();}
+     else if(j.sellPending){delete j.sellPending[i];save();}
+    }
+    await account();console.log(`USER ${i+1}/100 PASS registration/buy/accounting; sell reported separately`,w.address);
    }
    for(let i=1;i<100;i++){const parent=await binary.members(users[Math.floor((i-1)/2)].address);assert.equal(i%2?parent.left:parent.right,users[i].address,'Tree mismatch');}
    await settle();let claimed=0;
    for(let i=0;i<100;i++)if(await binary.pendingReward(users[i].address)>0n){await call(users[i],binary,'claim',[],`claim-${i}-${await binary.epoch()}`);claimed++;}
-   await account();const report={registered:100,units:100,buys:Object.keys(j.done).filter(k=>/^buy-/.test(k)).length,tree:'PASS',accounting:'PASS',claimsThisRun:claimed,reservedBudgetTBNB:formatEther(j.reserved),nextEpochEnd:new Date(Number(await binary.epochEnd())*1000).toISOString(),limitations:'Public testnet: no clock changes. Rewards may require rerun after epoch end. Sell/transfer success, monthly rewards and browser load are NOT tested by this script.'};
+   await account();const report={registered:100,units:100,buys:Object.keys(j.done).filter(k=>/^buy-/.test(k)).length,sells:Object.keys(j.done).filter(k=>/^sell-/.test(k)).length,salesPending:100-Object.keys(j.done).filter(k=>/^sell-/.test(k)).length,tree:'PASS',accounting:'PASS',claimsThisRun:claimed,reservedBudgetTBNB:formatEther(j.reserved),nextEpochEnd:new Date(Number(await binary.epochEnd())*1000).toISOString(),limitations:'Public testnet: no clock changes. Rewards may require rerun after epoch end. Sell is executed only for unlocked tokens; pending sales are not passes. Transfers, monthly rewards and browser load are NOT tested by this script.'};
    fs.writeFileSync(path.join(dir,d.binary.toLowerCase()+'-report.json'),JSON.stringify(report,null,2),{mode:0o600});console.log(JSON.stringify(report,null,2));
   }finally{for(const signal of ['SIGINT','SIGTERM','SIGHUP'])process.removeListener(signal,interrupted);fs.closeSync(lockFd);fs.unlinkSync(lock);}
  }
