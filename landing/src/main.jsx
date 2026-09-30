@@ -2,7 +2,7 @@ import React,{useState,useEffect} from 'react';
 import {createRoot} from 'react-dom/client';
 import './style.css';
 const REPO='https://github.com/Rezamoradifar/fti-protocol';
-const APP='http://70.33.249.57:3080';
+const APP=__FTI_APP_URL__||'http://70.33.249.57:3080';
 const REVIEW=REPO+'/blob/fix/liquidity-safety/docs/ECONOMIC-REVIEW.md';
 const format=n=>new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(n);
 function Mark(){return <span className="brand-mark" aria-hidden="true"><i/><i/><i/></span>}
