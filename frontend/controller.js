@@ -8,7 +8,7 @@ const integer=v=>Number(v).toLocaleString('en-US');const text=(id,v)=>{$('#'+id)
 function status(message,error=false){$('#status').textContent=message;$('#status').classList.toggle('error',error)}
 function write(k){if(!signer)throw Error('Connect your wallet first.');return read[k].connect(signer)}
 async function transaction(fn){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{status('Waiting for transaction approval and confirmation…');await fn();status('Transaction confirmed on-chain.');await refresh();}catch(e){status(e.reason||e.shortMessage||e.message,true)}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false)}}
-async function send(promise){const tx=await promise;status('Transaction submitted; awaiting confirmation… '+tx.hash.slice(0,14));await tx.wait();}
+async function send(promise){const tx=await promise;status('Transaction submitted; awaiting confirmation… '+tx.hash.slice(0,14));return await tx.wait();}
 async function approve(spender,amount){const current=await read.usd.allowance(address,spender);if(current<amount){if(current>0n)await send(write('usd').approve(spender,0));await send(write('usd').approve(spender,amount));}}
 async function connect(){if(cfg.mode==='local'){signer=await rpc.getSigner($('#local-accounts').value);}else{if(!window.ethereum)throw Error('A wallet extension or wallet browser is required.');const provider=new BrowserProvider(window.ethereum);await provider.send('eth_requestAccounts',[]);if(Number((await provider.getNetwork()).chainId)!==cfg.chainId)throw Error('Switch your wallet to BNB Testnet, chain ID '+cfg.chainId+'.');signer=await provider.getSigner();}address=await signer.getAddress();text('connect',address.slice(0,6)+'…'+address.slice(-4));await refresh();}
 $('#connect').onclick=()=>connect().catch(e=>status(e.message,true));
@@ -51,3 +51,14 @@ $('#proposal-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const 
 $('#timelock-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const p=await read.council.proposal(BigInt(e.target.elements.id.value));if(p[0].toLowerCase()!==cfg.timelock.toLowerCase()||!p[3])throw Error('The scheduling proposal has not been executed.');const args=read.timelock.interface.decodeFunctionData('schedule',p[1]);await send(write('timelock').execute(args[0],args[1],args[2],args[3],args[4]));});};
 try{if(cfg.mode==='local')await connect();else await refresh();status('Contract data loaded.');}catch(e){status(e.message,true)}
 setInterval(()=>refresh().catch(e=>status('Connection unavailable: '+e.message,true)),15000);
+
+if(cfg.liquidityVersion===1){
+ $('#exit-panel').hidden=false;
+ const orderId=()=>{const value=$('#exit-id').value;if(!/^\d+$/.test(value))throw Error('Enter a valid order ID.');return BigInt(value);};
+ async function inspectExit(){const id=orderId(),o=await read.token.exitOrders(id);if(o.owner===ZeroAddress)throw Error('Order does not exist.');text('exit-details',`Owner: ${o.owner} · Remaining: ${fmt(o.remaining,6)} FTI · Next: ${new Date(Number(o.nextAt)*1000).toLocaleString()} · Expires: ${new Date(Number(o.deadline)*1000).toLocaleString()}`);}
+ $('#exit-inspect').onclick=()=>inspectExit().catch(e=>status(e.message,true));
+ $('#exit-execute').onclick=()=>transaction(async()=>{await send(write('token').executeExit(orderId()));await inspectExit();});
+ $('#exit-cancel').onclick=()=>transaction(async()=>{await send(write('token').cancelExit(orderId()));await inspectExit();});
+ $('#exit-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const f=e.target.elements,now=(await rpc.getBlock('latest')).timestamp;const receipt=await send(write('token').createExit(parseEther(f.tokens.value),parseEther(f.chunk.value),parseEther(f.price.value),BigInt(f.interval.value)*60n,BigInt(now)+BigInt(f.expiry.value)*3600n));for(const log of receipt.logs){let parsed;try{parsed=read.token.interface.parseLog(log);}catch{}if(parsed?.name==='ExitCreated')$('#exit-id').value=parsed.args.id.toString();}await inspectExit();});};
+ try{const [bb,fl,end]=await Promise.all([read.token.buybackBudget(),read.token.floorBudget(),read.token.supportWindowEnd()]);text('support-budget',`Support budget at page load: ${fmt(bb)} buyback / ${fmt(fl)} floor test USD · Next reset no earlier than ${new Date(Number(end)*1000).toLocaleString()}`);}catch(e){status(e.message,true);}
+}

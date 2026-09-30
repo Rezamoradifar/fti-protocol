@@ -5,5 +5,6 @@
   "ftiBalance": "96.98119",
   "horizontalOverflow": false,
   "pageErrors": [],
-  "events": "loaded from chain"
+  "events": "loaded from chain",
+  "scheduledExit": "created, chunk sold, remainder cancelled"
 }

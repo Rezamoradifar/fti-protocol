@@ -30,6 +30,21 @@ contract FTIToken is ERC20, ReentrancyGuard, Pausable {
     uint256 public walletClock;
     uint256 public priceMultiplier=1;
     uint256 public milestonePrice=P0;
+    // Experimental: shared 24-hour support budget, 5% of each opening fund.
+    // Deposits within a window never refill its budget. No admin override.
+    uint256 public constant SUPPORT_WINDOW=1 days;
+    uint256 public constant SUPPORT_BPS=500;
+    uint256 public supportWindowEnd;
+    uint256 public buybackBudget;
+    uint256 public floorBudget;
+    struct ExitOrder {address owner; uint256 remaining; uint256 chunk; uint256 minPrice; uint64 nextAt; uint64 interval; uint64 deadline;}
+    mapping(uint256=>ExitOrder) public exitOrders;
+    mapping(address=>uint256) public reservedExit;
+    uint256 public nextExitId;
+    event ExitCreated(uint256 indexed id,address indexed owner,uint256 tokens,uint256 chunk,uint256 minPrice);
+    event ExitCancelled(uint256 indexed id,uint256 tokens);
+    event ExitExecuted(uint256 indexed id,uint256 tokens,uint256 usdOut);
+    event SupportBudgetOpened(uint256 end,uint256 buyback,uint256 floor);
     uint256 public cumulativeBuy;
     uint256 public cumulativeSell;
     mapping(uint256=>uint256) public startBuy;
@@ -109,25 +124,53 @@ contract FTIToken is ERC20, ReentrancyGuard, Pausable {
         if(sustainedActive()&&feeBps<1500)feeBps=1500;
         payout=gross*(10000-feeBps)/10000;
     }
+    function available(address who) public view returns(uint256){return unlocked(who)-reservedExit[who];}
+    function createExit(uint256 tokens,uint256 chunk,uint256 minPrice,uint64 interval,uint64 deadline) external nonReentrant whenNotPaused returns(uint256 id){
+        require(tokens>0&&tokens<=available(msg.sender)&&chunk>0&&chunk<=tokens,'exit tokens');
+        require(minPrice>0&&minPrice<=MAX_RESERVE,'exit price');
+        require(interval>=15 minutes&&interval<=7 days&&deadline>block.timestamp&&deadline<=block.timestamp+30 days,'exit time');
+        id=nextExitId++;exitOrders[id]=ExitOrder(msg.sender,tokens,chunk,minPrice,uint64(block.timestamp),interval,deadline);
+        reservedExit[msg.sender]+=tokens;emit ExitCreated(id,msg.sender,tokens,chunk,minPrice);
+    }
+    // Cancellation remains possible while paused; keep tokens in the owner's wallet.
+    function cancelExit(uint256 id) external nonReentrant {
+        ExitOrder storage o=exitOrders[id];require(o.owner==msg.sender&&o.remaining>0,'exit owner');
+        uint256 amount=o.remaining;o.remaining=0;reservedExit[msg.sender]-=amount;emit ExitCancelled(id,amount);
+    }
+    function executeExit(uint256 id) external nonReentrant whenNotPaused returns(uint256 payout){
+        ExitOrder storage o=exitOrders[id];require(o.remaining>0&&block.timestamp>=o.nextAt&&block.timestamp<=o.deadline,'exit not ready');
+        uint256 amount=o.chunk<o.remaining?o.chunk:o.remaining;
+        uint256 minimum=_ceil(amount*o.minPrice,WAD);
+        o.remaining-=amount;reservedExit[o.owner]-=amount;o.nextAt=uint64(block.timestamp+o.interval);
+        payout=_sell(o.owner,amount,minimum,o.deadline);emit ExitExecuted(id,amount,payout);
+    }
     function sell(uint256 tokens,uint256 minUSD,uint256 deadline) external nonReentrant whenNotPaused returns(uint256 payout){
-        require(block.timestamp<=deadline&&tokens>0&&tokens<=unlocked(msg.sender),'sell input/lock');
+        return _sell(msg.sender,tokens,minUSD,deadline);
+    }
+    function _sell(address who,uint256 tokens,uint256 minUSD,uint256 deadline) private returns(uint256 payout){
+        require(block.timestamp<=deadline&&tokens>0&&tokens<=available(who),'sell input/lock');
         (uint256 out,uint256 fee,uint256 gross)=quoteSell(tokens);payout=out;require(out>=minUSD&&out>0,'slippage/dust');
         uint256 excess=gross*(fee-300)/10000;require(out+excess<=reserve,'reserve');
-        reserve-=out+excess;buybackFund+=excess;cumulativeSell+=gross;_burn(msg.sender,tokens);
-        _defend();usd.safeTransfer(msg.sender,out);emit Sold(msg.sender,tokens,out,fee);
+        reserve-=out+excess;buybackFund+=excess;cumulativeSell+=gross;_burn(who,tokens);
+        _defend();usd.safeTransfer(who,out);emit Sold(who,tokens,out,fee);
     }
     function _update(address from,address to,uint256 value) internal override {
         if(from!=address(0)&&to!=address(0)){
-            require(!paused()&&from!=to&&binary.unitsOf(to)>0,'transfer');require(value<=unlocked(from),'locked');
+            require(!paused()&&from!=to&&binary.unitsOf(to)>0,'transfer');require(value<=available(from),'locked');
             uint256 burn=value*300/10000;uint256 received=value-burn;
             require((balanceOf(to)+received)*100<=curveSupply()-burn,'holding cap');
             super._update(from,address(0),burn);super._update(from,to,received);_defend();
         }else super._update(from,to,value);
     }
     function _defend() private {
+        if(block.timestamp>=supportWindowEnd){
+            supportWindowEnd=block.timestamp+SUPPORT_WINDOW;
+            buybackBudget=buybackFund*SUPPORT_BPS/10000;floorBudget=floorFund*SUPPORT_BPS/10000;
+            emit SupportBudgetOpened(supportWindowEnd,buybackBudget,floorBudget);
+        }
         uint256 p=price();if(p>ath){ath=p;return;}uint256 bb;uint256 fl;
-        if(p*100<=ath*99){uint256 target=ath*curveSupply()/(5*WAD);if(target>reserve+V){bb=target-reserve-V;if(bb>buybackFund)bb=buybackFund;buybackFund-=bb;reserve+=bb;}}
-        if(price()*100<ath*92){uint256 target=ath*92*curveSupply()/(500*WAD);if(target>reserve+V){fl=target-reserve-V;if(fl>floorFund)fl=floorFund;floorFund-=fl;reserve+=fl;}}
+        if(p*100<=ath*99){uint256 target=ath*curveSupply()/(5*WAD);if(target>reserve+V){bb=target-reserve-V;if(bb>buybackFund)bb=buybackFund;if(bb>buybackBudget)bb=buybackBudget;buybackBudget-=bb;buybackFund-=bb;reserve+=bb;}}
+        if(price()*100<ath*92){uint256 target=ath*92*curveSupply()/(500*WAD);if(target>reserve+V){fl=target-reserve-V;if(fl>floorFund)fl=floorFund;if(fl>floorBudget)fl=floorBudget;floorBudget-=fl;floorFund-=fl;reserve+=fl;}}
         if(bb+fl>0)emit Supported(bb,fl);
     }
     function advancePriceMilestone() external {require(msg.sender==governance,'governance');require(price()>=milestonePrice*10&&priceMultiplier<1024,'milestone');milestonePrice*=10;priceMultiplier*=2;emit MultiplierUpdated(priceMultiplier);}
