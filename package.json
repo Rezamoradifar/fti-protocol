@@ -1,7 +1,7 @@
 {
   "name": "fti-protocol",
   "version": "0.2.0",
-  "description": "FTI independent local/testnet release candidate — not audited",
+  "description": "FTI independent local/testnet release candidate \u2014 not audited",
   "main": "index.js",
   "directories": {
     "doc": "docs",
@@ -16,7 +16,10 @@
     "deploy": "npm run compile && node scripts/deploy.mjs",
     "simulate": "node scripts/simulate.mjs",
     "launch": "node scripts/launch-server.mjs",
-    "import:deployment": "node scripts/import-browser-deployment.mjs"
+    "import:deployment": "node scripts/import-browser-deployment.mjs",
+    "build:web": "node scripts/build-web.mjs",
+    "prestart": "npm run build:web",
+    "predemo": "npm run build:web"
   },
   "keywords": [],
   "author": "",
@@ -24,9 +27,12 @@
   "type": "module",
   "dependencies": {
     "@openzeppelin/contracts": "5.4.0",
-    "ethers": "6.15.0"
+    "ethers": "6.15.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
+    "esbuild": "0.25.10",
     "ganache": "7.9.2",
     "solc": "0.8.30"
   },
