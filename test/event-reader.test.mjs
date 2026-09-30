@@ -1,0 +1,5 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {readEvents} from '../scripts/event-reader.mjs';
+const c={target:'address',interface:{parseLog:l=>({name:'Sold',fragment:{inputs:[]},args:[]})}};
+test('event pagination splits rejected ranges and returns ordered actual events',async()=>{const p={getLogs:async({fromBlock:a,toBlock:b})=>{if(b-a>4)throw Error('range limit');return Array.from({length:b-a+1},(_,i)=>({blockNumber:a+i,index:0,transactionHash:String(a+i)}));}};const rows=await readEvents(p,{token:c},1,20);assert.equal(rows.length,20);assert.equal(rows[0].block,20);assert.equal(rows.at(-1).block,1);});
+test('per-block failure and exhausted request budget fail instead of empty success',async()=>{await assert.rejects(readEvents({getLogs:async()=>{throw Error('offline');}},{token:c},1,1),/unavailable/);await assert.rejects(readEvents({getLogs:async()=>{throw Error('range');}},{token:c},1,100,2),/budget/);});
+test('cache-independent empty logs remain a genuine empty success',async()=>{assert.deepEqual(await readEvents({getLogs:async()=>[]},{token:c},1,200),[]);});

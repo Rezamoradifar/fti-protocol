@@ -1,17 +1,21 @@
 import http from 'node:http';
+import {readEvents} from './event-reader.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {JsonRpcProvider,Contract,isAddress} from 'ethers';
+import {JsonRpcProvider,Contract,isAddress,FetchRequest} from 'ethers';
 import {artifact} from './lib.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployments/local.json'){
- const cfg=JSON.parse(fs.readFileSync(configPath));const rpc=process.env.RPC_URL||cfg.rpcUrl;const provider=new JsonRpcProvider(rpc,undefined,{cacheTimeout:-1});
+ const cfg=JSON.parse(fs.readFileSync(configPath));const rpc=process.env.RPC_URL||cfg.rpcUrl;const transport=new FetchRequest(rpc);transport.timeout=15000;const provider=new JsonRpcProvider(transport,undefined,{cacheTimeout:-1,batchMaxCount:1});
+ const eventTransport=new FetchRequest(process.env.EVENT_RPC_URL||rpc);eventTransport.timeout=15000;
+ const eventProvider=process.env.EVENT_RPC_URL?new JsonRpcProvider(eventTransport,undefined,{cacheTimeout:-1,batchMaxCount:1}):provider;
  const contracts=Object.fromEntries(['binary','token','usd','council','timelock'].map(k=>[k,new Contract(cfg[k],artifact({binary:'BinaryPlan',token:'FTIToken',usd:'MockUSD',council:'Council',timelock:'FTITimelock'}[k]).abi,provider)]));
  const host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||3000);const publicConfig={...cfg};delete publicConfig.rpcUrl;
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data,(_,v)=>typeof v==='bigint'?v.toString():v));};
  const readMethods=new Set(['eth_chainId','eth_blockNumber','eth_call','eth_getBalance','eth_getCode','eth_getLogs','eth_getTransactionReceipt','eth_getTransactionByHash','eth_getBlockByNumber','eth_estimateGas','eth_gasPrice','eth_maxPriorityFeePerGas','eth_feeHistory','eth_getTransactionCount']);
  async function body(req){let raw='';for await(const c of req){raw+=c;if(raw.length>65536)throw Error('Request too large');}return JSON.parse(raw);}
+ let eventCache,eventFlight;
  const server=http.createServer(async(req,res)=>{try{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'");
@@ -35,18 +39,19 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
    const {binary:b,token:t,usd}=contracts;const address=url.searchParams.get('wallet');if(address&&!isAddress(address))throw Error('Invalid address');
    const [price,supply,reserve,bb,floor,ath,clock,count,epoch,epochEnd,phase,level,pointPool,pending,auto,jobCursor,jobCount,cursor,monthPhase,nextMonth,paused,tokenPaused,account1,account2,block]=await Promise.all([t.price(),t.totalSupply(),t.reserve(),t.buybackFund(),t.floorFund(),t.ath(),t.walletClock(),b.memberCount(),b.epoch(),b.epochEnd(),b.phase(),b.protectionLevel(),b.pointPool(),b.totalPending(),b.totalAuto(),b.jobCursor(),b.jobCount(),b.cursor(),b.monthPhase(),b.nextBuilderMonth(),b.paused(),t.paused(),b.accounting(),t.accounting(),provider.getBlock('latest')]);
    const result={price,supply,reserve,bb,floor,ath,clock,count,epoch,epochEnd,phase,level,pointPool,pending,auto,jobCursor,jobCount,cursor,monthPhase,nextMonth,paused,tokenPaused,account1,account2,block:block.number,timestamp:block.timestamp};
-   if(address){const m=await b.members(address);const [usdBalance,ftiBalance,unlocked,remaining,claimable,autoPending,locks]=await Promise.all([usd.balanceOf(address),t.balanceOf(address),t.unlocked(address),t.remainingAllowance(address),b.pendingReward(address),b.pendingAuto(address),t.lockInfo(address)]);result.wallet={address,parent:m.parent,left:m.left,right:m.right,units:m.units,carryL:m.carryL,carryR:m.carryR,lifetimeL:m.lifetimeL,lifetimeR:m.lifetimeR,rank:m.rank,exists:m.exists,autoEnabled:m.autoEnabled,maxAutoPrice:m.maxAutoPrice,usdBalance,ftiBalance,unlocked,remaining,claimable,autoPending,locks:locks.map(l=>({amount:l.amount,clock:l.clock,deadline:l.deadline}))};}
+   if(address){const m=await b.members(address);const [usdBalance,ftiBalance,unlocked,remaining,claimable,autoPending,locks]=await Promise.all([usd.balanceOf(address),t.balanceOf(address),(cfg.liquidityVersion===1?t.available(address):t.unlocked(address)),t.remainingAllowance(address),b.pendingReward(address),b.pendingAuto(address),t.lockInfo(address)]);result.wallet={address,parent:m.parent,left:m.left,right:m.right,units:m.units,carryL:m.carryL,carryR:m.carryR,lifetimeL:m.lifetimeL,lifetimeR:m.lifetimeR,rank:m.rank,exists:m.exists,autoEnabled:m.autoEnabled,maxAutoPrice:m.maxAutoPrice,usdBalance,ftiBalance,unlocked,remaining,claimable,autoPending,locks:locks.map(l=>({amount:l.amount,clock:l.clock,deadline:l.deadline}))};}
    return json(res,200,result);
   }
   if(url.pathname==='/api/events'){
-   const latest=await provider.getBlockNumber();const from=Math.max(cfg.deployedBlock||0,latest-1500);let records=[];
-   for(const name of ['binary','token']){const c=contracts[name];const logs=await provider.getLogs({address:c.target,fromBlock:from,toBlock:latest});for(const log of logs){try{const parsed=c.interface.parseLog(log);records.push({name:parsed.name,contract:name,block:log.blockNumber,hash:log.transactionHash,args:parsed.fragment.inputs.map((input,i)=>({name:input.name,value:parsed.args[i]}))});}catch{}}}
-   return json(res,200,records.sort((a,b)=>b.block-a.block).slice(0,100));
+   if(eventCache&&Date.now()-eventCache.at<15000)return json(res,200,eventCache.rows);
+   if(!eventFlight)eventFlight=(async()=>{if((await eventProvider.getNetwork()).chainId!==BigInt(cfg.chainId))throw Error('Wrong activity network');const latest=await eventProvider.getBlockNumber();const rows=await readEvents(eventProvider,{binary:contracts.binary,token:contracts.token},Math.max(cfg.deployedBlock||0,latest-1499),latest);eventCache={at:Date.now(),rows};return rows;})().finally(()=>{eventFlight=null;});
+   try{return json(res,200,await eventFlight);}catch{return json(res,503,{error:'Activity RPC unavailable. Retry later; no events have been fabricated.'});}
   }
   if(url.pathname.startsWith('/abi/')){const name=url.pathname.slice(5);if(!['BinaryPlan','FTIToken','MockUSD','Council','FTITimelock'].includes(name))throw Error('Unknown ABI');return json(res,200,artifact(name).abi);}
   let file;if(url.pathname==='/vendor/ethers.js')file=path.join(root,'node_modules/ethers/dist/ethers.min.js');else {const route=url.pathname==='/'?'index.html':url.pathname.slice(1);file=path.resolve(root,'web',route);if(!file.startsWith(path.join(root,'web')+path.sep))return json(res,403,{error:'Denied'});}
   if(!fs.existsSync(file)||!fs.statSync(file).isFile())return json(res,404,{error:'Not found'});const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
  }catch(e){json(res,400,{error:e.shortMessage||e.message});}});
+ server.once('close',()=>{provider.destroy();if(eventProvider!==provider)eventProvider.destroy();});
  await new Promise((resolve,reject)=>server.once('error',reject).listen(port,host,resolve));console.log(`FTI ${cfg.mode}: http://${host}:${port}`);return server;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url))startWeb().catch(e=>{console.error(e.message);process.exit(1);});
