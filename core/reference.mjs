@@ -7,7 +7,7 @@ export function match(left,right,cap){const raw=left<right?left:right;const paid
 export function rank(left,right){const v=left<right?left:right;return[100n,200n,500n,1000n].filter(t=>v>=t).length;}
 export function builderPool(balance,count){if(!count)return{pay:0n,carry:balance};const equal=balance/BigInt(count),cap=balance/5n,pay=equal<cap?equal:cap;return{pay,carry:balance-pay*BigInt(count)};}
 export class Curve {
- constructor(){this.V=20000n*W;this.S0=1000000n*W;this.supply=0n;this.reserve=0n;this.bb=0n;this.floor=0n;this.cash=0n;this.balances=new Map();this.ath=W/10n;}
+ constructor(){this.V=20000n*W;this.S0=1000000n*W;this.supply=0n;this.reserve=0n;this.bb=0n;this.floor=0n;this.cash=0n;this.balances=new Map();this.ath=W/10n;this.time=0n;this.supportEnd=0n;this.bbBudget=0n;this.floorBudget=0n;}
  get S(){return this.S0+this.supply;}
  get X(){return this.V+this.reserve;}
  price(){return this.X*5n*W/this.S;}
@@ -16,7 +16,8 @@ export class Curve {
  inject(amount){this.cash+=amount;this.bb+=amount*80n/100n;this.floor+=amount-amount*80n/100n;this.defend();this.check();}
  buy(id,amount){assert(amount>0n);const q=this.quoteBuy(amount);const bal=this.balances.get(id)||0n;assert(q.minted>0n&&(bal+q.minted)*100n<=this.S+q.minted,'holding cap');this.cash+=amount;this.reserve+=q.net;this.bb+=q.fee;this.supply+=q.minted;this.balances.set(id,bal+q.minted);this.defend();this.check();return q.minted;}
  sell(id,tokens,sustained=false){assert(tokens>0n&&tokens<=(this.balances.get(id)||0n));const gross=this.X*(W-pow5Up(ceil((this.S-tokens)*W,this.S)))/W;const rho=gross*10000n/this.X;let fee=300n;if(rho>100n)fee+=5700n*(rho>=1000n?900n:rho-100n)/900n;if(sustained&&fee<1500n)fee=1500n;const payout=gross*(10000n-fee)/10000n;const extra=gross*(fee-300n)/10000n;assert(payout+extra<=this.reserve);this.reserve-=payout+extra;this.bb+=extra;this.cash-=payout;this.supply-=tokens;this.balances.set(id,this.balances.get(id)-tokens);this.defend();this.check();return payout;}
- defend(){let p=this.price();if(p>this.ath){this.ath=p;return;}if(p*100n<=this.ath*99n){const need=this.ath*this.S/(5n*W)-this.X;const amount=need<this.bb?need:this.bb;if(amount>0n){this.bb-=amount;this.reserve+=amount;}}if(this.price()*100n<this.ath*92n){const need=this.ath*92n*this.S/(500n*W)-this.X;const amount=need<this.floor?need:this.floor;if(amount>0n){this.floor-=amount;this.reserve+=amount;}}}
+ advance(seconds){assert(seconds>=0n);this.time+=seconds;}
+ defend(){if(this.time>=this.supportEnd){this.supportEnd=this.time+86400n;this.bbBudget=this.bb*500n/10000n;this.floorBudget=this.floor*500n/10000n;}let p=this.price();if(p>this.ath){this.ath=p;return;}if(p*100n<=this.ath*99n){const need=this.ath*this.S/(5n*W)-this.X;const available=this.bb<this.bbBudget?this.bb:this.bbBudget;const amount=need<available?need:available;if(amount>0n){this.bb-=amount;this.bbBudget-=amount;this.reserve+=amount;}}if(this.price()*100n<this.ath*92n){const need=this.ath*92n*this.S/(500n*W)-this.X;const available=this.floor<this.floorBudget?this.floor:this.floorBudget;const amount=need<available?need:available;if(amount>0n){this.floor-=amount;this.floorBudget-=amount;this.reserve+=amount;}}}
  check(){assert.equal(this.cash,this.reserve+this.bb+this.floor);assert(this.reserve>=0n);assert(this.X*this.S0**5n>=this.V*this.S**5n,'exact integer solvency invariant');}
 }
 /// Reference for integrated cash/volume flows, not a substitute for EVM tests or lock/governance implementation.

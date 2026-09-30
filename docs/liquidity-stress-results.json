@@ -1,0 +1,41 @@
+{
+  "assumptions": "Independent BigInt model; all holdings unlocked; no new inflows during exit; no elapsed time during exit; sustained-fee flag false. Not a price guarantee.",
+  "results": [
+    {
+      "mode": "full-exit",
+      "holders": 100,
+      "operations": 100,
+      "totalPaidUSD": 37713.91943625285,
+      "remainingReserveUSD": 692.3210957756766,
+      "remainingSupportUSD": 2093.7594679714775,
+      "maxDrawdownPct": 56.33822884713852,
+      "accounting": "PASS",
+      "exactK": "PASS",
+      "budgetNeverRefilledWithinWindow": "PASS"
+    },
+    {
+      "mode": "split-exit",
+      "holders": 100,
+      "operations": 1000,
+      "totalPaidUSD": 38196.565938896536,
+      "remainingReserveUSD": 688.4340611034652,
+      "remainingSupportUSD": 1615,
+      "maxDrawdownPct": 56.34643067319446,
+      "accounting": "PASS",
+      "exactK": "PASS",
+      "budgetNeverRefilledWithinWindow": "PASS"
+    },
+    {
+      "mode": "reverse-order",
+      "holders": 100,
+      "operations": 100,
+      "totalPaidUSD": 37762.54532006093,
+      "remainingReserveUSD": 691.9231178377327,
+      "remainingSupportUSD": 2045.5315621013372,
+      "maxDrawdownPct": 56.33906859931373,
+      "accounting": "PASS",
+      "exactK": "PASS",
+      "budgetNeverRefilledWithinWindow": "PASS"
+    }
+  ]
+}

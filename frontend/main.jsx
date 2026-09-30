@@ -278,6 +278,22 @@ function Trading(){return (<section id="trade" className="page" hidden={true}>
 </table>
 </div>
 </article>
+<article className="panel" id="exit-panel" hidden={true}>
+<h2>Scheduled exit · experimental</h2>
+<p>Reserve unlocked tokens for timed sales. Each chunk uses the current curve price and your minimum net USD per token. This is optional scheduling, not a guaranteed price or a global withdrawal limit.</p>
+<form id="exit-form" className="inline">
+<label>Total FTI<input name="tokens" type="number" min="0.000001" step="any" required /></label>
+<label>FTI per chunk<input name="chunk" type="number" min="0.000001" step="any" required /></label>
+<label>Minimum net USD per FTI<input name="price" type="number" min="0.000001" step="any" required /></label>
+<label>Interval (minutes)<input name="interval" type="number" min="15" max="10080" defaultValue="60" required /></label>
+<label>Expiry (hours)<input name="expiry" type="number" min="1" max="720" defaultValue="24" required /></label>
+<button>Create exit order</button></form>
+<p>Reserved tokens stay in your wallet but cannot be sold or transferred separately. Anyone can execute a ready chunk; proceeds go only to you. Cancellation is available even when trading is paused.</p>
+<label>Order ID<input id="exit-id" type="number" min="0" step="1" /></label>
+<div className="actions"><button id="exit-inspect" className="secondary">Check order</button><button id="exit-execute">Execute ready chunk</button><button id="exit-cancel" className="secondary">Cancel remaining order</button></div>
+<p id="exit-details">Create an order or enter its ID. Execution requires a submitted transaction.</p>
+<p id="support-budget"></p>
+</article>
 </section>);}
 
 function Activity(){return (<section id="activity" className="page" hidden={true}>
