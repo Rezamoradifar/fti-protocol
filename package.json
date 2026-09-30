@@ -1,0 +1,37 @@
+{
+  "name": "fti-protocol",
+  "version": "0.2.0",
+  "description": "FTI independent local/testnet release candidate — not audited",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "compile": "node scripts/compile.mjs",
+    "test": "npm run compile && node --test --test-concurrency=1 test/*.test.mjs",
+    "start": "node scripts/server.mjs",
+    "demo": "npm run compile && node scripts/local.mjs",
+    "keeper": "node scripts/keeper.mjs",
+    "deploy": "npm run compile && node scripts/deploy.mjs",
+    "simulate": "node scripts/simulate.mjs",
+    "launch": "node scripts/launch-server.mjs",
+    "import:deployment": "node scripts/import-browser-deployment.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@openzeppelin/contracts": "5.4.0",
+    "ethers": "6.15.0"
+  },
+  "devDependencies": {
+    "ganache": "7.9.2",
+    "solc": "0.8.30"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  }
+}

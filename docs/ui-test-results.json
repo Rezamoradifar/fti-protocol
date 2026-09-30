@@ -1,0 +1,9 @@
+{
+  "desktop": "1440x1000",
+  "mobile": "390x844",
+  "buyTransaction": "confirmed on local EVM",
+  "ftiBalance": "96.98119",
+  "horizontalOverflow": false,
+  "pageErrors": [],
+  "events": "loaded from chain"
+}

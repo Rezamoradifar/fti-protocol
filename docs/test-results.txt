@@ -1,0 +1,45 @@
+✔ document matching example exact (1.688523ms)
+✔ builder equal share, 20% cap and dust for zero through 20 eligible (0.373514ms)
+✔ curve rounding never creates a negative reserve or lowers exact k (18.195423ms)
+✔ integrated 500 members conserve all cash through settlement, auto-buy, monthly payouts and total exit (22.059242ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/scratch/5db1ba069bbf/fti-protocol/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/scratch/5db1ba069bbf/fti-protocol/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ 31 unique Genesis positions contain no artificial cash, units or tokens (2024.948838ms)
+✔ 100 USDT is exactly split 90/5/4/1 without FTI mint (1809.438631ms)
+✔ automatic left/right placement; third direct, duplicate and invalid sponsor rejected (4554.797095ms)
+✔ bounded ancestor propagation includes every ancestor once (2206.137323ms)
+✔ cumulative minimum: 3 then 2 units settles and conserves carried pool (7278.255288ms)
+✔ matched points above cap burn, only heavy-side imbalance carries (7581.127727ms)
+✔ rank requires cumulative units, never payment-based points (12468.89781ms)
+✔ cap and protection tables reproduce specification (45.854855ms)
+✔ claims are pull payments and cannot be repeated (7583.877253ms)
+✔ batch order/size leaves identical wallet economics (10433.154544ms)
+✔ buy uses actual stablecoin, increases price, respects lifetime allowance (7232.74675ms)
+✔ holding cap and min output revert atomically (3846.496792ms)
+✔ locked tokens cannot sell; fallback deadline unlocks without new registrations (9158.963445ms)
+✔ transfer burns 3%, rejects self-transfer, unregistered recipient, and locked amount (9730.826852ms)
+✔ unauthorized auto buy, reserve injection, rebinding, pause and rescue rejected (55.777529ms)
+✔ actual hourly rewards fund auto-buy, no fabricated income (26136.255529ms)
+✔ failed auto execution preserves claim and user can release it as USD (16846.65753ms)
+✔ monthly pool pays only 20% to sole eligible builder, one time (18872.388575ms)
+✔ 3 of 5 council required for emergency pause; timelock is exactly 72 hours (566.600924ms)
+✔ full unlock and complete sell-off pay from real reserve without new inflows (37426.971505ms)
+✔ failed USD transfer leaves beneficiary claim intact and does not affect others (6514.849614ms)
+✔ three approvals cannot bypass timelock delay or replay execution (1033.562095ms)
+✔ EVM integer buy quotes match independent BigInt model (4842.801603ms)
+✔ auto-buy settings freeze during matching so batching cannot change economics (6755.572867ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 205766.988537

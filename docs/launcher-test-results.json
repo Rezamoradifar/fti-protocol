@@ -1,0 +1,9 @@
+{
+  "network": "isolated local Ganache EVM with chain ID 97; no public testnet transactions",
+  "deployment": "six confirmed transactions",
+  "encryptedBackup": "generated",
+  "membership": "one unit",
+  "buy": "confirmed",
+  "pageErrors": [],
+  "horizontalOverflow": false
+}

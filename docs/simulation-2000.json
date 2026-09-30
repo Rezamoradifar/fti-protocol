@@ -1,0 +1,117 @@
+{
+  "seed": 42,
+  "wallets": 2000,
+  "buys": 687,
+  "autoBuys": 48,
+  "sells": 702,
+  "rejected": 0,
+  "externalIn": "754110000000000000000000",
+  "externalOut": "740632342760261773305178",
+  "remainingContract1": "7008720000000000000412",
+  "remainingContract2": "6468937239738226694410",
+  "realSupplyAfterCompleteExit": "0",
+  "invariants": "passed exact BigInt accounting and k inequality",
+  "limitations": "All tokens assumed unlocked for final selloff. Reference is not EVM gas, lock or adversarial governance simulation.",
+  "samples": [
+    {
+      "wallets": 100,
+      "price": 0.12012761741135781,
+      "reserve": 5152.64
+    },
+    {
+      "wallets": 200,
+      "price": 0.14829950824508056,
+      "reserve": 12730.650320309916
+    },
+    {
+      "wallets": 300,
+      "price": 0.17493601484464064,
+      "reserve": 20237.31858766502
+    },
+    {
+      "wallets": 400,
+      "price": 0.20121378569828943,
+      "reserve": 27929.418587665023
+    },
+    {
+      "wallets": 500,
+      "price": 0.22107996717199532,
+      "reserve": 33915.884581473656
+    },
+    {
+      "wallets": 600,
+      "price": 0.24411985813620518,
+      "reserve": 41028.666674067594
+    },
+    {
+      "wallets": 700,
+      "price": 0.2724121812772516,
+      "reserve": 49994.37667406759
+    },
+    {
+      "wallets": 800,
+      "price": 0.29575736486281257,
+      "reserve": 57571.01172563417
+    },
+    {
+      "wallets": 900,
+      "price": 0.31932377416531865,
+      "reserve": 65372.709060154884
+    },
+    {
+      "wallets": 1000,
+      "price": 0.34613815800501013,
+      "reserve": 74426.05448848954
+    },
+    {
+      "wallets": 1100,
+      "price": 0.36084012481829686,
+      "reserve": 79465.74185783073
+    },
+    {
+      "wallets": 1200,
+      "price": 0.3865891026975176,
+      "reserve": 88415.65686684022
+    },
+    {
+      "wallets": 1300,
+      "price": 0.4131476024714703,
+      "reserve": 97804.40815336439
+    },
+    {
+      "wallets": 1400,
+      "price": 0.43434946810146235,
+      "reserve": 105409.11791719653
+    },
+    {
+      "wallets": 1500,
+      "price": 0.4566440323744944,
+      "reserve": 113506.44409458096
+    },
+    {
+      "wallets": 1600,
+      "price": 0.4791002044866015,
+      "reserve": 121763.01492574227
+    },
+    {
+      "wallets": 1700,
+      "price": 0.5023639745827773,
+      "reserve": 130419.14141954549
+    },
+    {
+      "wallets": 1800,
+      "price": 0.5248481918059864,
+      "reserve": 138881.05952064611
+    },
+    {
+      "wallets": 1900,
+      "price": 0.5436539482624685,
+      "reserve": 146028.70431621702
+    },
+    {
+      "wallets": 2000,
+      "price": 0.5650593509859444,
+      "reserve": 154239.88611888574
+    }
+  ]
+}
