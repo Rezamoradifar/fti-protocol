@@ -56,7 +56,7 @@ chown -R fti:fti "$APP"
 runuser -u fti -- env PATH="$PATH" npm ci
 runuser -u fti -- env PATH="$PATH" npm run build:web
 runuser -u fti -- env PATH="$PATH" RPC_URL="${RPC_URL:-https://bsc-testnet.bnbchain.org}" node scripts/migration-preflight.mjs
-(cd landing; runuser -u fti -- env PATH="$PATH" npm ci; runuser -u fti -- env PATH="$PATH" FTI_APP_URL="http://$FTI_PUBLIC_HOST:3080" npm run build)
+(cd landing; runuser -u fti -- env PATH="$PATH" npm ci; runuser -u fti -- env PATH="$PATH" FTI_APP_URL="/app/" npm run build)
 install -d -m 0755 /etc/fti
 python3 - <<'PY'
 import os,pathlib
@@ -86,31 +86,7 @@ ProtectHome=true
 [Install]
 WantedBy=multi-user.target
 UNIT
-cat > /etc/nginx/conf.d/fti-new-server.conf <<'NGINX'
-server {
- listen 3080;
- server_name _;
- client_max_body_size 1m;
- location / {
-  proxy_pass http://127.0.0.1:3081;
-  proxy_http_version 1.1;
-  proxy_set_header Host $http_host;
-  proxy_set_header X-Forwarded-Proto $scheme;
-  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-  proxy_read_timeout 90s;
- }
-}
-server {
- listen 3090;
- server_name _;
- root /opt/fti-protocol/landing/dist;
- index index.html;
- add_header X-Content-Type-Options nosniff always;
- add_header Referrer-Policy no-referrer always;
- location / { try_files $uri $uri/ =404; }
- location ~ /\. { deny all; }
-}
-NGINX
+install -m 0644 ops/nginx/fti-unified.conf /etc/nginx/conf.d/fti-new-server.conf
 # Nginx only needs public frontend files; secret archive stays under /root.
 chmod 0755 /opt /opt/fti-protocol /opt/fti-protocol/landing /opt/fti-protocol/landing/dist
 find /opt/fti-protocol/landing/dist -type d -exec chmod 0755 {} +
@@ -123,6 +99,6 @@ systemctl reload nginx
 if command -v ufw >/dev/null && ufw status | grep -q '^Status: active'; then ufw allow 3080/tcp;ufw allow 3090/tcp;fi
 curl --retry 8 --retry-connrefused --retry-delay 2 --fail --silent --show-error http://127.0.0.1:3080/health
 curl --fail --silent --show-error http://127.0.0.1:3090/ -o /dev/null
-printf '\nApplication: http://%s:3080\nLanding: http://%s:3090\n' "$FTI_PUBLIC_HOST" "$FTI_PUBLIC_HOST"
+printf '\nMember panel: http://%s:3090/app/\nWebsite: http://%s:3090\n' "$FTI_PUBLIC_HOST" "$FTI_PUBLIC_HOST"
 printf 'Existing contracts reused. Private snapshot: /root/fti-migration-restore\n'
 printf 'Keeper/signing services were not activated. See docs/NEW-SERVER.md before cutover.\n'

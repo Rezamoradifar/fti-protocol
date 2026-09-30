@@ -88,3 +88,7 @@ Keep the old service available until new-server checks pass. DNS, HTTPS certific
 Source: https://github.com/Rezamoradifar/fti-protocol
 Landing source: `landing/`
 Experimental contract candidate: `fix/liquidity-safety` (not activated by this installer)
+
+## Unified landing and member panel
+
+The landing and member workspace now share port 3090: `/` for the website and `/app/` for the panel. For an already-installed new server, follow [UNIFIED-WORKSPACE.md](UNIFIED-WORKSPACE.md). Existing contracts and the legacy port 3080 remain in place.

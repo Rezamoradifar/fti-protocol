@@ -13,3 +13,6 @@ deployments/testnet-input.json
 # Rebuilt from frontend sources
 /web/app.js
 /web/app.js.LEGAL.txt
+
+# Local browser QA output
+/qa/

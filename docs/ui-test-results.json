@@ -1,9 +1,19 @@
 {
-  "desktop": "1440x1000",
-  "mobile": "390x844",
-  "buyTransaction": "confirmed on local EVM",
-  "ftiBalance": "96.98119",
-  "horizontalOverflow": false,
-  "pageErrors": [],
-  "events": "loaded from chain"
+  "routing": "Nginx same-origin landing, /app/ and backend asset/API routes verified",
+  "viewport": {
+    "desktop": "1440x1000",
+    "mobile": "390x844"
+  },
+  "registration": "confirmed",
+  "addUnits": "confirmed",
+  "buy": "confirmed",
+  "lockedSale": "disabled with explanation",
+  "sell": "confirmed after local-only unlock",
+  "transfer": "confirmed",
+  "autoPreference": "saved",
+  "rewardClaim": "confirmed",
+  "governanceProposal": "confirmed by council owner",
+  "navigation": "six pages, no mobile overflow, deep link reload passed",
+  "activity": "loaded; service-error and retry verified",
+  "pageErrors": []
 }
