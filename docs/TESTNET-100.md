@@ -1,0 +1,13 @@
+# 100-user testnet run
+
+This is a sequential contract integration test with 100 separate wallets, not a concurrent web load test. It requires the existing deployment, artifacts, Node 22+ and a test-only funder with tBNB. Only chain 97 and MockUSD symbol tUSD are accepted. It does not redeploy contracts.
+
+Read-only preflight: `node scripts/testnet-100.mjs`.
+
+Transaction run: set `TEST_PRIVATE_KEY` privately in the shell and run `node scripts/testnet-100.mjs --write`. The key is never printed. It creates a separate set of 100 wallets, registers each for one unit, buys 10 test USD of FTI per user, checks binary placement and accounting, checks locked-sale rejection, processes volume and due settlement and claims available rewards. A complete run requires hundreds of transactions and may take a long time on a public RPC. Do not launch multiple copies.
+
+The default cumulative budget is 0.25 tBNB. Accounting conservatively reserves estimated fee caps plus native transfers, including both helper-wallet funding and helper transaction costs. Therefore it may stop before actual spending reaches that amount. It funds helpers only as needed. No real USD/USDT is required. `TEST_BUDGET_TBNB` can explicitly set a limit up to 1 tBNB; never increase it without inspecting the previous output and remaining balance. Gas estimates above 0.003 tBNB per transaction stop the run.
+
+Progress and secret wallet keys are stored outside the repo in `~/.fti-testnet-100/<binary-address>.json` with owner-only file permissions. Preserve this file; never publish it. A separate `-report.json` contains public summary results. The signed pending transaction is journaled before broadcast; rerunning checks/rebroadcasts the same transaction instead of blindly issuing another purchase. Use the same funder and command to resume after an interruption. If abruptly killed, a `.lock` file can remain: first confirm no test process is running, then remove only that exact `.lock`, never the JSON journal.
+
+The test uses real testnet time. If the epoch is still open, rerun after the reported UTC end to settle and claim. Successful unlocked selling/transfers, builder-month payments, governance actions and browser load are not exercised by this script. A passing registration/purchase run must not be described as a completed unlock or rewards test. Existing global permissionless settlement queues may be processed as part of the run.
