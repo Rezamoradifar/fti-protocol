@@ -20,3 +20,5 @@ deployments/testnet-input.json
 # Separate reserve-token test deployments
 deployments/local-reserve.json
 deployments/reserve-testnet*.json
+deployments/local-funded.json
+deployments/funded-testnet*.json

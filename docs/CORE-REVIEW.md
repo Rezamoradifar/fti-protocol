@@ -1,5 +1,7 @@
 # Contract core review and auto-buy protection candidate
 
+**Historical report:** this document records the earlier auto-buy candidate and legacy economic findings. The separate `FundedBinaryPlan` candidate addresses specific findings through a materially changed compensation policy; see [FUNDED-PLAN](FUNDED-PLAN.md). The results below are not a validation report for that newer implementation.
+
 Date: 2026-10-01 UTC. Baseline main commit: `2e1507f6405544815a0f3534426f684c5654b1de`.
 
 This branch implements three focused protections in `BinaryPlan.executeAuto` and adds local EVM evidence. It is a review candidate, not a deployment or an independent security audit. The economic findings below remain open. No production-safety score or guarantee follows from passing tests.

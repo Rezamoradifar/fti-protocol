@@ -1,5 +1,7 @@
 # FTI Protocol
 
+**New funded-plan candidate:** `FundedBinaryPlan` fixes unrelated carried-pool capture with source-attributed credits and a hard 20 USD/point ceiling. This materially changes compensation: unused amounts are protected, nonclaimable reserves. The token now supports more than 64 live lock tranches and the keeper uses sparse queues. Read [FUNDED-PLAN](docs/FUNDED-PLAN.md) and its validation record. `npm run demo:funded` runs a separate private demo on **3083**. No existing testnet contract or live service has been replaced.
+
 **New real-reserve candidate:** `FTIReserveToken` implements 3% buy/sell fees, a 3% transfer burn and an internally nondecreasing reserve/share price with a funded permanent anchor. Read [RESERVE-TOKEN](docs/RESERVE-TOKEN.md) for the proof, 100-user EVM tests, 300,000-wallet arithmetic simulation, exact limitations and separate deployment commands. Start it with `npm run demo:reserve` on private port **3082**. The existing public deployment remains the legacy curve model; the instructions below continue to describe that model unless marked otherwise.
 
 Complete independent **local / BNB Testnet** development package: binary rewards, FTI curve token, 3-of-5 governance, 72-hour timelock, English web panel, browser-signed deployment launcher, settlement keeper, reference simulator and EVM tests.

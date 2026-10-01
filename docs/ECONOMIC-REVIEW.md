@@ -1,5 +1,7 @@
 # Binary plan, token and anti-Sybil economic review
 
+**Historical legacy diagnosis:** the findings below describe the old global-pool binary plan and curve token. The separate attributed-credit and real-reserve candidate is described in [FUNDED-PLAN](FUNDED-PLAN.md). Legacy diagnostic tests remain intentionally reproducible; they do not run the new reward model.
+
 Review date: 2026-09-30 UTC; revalidated on the contract-core candidate on 2026-10-01 UTC. Baseline: main 2e1507f6405544815a0f3534426f684c5654b1de. The contract-core candidate changes auto-buy execution but leaves reward allocation and the token curve unchanged. The three local diagnostic scenarios below are included in this branch. Findings are not an independent audit or a safety certification. See CORE-REVIEW.md for the new fixes and the distinction between diagnostic and regression tests.
 
 ## Definition and result

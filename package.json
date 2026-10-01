@@ -22,7 +22,10 @@
     "predemo": "npm run build:web",
     "demo:reserve": "npm run build:web && npm run compile && node scripts/local.mjs --reserve-token",
     "test:reserve": "npm run compile && node --test --test-concurrency=1 test/reserve-*.test.mjs",
-    "simulate:reserve": "node scripts/simulate-reserve.mjs 300000 docs/reserve-simulation-300000.json"
+    "simulate:reserve": "node scripts/simulate-reserve.mjs 300000 docs/reserve-simulation-300000.json",
+    "demo:funded": "npm run build:web && npm run compile && node scripts/local.mjs --funded-plan",
+    "test:funded": "npm run compile && node --test --test-concurrency=1 test/funded-*.test.mjs",
+    "simulate:funded": "node scripts/simulate-funded.mjs 300000 docs/funded-simulation-300000.json"
   },
   "keywords": [],
   "author": "",

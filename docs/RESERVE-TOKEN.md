@@ -1,5 +1,7 @@
 # Real-reserve FTI candidate
 
+**Version note:** this report records PR #3 / `feat/reserve-token`. In the later `fix/funded-binary` candidate, the token uses paginated cumulative lock queues (no 64-live-lock ceiling), and an optional new `FundedBinaryPlan` changes the reward policy. See [FUNDED-PLAN](FUNDED-PLAN.md) for that implementation and its separate validation. The historical statements and results below describe the earlier candidate.
+
 This branch implements the owner's requested **3% buy fee, 3% sell fee and 3% transfer burn**, with an exact reserve/share value that increases after each successful positive trade or transfer. It is a new token model and a separate deployment, not an upgrade to the already deployed CRR token. It includes the auto-buy fixes from pull request #2.
 
 The implementation is in `contracts/FTIReserveToken.sol`. The existing `FTIToken.sol`, public contract addresses and live website deployment have not been replaced. The existing binary reward economics have not been redesigned.

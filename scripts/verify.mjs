@@ -5,9 +5,11 @@ import {AbiCoder,JsonRpcProvider,Contract,isAddress} from 'ethers';
 // Source verification only. Never signs or deploys transactions.
 const deploymentPath=process.env.DEPLOYMENT_FILE||'deployments/testnet.json';
 const d=fs.existsSync(deploymentPath)?JSON.parse(fs.readFileSync(deploymentPath,'utf8')):null;
-const tokenContract=process.argv.includes('--reserve-token')?'FTIReserveToken':(d?.tokenContract||'FTIToken');
+const tokenContract=(process.argv.includes('--reserve-token')||process.argv.includes('--funded-plan'))?'FTIReserveToken':(d?.tokenContract||'FTIToken');
 if(!['FTIToken','FTIReserveToken'].includes(tokenContract))throw Error('Unknown token model');
-const names=['MockUSD','Council','FTITimelock',tokenContract,'BinaryPlan'];
+const binaryContract=process.argv.includes('--funded-plan')?'FundedBinaryPlan':(d?.binaryContract||'BinaryPlan');
+if(!['BinaryPlan','FundedBinaryPlan'].includes(binaryContract))throw Error('Unknown reward model');
+const names=['MockUSD','Council','FTITimelock',tokenContract,binaryContract];
 const sources=Object.fromEntries(fs.readdirSync('contracts').filter(f=>f.endsWith('.sol')).map(f=>[f,{content:fs.readFileSync('contracts/'+f,'utf8')}]));
 const settings={optimizer:{enabled:true,runs:200},viaIR:true,evmVersion:'shanghai',outputSelection:{'*':{'*':['abi','evm.bytecode.object']}}};
 function check(r){const e=(r.errors||[]).filter(e=>e.severity==='error');if(e.length)throw Error(e.map(e=>e.formattedMessage).join('\n'));}
@@ -39,7 +41,7 @@ try{
  const owners=[];for(let i=0;i<5;i++)owners.push(await council.owners(i));
  const genesis=[];for(let i=0;i<31;i++)genesis.push(await binary.memberList(i));
  const dev=await binary.development(),coder=AbiCoder.defaultAbiCoder();
- const jobs=[['MockUSD','usd',[],[]],['Council','council',['address[5]'],[owners]],['FTITimelock','timelock',['address'],[d.council]],[tokenContract,'token',['address','address','address'],[d.usd,d.timelock,d.council]],['BinaryPlan','binary',['address','address','address','address','address','address[31]'],[d.usd,d.token,d.timelock,d.council,dev,genesis]]];
+ const jobs=[['MockUSD','usd',[],[]],['Council','council',['address[5]'],[owners]],['FTITimelock','timelock',['address'],[d.council]],[tokenContract,'token',['address','address','address'],[d.usd,d.timelock,d.council]],[binaryContract,'binary',['address','address','address','address','address','address[31]'],[d.usd,d.token,d.timelock,d.council,dev,genesis]]];
  let failed=false;
  for(const[name,key,types,args]of jobs){
   const encoded=coder.encode(types,args).slice(2);fs.writeFileSync(`${dir}/${name}-constructor.txt`,encoded);
