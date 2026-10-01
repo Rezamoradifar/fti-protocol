@@ -1,0 +1,24 @@
+{
+  "routes": [
+    "/",
+    "/app/",
+    "/token/",
+    "/admin/",
+    "/app.js",
+    "/style.css",
+    "/health",
+    "/api/config",
+    "/api/state",
+    "/api/events",
+    "/abi/FTIReserveToken"
+  ],
+  "model": "FTIReserveToken",
+  "rewardModel": "attributed-credit-v1",
+  "lockPagination": "passed",
+  "accounting": "balanced",
+  "supplySeparation": "passed",
+  "unapprovedRpcMutation": "rejected",
+  "chainId": 31337,
+  "price": "20100000000000000000",
+  "scope": "HTTP/API smoke on actual fresh local reserve deployment. Not browser rendering."
+}

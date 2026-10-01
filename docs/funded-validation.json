@@ -1,0 +1,331 @@
+{
+  "reviewDateUTC": "2026-10-01",
+  "parentCommit": "eed4b17fbe0c0820b159dde6450d3f57c14c819c",
+  "branch": "fix/funded-binary",
+  "candidate": "FundedBinaryPlan / ATTRIBUTED_CREDIT_V1 + FTIReserveToken lockVersion 2",
+  "status": "Local review candidate only; not merged, publicly deployed, independently audited or certified 100/100",
+  "environment": {
+    "node": "v24.19.0",
+    "evm": "Ganache 7.9.2; JavaScript transport fallback",
+    "chainId": 31337
+  },
+  "testRuns": [
+    {
+      "name": "funded-economics",
+      "command": "node --test --test-concurrency=1 test/funded-economics.test.mjs",
+      "scope": "FundedBinaryPlan economics; before final independent token uint64/order guards, which are covered in the final lock and token suites.",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMilliseconds": 407172.462907
+    },
+    {
+      "name": "funded-collateral-keeper",
+      "command": "node --test --test-concurrency=1 test/funded-collateral.test.mjs test/funded-keeper.test.mjs",
+      "scope": "Funded collateral and keeper behavior.",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMilliseconds": 23151.032134
+    },
+    {
+      "name": "funded-locks",
+      "command": "node --test --test-concurrency=1 test/funded-locks.test.mjs",
+      "scope": "Final token source; test-only monotone clock fixture. Corrected deterministic Ganache timestamp harness.",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMilliseconds": 277309.55214
+    },
+    {
+      "name": "funded-reference",
+      "command": "node --test --test-concurrency=1 test/funded-reference.test.mjs",
+      "scope": "Independent credit-ledger parity with EVM over two epochs; monthly/depth model.",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMilliseconds": 50710.185732
+    },
+    {
+      "name": "funded-100-users",
+      "command": "node --test --test-concurrency=1 test/funded-load.test.mjs",
+      "scope": "New binary + final token; 31 active genesis accounts, 100 real EVM registrations/buys/sales; local time advancement.",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMilliseconds": 906279.186484
+    },
+    {
+      "name": "reserve-token-final",
+      "command": "node --test --test-concurrency=1 test/reserve-token.test.mjs test/reserve-collateral.test.mjs",
+      "scope": "Final token; 17 exact-fee, liquidity and hostile-collateral regressions.",
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMilliseconds": 120102.025896
+    },
+    {
+      "name": "reserve-reference",
+      "command": "node --test test/reserve-model.test.mjs",
+      "scope": "300k token arithmetic simulation plus rounding tests; not EVM throughput.",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMilliseconds": 3127.871732
+    },
+    {
+      "name": "legacy-regression",
+      "command": "node --test --test-concurrency=1 test/core-*.test.mjs test/economic-adversary.test.mjs test/event-*.test.mjs test/journey-sale.test.mjs test/math.test.mjs test/migration.test.mjs test/protocol.test.mjs",
+      "scope": "Includes legacy diagnostics that pass when a legacy weakness is reproduced. Legacy BinaryPlan and FTIToken are unchanged by this patch.",
+      "tests": 46,
+      "pass": 46,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMilliseconds": 647753.920103
+    }
+  ],
+  "totalPassingTests": 88,
+  "scopeNote": "Targeted suites run in separate batches. This is not a claim of a single full npm test run. The older reserve-load test was not repeated; funded-load tests the final token with the new binary instead.",
+  "carriedPoolRegression": {
+    "groupCost": "500",
+    "legacyReward": "9450",
+    "newReward": "40.0",
+    "unrelatedCarry": "9000",
+    "carryCaptured": "0"
+  },
+  "lockQueue80": {
+    "liveCheckpoints": 80,
+    "lockedReadGas": "58742",
+    "fullExit": true
+  },
+  "mixedLocks": {
+    "issuedTranches": 265,
+    "clockBoundaries": 6,
+    "timeDeadline": "unchanged",
+    "clockSource": "test-only monotone clock harness"
+  },
+  "hundredUsersEVM": {
+    "registered": 100,
+    "activatedGenesis": 31,
+    "pointRewardClaimed": "100.0",
+    "buys": 100,
+    "transfers": 20,
+    "sells": 100,
+    "checks": 321,
+    "usdIn": "1785.0",
+    "usdOut": "1731.770755166550776786",
+    "priceAfterBuys": "13.623101590623097015",
+    "finalPrice": "14.164584896668984464",
+    "anchorReserve": "708.229244833449223214",
+    "finalCirculating": "0"
+  },
+  "whaleEVM": {
+    "usdIn": "50000.0",
+    "usdOut": "48485.006121824303642484",
+    "feeBps": "300",
+    "finalPrice": "40.39987756351392715"
+  },
+  "threeHundredThousandFundedWallets": {
+    "model": "attributed-credit-v1",
+    "kind": "BigInt accounting simulation; NOT EVM or public-testnet load",
+    "newWallets": 300000,
+    "genesis": 31,
+    "paidGenesis": 31,
+    "epochs": 60,
+    "months": 6,
+    "maxDepth": 18,
+    "ancestorVisits": 4876290,
+    "sparseEpochVisits": 298228,
+    "legacyTwoPassScanVisits": 18303720,
+    "monthlyAccountVisits": 275059,
+    "membershipInflow": "90003100.000000000000000000",
+    "pointRewardsAllocated": "11620329.239827015844901673",
+    "builderRewardsAllocated": "563626.103859539152668752",
+    "retainedPointReserve": "65285716.890071833696152808",
+    "retainedBuilderReserve": "3036497.896140460847331248",
+    "unmatchedPointCredits": "4096743.870101150458945519",
+    "unclosedBuilderCredits": "0.000000000000000000",
+    "developmentAllocation": "900031.000000000000000000",
+    "tokenReserveSupport": "4500155.000000000000000000",
+    "assertions": {
+      "nonnegative": true,
+      "pointPartition": true,
+      "builderPartition": true,
+      "globalCashConservation": true,
+      "perWalletLedgerReconciliation": true
+    },
+    "durationSeconds": 8.4,
+    "exclusions": [
+      "On-chain gas throughput",
+      "300k concurrent users",
+      "Adversarial public RPC",
+      "Token trading (separate reserve simulation)",
+      "Calendar automation",
+      "Individual identity / Sybil prevention"
+    ]
+  },
+  "threeHundredThousandTokenWallets": {
+    "wallets": 300000,
+    "buys": 300000,
+    "sells": 399999,
+    "transfers": 59999,
+    "checks": 1059998,
+    "limitedOrderHalvings": 34,
+    "largestBuyUSDWei": "500000000000000000000000",
+    "largestSaleUSDWei": "488390936825971763090172",
+    "priceBeforeFinalExitWad": "217329965857807312",
+    "finalPriceWad": "450744564901253179",
+    "cashInUSDWei": "86705773000000000000000000",
+    "cashOutUSDWei": "86705750462771754937341012",
+    "finalReserveUSDWei": "22537228245062658988",
+    "finalCirculatingSupply": "0",
+    "nonRedeemableAnchorShares": "50000000000000000000",
+    "allUserTokensSold": true,
+    "negativePriceTransitions": 0,
+    "unfundedPayouts": 0,
+    "scope": "BigInt arithmetic simulation; all user locks assumed mature. Not a 300k-account EVM/RPC throughput or binary-settlement load test."
+  },
+  "httpSmoke": {
+    "routes": [
+      "/",
+      "/app/",
+      "/token/",
+      "/admin/",
+      "/app.js",
+      "/style.css",
+      "/health",
+      "/api/config",
+      "/api/state",
+      "/api/events",
+      "/abi/FTIReserveToken"
+    ],
+    "model": "FTIReserveToken",
+    "rewardModel": "attributed-credit-v1",
+    "lockPagination": "passed",
+    "accounting": "balanced",
+    "supplySeparation": "passed",
+    "unapprovedRpcMutation": "rejected",
+    "chainId": 31337,
+    "price": "20100000000000000000",
+    "scope": "HTTP/API smoke on actual fresh local reserve deployment. Not browser rendering."
+  },
+  "webBuild": "PASSED npm run build:web",
+  "verificationInput": "PASSED --prepare --funded-plan: all five creation bytecodes match. Not explorer verification.",
+  "browserJourney": "NOT RUN: Chromium unavailable. Build and API tests do not prove rendering or wallet clicks.",
+  "dependencyAudit": {
+    "productionOnly": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "fullDevelopmentToolchain": {
+      "info": 0,
+      "low": 1,
+      "moderate": 1,
+      "high": 6,
+      "critical": 1,
+      "total": 9
+    }
+  },
+  "artifacts": {
+    "FundedBinaryPlan": {
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "225ed638aa4e8d8cd8fc261165a4b148720f2746e4bfaa9a6f982132ded19b7e",
+      "runtimeBytes": 20422
+    },
+    "FTIReserveToken": {
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "26a64b553a017282383eb4d9aa807bd9e65d682cb78dc928a8d8a4bb5dad08fd",
+      "runtimeBytes": 15440
+    },
+    "BinaryPlan": {
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "4306b70c8a55a693dbfd1dbb8ae0dc34d1b4c4e118cc78787dd8d43c8d5b9f48",
+      "runtimeBytes": 15106
+    },
+    "FTIToken": {
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "a84f96d600e1ca7ee912ca185a2fc5c0a9708d44d52810c9924bcff7cd32c2a5",
+      "runtimeBytes": 13427
+    },
+    "MockUSD": {
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "73890c1ec514ed52729d451d6daa26150cffc28dd3cbc0e577e812414de37a5c",
+      "runtimeBytes": 1994
+    },
+    "Council": {
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "bcf3faeb80f3cda84075b8f4e2a17f1fc24662ecc91868c3205c73b3fc937fb2",
+      "runtimeBytes": 2893
+    },
+    "FTITimelock": {
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "2d53fb12dd104e509852c019ea114d86104a0bfa4321a0225fb35c707ddde3e0",
+      "runtimeBytes": 5450
+    }
+  },
+  "sourceSHA256": {
+    "contracts/FTIReserveToken.sol": "d70bd51fb3c27d95d6beaae981282f142dff7957a6a097668c2305ba013b6a71",
+    "contracts/FundedBinaryPlan.sol": "6913e44666cadb2ed23e735c24edf10756233d809ec8dd7f79dca9199c16d040",
+    "core/funded-reference.mjs": "9b078d850ace2d428dd30dfb61cd519b85ad19a2d2544a970ee50bef4c6dcb41",
+    "frontend/controller.js": "d510f16ffc68ece22aedca1a7f84cf63aa3fc56e061d94312ad1b40e5cebcfe4",
+    "frontend/main.jsx": "7eb56523502a6f976f149adcf6f5cc878656cb3f89e884d6c42a0306dce7178b",
+    "package.json": "94827138383e1b8838f139eb9fbc0fbed0d3c30f4801ae621085050737d0f130",
+    "scripts/deploy-reserve.mjs": "e53100af06195aa9dd569b4e3af27ff61ab9ba9b39f94ac47823dca99131e139",
+    "scripts/keeper.mjs": "f55e889ebdaa8ae8dad52e0c2a5f6013ca33cb40d8d1217203af30a75e2d1c66",
+    "scripts/lib.mjs": "039af868cb631f6024d56159e80d087823dc9fc452c617800fe5ba7871247552",
+    "scripts/local.mjs": "2fa5e6167c59dcd04a22f4fd56c7f54c9644cf59878b72360ea9d1bd0a00041e",
+    "scripts/reserve-http-smoke.mjs": "a7880e2c408a2ad2c9209335b7933e27e368ecb802aaf873d5c108df0cb16b7a",
+    "scripts/server.mjs": "023fd212f3f6f15684695349412576dd2c8d065c65a82a4e3b5a13460e5b4b64",
+    "scripts/simulate-funded.mjs": "ba29e7d3a8010642ba49c6e2c1750177cb694f397adcef568244790ab01b8132",
+    "scripts/verify.mjs": "61010a2118936b799191a8b7df045e78ddf85e0e753db8aba0d73ccae0dc0271",
+    "test/fixtures/ClockReserveToken.sol": "2c920fa4eefd18d5f18dccc00eff1caa5fb6e429eff95bfaf828b452fb0be333",
+    "test/funded-collateral.test.mjs": "e4c218d62d676bb4c835111f3ea6863ef0039b8f31ad3727d0be2aa01d294788",
+    "test/funded-economics.test.mjs": "f623bd5a59fdc57070902b577c71538573a831387b608e4960a5c398b10dd00b",
+    "test/funded-keeper.test.mjs": "d395d6fa4c5b3265dabaafd02c9b2190d1301e1548e9931403f8372e1b24f631",
+    "test/funded-load.test.mjs": "73b62fa7e94a52e850e19ad63b67dabfb9ff57ced4fc74a5154593403920fa4e",
+    "test/funded-locks.test.mjs": "fdb433778de368ff1dcff4f189e1b89c57e394028e4582feeb1b43872d4def69",
+    "test/funded-reference.test.mjs": "46941deca20af2ab5c276d4c73347e7ccfa9e6b61f8bbcea110c51c9dc7df551"
+  },
+  "materialEconomicChanges": [
+    "Reward funding is attributed only to active ancestors at purchase serial.",
+    "Maximum 20 USD per paid point; old global equal-PV allocation is replaced.",
+    "Unused point and builder funding is permanently protected, nonclaimable reserve; it is not a principal refund or a new reward pot.",
+    "Builder rewards use attributed current-month credit and no unrelated old carry.",
+    "Maximum tree depth 64."
+  ],
+  "openWork": [
+    "Independent security and economic review; this is not a safety guarantee.",
+    "Nine development/toolchain dependency findings remain open; production dependency audit reports zero.",
+    "Actual 300k-member EVM/gas/RPC/hourly settlement capacity has NOT been established; deposits still wait while settlement is overdue.",
+    "Browser wallet click-through and public-testnet operations for this candidate are untested.",
+    "Existing immutable contracts need separate deployment and an explicit migration policy; no live configuration was changed.",
+    "Exact-transfer, non-rebasing collateral and network/keeper availability remain assumptions; Sybil identity is not solved."
+  ]
+}
