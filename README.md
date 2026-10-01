@@ -1,5 +1,7 @@
 # FTI Protocol
 
+**New real-reserve candidate:** `FTIReserveToken` implements 3% buy/sell fees, a 3% transfer burn and an internally nondecreasing reserve/share price with a funded permanent anchor. Read [RESERVE-TOKEN](docs/RESERVE-TOKEN.md) for the proof, 100-user EVM tests, 300,000-wallet arithmetic simulation, exact limitations and separate deployment commands. Start it with `npm run demo:reserve` on private port **3082**. The existing public deployment remains the legacy curve model; the instructions below continue to describe that model unless marked otherwise.
+
 Complete independent **local / BNB Testnet** development package: binary rewards, FTI curve token, 3-of-5 governance, 72-hour timelock, English web panel, browser-signed deployment launcher, settlement keeper, reference simulator and EVM tests.
 
 **Not independently audited. Mainnet deployment is disabled. Test USD has no dollar value.** Economic interpretations and changes from the supplied specification are recorded in [DECISIONS](docs/DECISIONS.md).

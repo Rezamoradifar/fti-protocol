@@ -3,7 +3,11 @@ import path from 'node:path';
 import solc from 'solc';
 import {AbiCoder,JsonRpcProvider,Contract,isAddress} from 'ethers';
 // Source verification only. Never signs or deploys transactions.
-const names=['MockUSD','Council','FTITimelock','FTIToken','BinaryPlan'];
+const deploymentPath=process.env.DEPLOYMENT_FILE||'deployments/testnet.json';
+const d=fs.existsSync(deploymentPath)?JSON.parse(fs.readFileSync(deploymentPath,'utf8')):null;
+const tokenContract=process.argv.includes('--reserve-token')?'FTIReserveToken':(d?.tokenContract||'FTIToken');
+if(!['FTIToken','FTIReserveToken'].includes(tokenContract))throw Error('Unknown token model');
+const names=['MockUSD','Council','FTITimelock',tokenContract,'BinaryPlan'];
 const sources=Object.fromEntries(fs.readdirSync('contracts').filter(f=>f.endsWith('.sol')).map(f=>[f,{content:fs.readFileSync('contracts/'+f,'utf8')}]));
 const settings={optimizer:{enabled:true,runs:200},viaIR:true,evmVersion:'shanghai',outputSelection:{'*':{'*':['abi','evm.bytecode.object']}}};
 function check(r){const e=(r.errors||[]).filter(e=>e.severity==='error');if(e.length)throw Error(e.map(e=>e.formattedMessage).join('\n'));}
@@ -17,7 +21,7 @@ const dir='artifacts/verification';fs.mkdirSync(dir,{recursive:true});fs.writeFi
 console.log('All five creation bytecodes match saved artifacts.');
 if(process.argv.includes('--prepare'))process.exit(0);
 if(!process.env.ETHERSCAN_API_KEY)throw Error('Set ETHERSCAN_API_KEY locally. No wallet private key is needed.');
-const d=JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_FILE||'deployments/testnet.json','utf8'));
+if(!d)throw Error('Deployment file is required for explorer verification');
 if(d.chainId!==97)throw Error('Only BNB Testnet chain 97 is supported');
 for(const key of ['usd','council','timelock','token','binary'])if(!isAddress(d[key]))throw Error('Invalid address: '+key);
 const provider=new JsonRpcProvider(process.env.RPC_URL||'https://bsc-testnet.bnbchain.org');
@@ -35,7 +39,7 @@ try{
  const owners=[];for(let i=0;i<5;i++)owners.push(await council.owners(i));
  const genesis=[];for(let i=0;i<31;i++)genesis.push(await binary.memberList(i));
  const dev=await binary.development(),coder=AbiCoder.defaultAbiCoder();
- const jobs=[['MockUSD','usd',[],[]],['Council','council',['address[5]'],[owners]],['FTITimelock','timelock',['address'],[d.council]],['FTIToken','token',['address','address','address'],[d.usd,d.timelock,d.council]],['BinaryPlan','binary',['address','address','address','address','address','address[31]'],[d.usd,d.token,d.timelock,d.council,dev,genesis]]];
+ const jobs=[['MockUSD','usd',[],[]],['Council','council',['address[5]'],[owners]],['FTITimelock','timelock',['address'],[d.council]],[tokenContract,'token',['address','address','address'],[d.usd,d.timelock,d.council]],['BinaryPlan','binary',['address','address','address','address','address','address[31]'],[d.usd,d.token,d.timelock,d.council,dev,genesis]]];
  let failed=false;
  for(const[name,key,types,args]of jobs){
   const encoded=coder.encode(types,args).slice(2);fs.writeFileSync(`${dir}/${name}-constructor.txt`,encoded);

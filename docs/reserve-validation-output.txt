@@ -1,0 +1,244 @@
+=== reserve-focused ===
+$ node --test --test-concurrency=1 test/reserve-token.test.mjs
+First 12 cases; the subsequently added whale case was run separately.
+
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ reserve bootstrap is paid by the first membership allocation, never virtual collateral (5013.270672ms)
+RESERVE_ROUND_TRIP {"initialPrice":"0.1","afterBuy":"0.102941176470588235","afterSale":"0.162852941176470588","usdIn":"100","usdOut":"96.857352941176470587","finalCirculating":"0"}
+✔ buy and full sale both increase actual reserve/share price; payouts are real (4145.757598ms)
+✔ a new purchase after complete circulation exit cannot reset or lower the price (4922.89279ms)
+✔ subsequent membership allocations increase real backing without issuing anchor or user shares (6553.234369ms)
+✔ unlocked transfers and transferFrom burn shares and raise the price without reserve withdrawal (7550.077815ms)
+✔ zero/dust operations cannot create shares or round fees away (5322.018988ms)
+✔ direct collateral donations do not change quotes or dilute a later depositor (3563.737238ms)
+✔ min output, expiry, allowance, registration and maturity still reject atomically (3643.191734ms)
+✔ a failed collateral payout restores burned tokens and the entire reserve (5149.981637ms)
+✔ anchor shares and accounted collateral cannot be withdrawn by administrative rescue (2102.258112ms)
+✔ real binary rewards execute through the protected auto-buy flow and raise price (13094.19121ms)
+✔ splitting a full exit preserves growth at every fill and cannot profit from a closed own-funded cycle (19881.544477ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 81648.668905
+
+=== reserve-whale ===
+$ node --test --test-name-pattern="50,000 USD" test/reserve-token.test.mjs
+Large EVM transaction and independent quote parity.
+
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+RESERVE_WHALE {"usdIn":"50000.0","usdOut":"48485.006121824303642484","feeBps":"300","finalPrice":"40.39987756351392715"}
+✔ a 50,000 USD purchase and full whale exit retain the fixed fee, backed payout and prior peak (10286.52708ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10989.259326
+
+=== reserve-adversarial-and-100-users ===
+$ node --test --test-concurrency=1 test/reserve-collateral.test.mjs test/reserve-load.test.mjs
+Four collateral tests and the 100-user EVM journey.
+
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ fees taken from either collateral sender or recipient are rejected on buys and sells (7841.810527ms)
+✔ a collateral callback cannot burn/transfer approved FTI during a priced purchase (1555.846169ms)
+✔ a collateral deficit blocks trades instead of minting or paying against missing assets (376.770308ms)
+✔ pause blocks trades, and rescue cannot remove collateral or locked anchor shares (1387.446861ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+RESERVE_100_USERS {"registered":100,"buys":100,"transfers":20,"sells":100,"checks":321,"usdIn":"1785.0","usdOut":"1737.777354950169702846","priceAfterBuys":"10.462080286565110464","finalPrice":"10.944452900996605943","anchorReserve":"547.222645049830297154","finalCirculating":"0"}
+✔ 100 registered users buy, transfer and exit with exact price growth and funded payouts (495418.546447ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 508464.413537
+
+=== reserve-reference ===
+$ node --test test/reserve-model.test.mjs
+300,000-wallet model plus integer magnitude/rounding checks.
+
+RESERVE_MODEL_300K {"wallets":300000,"buys":300000,"sells":399999,"transfers":59999,"checks":1059998,"limitedOrderHalvings":34,"largestBuyUSDWei":"500000000000000000000000","largestSaleUSDWei":"488390936825971763090172","priceBeforeFinalExitWad":"217329965857807312","finalPriceWad":"450744564901253179","cashInUSDWei":"86705773000000000000000000","cashOutUSDWei":"86705750462771754937341012","finalReserveUSDWei":"22537228245062658988","finalCirculatingSupply":"0","nonRedeemableAnchorShares":"50000000000000000000","allUserTokensSold":true,"negativePriceTransitions":0,"unfundedPayouts":0,"scope":"BigInt arithmetic simulation; all user locks assumed mature. Not a 300k-account EVM/RPC throughput or binary-settlement load test."}
+✔ independent reserve arithmetic keeps price increasing across 300,000 wallets and a complete exit (2861.023036ms)
+✔ integer rounding and share-price proofs cover small and very large magnitudes (1.064751ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3009.087805
+
+=== legacy-regression ===
+$ node --test --test-concurrency=1 test/core-autobuy.test.mjs test/core-solvency.test.mjs test/economic-adversary.test.mjs test/event-reader.test.mjs test/event-server.test.mjs test/journey-sale.test.mjs test/math.test.mjs test/migration.test.mjs test/protocol.test.mjs
+Includes economic diagnostics that PASS when an unresolved weakness is reproduced.
+
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ a stranger cannot fragment a beneficiary pending reward into dust locks (19513.677825ms)
+✔ the beneficiary may intentionally choose a partial auto purchase (10339.48276ms)
+✔ an unrelated keeper can execute the complete pending amount only for its owner (9328.78701ms)
+✔ disabling auto-buy revokes keeper execution and preserves cash release (394.808986ms)
+✔ a maximum above spot but below the fee-inclusive execution price rejects atomically (2056.835014ms)
+✔ exact integer maximum price boundary rejects one wei below and accepts at the ceiling (11847.431009ms)
+✔ a failed collateral transfer restores pending balances and all token state (15596.509267ms)
+✔ release cannot be repeated to create cash or leave an executable stale auto balance (488.599165ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+EXACT_EVM_INVARIANT_CHECKS 72 mixed sales 14 transfers 10
+✔ seeded mixed trades, burns and full exit preserve exact integer reserve coverage (217464.977176ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ economic baseline: a self-funded three-wallet tree recovers 450 of 500 USD without outside pool (10202.13506ms)
+CONFIRMED carried-pool capture: group cost=500, payout=9450, group net=8950 test USD before gas; no accounting insolvency
+✔ economic finding: a 500 USD self-controlled subtree captures 9450 USD from an unmatched carried pool (9869.370748ms)
+CONFIRMED sale splitting: {"wholeFeeBps":"870","wholeNet":"354.243999999999888935","splitNet":"376.546718234653758065"}
+✔ economic finding: splitting the same unlocked balance lowers whale fees and raises proceeds (13795.916591ms)
+✔ event pagination splits rejected ranges and returns ordered actual events (1.620468ms)
+✔ per-block failure and exhausted request budget fail instead of empty success (0.650689ms)
+✔ cache-independent empty logs remain a genuine empty success (0.8671ms)
+FTI testnet: http://127.0.0.1:0
+FTI testnet: http://127.0.0.1:0
+✔ separate event RPC validates network and caches successful results (125.274013ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+SALE_FLOW_PASS {
+  status: 'PASS',
+  sold: '96981187474179000000',
+  receivedUSD: '9408999999999824891'
+}
+✔ registered user buys, locked sale waits, unlocked sale pays USD, second sale waits (11280.874849ms)
+✔ document matching example exact (2.340674ms)
+✔ builder equal share, 20% cap and dust for zero through 20 eligible (0.535583ms)
+✔ curve rounding never creates a negative reserve or lowers exact k (28.530333ms)
+✔ integrated 500 members conserve all cash through settlement, auto-buy, monthly payouts and total exit (26.731294ms)
+✔ private migration retains journals and secrets, excludes dependencies, rejects traversal (353.142271ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/scratch/5db1ba069bbf/fti-liquidity/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ 31 unique Genesis positions contain no artificial cash, units or tokens (2674.6386ms)
+✔ 100 USDT is exactly split 90/5/4/1 without FTI mint (2084.3683ms)
+✔ automatic left/right placement; third direct, duplicate and invalid sponsor rejected (4315.266648ms)
+✔ bounded ancestor propagation includes every ancestor once (2036.950069ms)
+✔ cumulative minimum: 3 then 2 units settles and conserves carried pool (7365.973014ms)
+✔ matched points above cap burn, only heavy-side imbalance carries (6705.638344ms)
+✔ rank requires cumulative units, never payment-based points (11089.492445ms)
+✔ cap and protection tables reproduce specification (81.927537ms)
+✔ claims are pull payments and cannot be repeated (7591.606461ms)
+✔ batch order/size leaves identical wallet economics (9958.630702ms)
+✔ buy uses actual stablecoin, increases price, respects lifetime allowance (7555.898232ms)
+✔ holding cap and min output revert atomically (3753.694436ms)
+✔ locked tokens cannot sell; fallback deadline unlocks without new registrations (7428.30951ms)
+✔ transfer burns 3%, rejects self-transfer, unregistered recipient, and locked amount (8665.44122ms)
+✔ unauthorized auto buy, reserve injection, rebinding, pause and rescue rejected (57.173529ms)
+✔ actual hourly rewards fund auto-buy, no fabricated income (21780.119309ms)
+✔ failed auto execution preserves claim and user can release it as USD (12018.96194ms)
+✔ monthly pool pays only 20% to sole eligible builder, one time (18213.794409ms)
+✔ 3 of 5 council required for emergency pause; timelock is exactly 72 hours (522.24313ms)
+✔ full unlock and complete sell-off pay from real reserve without new inflows (35582.628008ms)
+✔ failed USD transfer leaves beneficiary claim intact and does not affect others (7102.294825ms)
+✔ three approvals cannot bypass timelock delay or replay execution (1133.424824ms)
+✔ EVM integer buy quotes match independent BigInt model (4494.792411ms)
+✔ auto-buy settings freeze during matching so batching cannot change economics (7156.619457ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 525379.025908
+
+=== compile ===
+BinaryPlan 15106 runtime bytes
+Calendar 57 runtime bytes
+IFTI 0 runtime bytes
+FTIReserveToken 13756 runtime bytes
+IReserveMembership 0 runtime bytes
+FTIToken 13427 runtime bytes
+IBinary 0 runtime bytes
+Council 2893 runtime bytes
+FTITimelock 5450 runtime bytes
+MockUSD 1994 runtime bytes
+
+=== verification ===
+Recompiling verification input...
+All five creation bytecodes match saved artifacts.
+
+=== http ===
+RESERVE_HTTP {"routes":["/","/app/","/token/","/admin/","/app.js","/style.css","/health","/api/config","/api/state","/api/events","/abi/FTIReserveToken"],"model":"FTIReserveToken","accounting":"balanced","supplySeparation":"passed","unapprovedRpcMutation":"rejected","chainId":31337,"price":"20100000000000000000","scope":"HTTP/API smoke on actual fresh local reserve deployment. Not browser rendering."}

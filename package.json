@@ -1,7 +1,7 @@
 {
   "name": "fti-protocol",
   "version": "0.2.0",
-  "description": "FTI independent local/testnet release candidate — not audited",
+  "description": "FTI independent local/testnet release candidate \u2014 not audited",
   "main": "index.js",
   "directories": {
     "doc": "docs",
@@ -19,7 +19,10 @@
     "import:deployment": "node scripts/import-browser-deployment.mjs",
     "build:web": "node scripts/build-web.mjs",
     "prestart": "npm run build:web",
-    "predemo": "npm run build:web"
+    "predemo": "npm run build:web",
+    "demo:reserve": "npm run build:web && npm run compile && node scripts/local.mjs --reserve-token",
+    "test:reserve": "npm run compile && node --test --test-concurrency=1 test/reserve-*.test.mjs",
+    "simulate:reserve": "node scripts/simulate-reserve.mjs 300000 docs/reserve-simulation-300000.json"
   },
   "keywords": [],
   "author": "",

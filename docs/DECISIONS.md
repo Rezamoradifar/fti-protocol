@@ -1,5 +1,7 @@
 # Experimental economic decisions
 
+**Model selection:** this table describes the legacy `FTIToken` candidate. The separate `FTIReserveToken` branch changes pricing, fee allocation and bootstrap backing to meet the owner's later request for fixed 3% buy/sell fees and a nondecreasing internal price. Its explicit changes, proof and limitations are recorded in [RESERVE-TOKEN](RESERVE-TOKEN.md); it has not replaced the existing deployment.
+
 The uploaded specification and simulator did not define one unambiguous implementation. These are explicit **test-release choices**, not a claim of final owner approval for production economics. Original detailed Persian notes remain in DECISIONS.fa.md.
 
 | Topic | Implemented behavior |
