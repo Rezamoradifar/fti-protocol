@@ -19,6 +19,8 @@ export async function uiSmoke(){
   else await page.goto(base);await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Contract data loaded'),null,{timeout:60000});
   await page.screenshot({path:'qa/desktop.png',fullPage:true});
   const cfg=await page.evaluate(()=>fetch('/api/config').then(r=>r.json()));
+  const reserveModel=cfg.tokenContract==='FTIReserveToken';
+  if(reserveModel){await go('token-home');assert.match(await page.locator('#token-model-description').innerText(),/reserve/i);}
   // Registration is exercised through the new member panel, using an open Genesis parent.
   await selectWallet(36);await go('network');await page.locator('#register-form [name=sponsor]').fill(cfg.accounts[15]);await page.locator('#register-form [name=units]').fill('1');
   await confirmed(()=>page.locator('#register-button').click());
@@ -39,11 +41,11 @@ export async function uiSmoke(){
   await go('admin');assert.ok(await page.locator('#proposal-form button').isDisabled());assert.equal(await page.locator('#admin-role').innerText(),'PUBLIC CALLER');await confirmed(()=>page.locator('[data-time="7948800"]').click());
   await go('trade');assert.ok(await number('#trade-unlocked')>0);
   const before=await number('#trade-balance');
-  await page.locator('#sell-form [name=amount]').fill('10');
+  await page.locator('#sell-form [name=amount]').fill(reserveModel?String(before/4):'10');
   await page.waitForFunction(()=>document.querySelector('#sell-quote').textContent.includes('Net proceeds'));
   await confirmed(()=>page.locator('#sell-form button[data-write]').click());
   assert.ok(await number('#trade-balance')<before);
-  await page.locator('#transfer-form [name=to]').fill(cfg.accounts[1]);await page.locator('#transfer-form [name=amount]').fill('1');
+  await page.locator('#transfer-form [name=to]').fill(cfg.accounts[1]);await page.locator('#transfer-form [name=amount]').fill(reserveModel?String(before/10):'1');
   await confirmed(()=>page.locator('#transfer-form button').click());
   await page.locator('#max-sell').click();assert.ok(Number(await page.locator('#sell-form [name=amount]').inputValue())>0);
   // Auto-buy preference persists and reward claims update the view.
@@ -62,6 +64,7 @@ export async function uiSmoke(){
   await go('activity');await page.waitForFunction(()=>document.querySelector('#events').textContent.includes('could not be loaded'));await page.unroute('**/api/events');await page.locator('#refresh-events').click();await page.waitForFunction(()=>document.querySelectorAll('.event').length>0);
   assert.deepEqual(errors,[]);
   const result={routing:new URL(base).pathname==='/app/'?'Nginx landing, /app/, /token/, /admin/ and backend asset/API routes verified':'Standalone backend',viewport:{desktop:'1440x1000',mobile:'390x844'},registration:'confirmed',addUnits:'confirmed',buy:'confirmed',lockedSale:'disabled with explanation',sell:'confirmed after local-only unlock',transfer:'confirmed',autoPreference:'saved',rewardClaim:'confirmed',governanceProposal:'public caller disabled, council role checked on-chain and proposal confirmed',navigation:'separate member/token/admin entry points, seven views, no mobile overflow, deep link reload passed',activity:'loaded; service-error and retry verified',pageErrors:errors};
-  fs.writeFileSync('docs/ui-test-results.json',JSON.stringify(result,null,2)+'\n');console.log('UI_SMOKE',result);
+  result.tokenContract=cfg.tokenContract||'FTIToken';
+  fs.writeFileSync(reserveModel?'docs/reserve-ui-test-results.json':'docs/ui-test-results.json',JSON.stringify(result,null,2)+'\n');console.log('UI_SMOKE',result);
  }catch(error){await page.screenshot({path:'qa/failure.png',fullPage:true});console.error('PAGE ERRORS',errors,'CONSOLE',consoleErrors);throw error;}finally{await browser.close();}
 }

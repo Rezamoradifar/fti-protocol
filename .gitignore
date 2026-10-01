@@ -16,3 +16,7 @@ deployments/testnet-input.json
 
 # Local browser QA output
 /qa/
+
+# Separate reserve-token test deployments
+deployments/local-reserve.json
+deployments/reserve-testnet*.json

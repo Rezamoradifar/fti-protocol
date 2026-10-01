@@ -1,0 +1,167 @@
+{
+  "reviewDateUTC": "2026-10-01",
+  "parentCommit": "0429ae377043626cc44c6e84962f31de59103f7b",
+  "candidate": "FTIReserveToken / REAL_RESERVE_V1",
+  "status": "Local candidate; no public-chain deployment or independent audit",
+  "environment": {
+    "node": "v24.19.0",
+    "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+    "localChainId": 31337,
+    "evm": "Ganache 7.9.2; JavaScript transport fallback"
+  },
+  "testRuns": [
+    {
+      "name": "reserve-focused",
+      "command": "node --test --test-concurrency=1 test/reserve-token.test.mjs",
+      "scope": "First 12 cases; the subsequently added whale case was run separately.",
+      "tests": 12,
+      "pass": 12,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    {
+      "name": "reserve-whale",
+      "command": "node --test --test-name-pattern=\"50,000 USD\" test/reserve-token.test.mjs",
+      "scope": "Large EVM transaction and independent quote parity.",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    {
+      "name": "reserve-adversarial-and-100-users",
+      "command": "node --test --test-concurrency=1 test/reserve-collateral.test.mjs test/reserve-load.test.mjs",
+      "scope": "Four collateral tests and the 100-user EVM journey.",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    {
+      "name": "reserve-reference",
+      "command": "node --test test/reserve-model.test.mjs",
+      "scope": "300,000-wallet model plus integer magnitude/rounding checks.",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    {
+      "name": "legacy-regression",
+      "command": "node --test --test-concurrency=1 test/core-autobuy.test.mjs test/core-solvency.test.mjs test/economic-adversary.test.mjs test/event-reader.test.mjs test/event-server.test.mjs test/journey-sale.test.mjs test/math.test.mjs test/migration.test.mjs test/protocol.test.mjs",
+      "scope": "Includes economic diagnostics that PASS when an unresolved weakness is reproduced.",
+      "tests": 46,
+      "pass": 46,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    }
+  ],
+  "totalPassingTests": 66,
+  "reservePassingTests": 20,
+  "roundTrip": {
+    "initialPrice": "0.1",
+    "afterBuy": "0.102941176470588235",
+    "afterSale": "0.162852941176470588",
+    "usdIn": "100",
+    "usdOut": "96.857352941176470587",
+    "finalCirculating": "0"
+  },
+  "whaleEVM": {
+    "usdIn": "50000.0",
+    "usdOut": "48485.006121824303642484",
+    "feeBps": "300",
+    "finalPrice": "40.39987756351392715"
+  },
+  "hundredUsersEVM": {
+    "registered": 100,
+    "buys": 100,
+    "transfers": 20,
+    "sells": 100,
+    "checks": 321,
+    "usdIn": "1785.0",
+    "usdOut": "1737.777354950169702846",
+    "priceAfterBuys": "10.462080286565110464",
+    "finalPrice": "10.944452900996605943",
+    "anchorReserve": "547.222645049830297154",
+    "finalCirculating": "0"
+  },
+  "threeHundredThousandWallets": {
+    "wallets": 300000,
+    "buys": 300000,
+    "sells": 399999,
+    "transfers": 59999,
+    "checks": 1059998,
+    "limitedOrderHalvings": 34,
+    "largestBuyUSDWei": "500000000000000000000000",
+    "largestSaleUSDWei": "488390936825971763090172",
+    "priceBeforeFinalExitWad": "217329965857807312",
+    "finalPriceWad": "450744564901253179",
+    "cashInUSDWei": "86705773000000000000000000",
+    "cashOutUSDWei": "86705750462771754937341012",
+    "finalReserveUSDWei": "22537228245062658988",
+    "finalCirculatingSupply": "0",
+    "nonRedeemableAnchorShares": "50000000000000000000",
+    "allUserTokensSold": true,
+    "negativePriceTransitions": 0,
+    "unfundedPayouts": 0,
+    "scope": "BigInt arithmetic simulation; all user locks assumed mature. Not a 300k-account EVM/RPC throughput or binary-settlement load test."
+  },
+  "httpSmoke": {
+    "routes": [
+      "/",
+      "/app/",
+      "/token/",
+      "/admin/",
+      "/app.js",
+      "/style.css",
+      "/health",
+      "/api/config",
+      "/api/state",
+      "/api/events",
+      "/abi/FTIReserveToken"
+    ],
+    "model": "FTIReserveToken",
+    "accounting": "balanced",
+    "supplySeparation": "passed",
+    "unapprovedRpcMutation": "rejected",
+    "chainId": 31337,
+    "price": "20100000000000000000",
+    "scope": "HTTP/API smoke on actual fresh local reserve deployment. Not browser rendering."
+  },
+  "webBuild": "passed: npm run build:web",
+  "browserJourney": "NOT RUN: Chromium download failed; no new visual/click-through result claimed",
+  "verificationInput": "passed: node scripts/verify.mjs --prepare --reserve-token; all five creation bytecodes match. Not explorer verification.",
+  "newTokenRuntimeBytes": 13756,
+  "newTokenCreationBytecodeSHA256": "560e42369e1ef73c7f2067faeeed0e045244d9b10b2ab918611ded2be5bd38f5",
+  "sourceSHA256": {
+    "contracts/FTIReserveToken.sol": "1a2e233a7f5b8a0b864b135d130f98f31b7cdf8e5a59390f0f694a3c411c3df3",
+    "contracts/BinaryPlan.sol": "1dc8834759f0b47cf293e5d1368189bf876485797ced8471c66c9e61298223c3",
+    "core/reserve-reference.mjs": "ed0c705bca9627beb46752518d53b8b72f738d6402bda138198409b922c80650",
+    "scripts/deploy-reserve.mjs": "be637cf1d1c08f64d2e5a533d25cb6f0270113c2387300bec2c59c994e19e39d",
+    "scripts/lib.mjs": "b4f2d781579abfde7793e1ccdb9918f200942ed7fd63b29097dd3cbbdfb291a3",
+    "scripts/local.mjs": "bd17d65b9ae28b10c32d9f0ec26d4ac7ce5e2e721543c3f179d6287f10b8fafe",
+    "scripts/server.mjs": "d4f6d87f185c7fcd658881085e31991597381e473a2d80d01ffe6f29af5a07b5",
+    "scripts/verify.mjs": "7aafee2dbb0602d28f7799b5c71c7020ebcbd36a0ab678df59820e66ac204aff",
+    "scripts/simulate-reserve.mjs": "19b30b22914be40e2c4a9e2bb9225bafed491676da3846e758db210aa4afd7e5",
+    "frontend/main.jsx": "aa60ac86d3c53806c497f79cbc76f5d08901ef1cc307082778899153f9e39751",
+    "frontend/controller.js": "3a9c86c9d24831dda310ee2e910597d5c74b285a43c9fc0dd366e2710e7d61fe"
+  },
+  "assumptions": [
+    "Exact-transfer, non-rebasing, intact 18-decimal collateral; internal units, not guaranteed fiat value.",
+    "Permanent funded anchor excluded from redeemable user circulation.",
+    "Unlocks, pause, transaction caps, and dust/minimum output rules still apply.",
+    "Exact ratio increases on positive admitted operations; displayed rounded price can remain equal."
+  ],
+  "openWork": [
+    "Binary carried-pool capture and Sybil incentives are unresolved.",
+    "300k-member EVM/RPC/binary settlement capacity has not been established.",
+    "64 active locks can block further purchases before maturity.",
+    "Existing deployment cannot be converted in place; migration and new signed deployment are required.",
+    "No public testnet or mainnet transactions were sent by this validation."
+  ]
+}

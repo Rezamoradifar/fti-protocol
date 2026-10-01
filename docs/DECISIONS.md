@@ -1,5 +1,7 @@
 # Experimental economic decisions
 
+**Model selection:** this table describes the legacy `FTIToken` candidate. The separate `FTIReserveToken` branch changes pricing, fee allocation and bootstrap backing to meet the owner's later request for fixed 3% buy/sell fees and a nondecreasing internal price. Its explicit changes, proof and limitations are recorded in [RESERVE-TOKEN](RESERVE-TOKEN.md); it has not replaced the existing deployment.
+
 The uploaded specification and simulator did not define one unambiguous implementation. These are explicit **test-release choices**, not a claim of final owner approval for production economics. Original detailed Persian notes remain in DECISIONS.fa.md.
 
 | Topic | Implemented behavior |
@@ -14,7 +16,7 @@ The uploaded specification and simulator did not define one unambiguous implemen
 | Scale | At most 100 ancestor propagation steps or 100 members per transaction. Total cost still grows with network depth and member count. |
 | Genesis | 31 distinct positions in a complete tree; no initial units or synthetic funds. Positions become reward-eligible only after paying for units. |
 | Rewards | Pull claims. A failed transfer preserves the claim and cannot stop another wallet from claiming. |
-| Auto-buy | 5% of eligible Builder hourly rewards becomes a pending purchase. An executor buys later within the owner-set maximum price. |
+| Auto-buy | 5% of eligible Builder hourly rewards becomes a pending purchase. In the contract-core candidate, the maximum is gross USD paid per FTI received, including fees and curve impact. A third-party executor must use the entire pending amount; only the beneficiary may execute part. Disabling auto-buy also blocks execution of pending purchases. These protections require a new deployment; the existing testnet contract is unchanged. |
 | Failed auto-buy | Funds remain owed; the beneficiary can release them to a cash claim. |
 | Purchase allowance | Lifetime gross manual buys consume allowance. Auto-buys and transfers are exempt. Selling does not restore it. |
 | Price multiplier | Governance with timelock can double the multiplier after another 10x price milestone. Maximum multiplier 1,024. No TWAP oracle is implemented. |

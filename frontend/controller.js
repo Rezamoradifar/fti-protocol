@@ -4,8 +4,16 @@ const $=s=>document.querySelector(s);
 const text=(id,value)=>{document.getElementById(id).textContent=value;};
 async function json(url){const response=await fetch(url,{signal:AbortSignal.timeout(25000),cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to read contract data.');return data;}
 const cfg=await json('/api/config');
+const reserveModel=cfg.tokenContract==='FTIReserveToken';
+if(reserveModel){
+ text('token-price-label','Gross reserve value per FTI');text('token-model-title','Real-reserve pricing');text('token-model-ratio-label','Pricing model');text('token-model-ratio','Reserve / total shares');
+ text('token-reserve-description','Recorded test USD backing');text('token-model-description','The 3% buy and sell fees remain in the real reserve. Positive trades and transfer burns increase the exact reserve/share value. There is no timed yield. The first paid allocation backs permanently locked shares; direct USD donations do not change quotes.');
+ text('token-sale-description','Redeem unlocked FTI against recorded reserves. A 3% fee stays in reserve; check the net quote. A rising gross price does not guarantee profit or the value of the collateral.');
+ $('#token-anchor-row').hidden=false;$('#token-source').href='https://github.com/Rezamoradifar/fti-protocol/blob/feat/reserve-token/contracts/FTIReserveToken.sol';
+}
+
 const rpc=new JsonRpcProvider(location.origin+'/rpc',undefined,{cacheTimeout:-1});rpc.pollingInterval=1000;
-const names={binary:'BinaryPlan',token:'FTIToken',usd:'MockUSD',council:'Council',timelock:'FTITimelock'},read={};
+const names={binary:'BinaryPlan',token:cfg.tokenContract||'FTIToken',usd:'MockUSD',council:'Council',timelock:'FTITimelock'},read={};
 await Promise.all(Object.entries(names).map(async([key,name])=>{read[key]=new Contract(cfg[key],await json('/abi/'+name),rpc);}));
 let signer,address,state,busy=false,connecting=false,transactionAddress,refreshSequence=0,autoDirty=false,councilOwner=false;
 const ranks=['Member','Builder 1','Builder 2','Builder 3','Builder 4'];
@@ -84,7 +92,7 @@ async function refresh(){
  const sequence=++refreshSequence,requestedAddress=address;
  const [d,isOwner]=await Promise.all([json('/api/state'+(requestedAddress?'?wallet='+encodeURIComponent(requestedAddress):'')),requestedAddress&&surface==='admin'?read.council.isOwner(requestedAddress):Promise.resolve(false)]);
  if(sequence!==refreshSequence||requestedAddress!==address)return;
- state=d;councilOwner=isOwner;
+ state=d;councilOwner=isOwner;if(reserveModel)text('token-anchor',fmt(d.anchorSupply,6));
  for(const[id,value]of Object.entries({'token-spot':fmt(d.price,6),'token-reserve':fmt(d.reserve),'token-supply':fmt(d.supply),'token-bb':fmt(d.bb),'token-floor':fmt(d.floor),'token-status':d.tokenPaused?'Paused':'Active',price:fmt(d.price,6),reserve:fmt(d.reserve),reserve2:fmt(d.reserve),members:integer(d.count),'point-pool':fmt(d.pointPool),buyback:fmt(d.bb),floor:fmt(d.floor),supply:fmt(d.supply),epoch:'Epoch '+integer(d.epoch),phase:['Accepting deposits','Matching points','Allocating rewards'][d.phase]||'Processing',protection:integer(d.level),'epoch-end':utc(d.epochEnd),accounting:d.account1[0]===d.account1[1]&&d.account2[0]===d.account2[1]?'Balanced':'Review required',queue:`Volume queue: ${d.jobCursor} / ${d.jobCount}\nSettlement phase: ${d.phase} · Member cursor: ${d.cursor}`,'lock-clock':'Wallet counter '+integer(d.clock),'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))text(id,value);
  renderWallet();syncActions();
 }

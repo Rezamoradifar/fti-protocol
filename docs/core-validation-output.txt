@@ -1,0 +1,132 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> fti-protocol@0.2.0 test
+> npm run compile && node --test --test-concurrency=1 test/*.test.mjs
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> fti-protocol@0.2.0 compile
+> node scripts/compile.mjs
+
+BinaryPlan 15106 runtime bytes
+Calendar 57 runtime bytes
+IFTI 0 runtime bytes
+FTIToken 13427 runtime bytes
+IBinary 0 runtime bytes
+Council 2893 runtime bytes
+FTITimelock 5450 runtime bytes
+MockUSD 1994 runtime bytes
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- [workspace dependencies]/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- [workspace dependencies]/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ a stranger cannot fragment a beneficiary pending reward into dust locks (19565.433065ms)
+✔ the beneficiary may intentionally choose a partial auto purchase (10052.78536ms)
+✔ an unrelated keeper can execute the complete pending amount only for its owner (9709.236329ms)
+✔ disabling auto-buy revokes keeper execution and preserves cash release (368.20594ms)
+✔ a maximum above spot but below the fee-inclusive execution price rejects atomically (2229.354002ms)
+✔ exact integer maximum price boundary rejects one wei below and accepts at the ceiling (11942.778324ms)
+✔ a failed collateral transfer restores pending balances and all token state (11559.342268ms)
+✔ release cannot be repeated to create cash or leave an executable stale auto balance (449.895768ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- [workspace dependencies]/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- [workspace dependencies]/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+EXACT_EVM_INVARIANT_CHECKS 72 mixed sales 14 transfers 10
+✔ seeded mixed trades, burns and full exit preserve exact integer reserve coverage (222903.824791ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- [workspace dependencies]/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- [workspace dependencies]/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ economic baseline: a self-funded three-wallet tree recovers 450 of 500 USD without outside pool (11417.897621ms)
+CONFIRMED carried-pool capture: group cost=500, payout=9450, group net=8950 test USD before gas; no accounting insolvency
+✔ economic finding: a 500 USD self-controlled subtree captures 9450 USD from an unmatched carried pool (11200.04888ms)
+CONFIRMED sale splitting: {"wholeFeeBps":"870","wholeNet":"354.243999999999888935","splitNet":"376.546718234653758065"}
+✔ economic finding: splitting the same unlocked balance lowers whale fees and raises proceeds (14436.073533ms)
+✔ event pagination splits rejected ranges and returns ordered actual events (1.582162ms)
+✔ per-block failure and exhausted request budget fail instead of empty success (0.836265ms)
+✔ cache-independent empty logs remain a genuine empty success (0.763676ms)
+FTI testnet: http://127.0.0.1:0
+FTI testnet: http://127.0.0.1:0
+✔ separate event RPC validates network and caches successful results (135.401901ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- [workspace dependencies]/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- [workspace dependencies]/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+SALE_FLOW_PASS {
+  status: 'PASS',
+  sold: '96981187474179000000',
+  receivedUSD: '9408999999999824891'
+}
+✔ registered user buys, locked sale waits, unlocked sale pays USD, second sale waits (10507.034608ms)
+✔ document matching example exact (2.963091ms)
+✔ builder equal share, 20% cap and dust for zero through 20 eligible (0.328366ms)
+✔ curve rounding never creates a negative reserve or lowers exact k (40.826905ms)
+✔ integrated 500 members conserve all cash through settlement, auto-buy, monthly payouts and total exit (25.30025ms)
+✔ private migration retains journals and secrets, excludes dependencies, rejects traversal (416.432345ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- [workspace dependencies]/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- [workspace dependencies]/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ 31 unique Genesis positions contain no artificial cash, units or tokens (2009.430824ms)
+✔ 100 USDT is exactly split 90/5/4/1 without FTI mint (1733.720889ms)
+✔ automatic left/right placement; third direct, duplicate and invalid sponsor rejected (5245.688099ms)
+✔ bounded ancestor propagation includes every ancestor once (1933.794462ms)
+✔ cumulative minimum: 3 then 2 units settles and conserves carried pool (7085.723432ms)
+✔ matched points above cap burn, only heavy-side imbalance carries (6168.84553ms)
+✔ rank requires cumulative units, never payment-based points (11857.62879ms)
+✔ cap and protection tables reproduce specification (33.657686ms)
+✔ claims are pull payments and cannot be repeated (6252.74304ms)
+✔ batch order/size leaves identical wallet economics (8766.855075ms)
+✔ buy uses actual stablecoin, increases price, respects lifetime allowance (6969.290427ms)
+✔ holding cap and min output revert atomically (3467.422562ms)
+✔ locked tokens cannot sell; fallback deadline unlocks without new registrations (7070.08179ms)
+✔ transfer burns 3%, rejects self-transfer, unregistered recipient, and locked amount (9873.174688ms)
+✔ unauthorized auto buy, reserve injection, rebinding, pause and rescue rejected (125.656478ms)
+✔ actual hourly rewards fund auto-buy, no fabricated income (24150.327714ms)
+✔ failed auto execution preserves claim and user can release it as USD (13473.619697ms)
+✔ monthly pool pays only 20% to sole eligible builder, one time (22453.720781ms)
+✔ 3 of 5 council required for emergency pause; timelock is exactly 72 hours (616.758054ms)
+✔ full unlock and complete sell-off pay from real reserve without new inflows (34783.460119ms)
+✔ failed USD transfer leaves beneficiary claim intact and does not affect others (7243.035657ms)
+✔ three approvals cannot bypass timelock delay or replay execution (1590.845062ms)
+✔ EVM integer buy quotes match independent BigInt model (4349.905509ms)
+✔ auto-buy settings freeze during matching so batching cannot change economics (6798.019468ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 534343.477204
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
