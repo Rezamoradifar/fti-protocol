@@ -5,6 +5,7 @@ import {IERC20Metadata} from '@openzeppelin/contracts/token/ERC20/extensions/IER
 import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import {ReentrancyGuard} from '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import {Pausable} from '@openzeppelin/contracts/utils/Pausable.sol';
+import {Math} from '@openzeppelin/contracts/utils/math/Math.sol';
 interface IFTI {
     function inject(uint256,bool) external;
     function autoBuy(address,uint256,uint256,uint256) external returns(uint256);
@@ -147,8 +148,17 @@ contract BinaryPlan is ReentrancyGuard,Pausable {
     function _nextEpoch() private {lastClosedAt=(block.timestamp/1 hours)*1 hours;epoch++;epochEnd=(block.timestamp/1 hours+1)*1 hours;epochUnits=0;phase=0;cursor=0;}
     function setAutoBuy(bool enabled,uint256 maxPrice) external {require(phase==0,'settings frozen');require(members[msg.sender].exists,'member');require(!enabled||maxPrice>0,'price limit');members[msg.sender].autoEnabled=enabled;members[msg.sender].maxAutoPrice=maxPrice;}
     function executeAuto(address who,uint256 amount) external nonReentrant {
-        require(amount>0&&amount<=pendingAuto[who],'amount');require(token.price()<=members[who].maxAutoPrice,'auto price limit');
-        uint256 minimum=token.quoteBuy(amount);require(minimum>0,'dust');pendingAuto[who]-=amount;totalAuto-=amount;
+        require(amount>0&&amount<=pendingAuto[who],'amount');
+        require(members[who].autoEnabled,'auto disabled');
+        // A keeper may not split someone else's reward into dust-sized lock tranches.
+        // The beneficiary can still request a deliberate partial purchase.
+        require(msg.sender==who||amount==pendingAuto[who],'partial auto owner only');
+        uint256 maxPrice=members[who].maxAutoPrice;
+        require(maxPrice>0&&token.price()<=maxPrice,'auto price limit');
+        uint256 minimum=token.quoteBuy(amount);require(minimum>0,'dust');
+        // Max price is the total USD paid per FTI received, including fees/curve impact.
+        require(minimum>=Math.mulDiv(amount,1e18,maxPrice,Math.Rounding.Ceil),'auto execution price');
+        pendingAuto[who]-=amount;totalAuto-=amount;
         uint256 minted=token.autoBuy(who,amount,minimum,block.timestamp);emit AutoExecuted(who,amount,minted);
     }
     function releaseAutoToCash() external {uint256 amount=pendingAuto[msg.sender];pendingAuto[msg.sender]=0;totalAuto-=amount;pendingReward[msg.sender]+=amount;totalPending+=amount;}

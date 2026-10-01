@@ -1,0 +1,23 @@
+{
+  "deployment": "local Ganache only",
+  "baseline": "main 2e1507f; legacy BinaryPlan and FTIToken",
+  "findings": [
+    {
+      "name": "third-party lock-slot grief",
+      "untrustedCalls": 64,
+      "victimUSDSpent": "0.000064",
+      "pendingUSD": "44.999936",
+      "manualPurchase": "blocked at live-lock bound"
+    },
+    {
+      "name": "maximum price only checks pre-trade spot",
+      "configuredMax": "0.101",
+      "effectiveUSDPerFTI": "0.103182744262965534",
+      "pendingUSDConsumed": "45.0"
+    },
+    {
+      "name": "disabled auto-buy still executable by a stranger",
+      "pendingUSDConsumed": "45.0"
+    }
+  ]
+}
