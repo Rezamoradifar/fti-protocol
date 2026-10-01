@@ -4,6 +4,8 @@ Complete independent **local / BNB Testnet** development package: binary rewards
 
 **Not independently audited. Mainnet deployment is disabled. Test USD has no dollar value.** Economic interpretations and changes from the supplied specification are recorded in [DECISIONS](docs/DECISIONS.md).
 
+**Contract-core review candidate:** this branch adds auto-buy execution protections and reserve tests. Existing testnet contracts have not been upgraded. Read [CORE-REVIEW](docs/CORE-REVIEW.md) for confirmed fixes, open economic findings and the separate-deployment requirement. Some diagnostic tests intentionally pass when an unresolved weakness is reproduced.
+
 See [GitHub publishing and server installation](docs/GITHUB.md) for uploading this package.
 
 ## Requirements
@@ -85,7 +87,7 @@ npm test
 npm run simulate -- 2000 42
 ```
 
-The checked-in report records **28 successful math/EVM tests** and a 2,000-member integrated cash-flow simulation. The simulation ends new inflows and redeems all real tokens, assuming lock deadlines have elapsed. It checks exact integer accounting and the reserve inequality, not investment returns or million-member gas performance.
+The original checked-in report records **28 successful math/EVM tests** and a 2,000-member integrated cash-flow simulation. The latest contract-core run is recorded separately in [core-validation.json](docs/core-validation.json), with scope and open findings in [CORE-REVIEW](docs/CORE-REVIEW.md). The original simulation ends new inflows and redeems all real tokens, assuming lock deadlines have elapsed. It checks exact integer accounting and the reserve inequality, not investment returns or million-member gas performance.
 
 ## Repository layout
 
