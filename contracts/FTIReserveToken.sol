@@ -47,9 +47,13 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     uint256 public reserve;
     uint256 public launchPrice;
     uint256 public milestonePrice;
+    uint256 public ath; // status/compatibility metric; zero before first token price
+    uint256 public walletClock; // registration metric only; never used for token locks
     uint256 public priceMultiplier = 1;
     uint256 public cumulativeBuy;
     uint256 public cumulativeSell;
+
+    struct Lock {uint256 amount;uint64 clock;uint64 deadline;}
 
     uint256 public sellWindowStart;
     uint256 public sellWindowStartReserve;
@@ -184,7 +188,9 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
         require(amount>0&&reserve+amount<=MAX_RESERVE,'reserve range');
         _receive(msg.sender,amount);
         reserve+=amount;
+        if(newWallet)walletClock++;
         _backed();
+        _syncMilestone();
         _recordPrice();
         emit ReserveInjected(amount);
     }
@@ -331,8 +337,11 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     function locked(address) public pure returns(uint256){return 0;}
     function unlocked(address who) public view returns(uint256){return balanceOf(who);}
     function lockCount(address) public pure returns(uint256){return 0;}
-    function lockInfo(address) external pure returns(bytes memory){return '';}
-    function lockPage(address,uint256,uint256) external pure returns(bytes memory){return '';}
+    function lockInfo(address) external pure returns(Lock[] memory page){page=new Lock[](0);}
+    function lockPage(address,uint256,uint256 limit) external pure returns(Lock[] memory page){
+        require(limit>0&&limit<=64,'page limit');
+        page=new Lock[](0);
+    }
     function lockVersion() external pure returns(uint256){return 3;}
 
     function _update(address from,address to,uint256 value) internal override {
