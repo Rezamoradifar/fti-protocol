@@ -110,7 +110,7 @@ Internal reserve/share growth is not a promise of market value or user profit.
 
 ## Seven-wallet emergency governance
 
-The Council contains seven fixed owner wallets and requires five approvals.
+The Council contains seven owner slots and requires five approvals. Owner-key rotation is possible only through a 5-of-7 proposal targeting the Council itself.
 
 The healthier emergency design deliberately does **not** allow the council to transfer the reserve to an arbitrary administrator wallet.
 
@@ -125,7 +125,7 @@ After a 5-of-7 council proposal and execution, `activateEmergencyExit()` switche
 
 This means liquidity is evacuated by token holders through on-chain redemption rather than swept by governance.
 
-Normal recovery/unpause requires the governance path.
+Normal recovery/unpause requires the governance path. The standard governance delay is fixed at 72 hours in V2; `updateDelay` reverts, so the council cannot later reduce the timelock to zero.
 
 ## Important remaining review items
 
