@@ -80,9 +80,16 @@ contract Council is ReentrancyGuard {
 /// @notice Normal governance operations retain the existing 72-hour initial timelock.
 /// @dev Emergency redemption-only activation is performed by the 5-of-7 Council directly.
 contract FTITimelock is TimelockController {
+    uint256 public constant FIXED_MIN_DELAY=72 hours;
     constructor(address council)
-        TimelockController(72 hours,_one(council),_one(address(0)),address(0))
+        TimelockController(FIXED_MIN_DELAY,_one(council),_one(address(0)),address(0))
     {}
+
+    /// @notice V2 governance delay cannot be reduced after deployment.
+    function updateDelay(uint256) external pure override {
+        revert('fixed 72h delay');
+    }
+
     function _one(address a) private pure returns(address[] memory r){
         r=new address[](1);
         r[0]=a;
