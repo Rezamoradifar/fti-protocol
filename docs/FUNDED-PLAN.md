@@ -1,4 +1,4 @@
-# Attributed-credit binary plan and scalable token locks
+> **V2 branch note (2026-10-04):** token lock/anchor/fee/governance statements below describe the earlier PR4 baseline. On `fix/zero-start-animal-protection`, `docs/TOKEN-V2.md` is authoritative for token mechanics: zero supply at start, no time/wallet-count locks, 1 percentage point of the 3% buy/sell fee allocated as fully-backed FTI to two animal-support wallets, anti-whale sell protection, builder-only 10x allowance milestones, and 5-of-7 emergency redemption mode. Binary reward economics remain separately under review.\n\n# Attributed-credit binary plan and scalable token locks
 
 This is a **separate review candidate**, on `fix/funded-binary`, building on the real-reserve candidate in PR #3. It is not deployed to public testnet or the live website. Existing immutable contracts and user positions are unchanged. It is not an independent audit, a safety score of 100, or approval to accept real funds.
 
