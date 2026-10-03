@@ -335,6 +335,7 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
         if(from!=address(0)&&to!=address(0)){
             require(!paused()&&!emergencyExit,'transfers paused');
             require(!_reentrancyGuardEntered(),'reentrant transfer');
+            _backed();
         }
         // Standard ERC20 transfer: no transfer tax/burn in V2.
         super._update(from,to,value);
