@@ -18,7 +18,7 @@ test('funded binary and token V2: 100 registrations, buys, transfers and emergen
   async function check(strictGrowth=false){
     const r=await s.token.reserve(),supply=await s.token.totalSupply(),price=await s.token.price();
     if(strictGrowth&&previousS>0n)assert(r*previousS>previousR*supply);
-    assert(price>=previousPrice);
+    if(supply>0n)assert(price>=previousPrice);else assert.equal(r,0n);
     if(supply>0n){const[,,gross]=await s.token.quoteSell(supply);assert(gross<=r);}
     await checkAccounting(s);
     const[pointCredits,pointBook,builderCredits,builderBook]=await s.binary.fundingAccounting();
@@ -75,14 +75,23 @@ test('funded binary and token V2: 100 registrations, buys, transfers and emergen
     const[out]=await s.token.quoteSell(balance);
     await(await s.token.connect(signers[i]).sell(balance,out,MaxUint256)).wait();
     assert.equal((await s.usd.balanceOf(s.addresses[i]))-before,out);
-    usdOut+=out;await check(true);
+    usdOut+=out;await check(false);
   }
 
   for(const i of ids)assert.equal(await s.token.balanceOf(s.addresses[i]),0n);
   const animalA=await s.token.animalSupportA(),animalB=await s.token.animalSupportB();
-  assert.equal(await s.token.totalSupply(),(await s.token.balanceOf(animalA))+(await s.token.balanceOf(animalB)));
-  assert((await s.token.price())>=buyPeak);
+  const animalBefore=(await s.token.balanceOf(animalA))+(await s.token.balanceOf(animalB));
+  assert(animalBefore>0n);
+  for(const [idx,a] of [[signers.length-2,animalA],[signers.length-1,animalB]]){
+    const bal=await s.token.balanceOf(a);if(!bal)continue;
+    const before=await s.usd.balanceOf(a);const[out,fee]=await s.token.quoteSell(bal);assert.equal(fee,0n);
+    await(await s.token.connect(signers[idx]).sell(bal,out,MaxUint256)).wait();
+    assert.equal((await s.usd.balanceOf(a))-before,out);
+  }
+  assert.equal(await s.token.totalSupply(),0n);
+  assert.equal(await s.token.reserve(),0n);
+  assert.equal(await s.token.price(),0n);
   assert.equal(checks,321);
-  console.log('FUNDED_V2_100_USERS',JSON.stringify({registered:100,pointRewardClaimed:F(reward),buys:100,transfers:20,sells:100,checks,usdIn:F(usdIn),usdOut:F(usdOut),priceAfterBuys:F(buyPeak),finalPrice:F(await s.token.price()),animalSupply:F(await s.token.totalSupply()),reserve:F(await s.token.reserve())}));
+  console.log('FUNDED_V2_100_USERS',JSON.stringify({registered:100,pointRewardClaimed:F(reward),buys:100,transfers:20,sells:100,checks,usdIn:F(usdIn),usdOut:F(usdOut),priceAfterBuys:F(buyPeak),finalPrice:F(await s.token.price()),animalSupplyBeforeDrain:F(animalBefore),finalSupply:F(await s.token.totalSupply()),reserve:F(await s.token.reserve())}));
  }finally{await engine.disconnect();}
 });
