@@ -88,4 +88,12 @@ export class ReserveModel {
   a.balance-=amount;b.balance+=amount;
   this.check(r,s,false);
  }
+ emergencyRedeemAnimal(tokens){
+  if(tokens<=0n||tokens>this.animalSupply)throw Error('animal balance');
+  const q=sellQuote(tokens,this.reserve,this.supply,{emergency:true});
+  const r=this.reserve,s=this.supply;
+  this.animalSupply-=tokens;this.supply-=tokens;this.reserve-=q.payout;this.cashOut+=q.payout;
+  this.check(r,s,false);
+  return q;
+ }
 }
