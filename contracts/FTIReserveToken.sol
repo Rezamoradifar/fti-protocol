@@ -180,7 +180,7 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     }
 
     /// @notice Binary funding is support only; it never creates FTI, including the first registration.
-    function inject(uint256 amount,bool) external onlyBinary nonReentrant {
+    function inject(uint256 amount,bool newWallet) external onlyBinary nonReentrant {
         require(amount>0&&reserve+amount<=MAX_RESERVE,'reserve range');
         _receive(msg.sender,amount);
         reserve+=amount;
