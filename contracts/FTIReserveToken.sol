@@ -307,7 +307,11 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
         require(reserve*oldS>oldR*totalSupply(),'price must increase');
         _backed();
     }
-    function _recordPrice() private {emit ReservePriceUpdated(reserve,totalSupply(),price());}
+    function _recordPrice() private {
+        uint256 p=price();
+        if(p>ath)ath=p;
+        emit ReservePriceUpdated(reserve,totalSupply(),p);
+    }
 
     /// @dev Builder (rank > 0) manual-buy allowance doubles after each 10x price milestone.
     ///      The sync is automatic on protocol buys/sells and can also be called permissionlessly.
