@@ -8,8 +8,8 @@ export async function deploySuite(signers,{tokenContract='FTIToken',binaryContra
  const addresses=await Promise.all(signers.map(s=>s.getAddress()));if(addresses.length<41)throw Error('Need 31 genesis, 7 council, 2 animal-support and 1 development signer');
  const usd=await deployOne('MockUSD',[],signers[0]);const council=await deployOne('Council',[addresses.slice(31,38)],signers[0]);
  const timelock=await deployOne('FTITimelock',[council.target],signers[0]);
- const token=tokenContract==='FTIReserveToken'?await deployOne(tokenContract,[usd.target,timelock.target,council.target,addresses[38],addresses[39]],signers[0]):await deployOne(tokenContract,[usd.target,timelock.target,council.target],signers[0]);
- const binary=await deployOne(binaryContract,[usd.target,token.target,timelock.target,council.target,addresses[40],addresses.slice(0,31)],signers[0]);
+ const token=tokenContract==='FTIReserveToken'?await deployOne(tokenContract,[usd.target,timelock.target,council.target,addresses[addresses.length-3],addresses[addresses.length-2]],signers[0]):await deployOne(tokenContract,[usd.target,timelock.target,council.target],signers[0]);
+ const binary=await deployOne(binaryContract,[usd.target,token.target,timelock.target,council.target,addresses[addresses.length-1],addresses.slice(0,31)],signers[0]);
  await(await token.bind(binary.target)).wait();return{usd,council,timelock,token,binary,addresses};
 }
 export async function checkAccounting(s){for(const c of [s.binary,s.token]){const[a,b]=await c.accounting();if(a!==b)throw Error(`Accounting mismatch ${c.target}: ${a} vs ${b}`);}}
