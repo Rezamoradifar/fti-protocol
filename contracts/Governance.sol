@@ -21,7 +21,8 @@ contract Council is ReentrancyGuard {
 
     event Proposed(uint256 indexed id,address indexed target,bytes data);
     event Approved(uint256 indexed id,address indexed owner);
-    event Executed(uint256 indexed id);\n    event OwnerReplaced(address indexed oldOwner,address indexed newOwner,uint256 indexed slot);
+    event Executed(uint256 indexed id);
+    event OwnerReplaced(address indexed oldOwner,address indexed newOwner,uint256 indexed slot);
 
     constructor(address[7] memory initial){
         for(uint256 i;i<OWNER_COUNT;i++){
