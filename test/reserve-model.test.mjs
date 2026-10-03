@@ -1,12 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ReserveModel,W,buyQuote,sellQuote} from '../core/reserve-reference.mjs';
+import {ReserveModel,W,buyQuote,animalBuyQuote,sellQuote} from '../core/reserve-reference.mjs';
 import {simulateReserve} from '../scripts/simulate-reserve.mjs';
-test('independent reserve arithmetic keeps price increasing across 300,000 wallets and a complete exit',()=>{
- const r=simulateReserve(300000);assert.equal(r.wallets,300000);assert.equal(r.buys,300000);assert(r.sells>=300000);assert(r.transfers>50000);assert.equal(r.finalCirculatingSupply,'0');assert(BigInt(r.finalPriceWad)>=BigInt(r.priceBeforeFinalExitWad));assert.equal(BigInt(r.cashInUSDWei)-BigInt(r.cashOutUSDWei),BigInt(r.finalReserveUSDWei));assert(BigInt(r.largestBuyUSDWei)>=100000n*W);console.log('RESERVE_MODEL_300K',JSON.stringify(r));
+
+test('independent V2 arithmetic keeps backing and nondecreasing price across 300,000 wallets and emergency user exit',()=>{
+ const r=simulateReserve(300000);
+ assert.equal(r.model,'real-reserve-v2-zero-start');assert.equal(r.wallets,300000);assert.equal(r.buys,300000);
+ assert(r.sells>=300000);assert(r.transfers>50000);assert.equal(r.finalUserCirculatingSupply,'0');
+ assert(BigInt(r.finalAnimalSupportSupply)>0n);assert(BigInt(r.finalPriceWad)>=BigInt(r.priceBeforeFinalExitWad));
+ assert.equal(BigInt(r.cashInUSDWei)-BigInt(r.cashOutUSDWei),BigInt(r.finalReserveUSDWei));
+ assert(BigInt(r.largestBuyUSDWei)>=100000n*W);
+ console.log('RESERVE_V2_MODEL_300K',JSON.stringify(r));
 });
-test('integer rounding and share-price proofs cover small and very large magnitudes',()=>{
- const scale=[1n,10n,100n,10000n,10n**18n,10n**25n,10n**30n];let checked=0;
- for(const r of scale)for(const s of scale)for(const a of [1n,2n,33n,34n,100n,100000n,10n**24n]){const m=buyQuote(a,r,s);if(m){assert((r+a)*s>r*(s+m));checked++;}const t=s/2n;if(t){const q=sellQuote(t,r,s);if(q.payout){assert(q.payout<=r);assert((r-q.payout)*s>r*(s-t));checked++;}}}assert(checked>100);
- const m=new ReserveModel();m.register(0);assert.throws(()=>m.buy(0,1n));assert.equal(m.price(),W/10n);
+
+test('zero start and integer share-price proofs cover first buy, support injection and large magnitudes',()=>{
+ const m=new ReserveModel();m.register(0);assert.equal(m.price(),0n);assert.equal(m.supply,0n);
+ const first=m.buy(0,100n*W);assert.equal(first.userMint,97n*W);assert.equal(first.animalMint,1n*W);assert(m.price()>W);
+ const p=m.price();m.register(1);assert(m.price()>p);
+ m.transfer(0,1,1n*W);assert.equal(m.price(),m.reserve*W/m.supply);
+ const q=m.sell(0,1n*W,{emergency:true});assert(q.payout>0n);assert(m.animalSupply>1n*W);
+
+ const scale=[1n,10n,100n,10000n,10n**18n,10n**25n];let checked=0;
+ for(const r of scale)for(const s of scale)for(const a of [34n,100n,100000n,10n**24n]){
+  const u=buyQuote(a,r,s),animal=animalBuyQuote(a,r,s);
+  if(s>0n&&u){assert((r+a)*s>r*(s+u+animal));checked++;}
+  const t=s/100n;if(t){const x=sellQuote(t,r,s,{emergency:true});if(x.payout){const am=(x.gross+99n)/100n*s/r;assert((r-x.payout)*s>r*(s-t+am));checked++;}}
+ }
+ assert(checked>30);
 });
