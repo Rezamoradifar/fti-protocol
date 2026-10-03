@@ -98,9 +98,11 @@ test('5-of-7 council vote activates redemption-only emergency mode without an ad
  assert.equal(await s.token.paused(),true);
  await assert.rejects(async()=>{const tx=await s.token.buy(E('1'),0,MaxUint256);await tx.wait();});
  const before=await s.usd.balanceOf(s.addresses[0]);
- const bal=await s.token.balanceOf(s.addresses[0]);
- await(await s.token.sell(bal,0,MaxUint256)).wait(); // whale/hour caps bypassed only for emergency redemption
- assert((await s.usd.balanceOf(s.addresses[0]))>before);
+ const bal=await s.token.balanceOf(s.addresses[0]),animalBefore=(await s.token.balanceOf(await s.token.animalSupportA()))+(await s.token.balanceOf(await s.token.animalSupportB()));
+ const[out,fee]=await s.token.quoteSell(bal);assert.equal(fee,0n);
+ await(await s.token.sell(bal,out,MaxUint256)).wait(); // fee-free; whale/hour caps bypassed only for emergency redemption
+ assert.equal((await s.usd.balanceOf(s.addresses[0]))-before,out);
+ assert.equal((await s.token.balanceOf(await s.token.animalSupportA()))+(await s.token.balanceOf(await s.token.animalSupportB())),animalBefore);
  assert.equal(await s.token.emergencyExit(),true);
  await checkAccounting(s);
 });
