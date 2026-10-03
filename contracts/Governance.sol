@@ -21,7 +21,7 @@ contract Council is ReentrancyGuard {
 
     event Proposed(uint256 indexed id,address indexed target,bytes data);
     event Approved(uint256 indexed id,address indexed owner);
-    event Executed(uint256 indexed id);
+    event Executed(uint256 indexed id);\n    event OwnerReplaced(address indexed oldOwner,address indexed newOwner,uint256 indexed slot);
 
     constructor(address[7] memory initial){
         for(uint256 i;i<OWNER_COUNT;i++){
@@ -61,6 +61,19 @@ contract Council is ReentrancyGuard {
         if(!ok){assembly{revert(add(ret,32),mload(ret))}}
         emit Executed(id);
         return ret;
+    }
+
+    /// @notice Key rotation requires a normal 5-of-7 proposal targeting the Council itself.
+    function replaceOwner(address oldOwner,address newOwner) external {
+        require(msg.sender==address(this),'self only');
+        require(oldOwner!=address(0)&&newOwner!=address(0)&&isOwner[oldOwner]&&!isOwner[newOwner],'owner');
+        uint256 slot=type(uint256).max;
+        for(uint256 i;i<OWNER_COUNT;i++)if(owners[i]==oldOwner){slot=i;break;}
+        require(slot<OWNER_COUNT,'slot');
+        owners[slot]=newOwner;
+        isOwner[oldOwner]=false;
+        isOwner[newOwner]=true;
+        emit OwnerReplaced(oldOwner,newOwner,slot);
     }
 }
 
