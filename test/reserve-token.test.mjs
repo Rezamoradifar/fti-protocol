@@ -118,9 +118,9 @@ test('a 10x internal price milestone doubles the builder multiplier automaticall
 
 test('animal-support shares are fully backed and sell fees still raise reserve/share value',async()=>{
  await seedAndBuy();
- const oldR=await s.token.reserve(),oldS=await s.token.totalSupply(),oldAnimal=(await s.token.balanceOf(s.addresses[38]))+(await s.token.balanceOf(s.addresses[39]));
+ const animalA=await s.token.animalSupportA(),animalB=await s.token.animalSupportB();\n const oldR=await s.token.reserve(),oldS=await s.token.totalSupply(),oldAnimal=(await s.token.balanceOf(animalA))+(await s.token.balanceOf(animalB));
  await(await s.token.sell(E('4'),0,MaxUint256)).wait();
- const newR=await s.token.reserve(),newS=await s.token.totalSupply(),newAnimal=(await s.token.balanceOf(s.addresses[38]))+(await s.token.balanceOf(s.addresses[39]));
+ const newR=await s.token.reserve(),newS=await s.token.totalSupply(),newAnimal=(await s.token.balanceOf(animalA))+(await s.token.balanceOf(animalB));
  assert(newAnimal>oldAnimal);
  assert(newR*oldS>oldR*newS);
  await checkAccounting(s);
