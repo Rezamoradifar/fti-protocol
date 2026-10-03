@@ -4,26 +4,90 @@ import ganache from 'ganache';
 import {BrowserProvider,parseEther as E,formatEther as F,MaxUint256} from 'ethers';
 import {deploySuite,settle,checkAccounting} from '../scripts/lib.mjs';
 
-test('100 registered users buy, transfer and exit with exact price growth and funded payouts',async()=>{
- const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:136},chain:{chainId:31337},miner:{blockGasLimit:30000000}});
+test('token V2: 100 registered users buy, transfer and complete user exits under 5-of-7 emergency redemption',async()=>{
+ const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:140},chain:{chainId:31337,time:new Date('2026-10-04T00:00:00Z')},miner:{blockGasLimit:30000000}});
  try{
   const p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
-  const signers=await Promise.all(Array.from({length:136},(_,i)=>p.getSigner(i))),s=await deploySuite(signers,{tokenContract:'FTIReserveToken'});
-  const ids=Array.from({length:100},(_,i)=>36+i),parents=Array.from({length:16},(_,i)=>15+i);let parentCursor=0,childSide=0,checks=0;
-  let previousR=0n,previousS=0n,previousPrice=E('0.1');
-  async function check(grew){const r=await s.token.reserve(),supply=await s.token.totalSupply(),price=await s.token.price();if(grew&&previousS)assert(r*previousS>previousR*supply);assert(price>=previousPrice);const cir=await s.token.circulatingSupply(),[,,gross]=await s.token.quoteSell(cir);assert(gross<=r);assert.equal(await s.token.balanceOf(s.token.target),await s.token.anchorSupply());await checkAccounting(s);previousR=r;previousS=supply;previousPrice=price;checks++;}
-  for(const i of ids){
-   await(await s.usd.connect(signers[i]).faucet()).wait();await(await s.usd.connect(signers[i]).approve(s.binary.target,MaxUint256)).wait();await(await s.usd.connect(signers[i]).approve(s.token.target,MaxUint256)).wait();
-   const sponsor=parents[parentCursor];await(await s.binary.connect(signers[i]).register(s.addresses[sponsor],1)).wait();parents.push(i);if(++childSide===2){childSide=0;parentCursor++;}await check(true);
+  const signers=await Promise.all(Array.from({length:140},(_,i)=>p.getSigner(i)));
+  const s=await deploySuite(signers,{tokenContract:'FTIReserveToken'});
+  const ids=Array.from({length:100},(_,i)=>36+i),parents=Array.from({length:16},(_,i)=>15+i);
+  let parentCursor=0,childSide=0,checks=0,previousR=0n,previousS=0n,previousPrice=0n;
+
+  
+
+  async function check(strictGrowth=false){
+    const r=await s.token.reserve(),supply=await s.token.totalSupply(),price=await s.token.price();
+    if(strictGrowth&&previousS>0n)assert(r*previousS>previousR*supply);
+    if(supply>0n)assert(price>=previousPrice);else assert.equal(r,0n);
+    if(supply>0n){const[,,gross]=await s.token.quoteSell(supply);assert(gross<=r);}
+    await checkAccounting(s);
+    
+    previousR=r;previousS=supply;previousPrice=price;checks++;
   }
-  assert.equal(await s.binary.memberCount(),131n);assert.equal(await s.token.walletClock(),100n);assert.equal(await s.token.reserve(),E('500'));await settle(s,p);await check(false);
+  async function activateEmergency(){
+    const id=await s.council.count();
+    const data=s.token.interface.encodeFunctionData('activateEmergencyExit');
+    await(await s.council.connect(signers[31]).propose(s.token.target,data)).wait();
+    for(const i of [32,33,34,35])await(await s.council.connect(signers[i]).approve(id)).wait();
+    await(await s.council.connect(signers[31]).execute(id)).wait();
+    assert.equal(await s.token.emergencyExit(),true);
+  }
+
+  for(const i of ids){
+    await(await s.usd.connect(signers[i]).faucet()).wait();
+    await(await s.usd.connect(signers[i]).approve(s.binary.target,MaxUint256)).wait();
+    await(await s.usd.connect(signers[i]).approve(s.token.target,MaxUint256)).wait();
+    const sponsor=parents[parentCursor];
+    await(await s.binary.connect(signers[i]).register(s.addresses[sponsor],1)).wait();
+    parents.push(i);if(++childSide===2){childSide=0;parentCursor++;}
+    await check(false);
+  }
+  assert.equal(await s.binary.memberCount(),131n);
+  assert.equal(await s.token.walletClock(),100n);
+  await settle(s,p,100);await check(false);
+  
+
   let usdIn=0n,usdOut=0n;
-  for(const[j,i]of ids.entries()){const amount=E(String(10+j%17));await(await s.token.connect(signers[i]).buy(amount,await s.token.quoteBuy(amount),MaxUint256)).wait();usdIn+=amount;await check(true);}
-  const buyPeak=await s.token.price();await p.send('evm_increaseTime',[91*86400]);await p.send('evm_mine',[]);
-  for(let j=0;j<20;j++){const from=ids[j],to=ids[(j+37)%ids.length],amount=(await s.token.balanceOf(s.addresses[from]))/10n;await(await s.token.connect(signers[from]).transfer(s.addresses[to],amount)).wait();await check(true);}
-  // Coprime stride exercises a non-registration exit ordering.
-  for(let j=0;j<100;j++){const i=ids[(j*37)%100],balance=await s.token.balanceOf(s.addresses[i]),before=await s.usd.balanceOf(s.addresses[i]);const[out]=await s.token.quoteSell(balance);await(await s.token.connect(signers[i]).sell(balance,out,MaxUint256)).wait();assert.equal((await s.usd.balanceOf(s.addresses[i]))-before,out);usdOut+=out;await check(true);}
-  assert.equal(await s.token.circulatingSupply(),0n);assert.equal(await s.token.totalSupply(),await s.token.anchorSupply());assert(usdOut<=usdIn);assert((await s.token.price())>buyPeak);assert.equal(checks,321);
-  console.log('RESERVE_100_USERS',JSON.stringify({registered:100,buys:100,transfers:20,sells:100,checks,usdIn:F(usdIn),usdOut:F(usdOut),priceAfterBuys:F(buyPeak),finalPrice:F(await s.token.price()),anchorReserve:F(await s.token.reserve()),finalCirculating:'0'}));
+  for(const[j,i]of ids.entries()){
+    const amount=E(String(10+j%17));
+    const q=await s.token.connect(signers[i]).quoteBuy(amount);
+    await(await s.token.connect(signers[i]).buy(amount,q,MaxUint256)).wait();
+    usdIn+=amount;await check(true);
+  }
+  const buyPeak=await s.token.price();
+
+  for(let j=0;j<20;j++){
+    const from=ids[j],to=ids[(j+37)%ids.length],amount=(await s.token.balanceOf(s.addresses[from]))/10n;
+    await(await s.token.connect(signers[from]).transfer(s.addresses[to],amount)).wait();
+    await check(false);
+  }
+
+  await activateEmergency();
+
+  for(let j=0;j<100;j++){
+    const i=ids[(j*37)%100],balance=await s.token.balanceOf(s.addresses[i]);
+    if(balance===0n)continue;
+    const before=await s.usd.balanceOf(s.addresses[i]);
+    const[out]=await s.token.quoteSell(balance);
+    await(await s.token.connect(signers[i]).sell(balance,out,MaxUint256)).wait();
+    assert.equal((await s.usd.balanceOf(s.addresses[i]))-before,out);
+    usdOut+=out;await check(false);
+  }
+
+  for(const i of ids)assert.equal(await s.token.balanceOf(s.addresses[i]),0n);
+  const animalA=await s.token.animalSupportA(),animalB=await s.token.animalSupportB();
+  const animalBefore=(await s.token.balanceOf(animalA))+(await s.token.balanceOf(animalB));
+  assert(animalBefore>0n);
+  for(const [idx,a] of [[signers.length-2,animalA],[signers.length-1,animalB]]){
+    const bal=await s.token.balanceOf(a);if(!bal)continue;
+    const before=await s.usd.balanceOf(a);const[out,fee]=await s.token.quoteSell(bal);assert.equal(fee,0n);
+    await(await s.token.connect(signers[idx]).sell(bal,out,MaxUint256)).wait();
+    assert.equal((await s.usd.balanceOf(a))-before,out);
+  }
+  assert.equal(await s.token.totalSupply(),0n);
+  assert.equal(await s.token.reserve(),0n);
+  assert.equal(await s.token.price(),0n);
+  assert.equal(checks,321);
+  console.log('RESERVE_V2_100_USERS',JSON.stringify({registered:100,buys:100,transfers:20,sells:100,checks,usdIn:F(usdIn),usdOut:F(usdOut),priceAfterBuys:F(buyPeak),finalPrice:F(await s.token.price()),animalSupplyBeforeDrain:F(animalBefore),finalSupply:F(await s.token.totalSupply()),reserve:F(await s.token.reserve())}));
  }finally{await engine.disconnect();}
 });

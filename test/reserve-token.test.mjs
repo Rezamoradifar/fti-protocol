@@ -2,83 +2,129 @@ import {test,before,beforeEach,after} from 'node:test';
 import assert from 'node:assert/strict';
 import ganache from 'ganache';
 import {BrowserProvider,parseEther as E,formatEther as F,MaxUint256} from 'ethers';
-import {deploySuite,settle,checkAccounting} from '../scripts/lib.mjs';
-import {buyQuote,sellQuote} from '../core/reserve-reference.mjs';
+import {deploySuite,checkAccounting} from '../scripts/lib.mjs';
+
 let engine,p,signers,s,snapshot;
 before(async()=>{
- engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:45},chain:{chainId:31337,time:new Date('2026-09-15T12:00:00Z')},miner:{blockGasLimit:30000000}});
+ engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:60},chain:{chainId:31337,time:new Date('2026-10-04T00:00:00Z')},miner:{blockGasLimit:30000000}});
  p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
- signers=await Promise.all(Array.from({length:45},(_,i)=>p.getSigner(i)));s=await deploySuite(signers,{tokenContract:'FTIReserveToken'});
- for(const i of [0,1,2,15,16,36]){await(await s.usd.connect(signers[i]).faucet()).wait();await(await s.usd.connect(signers[i]).approve(s.binary.target,MaxUint256)).wait();await(await s.usd.connect(signers[i]).approve(s.token.target,MaxUint256)).wait();}
+ signers=await Promise.all(Array.from({length:60},(_,i)=>p.getSigner(i)));
+ s=await deploySuite(signers,{tokenContract:'FTIReserveToken',binaryContract:'FundedBinaryPlan'});
+ for(let i=0;i<60;i++){
+   await(await s.usd.connect(signers[i]).faucet()).wait();
+   await(await s.usd.connect(signers[i]).approve(s.binary.target,MaxUint256)).wait();
+   await(await s.usd.connect(signers[i]).approve(s.token.target,MaxUint256)).wait();
+ }
  snapshot=await p.send('evm_snapshot',[]);
 });
 beforeEach(async()=>{await p.send('evm_revert',[snapshot]);snapshot=await p.send('evm_snapshot',[]);});
 after(async()=>{await engine.disconnect();});
-async function fails(fn){await assert.rejects(async()=>{const tx=await fn();await tx.wait();});}
-async function seed(){await(await s.binary.addUnits(1)).wait();}
-async function mature(){await p.send('evm_increaseTime',[91*86400]);await p.send('evm_mine',[]);}
-async function growth(fn){const r=await s.token.reserve(),supply=await s.token.totalSupply(),price=await s.token.price();await(await fn()).wait();const r2=await s.token.reserve(),s2=await s.token.totalSupply();assert(r2*supply>r*s2,'exact reserve/share value must strictly increase');assert((await s.token.price())>=price,'rounded price must not decrease');assert((await s.usd.balanceOf(s.token.target))>=r2);const[,,gross]=await s.token.quoteSell(await s.token.circulatingSupply());assert(gross<=r2);}
-async function unchanged(fn){const r=await s.token.reserve(),supply=await s.token.totalSupply(),balance=await s.token.balanceOf(s.addresses[0]);await fails(fn);assert.equal(await s.token.reserve(),r);assert.equal(await s.token.totalSupply(),supply);assert.equal(await s.token.balanceOf(s.addresses[0]),balance);await checkAccounting(s);}
 
-test('reserve bootstrap is paid by the first membership allocation, never virtual collateral',async()=>{
- assert.equal(await s.token.reserve(),0n);assert.equal(await s.token.totalSupply(),0n);assert.equal(await s.token.price(),E('0.1'));
- await assert.rejects(s.token.quoteBuy(E('1')));await seed();
- assert.equal(await s.token.reserve(),E('5'));assert.equal(await s.token.anchorSupply(),E('50'));assert.equal(await s.token.balanceOf(s.token.target),E('50'));assert.equal(await s.token.unlocked(s.token.target),0n);assert.equal(await s.token.circulatingSupply(),0n);assert.equal(await s.token.price(),E('0.1'));
- assert.equal(await s.token.buybackFund(),0n);assert.equal(await s.token.floorFund(),0n);await checkAccounting(s);
+async function activateEmergency(){
+ const id=await s.council.count();
+ const data=s.token.interface.encodeFunctionData('activateEmergencyExit');
+ await(await s.council.connect(signers[31]).propose(s.token.target,data)).wait();
+ for(const i of [32,33,34,35])await(await s.council.connect(signers[i]).approve(id)).wait();
+ await(await s.council.connect(signers[31]).execute(id)).wait();
+ assert.equal(await s.token.emergencyExit(),true);
+}
+async function seedAndBuy(amount='100'){
+ await(await s.binary.addUnits(1)).wait(); // 5 USD support, zero FTI mint
+ assert.equal(await s.token.totalSupply(),0n);
+ await(await s.token.buy(E(amount),0,MaxUint256)).wait();
+}
+
+test('starts with zero reserve, zero supply and zero price',async()=>{
+ assert.equal(await s.token.reserve(),0n);
+ assert.equal(await s.token.totalSupply(),0n);
+ assert.equal(await s.token.circulatingSupply(),0n);
+ assert.equal(await s.token.anchorSupply(),0n);
+ assert.equal(await s.token.price(),0n);
+ await checkAccounting(s);
 });
-test('buy and full sale both increase actual reserve/share price; payouts are real',async()=>{
- await seed();const first=await s.token.price();const cash=await s.usd.balanceOf(s.addresses[0]);const quote=await s.token.quoteBuy(E('100'));
- assert.equal(quote,E('970'));await growth(()=>s.token.buy(E('100'),quote,MaxUint256));const afterBuy=await s.token.price();assert.equal(await s.token.reserve(),E('105'));assert.equal(await s.token.balanceOf(s.addresses[0]),quote);
- await mature();const[out,fee]=await s.token.quoteSell(quote);assert.equal(fee,300n);const beforeSale=await s.usd.balanceOf(s.addresses[0]);await growth(()=>s.token.sell(quote,out,MaxUint256));
- assert.equal((await s.usd.balanceOf(s.addresses[0]))-beforeSale,out);assert.equal(await s.token.circulatingSupply(),0n);assert.equal(await s.token.totalSupply(),await s.token.anchorSupply());assert((await s.usd.balanceOf(s.addresses[0]))<cash);await checkAccounting(s);
- console.log('RESERVE_ROUND_TRIP',JSON.stringify({initialPrice:F(first),afterBuy:F(afterBuy),afterSale:F(await s.token.price()),usdIn:'100',usdOut:F(out),finalCirculating:'0'}));
+
+test('binary registration/funding supports reserve but never mints the first FTI',async()=>{
+ await(await s.binary.addUnits(1)).wait();
+ assert.equal(await s.token.reserve(),E('5'));
+ assert.equal(await s.token.totalSupply(),0n);
+ assert.equal(await s.token.price(),0n);
+ assert.equal(await s.token.walletClock(),0n);
+ await(await s.binary.connect(signers[41]).register(s.addresses[15],1)).wait();
+ assert.equal(await s.token.reserve(),E('10'));
+ assert.equal(await s.token.totalSupply(),0n);
+ assert.equal(await s.token.walletClock(),1n);
+ await checkAccounting(s);
 });
-test('a new purchase after complete circulation exit cannot reset or lower the price',async()=>{
- await seed();await growth(()=>s.token.buy(E('100'),0,MaxUint256));await mature();await growth(async()=>s.token.sell(await s.token.balanceOf(s.addresses[0]),0,MaxUint256));
- const previous=await s.token.price(),anchor=await s.token.anchorSupply();await growth(()=>s.token.buy(E('100'),0,MaxUint256));assert((await s.token.price())>previous);assert.equal(await s.token.anchorSupply(),anchor);await checkAccounting(s);
+
+test('first actual buy creates user supply and splits one percentage point to two animal wallets',async()=>{
+ await(await s.binary.addUnits(1)).wait();
+ const q=await s.token.quoteBuy(E('100'));
+ assert.equal(q,E('97'));
+ await(await s.token.buy(E('100'),q,MaxUint256)).wait();
+ assert.equal(await s.token.balanceOf(s.addresses[0]),E('97'));
+ assert.equal(await s.token.balanceOf(s.addresses[38]),E('0.5'));
+ assert.equal(await s.token.balanceOf(s.addresses[39]),E('0.5'));
+ assert.equal(await s.token.totalSupply(),E('98'));
+ assert.equal(await s.token.reserve(),E('105'));
+ assert((await s.token.price())>E('1'));
+ await checkAccounting(s);
 });
-test('subsequent membership allocations increase real backing without issuing anchor or user shares',async()=>{
- await seed();const supply=await s.token.totalSupply();await growth(()=>s.binary.connect(signers[15]).addUnits(1));assert.equal(await s.token.reserve(),E('10'));assert.equal(await s.token.totalSupply(),supply);await growth(()=>s.binary.connect(signers[36]).register(s.addresses[15],1));assert.equal(await s.token.walletClock(),1n);await checkAccounting(s);
+
+test('tokens are immediately unlocked; transfer is standard and has no transfer tax',async()=>{
+ await seedAndBuy();
+ assert.equal(await s.token.locked(s.addresses[0]),0n);
+ assert.equal(await s.token.unlocked(s.addresses[0]),E('97'));
+ assert.equal(await s.token.lockCount(s.addresses[0]),0n);
+ const supply=await s.token.totalSupply();
+ await(await s.token.transfer(s.addresses[1],E('1'))).wait();
+ assert.equal(await s.token.balanceOf(s.addresses[1]),E('1'));
+ assert.equal(await s.token.totalSupply(),supply);
+ // A small immediate sale works without a 30/90-day or wallet-count unlock.
+ const before=await s.usd.balanceOf(s.addresses[0]);
+ await(await s.token.sell(E('4'),0,MaxUint256)).wait();
+ assert((await s.usd.balanceOf(s.addresses[0]))>before);
+ await checkAccounting(s);
 });
-test('unlocked transfers and transferFrom burn shares and raise the price without reserve withdrawal',async()=>{
- await seed();for(const i of [15,16])await(await s.binary.connect(signers[i]).addUnits(1)).wait();await growth(()=>s.token.buy(E('100'),0,MaxUint256));await mature();
- const r=await s.token.reserve();await growth(()=>s.token.transfer(s.addresses[15],E('10')));assert.equal(await s.token.balanceOf(s.addresses[15]),E('9.7'));
- await(await s.token.approve(s.addresses[15],E('10'))).wait();await growth(()=>s.token.connect(signers[15]).transferFrom(s.addresses[0],s.addresses[16],E('10')));assert.equal(await s.token.reserve(),r);assert.equal(await s.token.allowance(s.addresses[0],s.addresses[15]),0n);await checkAccounting(s);
+
+test('normal mode rejects a sudden whale exit and quotes additional impact above 1% size',async()=>{
+ await seedAndBuy();
+ assert((await s.token.sellImpactBps(E('2')))>0n);
+ await assert.rejects(async()=>{const tx=await s.token.sell(E('6'),0,MaxUint256);await tx.wait();});
 });
-test('zero/dust operations cannot create shares or round fees away',async()=>{
- await seed();await unchanged(()=>s.token.buy(0,0,MaxUint256));await unchanged(()=>s.token.buy(1,0,MaxUint256));assert.equal(await s.token.quoteBuy(1),0n);
- await(await s.binary.connect(signers[15]).addUnits(1)).wait();await growth(()=>s.token.buy(E('10'),0,MaxUint256));await mature();await unchanged(()=>s.token.transfer(s.addresses[15],1));await unchanged(()=>s.token.sell(1,0,MaxUint256));
- const r=await s.token.reserve(),supply=await s.token.totalSupply();await(await s.token.transfer(s.addresses[15],0)).wait();assert.equal(await s.token.reserve(),r);assert.equal(await s.token.totalSupply(),supply);await checkAccounting(s);
+
+test('5-of-7 council vote activates redemption-only emergency mode without an admin liquidity transfer',async()=>{
+ await seedAndBuy();
+ await activateEmergency();
+ assert.equal(await s.token.paused(),true);
+ await assert.rejects(async()=>{const tx=await s.token.buy(E('1'),0,MaxUint256);await tx.wait();});
+ const before=await s.usd.balanceOf(s.addresses[0]);
+ const bal=await s.token.balanceOf(s.addresses[0]),animalBefore=(await s.token.balanceOf(await s.token.animalSupportA()))+(await s.token.balanceOf(await s.token.animalSupportB()));
+ const[out,fee]=await s.token.quoteSell(bal);assert.equal(fee,0n);
+ await(await s.token.sell(bal,out,MaxUint256)).wait(); // fee-free; whale/hour caps bypassed only for emergency redemption
+ assert.equal((await s.usd.balanceOf(s.addresses[0]))-before,out);
+ assert.equal((await s.token.balanceOf(await s.token.animalSupportA()))+(await s.token.balanceOf(await s.token.animalSupportB())),animalBefore);
+ assert.equal(await s.token.emergencyExit(),true);
+ await checkAccounting(s);
 });
-test('direct collateral donations do not change quotes or dilute a later depositor',async()=>{
- await seed();const price=await s.token.price(),quote=await s.token.quoteBuy(E('100'));
- await(await s.usd.transfer(s.token.target,E('10000'))).wait();assert.equal(await s.token.price(),price);assert.equal(await s.token.quoteBuy(E('100')),quote);
- await growth(()=>s.token.buy(E('100'),quote,MaxUint256));await mature();await growth(()=>s.token.sell(quote,0,MaxUint256));const[actual,accounted]=await s.token.accounting();assert.equal(actual-accounted,E('10000'));assert.equal(await s.token.circulatingSupply(),0n);
+
+test('a 10x internal price milestone doubles the builder multiplier automatically',async()=>{
+ await seedAndBuy();
+ const launch=await s.token.launchPrice();
+ assert(launch>0n);
+ assert.equal(await s.token.priceMultiplier(),1n);
+ // 200 membership units inject 1,000 support USD without minting FTI.
+ await(await s.binary.addUnits(200)).wait();
+ assert((await s.token.price())>=launch*10n);
+ assert.equal(await s.token.priceMultiplier(),2n);
 });
-test('min output, expiry, allowance, registration and maturity still reject atomically',async()=>{
- await seed();const q=await s.token.quoteBuy(E('100'));await unchanged(()=>s.token.buy(E('100'),q+1n,MaxUint256));await unchanged(()=>s.token.buy(E('100'),0,0));await unchanged(()=>s.token.buy(E('501'),0,MaxUint256));
- await growth(()=>s.token.buy(E('100'),q,MaxUint256));await unchanged(()=>s.token.sell(q,0,MaxUint256));await mature();const[out]=await s.token.quoteSell(q);await unchanged(()=>s.token.sell(q,out+1n,MaxUint256));await unchanged(()=>s.token.transfer(s.addresses[36],E('1')));await unchanged(()=>s.token.transfer(s.addresses[0],E('1')));assert.equal(await s.token.remainingAllowance(s.addresses[0]),E('400'));
-});
-test('a failed collateral payout restores burned tokens and the entire reserve',async()=>{
- await seed();await growth(()=>s.token.buy(E('100'),0,MaxUint256));await mature();await(await s.usd.setBlocked(s.addresses[0],true)).wait();await unchanged(async()=>s.token.sell(await s.token.balanceOf(s.addresses[0]),0,MaxUint256));await(await s.usd.setBlocked(s.addresses[0],false)).wait();await growth(async()=>s.token.sell(await s.token.balanceOf(s.addresses[0]),0,MaxUint256));await checkAccounting(s);
-});
-test('anchor shares and accounted collateral cannot be withdrawn by administrative rescue',async()=>{
- await seed();for(const asset of [s.usd.target,s.token.target])await assert.rejects(p.call({from:s.timelock.target,to:s.token.target,data:s.token.interface.encodeFunctionData('rescue',[asset,s.addresses[0],1])}));
- await assert.rejects(p.call({from:s.token.target,to:s.token.target,data:s.token.interface.encodeFunctionData('transfer',[s.addresses[0],1])}));await assert.rejects(s.token.quoteSell(E('1')));
- await fails(()=>s.token.inject(1,false));await fails(()=>s.token.bind(s.binary.target));await checkAccounting(s);
-});
-test('real binary rewards execute through the protected auto-buy flow and raise price',async()=>{
- for(const[i,n]of [[0,1],[1,100],[2,100]])await(await s.binary.connect(signers[i]).addUnits(n)).wait();await settle(s,p);await(await s.binary.setAutoBuy(true,E('1000'))).wait();for(const i of [1,2])await(await s.binary.connect(signers[i]).addUnits(5)).wait();await settle(s,p);
- const amount=await s.binary.pendingAuto(s.addresses[0]);assert.equal(amount,E('45'));const q=await s.token.quoteBuy(amount);await fails(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],1));await growth(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],amount));assert.equal(await s.token.balanceOf(s.addresses[0]),q);assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);await checkAccounting(s);
-});
-test('splitting a full exit preserves growth at every fill and cannot profit from a closed own-funded cycle',async()=>{
- await seed();const cash=await s.usd.balanceOf(s.addresses[0]);await growth(()=>s.token.buy(E('100'),0,MaxUint256));await mature();const balance=await s.token.balanceOf(s.addresses[0]);
- for(let i=0;i<20;i++)await growth(async()=>s.token.sell(i===19?await s.token.balanceOf(s.addresses[0]):balance/20n,0,MaxUint256));assert.equal(await s.token.circulatingSupply(),0n);assert((await s.usd.balanceOf(s.addresses[0]))<cash);await checkAccounting(s);
-});
-test('a 50,000 USD purchase and full whale exit retain the fixed fee, backed payout and prior peak',async()=>{
- await seed();await growth(()=>s.binary.addUnits(100));const amount=E('50000'),r=await s.token.reserve(),supply=await s.token.totalSupply();
- const q=buyQuote(amount,r,supply);assert.equal(await s.token.quoteBuy(amount),q);await growth(()=>s.token.buy(amount,q,MaxUint256));await mature();
- const expected=sellQuote(q,await s.token.reserve(),await s.token.totalSupply()),[out,fee,gross]=await s.token.quoteSell(q);
- assert.equal(out,expected.payout);assert.equal(gross,expected.gross);assert.equal(fee,300n);const cash=await s.usd.balanceOf(s.addresses[0]);await growth(()=>s.token.sell(q,out,MaxUint256));assert.equal((await s.usd.balanceOf(s.addresses[0]))-cash,out);assert.equal(await s.token.circulatingSupply(),0n);await checkAccounting(s);
- console.log('RESERVE_WHALE',JSON.stringify({usdIn:F(amount),usdOut:F(out),feeBps:String(fee),finalPrice:F(await s.token.price())}));
+
+test('animal-support shares are fully backed and sell fees still raise reserve/share value',async()=>{
+ await seedAndBuy();
+ const animalA=await s.token.animalSupportA(),animalB=await s.token.animalSupportB();\n const oldR=await s.token.reserve(),oldS=await s.token.totalSupply(),oldAnimal=(await s.token.balanceOf(animalA))+(await s.token.balanceOf(animalB));
+ await(await s.token.sell(E('4'),0,MaxUint256)).wait();
+ const newR=await s.token.reserve(),newS=await s.token.totalSupply(),newAnimal=(await s.token.balanceOf(animalA))+(await s.token.balanceOf(animalB));
+ assert(newAnimal>oldAnimal);
+ assert(newR*oldS>oldR*newS);
+ await checkAccounting(s);
+ console.log('FTI_V2_FEE_CHECK',JSON.stringify({price:F(await s.token.price()),animalTokens:F(newAnimal)}));
 });

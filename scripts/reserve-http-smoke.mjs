@@ -16,8 +16,8 @@ try{
  const base=`http://127.0.0.1:${port}`,routes=['/','/app/','/token/','/admin/','/app.js','/style.css','/health','/api/config','/api/state','/api/events','/abi/FTIReserveToken'];
  for(const route of routes){const r=await fetch(base+route,{signal:AbortSignal.timeout(30000)});assert.equal(r.status,200,route);}
  const cfg=await(await fetch(base+'/api/config')).json(),state=await(await fetch(base+'/api/state?wallet='+cfg.accounts[0])).json();
- assert.equal(cfg.tokenContract,'FTIReserveToken');assert.equal(state.pricingModel,'real-reserve-v1');assert.equal(BigInt(state.totalSupply),BigInt(state.supply)+BigInt(state.anchorSupply));assert.equal(state.account2[0],state.account2[1]);assert.equal(state.wallet.units,'1');
- assert.equal(cfg.lockVersion,2);assert.equal(state.wallet.lockCount,'0');
+ assert.equal(cfg.tokenContract,'FTIReserveToken');assert.equal(state.pricingModel,'real-reserve-v2-zero-start');assert.equal(BigInt(state.totalSupply),BigInt(state.supply));assert.equal(BigInt(state.anchorSupply),0n);assert.equal(state.account2[0],state.account2[1]);assert.equal(state.wallet.units,'1');
+ assert.equal(cfg.lockVersion,3);assert.equal(state.wallet.lockCount,'0');
  const locks=await(await fetch(base+'/api/locks?wallet='+cfg.accounts[0]+'&offset=0&limit=64')).json();assert.equal(locks.total,'0');assert.deepEqual(locks.locks,[]);
  assert.equal((await fetch(base+'/api/locks?wallet='+cfg.accounts[0]+'&limit=65')).status,400);
  if(funded){assert.equal(cfg.binaryContract,'FundedBinaryPlan');assert.equal(state.rewardModel,'attributed-credit-v1');assert(BigInt(state.pointRetained)>0n);assert.equal((await fetch(base+'/abi/FundedBinaryPlan')).status,200);}
