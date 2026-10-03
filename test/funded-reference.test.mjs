@@ -6,10 +6,10 @@ import {FundedLedger} from '../core/funded-reference.mjs';
 import {deploySuite,settle} from '../scripts/lib.mjs';
 
 test('independent attributed ledger agrees with EVM across activation, two epochs and unmatched credit',async()=>{
- const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:36},chain:{chainId:31337,time:new Date('2026-09-15T12:00:00Z')}});
+ const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:45},chain:{chainId:31337,time:new Date('2026-09-15T12:00:00Z')}});
  try{
   const p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
-  const signers=await Promise.all(Array.from({length:36},(_,i)=>p.getSigner(i)));
+  const signers=await Promise.all(Array.from({length:45},(_,i)=>p.getSigner(i)));
   const s=await deploySuite(signers,{tokenContract:'FTIReserveToken',binaryContract:'FundedBinaryPlan'}),model=new FundedLedger();
   for(let i=0;i<7;i++){await(await s.usd.connect(signers[i]).faucet()).wait();await(await s.usd.connect(signers[i]).approve(s.binary.target,MaxUint256)).wait();}
   for(const steps of [[[3,2],[0,1],[1,1],[2,1],[3,30],[4,12],[5,11],[6,17]],[[3,2],[4,10],[5,8],[6,2]]]){
