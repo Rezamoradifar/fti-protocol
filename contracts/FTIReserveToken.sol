@@ -14,236 +14,337 @@ interface IReserveMembership {
     function rankOf(address) external view returns (uint8);
 }
 
-/// @notice Experimental real-reserve model; gross reserve/share value never decreases.
-/// @dev Not ERC-4626. Test separately from the legacy CRR token. No market/USD guarantee.
+/// @notice Zero-supply real-reserve FTI candidate.
+/// @dev Starts with zero FTI. Binary support adds collateral but NEVER mints FTI.
+///      Buy/sell base fee is 3% of gross value: 1% is represented by fully-backed
+///      FTI minted to two immutable animal-support wallets, 2% remains reserve-accretive.
+///      User tokens have no time/wallet-count locks. User minOut/deadline plus protocol
+///      anti-whale price impact and an hourly outflow guard replace vesting locks.
 contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
 
     uint256 public constant WAD = 1e18;
-    uint256 public constant P0 = 1e17;
     uint256 public constant FEE_BPS = 300;
+    uint256 public constant ANIMAL_BPS = 100;
+    uint256 public constant RETAINED_BPS = 200;
+    uint256 public constant MAX_EXTRA_SELL_IMPACT_BPS = 700;
+    uint256 public constant MAX_SINGLE_SELL_BPS = 500; // 5% of user circulation per transaction
+    uint256 public constant MAX_HOURLY_GROSS_SELL_BPS = 1500; // 15% of reserve snapshot per hour
     uint256 public constant MAX_RESERVE = 1e30;
     uint256 public constant MAX_SUPPLY = 1e36;
     uint256 public constant MIN_MINT = 1e6;
-    // Acquisition allowance reference ONLY. These are not shares or reserve backing.
     uint256 public constant CAP_REFERENCE_SUPPLY = 1000000e18;
-    bytes32 public constant pricingModel = 'REAL_RESERVE_V1';
+    bytes32 public constant pricingModel = 'REAL_RESERVE_V2_ZERO_START';
 
     IERC20 public immutable usd;
     address public immutable governance;
     address public immutable guardian;
     address public immutable deployer;
+    address public immutable animalSupportA;
+    address public immutable animalSupportB;
     IReserveMembership public binary;
+
     uint256 public reserve;
-    uint256 public anchorSupply;
-    uint256 public ath = P0;
-    uint256 public walletClock;
+    uint256 public launchPrice;
+    uint256 public milestonePrice;
     uint256 public priceMultiplier = 1;
-    uint256 public milestonePrice = P0;
     uint256 public cumulativeBuy;
     uint256 public cumulativeSell;
+
+    uint256 public sellWindowStart;
+    uint256 public sellWindowStartReserve;
+    uint256 public sellWindowGross;
+    bool public emergencyExit;
+
     mapping(address => uint256) public lifetimeManualBuys;
-    struct Lock { uint256 amount; uint64 clock; uint64 deadline; }
-    struct Checkpoint { uint256 cumulative; uint64 clock; uint64 deadline; }
-    // Five independently monotone queues: short hold, then each of four vesting stages.
-    mapping(address => Checkpoint[][5]) private locks;
-    uint256 public constant lockVersion = 2;
 
     event Bound(address indexed binary);
-    event Bought(address indexed wallet, uint256 usdIn, uint256 tokens, bool automatic);
-    event Sold(address indexed wallet, uint256 tokens, uint256 usdOut, uint256 feeBps);
+    event Bought(address indexed wallet,uint256 usdIn,uint256 userTokens,uint256 animalTokens,bool automatic);
+    event Sold(address indexed wallet,uint256 tokens,uint256 usdOut,uint256 baseFeeBps,uint256 impactBps,uint256 animalTokens);
     event ReserveInjected(uint256 amount);
-    event AnchorFunded(uint256 assets, uint256 permanentlyLockedShares);
-    event MultiplierUpdated(uint256 multiplier);
-    event ReservePriceUpdated(uint256 reserve, uint256 shares, uint256 price);
+    event AnimalSupportMinted(address indexed wallet,uint256 tokens,uint256 attributedUSD);
+    event MultiplierUpdated(uint256 multiplier,uint256 nextMilestone);
+    event ReservePriceUpdated(uint256 reserve,uint256 shares,uint256 price);
+    event EmergencyExitActivated(address indexed caller);
+    event EmergencyExitDeactivated();
+    event SellWindowReset(uint256 indexed start,uint256 reserveSnapshot);
 
-    modifier onlyBinary() { require(msg.sender == address(binary), 'binary only'); _; }
+    modifier onlyBinary(){require(msg.sender==address(binary),'binary only');_;}
 
-    constructor(address stable, address gov, address emergency) ERC20('FTI Protocol', 'FTI') {
-        require(stable.code.length > 0 && gov != address(0) && emergency != address(0), 'addresses');
-        require(IERC20Metadata(stable).decimals() == 18, 'requires 18 decimal USD');
-        usd = IERC20(stable); governance = gov; guardian = emergency; deployer = msg.sender;
+    constructor(address stable,address gov,address emergency,address animalA,address animalB)
+        ERC20('FTI Protocol','FTI')
+    {
+        require(stable.code.length>0&&gov!=address(0)&&emergency!=address(0),'addresses');
+        require(animalA!=address(0)&&animalB!=address(0)&&animalA!=animalB,'animal wallets');
+        require(IERC20Metadata(stable).decimals()==18,'requires 18 decimal USD');
+        usd=IERC20(stable);
+        governance=gov;
+        guardian=emergency;
+        deployer=msg.sender;
+        animalSupportA=animalA;
+        animalSupportB=animalB;
     }
 
     function bind(address c1) external {
-        require(msg.sender == deployer && address(binary) == address(0) && c1.code.length > 0, 'bind');
-        binary = IReserveMembership(c1); emit Bound(c1);
-    }
-    function pause() external { require(msg.sender == guardian || msg.sender == governance, 'role'); _pause(); }
-    function unpause() external { require(msg.sender == governance, 'governance'); _unpause(); }
-    function circulatingSupply() public view returns (uint256) { return totalSupply() - anchorSupply; }
-    function price() public view returns (uint256) {
-        return totalSupply() == 0 ? P0 : Math.mulDiv(reserve, WAD, totalSupply());
-    }
-    // Compatibility getters: no virtual reserve, separate buyback or floor pot exists here.
-    function buybackFund() external pure returns (uint256) { return 0; }
-    function floorFund() external pure returns (uint256) { return 0; }
-    function buyFeeBps() external pure returns (uint256) { return FEE_BPS; }
-    function buyLimit(address who) public view returns (uint256) {
-        uint256[5] memory limits = [uint256(500), 600, 700, 800, 1000];
-        return binary.unitsOf(who) * limits[binary.rankOf(who)] * WAD * priceMultiplier;
-    }
-    function remainingAllowance(address who) public view returns (uint256) {
-        uint256 limit = buyLimit(who);
-        return limit > lifetimeManualBuys[who] ? limit - lifetimeManualBuys[who] : 0;
-    }
-    function _fee(uint256 amount) private pure returns (uint256) {
-        return Math.mulDiv(amount, FEE_BPS, 10000, Math.Rounding.Ceil);
-    }
-    function quoteBuy(uint256 amount) public view returns (uint256) {
-        require(anchorSupply > 0, 'reserve not initialized');
-        require(amount <= MAX_RESERVE, 'amount limit');
-        return Math.mulDiv(amount - _fee(amount), totalSupply(), reserve);
-    }
-    function quoteSell(uint256 tokens) public view returns (uint256 payout, uint256 feeBps, uint256 gross) {
-        require(tokens <= circulatingSupply(), 'circulating supply');
-        if (tokens == 0) return (0, FEE_BPS, 0);
-        gross = Math.mulDiv(tokens, reserve, totalSupply());
-        return (gross - _fee(gross), FEE_BPS, gross);
+        require(msg.sender==deployer&&address(binary)==address(0)&&c1.code.length>0,'bind');
+        binary=IReserveMembership(c1);
+        emit Bound(c1);
     }
 
-    // BinaryPlan's first paid token allocation funds all initial, permanently locked shares.
-    // Later allocations add real backing without minting. No administrator can redeem the anchor.
-    function inject(uint256 amount, bool newWallet) external onlyBinary nonReentrant {
-        require(amount > 0 && reserve + amount <= MAX_RESERVE, 'reserve range');
-        uint256 previousR = reserve; uint256 previousS = totalSupply();
-        _receive(msg.sender, amount);
-        reserve += amount;
-        if (previousS == 0) {
-            anchorSupply = Math.mulDiv(amount, WAD, P0);
-            require(anchorSupply > 0 && anchorSupply <= MAX_SUPPLY, 'anchor range');
-            _mint(address(this), anchorSupply);
-            emit AnchorFunded(amount, anchorSupply);
-        } else _requireGrowth(previousR, previousS);
-        if (newWallet) walletClock++;
-        _recordPrice(); emit ReserveInjected(amount);
+    /// @dev Pause blocks buys and wallet-to-wallet transfers. Sells remain open.
+    function pause() external {require(msg.sender==guardian||msg.sender==governance,'role');_pause();}
+    function unpause() external {require(msg.sender==governance,'governance');_unpause();}
+
+    /// @notice 7-wallet council (guardian) may activate after its on-chain threshold vote.
+    ///         This does not transfer reserve to administrators; it makes the protocol redemption-only.
+    function activateEmergencyExit() external {
+        require(msg.sender==guardian||msg.sender==governance,'role');
+        emergencyExit=true;
+        if(!paused())_pause();
+        emit EmergencyExitActivated(msg.sender);
     }
-    function buy(uint256 amount, uint256 minTokens, uint256 deadline)
-        external nonReentrant whenNotPaused returns (uint256)
-    { return _buy(msg.sender, msg.sender, amount, minTokens, deadline, false); }
-    function autoBuy(address who, uint256 amount, uint256 minTokens, uint256 deadline)
-        external onlyBinary nonReentrant whenNotPaused returns (uint256)
-    { return _buy(msg.sender, who, amount, minTokens, deadline, true); }
-    function _buy(address payer, address who, uint256 amount, uint256 minTokens, uint256 deadline, bool automatic)
-        private returns (uint256 minted)
+    function deactivateEmergencyExit() external {
+        require(msg.sender==governance,'governance');
+        emergencyExit=false;
+        if(paused())_unpause();
+        emit EmergencyExitDeactivated();
+    }
+
+    function circulatingSupply() public view returns(uint256){return totalSupply();}
+    function price() public view returns(uint256){
+        return totalSupply()==0?0:Math.mulDiv(reserve,WAD,totalSupply());
+    }
+    function buybackFund() external pure returns(uint256){return 0;}
+    function floorFund() external pure returns(uint256){return 0;}
+    function anchorSupply() external pure returns(uint256){return 0;}
+    function buyFeeBps() external pure returns(uint256){return FEE_BPS;}
+
+    function buyLimit(address who) public view returns(uint256){
+        uint256[5] memory limits=[uint256(500),600,700,800,1000];
+        uint8 rank=binary.rankOf(who);
+        uint256 mult=rank==0?1:priceMultiplier;
+        return binary.unitsOf(who)*limits[rank]*WAD*mult;
+    }
+    function remainingAllowance(address who) public view returns(uint256){
+        uint256 limit=buyLimit(who);
+        return limit>lifetimeManualBuys[who]?limit-lifetimeManualBuys[who]:0;
+    }
+
+    function _fee(uint256 amount,uint256 bps) private pure returns(uint256){
+        return Math.mulDiv(amount,bps,10000,Math.Rounding.Ceil);
+    }
+    function _animalValue(uint256 amount) private pure returns(uint256){
+        return _fee(amount,ANIMAL_BPS);
+    }
+    function _userNetBuy(uint256 amount) private pure returns(uint256){
+        uint256 fee=_fee(amount,FEE_BPS);
+        require(amount>fee,'dust');
+        return amount-fee;
+    }
+
+    /// @notice Returns user FTI only; animal-support FTI is separately minted from 1% gross value.
+    function quoteBuy(uint256 amount) public view returns(uint256){
+        require(amount>0&&amount<=MAX_RESERVE,'amount');
+        uint256 userAssets=_userNetBuy(amount);
+        if(totalSupply()==0)return userAssets;
+        require(reserve>0,'reserve');
+        return Math.mulDiv(userAssets,totalSupply(),reserve);
+    }
+    function quoteAnimalBuy(uint256 amount) public view returns(uint256){
+        uint256 assets=_animalValue(amount);
+        if(totalSupply()==0)return assets;
+        require(reserve>0,'reserve');
+        return Math.mulDiv(assets,totalSupply(),reserve);
+    }
+
+    function sellImpactBps(uint256 tokens) public view returns(uint256){
+        uint256 supply=circulatingSupply();
+        if(tokens==0||supply==0)return 0;
+        uint256 sizeBps=Math.mulDiv(tokens,10000,supply,Math.Rounding.Ceil);
+        if(sizeBps<=100)return 0; // first 1% has no extra impact
+        if(sizeBps<=500)return Math.mulDiv(sizeBps-100,300,400); // 0 -> 3%
+        uint256 extra=300+Math.mulDiv(sizeBps-500,400,500);
+        return extra>MAX_EXTRA_SELL_IMPACT_BPS?MAX_EXTRA_SELL_IMPACT_BPS:extra;
+    }
+
+    function quoteSell(uint256 tokens) public view returns(uint256 payout,uint256 feeBps,uint256 gross){
+        require(tokens<=circulatingSupply(),'supply');
+        if(tokens==0||totalSupply()==0)return(0,FEE_BPS,0);
+        gross=Math.mulDiv(tokens,reserve,totalSupply());
+        uint256 impact=emergencyExit?0:sellImpactBps(tokens);
+        uint256 baseFee=_fee(gross,FEE_BPS);
+        uint256 impactFee=_fee(gross,impact);
+        require(gross>baseFee+impactFee,'dust');
+        payout=gross-baseFee-impactFee;
+        feeBps=FEE_BPS+impact;
+    }
+
+    /// @notice Binary funding is support only; it never creates FTI, including the first registration.
+    function inject(uint256 amount,bool) external onlyBinary nonReentrant {
+        require(amount>0&&reserve+amount<=MAX_RESERVE,'reserve range');
+        _receive(msg.sender,amount);
+        reserve+=amount;
+        _backed();
+        _recordPrice();
+        emit ReserveInjected(amount);
+    }
+
+    function buy(uint256 amount,uint256 minTokens,uint256 deadline)
+        external nonReentrant whenNotPaused returns(uint256)
     {
-        require(block.timestamp <= deadline && amount > 0 && binary.unitsOf(who) > 0, 'buy input');
-        require(walletClock <= type(uint64).max - 44000 && block.timestamp <= type(uint64).max - 90 days, 'lock range');
-        if (!automatic) require(amount <= remainingAllowance(who), 'allowance');
-        minted = quoteBuy(amount);
-        require(minted >= MIN_MINT && minted >= minTokens, 'slippage/dust');
-        require((balanceOf(who) + minted) * 100 <= CAP_REFERENCE_SUPPLY + circulatingSupply() + minted, 'holding cap');
-        require(reserve + amount <= MAX_RESERVE && totalSupply() + minted <= MAX_SUPPLY, 'range');
-        uint256 previousR = reserve; uint256 previousS = totalSupply();
-        _receive(payer, amount);
-        reserve += amount; // Includes the complete buy fee.
-        if (!automatic) lifetimeManualBuys[who] += amount;
-        _mint(who, minted);
-        bool vest = !automatic && lifetimeManualBuys[who] >= 500e18;
-        if (vest) {
-            uint256 part = minted / 4;
-            for (uint256 i; i < 4; i++) _addLock(who, i+1, i == 3 ? minted - 3 * part : part,
-                uint64(walletClock + 20000 + 8000 * i), uint64(block.timestamp + 90 days));
-        } else _addLock(who, 0, minted, uint64(walletClock + 5000), uint64(block.timestamp + 30 days));
-        cumulativeBuy += amount;
-        _requireGrowth(previousR, previousS); _recordPrice();
-        emit Bought(who, amount, minted, automatic);
+        require(!emergencyExit,'redemption only');
+        return _buy(msg.sender,msg.sender,amount,minTokens,deadline,false);
     }
-    function sell(uint256 tokens, uint256 minUSD, uint256 deadline)
-        external nonReentrant whenNotPaused returns (uint256 payout)
+    function autoBuy(address who,uint256 amount,uint256 minTokens,uint256 deadline)
+        external onlyBinary nonReentrant whenNotPaused returns(uint256)
     {
-        require(block.timestamp <= deadline && tokens > 0 && tokens <= unlocked(msg.sender), 'sell input/lock');
-        uint256 gross;
-        (payout,,gross) = quoteSell(tokens);
-        require(payout > 0 && payout >= minUSD && payout <= reserve, 'slippage/dust');
-        uint256 previousR = reserve; uint256 previousS = totalSupply();
-        reserve -= payout; cumulativeSell += gross; _burn(msg.sender, tokens);
-        _requireGrowth(previousR, previousS); _recordPrice();
-        uint256 beforePool = usd.balanceOf(address(this));
-        uint256 beforeUser = usd.balanceOf(msg.sender);
-        usd.safeTransfer(msg.sender, payout);
-        require(beforePool - usd.balanceOf(address(this)) == payout &&
-            usd.balanceOf(msg.sender) - beforeUser == payout, 'unsupported USD');
-        _backed(); emit Sold(msg.sender, tokens, payout, FEE_BPS);
+        require(!emergencyExit,'redemption only');
+        return _buy(msg.sender,who,amount,minTokens,deadline,true);
     }
-    function _receive(address payer, uint256 amount) private {
-        _backed(); uint256 beforeBalance = usd.balanceOf(address(this));
-        uint256 beforePayer = usd.balanceOf(payer);
-        usd.safeTransferFrom(payer, address(this), amount);
-        require(usd.balanceOf(address(this)) - beforeBalance == amount &&
-            beforePayer - usd.balanceOf(payer) == amount, 'unsupported USD');
+
+    function _buy(address payer,address who,uint256 amount,uint256 minTokens,uint256 deadline,bool automatic)
+        private returns(uint256 minted)
+    {
+        require(block.timestamp<=deadline&&amount>0&&binary.unitsOf(who)>0,'buy input');
+        if(!automatic)require(amount<=remainingAllowance(who),'allowance');
+
+        uint256 previousR=reserve;
+        uint256 previousS=totalSupply();
+        minted=quoteBuy(amount);
+        uint256 animalMint=quoteAnimalBuy(amount);
+        require(minted>=MIN_MINT&&minted>=minTokens,'slippage/dust');
+        require(reserve+amount<=MAX_RESERVE&&previousS+minted+animalMint<=MAX_SUPPLY,'range');
+
+        _receive(payer,amount);
+        reserve+=amount;
+        if(!automatic)lifetimeManualBuys[who]+=amount;
+
+        _mint(who,minted);
+        _mintAnimal(animalMint,_animalValue(amount));
+        cumulativeBuy+=amount;
+
+        if(previousS>0)_requireGrowth(previousR,previousS);
+        if(launchPrice==0){
+            launchPrice=price();
+            milestonePrice=launchPrice*10;
+        }
+        _syncMilestone();
+        _recordPrice();
+        emit Bought(who,amount,minted,animalMint,automatic);
     }
-    function _backed() private view { require(usd.balanceOf(address(this)) >= reserve, 'reserve deficit'); }
-    function _requireGrowth(uint256 oldR, uint256 oldS) private view {
-        // Both products <= 1e66 under MAX_RESERVE / MAX_SUPPLY; no 256-bit overflow.
-        require(reserve * oldS > oldR * totalSupply(), 'price must increase');
+
+    function sell(uint256 tokens,uint256 minUSD,uint256 deadline)
+        external nonReentrant returns(uint256 payout)
+    {
+        require(block.timestamp<=deadline&&tokens>0&&tokens<=balanceOf(msg.sender),'sell input');
+        uint256 supply=circulatingSupply();
+        if(!emergencyExit){
+            require(Math.mulDiv(tokens,10000,supply,Math.Rounding.Ceil)<=MAX_SINGLE_SELL_BPS,'anti-whale tx cap');
+        }
+
+        uint256 gross;uint256 totalFeeBps;
+        (payout,totalFeeBps,gross)=quoteSell(tokens);
+        require(payout>0&&payout>=minUSD&&payout<=reserve,'slippage/dust');
+
+        if(!emergencyExit)_consumeSellCapacity(gross);
+
+        uint256 previousR=reserve;
+        uint256 previousS=totalSupply();
+        uint256 animalValue=_animalValue(gross);
+        uint256 animalMint=Math.mulDiv(animalValue,previousS,previousR);
+
+        reserve-=payout;
+        cumulativeSell+=gross;
+        _burn(msg.sender,tokens);
+        _mintAnimal(animalMint,animalValue);
+
+        _requireGrowth(previousR,previousS);
+        _syncMilestone();
+        _recordPrice();
+
+        uint256 beforePool=usd.balanceOf(address(this));
+        uint256 beforeUser=usd.balanceOf(msg.sender);
+        usd.safeTransfer(msg.sender,payout);
+        require(beforePool-usd.balanceOf(address(this))==payout&&
+            usd.balanceOf(msg.sender)-beforeUser==payout,'unsupported USD');
+        _backed();
+        emit Sold(msg.sender,tokens,payout,FEE_BPS,totalFeeBps-FEE_BPS,animalMint);
+    }
+
+    function _consumeSellCapacity(uint256 gross) private {
+        uint256 start=(block.timestamp/1 hours)*1 hours;
+        if(start!=sellWindowStart){
+            sellWindowStart=start;
+            sellWindowStartReserve=reserve;
+            sellWindowGross=0;
+            emit SellWindowReset(start,reserve);
+        }
+        uint256 cap=Math.mulDiv(sellWindowStartReserve,MAX_HOURLY_GROSS_SELL_BPS,10000);
+        require(sellWindowGross+gross<=cap,'hourly sell capacity');
+        sellWindowGross+=gross;
+    }
+
+    function _mintAnimal(uint256 amount,uint256 attributedUSD) private {
+        if(amount==0)return;
+        uint256 a=amount/2;
+        uint256 b=amount-a;
+        if(a>0){_mint(animalSupportA,a);emit AnimalSupportMinted(animalSupportA,a,attributedUSD/2);}
+        if(b>0){_mint(animalSupportB,b);emit AnimalSupportMinted(animalSupportB,b,attributedUSD-attributedUSD/2);}
+    }
+
+    function _receive(address payer,uint256 amount) private {
+        _backed();
+        uint256 beforeBalance=usd.balanceOf(address(this));
+        uint256 beforePayer=usd.balanceOf(payer);
+        usd.safeTransferFrom(payer,address(this),amount);
+        require(usd.balanceOf(address(this))-beforeBalance==amount&&
+            beforePayer-usd.balanceOf(payer)==amount,'unsupported USD');
+    }
+
+    function _backed() private view {require(usd.balanceOf(address(this))>=reserve,'reserve deficit');}
+    function _requireGrowth(uint256 oldR,uint256 oldS) private view {
+        require(oldS>0&&totalSupply()>0,'supply');
+        require(reserve*oldS>oldR*totalSupply(),'price must increase');
         _backed();
     }
-    function _recordPrice() private { ath = price(); emit ReservePriceUpdated(reserve, totalSupply(), ath); }
-    function _update(address from, address to, uint256 value) internal override {
-        require(from != address(this), 'anchor locked');
-        if (from != address(0) && to != address(0)) {
-            // ERC20 transfers also share the trade guard: collateral callbacks cannot alter supply.
-            require(!_reentrancyGuardEntered(), 'reentrant transfer');
-            require(!paused() && from != to && binary.unitsOf(to) > 0, 'transfer');
-            require(value <= unlocked(from), 'locked');
-            if (value == 0) { super._update(from, to, 0); return; }
-            uint256 burn = _fee(value); require(value > burn, 'dust transfer');
-            uint256 received = value - burn;
-            require((balanceOf(to) + received) * 100 <= CAP_REFERENCE_SUPPLY + circulatingSupply() - burn, 'holding cap');
-            uint256 previousR = reserve; uint256 previousS = totalSupply();
-            super._update(from, address(0), burn); super._update(from, to, received);
-            _requireGrowth(previousR, previousS); _recordPrice();
-        } else super._update(from, to, value);
-    }
-    function _addLock(address who, uint256 group, uint256 amount, uint64 clock, uint64 deadline) private {
-        Checkpoint[] storage q=locks[who][group];
-        require(q.length==0||(clock>=q[q.length-1].clock&&deadline>=q[q.length-1].deadline),'lock order');
-        uint256 previous=q.length==0?0:q[q.length-1].cumulative;
-        if(q.length>0&&q[q.length-1].clock==clock&&q[q.length-1].deadline==deadline)q[q.length-1].cumulative+=amount;
-        else q.push(Checkpoint(previous+amount,clock,deadline));
-    }
-    function _firstLocked(Checkpoint[] storage q) private view returns(uint256 low) {
-        uint256 high=q.length;
-        while(low<high){uint256 mid=low+(high-low)/2;Checkpoint storage c=q[mid];
-            if(walletClock>=c.clock||block.timestamp>=c.deadline)low=mid+1;else high=mid;
+    function _recordPrice() private {emit ReservePriceUpdated(reserve,totalSupply(),price());}
+
+    /// @dev Builder (rank > 0) manual-buy allowance doubles after each 10x price milestone.
+    ///      The sync is automatic on protocol buys/sells and can also be called permissionlessly.
+    function syncPriceMilestone() external {_syncMilestone();}
+    function _syncMilestone() private {
+        if(milestonePrice==0)return;
+        while(price()>=milestonePrice&&priceMultiplier<1024){
+            priceMultiplier*=2;
+            if(milestonePrice>type(uint256).max/10){milestonePrice=type(uint256).max;break;}
+            milestonePrice*=10;
+            emit MultiplierUpdated(priceMultiplier,milestonePrice);
         }
     }
-    function lockCount(address who) public view returns(uint256 count) {
-        for(uint256 group;group<5;group++)count+=locks[who][group].length-_firstLocked(locks[who][group]);
-    }
-    function lockInfo(address who) external view returns (Lock[] memory) { return lockPage(who,0,64); }
-    function lockPage(address who,uint256 offset,uint256 limit) public view returns(Lock[] memory page) {
-        require(limit>0&&limit<=64,'page limit');uint256 count=lockCount(who);
-        uint256 length=offset>=count?0:Math.min(limit,count-offset);page=new Lock[](length);uint256 written;
-        for(uint256 group;group<5&&written<length;group++){
-            Checkpoint[] storage q=locks[who][group];uint256 start=_firstLocked(q);uint256 active=q.length-start;
-            if(offset>=active){offset-=active;continue;}
-            start+=offset;offset=0;
-            for(uint256 i=start;i<q.length&&written<length;i++){
-                Checkpoint storage c=q[i];uint256 previous=i==0?0:q[i-1].cumulative;
-                page[written++]=Lock(c.cumulative-previous,c.clock,c.deadline);
-            }
+    function advancePriceMilestone() external {_syncMilestone();}
+
+    /// @notice No protocol lock: full wallet balance is transferable/redeemable, subject to slippage and sell protection.
+    function locked(address) public pure returns(uint256){return 0;}
+    function unlocked(address who) public view returns(uint256){return balanceOf(who);}
+    function lockCount(address) public pure returns(uint256){return 0;}
+    function lockInfo(address) external pure returns(bytes memory){return '';}
+    function lockPage(address,uint256,uint256) external pure returns(bytes memory){return '';}
+    function lockVersion() external pure returns(uint256){return 3;}
+
+    function _update(address from,address to,uint256 value) internal override {
+        if(from!=address(0)&&to!=address(0)){
+            require(!paused()&&!emergencyExit,'transfers paused');
+            require(!_reentrancyGuardEntered(),'reentrant transfer');
         }
+        // Standard ERC20 transfer: no transfer tax/burn in V2.
+        super._update(from,to,value);
     }
-    function locked(address who) public view returns (uint256 amount) {
-        if (who == address(this)) return anchorSupply;
-        for(uint256 group;group<5;group++){
-            Checkpoint[] storage q=locks[who][group];uint256 start=_firstLocked(q);
-            if(start<q.length)amount+=q[q.length-1].cumulative-(start==0?0:q[start-1].cumulative);
-        }
+
+    function accounting() external view returns(uint256 actual,uint256 accounted){
+        return(usd.balanceOf(address(this)),reserve);
     }
-    function unlocked(address who) public view returns (uint256) { return balanceOf(who) - locked(who); }
-    function advancePriceMilestone() external {
-        require(msg.sender == governance, 'governance');
-        require(price() >= milestonePrice * 10 && priceMultiplier < 1024, 'milestone');
-        milestonePrice *= 10; priceMultiplier *= 2; emit MultiplierUpdated(priceMultiplier);
-    }
-    function accounting() external view returns (uint256 actual, uint256 accounted) {
-        return (usd.balanceOf(address(this)), reserve);
-    }
-    function rescue(address asset, address to, uint256 amount) external nonReentrant {
-        require(msg.sender == governance && asset != address(usd) && asset != address(this), 'protected');
-        IERC20(asset).safeTransfer(to, amount);
+    function rescue(address asset,address to,uint256 amount) external nonReentrant {
+        require(msg.sender==governance&&asset!=address(usd)&&asset!=address(this),'protected');
+        IERC20(asset).safeTransfer(to,amount);
     }
 }
