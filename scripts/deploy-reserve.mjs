@@ -14,7 +14,8 @@ if(fs.existsSync(output)||fs.existsSync(journal))throw Error('Deployment or jour
 if(!process.env.RPC_URL||!process.env.DEPLOYER_PRIVATE_KEY)throw Error('Set RPC_URL and DEPLOYER_PRIVATE_KEY locally. Never share a wallet key in chat.');
 const config=JSON.parse(fs.readFileSync(process.env.CONFIG_FILE||'deployments/testnet-input.json','utf8'));
 for(const[name,n]of [['genesis',31],['owners',7],['animalSupport',2]])if(!Array.isArray(config[name])||config[name].length!==n||config[name].some(a=>!isAddress(a)||a.toLowerCase()===ZeroAddress)||new Set(config[name].map(a=>a.toLowerCase())).size!==n)throw Error(`Provide ${n} distinct nonzero ${name} addresses`);
-if(!isAddress(config.development)||config.development.toLowerCase()===ZeroAddress)throw Error('Provide a nonzero development address');\nif(config.animalSupport[0].toLowerCase()===config.animalSupport[1].toLowerCase())throw Error('Animal support wallets must be distinct');
+if(!isAddress(config.development)||config.development.toLowerCase()===ZeroAddress)throw Error('Provide a nonzero development address');
+if(config.animalSupport[0].toLowerCase()===config.animalSupport[1].toLowerCase())throw Error('Animal support wallets must be distinct');
 const provider=new JsonRpcProvider(process.env.RPC_URL,undefined,{cacheTimeout:-1});
 try{
  if((await provider.getNetwork()).chainId!==97n)throw Error('Reserve candidate deployment is restricted to BNB testnet chain 97');
