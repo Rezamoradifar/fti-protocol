@@ -1,4 +1,4 @@
-# Real-reserve FTI candidate
+> **Superseded on the V2 branch:** this file is the historical PR3 reserve-token report. For `fix/zero-start-animal-protection`, use `docs/TOKEN-V2.md` for the current zero-start/no-lock/animal-support/emergency design.\n\n# Real-reserve FTI candidate
 
 **Version note:** this report records PR #3 / `feat/reserve-token`. In the later `fix/funded-binary` candidate, the token uses paginated cumulative lock queues (no 64-live-lock ceiling), and an optional new `FundedBinaryPlan` changes the reward policy. See [FUNDED-PLAN](FUNDED-PLAN.md) for that implementation and its separate validation. The historical statements and results below describe the earlier candidate.
 
