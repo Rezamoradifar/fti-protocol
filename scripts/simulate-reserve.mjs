@@ -35,15 +35,18 @@ export function simulateReserve(count=300000){
  }
  if(m.userHeld!==0n||m.supply!==m.animalSupply)throw Error('incomplete user exit');
  if([...m.wallets.values()].some(w=>w.balance!==0n))throw Error('wallet not empty');
+ const animalBeforeDrain=m.animalSupply;
+ if(animalBeforeDrain>0n)m.emergencyRedeemAnimal(animalBeforeDrain);
+ if(m.supply!==0n||m.reserve!==0n)throw Error('emergency liquidity not fully drained');
  const result={
   model:'real-reserve-v2-zero-start',
   wallets:count,buys,sells,transfers,checks:m.checks,
   largestBuyUSDWei:String(largestBuy),largestSaleUSDWei:String(largestSale),
   priceBeforeFinalExitWad:String(beforeExitPrice),finalPriceWad:String(m.price()),
   cashInUSDWei:String(m.cashIn),cashOutUSDWei:String(m.cashOut),finalReserveUSDWei:String(m.reserve),
-  finalUserCirculatingSupply:'0',finalAnimalSupportSupply:String(m.animalSupply),
+  finalUserCirculatingSupply:'0',animalSupportSupplyBeforeDrain:String(animalBeforeDrain),finalAnimalSupportSupply:String(m.animalSupply),
   allUserTokensSold:true,negativePriceTransitions:0,unfundedPayouts:0,
-  scope:'BigInt V2 accounting simulation. Final exits use 5-of-7 emergency redemption semantics. No EVM/RPC throughput, hourly timing, gas, identity/Sybil, binary settlement or legal analysis.'
+  scope:'BigInt V2 accounting simulation. Final user and animal-support exits use fee-free 5-of-7 emergency redemption semantics and drain modeled reserve/supply to zero. No EVM/RPC throughput, hourly timing, gas, identity/Sybil, binary settlement or legal analysis.'
  };
  return result;
 }
