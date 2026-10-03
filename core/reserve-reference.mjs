@@ -27,7 +27,8 @@ export function sellImpactBps(tokens,supply){
 export function sellQuote(tokens,reserve,supply,{emergency=false}={}){
  if(tokens<=0n||supply<=0n||tokens>supply)return {gross:0n,payout:0n,baseFee:0n,impactFee:0n,impactBps:0n};
  const gross=tokens*reserve/supply;
- const base=baseFee(gross),impactBps=emergency?0n:sellImpactBps(tokens,supply),impact=feeBps(gross,impactBps);
+ if(emergency)return {gross,payout:gross,baseFee:0n,impactFee:0n,impactBps:0n};
+ const base=baseFee(gross),impactBps=sellImpactBps(tokens,supply),impact=feeBps(gross,impactBps);
  const payout=gross>base+impact?gross-base-impact:0n;
  return {gross,payout,baseFee:base,impactFee:impact,impactBps};
 }
@@ -73,11 +74,11 @@ export class ReserveModel {
   if(!emergency&&ceil(tokens*10000n,this.supply)>500n)throw Error('anti-whale tx cap');
   const q=sellQuote(tokens,this.reserve,this.supply,{emergency});if(q.payout<=0n)throw Error('dust');
   const r=this.reserve,s=this.supply;
-  const support=animalValue(q.gross),animalMint=support*s/r;
+  const support=emergency?0n:animalValue(q.gross),animalMint=support===0n?0n:support*s/r;
   w.balance-=tokens;this.userHeld-=tokens;
   this.supply=this.supply-tokens+animalMint;this.animalSupply+=animalMint;
   this.reserve-=q.payout;this.cashOut+=q.payout;
-  this.check(r,s,true);
+  this.check(r,s,!emergency);
   return {...q,animalMint};
  }
  transfer(from,to,amount){
