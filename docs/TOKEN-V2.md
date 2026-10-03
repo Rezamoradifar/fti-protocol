@@ -120,12 +120,12 @@ After a 5-of-7 council proposal and execution, `activateEmergencyExit()` switche
 * wallet-to-wallet transfers stop,
 * normal whale/hourly redemption caps are bypassed,
 * size-impact surcharge becomes zero,
-* user sells remain available and continue using the 3% base fee,
-* collateral rescue remains prohibited.
+* holder sells remain available as fee-free pro-rata emergency redemptions,
+* no animal-support FTI is minted during emergency redemption, so all holders (including the support wallets) can drain modeled reserve and supply to zero;\n* collateral rescue remains prohibited.
 
 This means liquidity is evacuated by token holders through on-chain redemption rather than swept by governance.
 
-Normal recovery/unpause requires the governance path. The standard governance delay is fixed at 72 hours in V2; `updateDelay` reverts, so the council cannot later reduce the timelock to zero.
+Emergency mode intentionally suspends normal trading fees and anti-whale throttles because the purpose is orderly pro-rata liquidation, not continued trading. Normal recovery/unpause requires the governance path. The standard governance delay is fixed at 72 hours in V2; `updateDelay` reverts, so the council cannot later reduce the timelock to zero.
 
 ## Important remaining review items
 
