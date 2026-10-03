@@ -38,10 +38,16 @@ try{
  for(const key of ['usd','council','timelock','token','binary'])if(await provider.getCode(d[key])==='0x')throw Error('No deployed code: '+key);
  const binary=new Contract(d.binary,['function development() view returns(address)','function memberList(uint256) view returns(address)'],provider);
  const council=new Contract(d.council,['function owners(uint256) view returns(address)'],provider);
- const owners=[];for(let i=0;i<5;i++)owners.push(await council.owners(i));
+ const owners=[];for(let i=0;i<7;i++)owners.push(await council.owners(i));
  const genesis=[];for(let i=0;i<31;i++)genesis.push(await binary.memberList(i));
  const dev=await binary.development(),coder=AbiCoder.defaultAbiCoder();
- const jobs=[['MockUSD','usd',[],[]],['Council','council',['address[5]'],[owners]],['FTITimelock','timelock',['address'],[d.council]],[tokenContract,'token',['address','address','address'],[d.usd,d.timelock,d.council]],[binaryContract,'binary',['address','address','address','address','address','address[31]'],[d.usd,d.token,d.timelock,d.council,dev,genesis]]];
+ let tokenTypes=['address','address','address'],tokenArgs=[d.usd,d.timelock,d.council];
+ if(tokenContract==='FTIReserveToken'){
+  const token=new Contract(d.token,['function animalSupportA() view returns(address)','function animalSupportB() view returns(address)'],provider);
+  const animal=Array.isArray(d.animalSupport)&&d.animalSupport.length===2?d.animalSupport:[await token.animalSupportA(),await token.animalSupportB()];
+  tokenTypes=['address','address','address','address','address'];tokenArgs=[d.usd,d.timelock,d.council,animal[0],animal[1]];
+ }
+ const jobs=[['MockUSD','usd',[],[]],['Council','council',['address[7]'],[owners]],['FTITimelock','timelock',['address'],[d.council]],[tokenContract,'token',tokenTypes,tokenArgs],[binaryContract,'binary',['address','address','address','address','address','address[31]'],[d.usd,d.token,d.timelock,d.council,dev,genesis]]];
  let failed=false;
  for(const[name,key,types,args]of jobs){
   const encoded=coder.encode(types,args).slice(2);fs.writeFileSync(`${dir}/${name}-constructor.txt`,encoded);
