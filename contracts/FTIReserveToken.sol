@@ -175,7 +175,11 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
         require(tokens<=circulatingSupply(),'supply');
         if(tokens==0||totalSupply()==0)return(0,FEE_BPS,0);
         gross=Math.mulDiv(tokens,reserve,totalSupply());
-        uint256 impact=emergencyExit?0:sellImpactBps(tokens);
+        if(emergencyExit){
+            require(gross>0,'dust');
+            return(gross,0,gross);
+        }
+        uint256 impact=sellImpactBps(tokens);
         uint256 baseFee=_fee(gross,FEE_BPS);
         uint256 impactFee=_fee(gross,impact);
         require(gross>baseFee+impactFee,'dust');
@@ -256,15 +260,16 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
 
         uint256 previousR=reserve;
         uint256 previousS=totalSupply();
-        uint256 animalValue=_animalValue(gross);
-        uint256 animalMint=Math.mulDiv(animalValue,previousS,previousR);
+        uint256 animalValue=emergencyExit?0:_animalValue(gross);
+        uint256 animalMint=animalValue==0?0:Math.mulDiv(animalValue,previousS,previousR);
 
         reserve-=payout;
         cumulativeSell+=gross;
         _burn(msg.sender,tokens);
-        _mintAnimal(animalMint,animalValue);
+        if(animalMint>0)_mintAnimal(animalMint,animalValue);
 
-        _requireGrowth(previousR,previousS);
+        if(emergencyExit)_backed();
+        else _requireGrowth(previousR,previousS);
         _syncMilestone();
         _recordPrice();
 
@@ -274,7 +279,7 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
         require(beforePool-usd.balanceOf(address(this))==payout&&
             usd.balanceOf(msg.sender)-beforeUser==payout,'unsupported USD');
         _backed();
-        emit Sold(msg.sender,tokens,payout,FEE_BPS,totalFeeBps-FEE_BPS,animalMint);
+        emit Sold(msg.sender,tokens,payout,emergencyExit?0:FEE_BPS,emergencyExit?0:totalFeeBps-FEE_BPS,animalMint);
     }
 
     function _consumeSellCapacity(uint256 gross) private {
