@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import ganache from 'ganache';
 import {BrowserProvider,parseEther as E,formatEther as F,MaxUint256} from 'ethers';
 import {deploySuite,checkAccounting} from '../scripts/lib.mjs';
+import {sellQuote,decayPressure} from '../core/reserve-reference.mjs';
 
 let engine,p,signers,s,snapshot;
 before(async()=>{
@@ -10,7 +11,7 @@ before(async()=>{
  p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
  signers=await Promise.all(Array.from({length:60},(_,i)=>p.getSigner(i)));
  s=await deploySuite(signers,{tokenContract:'FTIReserveToken',binaryContract:'FundedBinaryPlan'});
- for(let i=0;i<60;i++){
+ for(const i of [0,41]){
    await(await s.usd.connect(signers[i]).faucet()).wait();
    await(await s.usd.connect(signers[i]).approve(s.binary.target,MaxUint256)).wait();
    await(await s.usd.connect(signers[i]).approve(s.token.target,MaxUint256)).wait();
@@ -34,51 +35,54 @@ async function seedAndBuy(amount='100'){
  await(await s.token.buy(E(amount),0,MaxUint256)).wait();
 }
 
-test('starts with zero reserve, zero supply and zero price',async()=>{
+test('starts with zero reserve and supply, and a $0.10 bootstrap reference',async()=>{
  assert.equal(await s.token.reserve(),0n);
  assert.equal(await s.token.totalSupply(),0n);
  assert.equal(await s.token.circulatingSupply(),0n);
  assert.equal(await s.token.anchorSupply(),0n);
- assert.equal(await s.token.price(),0n);
+ assert.equal(await s.token.price(),E('0.1'));
  await checkAccounting(s);
 });
 
 test('binary registration/funding supports reserve but never mints the first FTI',async()=>{
  await(await s.binary.addUnits(1)).wait();
- assert.equal(await s.token.reserve(),E('5'));
+ assert.equal(await s.token.reserve(),0n);assert.equal(await s.token.unallocatedReserve(),E('5'));
  assert.equal(await s.token.totalSupply(),0n);
- assert.equal(await s.token.price(),0n);
+ assert.equal(await s.token.price(),E('0.1'));
  assert.equal(await s.token.walletClock(),0n);
  await(await s.binary.connect(signers[41]).register(s.addresses[15],1)).wait();
- assert.equal(await s.token.reserve(),E('10'));
+ assert.equal(await s.token.reserve(),0n);assert.equal(await s.token.unallocatedReserve(),E('10'));
  assert.equal(await s.token.totalSupply(),0n);
  assert.equal(await s.token.walletClock(),1n);
  await checkAccounting(s);
 });
 
-test('first actual buy creates user supply and splits one percentage point to two animal wallets',async()=>{
+test('first $100 buy mints 970 user tokens and retains the entire payment as backing',async()=>{
  await(await s.binary.addUnits(1)).wait();
  const q=await s.token.quoteBuy(E('100'));
- assert.equal(q,E('97'));
+ assert.equal(q,E('970'));
  await(await s.token.buy(E('100'),q,MaxUint256)).wait();
- assert.equal(await s.token.balanceOf(s.addresses[0]),E('97'));
- assert.equal(await s.token.balanceOf(s.addresses[38]),E('0.5'));
- assert.equal(await s.token.balanceOf(s.addresses[39]),E('0.5'));
- assert.equal(await s.token.totalSupply(),E('98'));
- assert.equal(await s.token.reserve(),E('105'));
- assert((await s.token.price())>E('1'));
+ assert.equal(await s.token.balanceOf(s.addresses[0]),E('970'));
+ assert.equal(await s.token.totalSupply(),E('970'));
+ assert.equal(await s.token.reserve(),E('100'));assert.equal(await s.token.unallocatedReserve(),E('5'));
+ assert((await s.token.price())>E('0.1'));
  await checkAccounting(s);
 });
 
-test('tokens are immediately unlocked; transfer is standard and has no transfer tax',async()=>{
+test('tokens are immediately unlocked; transfers burn 3%, credit 97% and never move USD',async()=>{
  await seedAndBuy();
  assert.equal(await s.token.locked(s.addresses[0]),0n);
- assert.equal(await s.token.unlocked(s.addresses[0]),E('97'));
+ assert.equal(await s.token.unlocked(s.addresses[0]),E('970'));
  assert.equal(await s.token.lockCount(s.addresses[0]),0n);
- const supply=await s.token.totalSupply();
+ const supply=await s.token.totalSupply(),reserve=await s.token.reserve(),price=await s.token.price();
+ const usdBefore=await Promise.all([s.usd.balanceOf(s.addresses[0]),s.usd.balanceOf(s.addresses[1]),s.usd.balanceOf(s.token.target)]);
  await(await s.token.transfer(s.addresses[1],E('1'))).wait();
- assert.equal(await s.token.balanceOf(s.addresses[1]),E('1'));
- assert.equal(await s.token.totalSupply(),supply);
+ assert.equal(await s.token.balanceOf(s.addresses[1]),E('0.97'));
+ assert.equal(await s.token.balanceOf(s.addresses[0]),E('969'));
+ assert.equal(await s.token.totalSupply(),supply-E('0.03'));
+ assert.equal(await s.token.reserve(),reserve);
+ assert((await s.token.price())>price);
+ assert.deepEqual(await Promise.all([s.usd.balanceOf(s.addresses[0]),s.usd.balanceOf(s.addresses[1]),s.usd.balanceOf(s.token.target)]),usdBefore);
  // A small immediate sale works without a 30/90-day or wallet-count unlock.
  const before=await s.usd.balanceOf(s.addresses[0]);
  await(await s.token.sell(E('4'),0,MaxUint256)).wait();
@@ -86,10 +90,23 @@ test('tokens are immediately unlocked; transfer is standard and has no transfer 
  await checkAccounting(s);
 });
 
-test('normal mode rejects a sudden whale exit and quotes additional impact above 1% size',async()=>{
+test('normal partial sales have no 5% hard cap and exact bounded quadratic pressure fees',async()=>{
  await seedAndBuy();
- assert((await s.token.sellImpactBps(E('2')))>0n);
- await assert.rejects(async()=>{const tx=await s.token.sell(E('6'),0,MaxUint256);await tx.wait();});
+ assert.equal(await s.token.MAX_SINGLE_SELL_BPS(),0n);assert.equal(await s.token.MAX_HOURLY_GROSS_SELL_BPS(),0n);
+ assert.equal(await s.token.SELL_CAPS_ACTIVE(),false);
+ const reserve=await s.token.reserve(),supply=await s.token.totalSupply();
+ for(const amount of ['1','20','60','485','969','970']){
+  const tokens=E(amount),expected=sellQuote(tokens,reserve,supply);
+  assert.equal(await s.token.sellImpactBps(tokens),expected.impactBps);
+  assert.deepEqual(Array.from(await s.token.quoteSell(tokens)),[expected.payout,expected.feeBps,expected.gross]);
+  assert(expected.feeBps<=1000n);
+ }
+ const amount=E('485'),expected=sellQuote(amount,reserve,supply);
+ assert.equal(expected.feeBps,475n);
+ await(await s.token.sell(amount,expected.payout,MaxUint256)).wait();
+ assert.equal(await s.token.reserve(),reserve-expected.payout);assert.equal(await s.token.totalSupply(),supply-amount);
+ assert.equal(await s.token.pressureWad(),E('0.5'));
+ await checkAccounting(s);
 });
 
 test('5-of-7 council vote activates redemption-only emergency mode without an admin liquidity transfer',async()=>{
@@ -98,16 +115,19 @@ test('5-of-7 council vote activates redemption-only emergency mode without an ad
  assert.equal(await s.token.paused(),true);
  await assert.rejects(async()=>{const tx=await s.token.buy(E('1'),0,MaxUint256);await tx.wait();});
  const before=await s.usd.balanceOf(s.addresses[0]);
- const bal=await s.token.balanceOf(s.addresses[0]),animalBefore=(await s.token.balanceOf(await s.token.animalSupportA()))+(await s.token.balanceOf(await s.token.animalSupportB()));
+ const bal=await s.token.balanceOf(s.addresses[0]),priceBefore=await s.token.price();
  const[out,fee]=await s.token.quoteSell(bal);assert.equal(fee,0n);
- await(await s.token.sell(bal,out,MaxUint256)).wait(); // fee-free; whale/hour caps bypassed only for emergency redemption
+ await(await s.token.sell(bal,out,MaxUint256)).wait(); // Exact final redemption is also fee-free in emergency mode
  assert.equal((await s.usd.balanceOf(s.addresses[0]))-before,out);
- assert.equal((await s.token.balanceOf(await s.token.animalSupportA()))+(await s.token.balanceOf(await s.token.animalSupportB())),animalBefore);
+ assert.equal(await s.token.totalSupply(),0n);
+ assert.equal(await s.token.reserve(),0n);
+ assert.equal(await s.token.price(),priceBefore);
+ assert.equal(await s.token.lifecycleClosed(),true);
  assert.equal(await s.token.emergencyExit(),true);
  await checkAccounting(s);
 });
 
-test('a 10x internal price milestone doubles the builder multiplier automatically',async()=>{
+test('a 10x milestone does not multiply base Member binary-owned purchase quota',async()=>{
  await seedAndBuy();
  const launch=await s.token.launchPrice();
  assert(launch>0n);
@@ -116,15 +136,80 @@ test('a 10x internal price milestone doubles the builder multiplier automaticall
  await(await s.binary.addUnits(200)).wait();
  assert((await s.token.price())>=launch*10n);
  assert.equal(await s.token.priceMultiplier(),2n);
+ assert.equal(await s.token.buyLimit(s.addresses[0]),E('100500'));
+ assert.equal(await s.token.remainingAllowance(s.addresses[0]),E('100400'));
 });
 
-test('animal-support shares are fully backed and sell fees still raise reserve/share value',async()=>{
+test('partial sells burn the full sale amount and retain every fee dollar for remaining holders',async()=>{
  await seedAndBuy();
- const animalA=await s.token.animalSupportA(),animalB=await s.token.animalSupportB();\n const oldR=await s.token.reserve(),oldS=await s.token.totalSupply(),oldAnimal=(await s.token.balanceOf(animalA))+(await s.token.balanceOf(animalB));
- await(await s.token.sell(E('4'),0,MaxUint256)).wait();
- const newR=await s.token.reserve(),newS=await s.token.totalSupply(),newAnimal=(await s.token.balanceOf(animalA))+(await s.token.balanceOf(animalB));
- assert(newAnimal>oldAnimal);
+ const oldR=await s.token.reserve(),oldS=await s.token.totalSupply(),oldPrice=await s.token.price();
+ const tokens=E('40'),[out,fee,gross]=await s.token.quoteSell(tokens);
+ const expected=sellQuote(tokens,oldR,oldS);
+ assert.equal(fee,expected.feeBps);assert.equal(fee,301n);
+ assert.equal(gross,tokens*oldR/oldS);
+ assert.equal(out,expected.payout);
+ await(await s.token.sell(tokens,out,MaxUint256)).wait();
+ const newR=await s.token.reserve(),newS=await s.token.totalSupply();
+ assert.equal(newR,oldR-out);
+ assert.equal(newS,oldS-tokens);
+ assert.equal(await s.token.balanceOf(s.addresses[0]),newS);
  assert(newR*oldS>oldR*newS);
+ assert((await s.token.price())>oldPrice);
  await checkAccounting(s);
- console.log('FTI_V2_FEE_CHECK',JSON.stringify({price:F(await s.token.price()),animalTokens:F(newAnimal)}));
+ console.log('FTI_V2_FEE_CHECK',JSON.stringify({price:F(await s.token.price()),retainedUSD:F(gross-out)}));
+});
+
+
+test('normal buys and sells strictly advance displayed price; sub-price-step dust reverts atomically',async()=>{
+ await(await s.binary.addUnits(2000)).wait();
+ await(await s.token.buy(E('500000'),0,MaxUint256)).wait();
+ const r=await s.token.reserve(),supply=await s.token.totalSupply(),oldPrice=await s.token.price();
+ const amount=2000000n,userMint=await s.token.quoteBuy(amount);
+ assert(userMint>=await s.token.MIN_MINT());
+ assert((r+amount)*supply>r*(supply+userMint));
+ assert.equal((r+amount)*E('1')/(supply+userMint),oldPrice);
+ const state=async()=>Promise.all([s.token.reserve(),s.token.totalSupply(),s.token.balanceOf(s.addresses[0]),s.token.remainingAllowance(s.addresses[0]),s.usd.balanceOf(s.addresses[0]),s.token.sellWindowGross(),s.token.pressureWad(),s.token.lastPartialSellAt()]);
+ const before=await state();
+ await assert.rejects(s.token.buy.staticCall(amount,0,MaxUint256),{reason:'price step too small'});
+ await assert.rejects(async()=>{await(await s.token.buy(amount,0,MaxUint256,{gasLimit:3000000})).wait();});
+ assert.deepEqual(await state(),before);
+ await assert.rejects(s.token.sell.staticCall(1000000n,0,MaxUint256),{reason:'price step too small'});
+ await assert.rejects(async()=>{await(await s.token.sell(1000000n,0,MaxUint256,{gasLimit:3000000})).wait();});
+ assert.deepEqual(await state(),before);
+ await(await s.token.buy(E('1'),0,MaxUint256)).wait();
+ const afterBuy=await s.token.price();assert(afterBuy>oldPrice);
+ await(await s.token.sell(E('1'),0,MaxUint256)).wait();
+ assert((await s.token.price())>afterBuy);
+ await checkAccounting(s);
+});
+
+test('normal sales exceed the former hourly capacity while retained pressure protects remaining backing',async()=>{
+ await seedAndBuy();
+ const initialReserve=await s.token.reserve();let grossSold=0n,previousFee=0n;
+ for(let i=0;i<6;i++){
+  const reserve=await s.token.reserve(),supply=await s.token.totalSupply(),price=await s.token.price();
+  const pressure=await s.token.pressureWad(),last=await s.token.lastPartialSellAt(),beforeUSD=await s.usd.balanceOf(s.addresses[0]);
+  const receipt=await(await s.token.sell(E('35'),0,MaxUint256,{gasLimit:3000000})).wait();
+  const timestamp=BigInt((await p.getBlock(receipt.blockNumber)).timestamp);
+  const expected=sellQuote(E('35'),reserve,supply,{pressure:decayPressure(pressure,timestamp-last)});
+  assert.equal(await s.token.reserve(),reserve-expected.payout);
+  assert.equal(await s.token.totalSupply(),supply-E('35'));
+  assert.equal((await s.usd.balanceOf(s.addresses[0]))-beforeUSD,expected.payout);
+  assert.equal(await s.token.pressureWad(),expected.pressure);assert.equal(await s.token.lastPartialSellAt(),timestamp);
+  assert(expected.feeBps>=previousFee);previousFee=expected.feeBps;grossSold+=expected.gross;
+  assert((await s.token.price())>price);assert((await s.token.reserve())*supply>reserve*(await s.token.totalSupply()));
+ }
+ assert(grossSold>initialReserve*1500n/10000n);assert(previousFee>300n);
+ assert.equal(await s.token.sellWindowStart(),0n);assert.equal(await s.token.sellWindowStartReserve(),0n);assert.equal(await s.token.sellWindowGross(),0n);
+ const oldPressure=await s.token.pressureWad(),last=await s.token.lastPartialSellAt();
+ await p.send('evm_increaseTime',[3600]);await p.send('evm_mine',[]);
+ const now=BigInt((await p.getBlock('latest')).timestamp),decayed=await s.token.currentSellPressure();
+ assert.equal(decayed,decayPressure(oldPressure,now-last));assert(decayed<oldPressure/4000n);
+ await activateEmergency();
+ const balance=await s.token.balanceOf(s.addresses[0]),reserve=await s.token.reserve();
+ const[out,fee]=await s.token.quoteSell(balance);assert.equal(fee,0n);assert.equal(out,reserve);
+ await(await s.token.sell(balance,out,MaxUint256)).wait();
+ assert.equal(await s.token.reserve(),0n);assert.equal(await s.token.totalSupply(),0n);
+ assert.equal(await s.token.pressureWad(),oldPressure);assert.equal(await s.token.lastPartialSellAt(),last);
+ await checkAccounting(s);
 });

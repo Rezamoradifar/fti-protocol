@@ -4,34 +4,28 @@ import ganache from 'ganache';
 import {BrowserProvider,parseEther as E,formatEther as F,MaxUint256} from 'ethers';
 import {deploySuite,settle,checkAccounting} from '../scripts/lib.mjs';
 
-test('token V2: 100 registered users buy, transfer and complete user exits under 5-of-7 emergency redemption',async()=>{
- const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:140},chain:{chainId:31337,time:new Date('2026-10-04T00:00:00Z')},miner:{blockGasLimit:30000000}});
+test('token V2: 100 registered users buy, transfer and complete normal user exits without emergency or waiting caps',async()=>{
+ const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:140},chain:{chainId:31337,time:new Date('2026-10-04T00:00:00Z')},miner:{blockGasLimit:30000000,timestampIncrement:0}});
  try{
   const p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
   const signers=await Promise.all(Array.from({length:140},(_,i)=>p.getSigner(i)));
   const s=await deploySuite(signers,{tokenContract:'FTIReserveToken'});
   const ids=Array.from({length:100},(_,i)=>36+i),parents=Array.from({length:16},(_,i)=>15+i);
-  let parentCursor=0,childSide=0,checks=0,previousR=0n,previousS=0n,previousPrice=0n;
+  let parentCursor=0,childSide=0,checks=0,previousR=0n,previousS=0n,previousPrice=E('0.1');
 
   
 
   async function check(strictGrowth=false){
     const r=await s.token.reserve(),supply=await s.token.totalSupply(),price=await s.token.price();
     if(strictGrowth&&previousS>0n)assert(r*previousS>previousR*supply);
-    if(supply>0n)assert(price>=previousPrice);else assert.equal(r,0n);
+    assert(price>=previousPrice); // Initial and fully redeemed states retain their reference price.
+    if(strictGrowth&&previousS>0n)assert(price>previousPrice);
     if(supply>0n){const[,,gross]=await s.token.quoteSell(supply);assert(gross<=r);}
     await checkAccounting(s);
     
     previousR=r;previousS=supply;previousPrice=price;checks++;
   }
-  async function activateEmergency(){
-    const id=await s.council.count();
-    const data=s.token.interface.encodeFunctionData('activateEmergencyExit');
-    await(await s.council.connect(signers[31]).propose(s.token.target,data)).wait();
-    for(const i of [32,33,34,35])await(await s.council.connect(signers[i]).approve(id)).wait();
-    await(await s.council.connect(signers[31]).execute(id)).wait();
-    assert.equal(await s.token.emergencyExit(),true);
-  }
+
 
   for(const i of ids){
     await(await s.usd.connect(signers[i]).faucet()).wait();
@@ -47,47 +41,48 @@ test('token V2: 100 registered users buy, transfer and complete user exits under
   await settle(s,p,100);await check(false);
   
 
-  let usdIn=0n,usdOut=0n;
+  let usdIn=0n,usdOut=0n,liveSupport=0n;
   for(const[j,i]of ids.entries()){
     const amount=E(String(10+j%17));
     const q=await s.token.connect(signers[i]).quoteBuy(amount);
     await(await s.token.connect(signers[i]).buy(amount,q,MaxUint256)).wait();
     usdIn+=amount;await check(true);
+    if(j===49){
+      // Support after shares exist is owned live backing, unlike pre-mint support.
+      await(await s.binary.connect(signers[i]).addUnits(1)).wait();
+      liveSupport+=E('5');await check(true);
+    }
   }
   const buyPeak=await s.token.price();
 
   for(let j=0;j<20;j++){
     const from=ids[j],to=ids[(j+37)%ids.length],amount=(await s.token.balanceOf(s.addresses[from]))/10n;
     await(await s.token.connect(signers[from]).transfer(s.addresses[to],amount)).wait();
-    await check(false);
+    await check(true);
   }
 
-  await activateEmergency();
+  assert.equal(await s.token.emergencyExit(),false);
 
   for(let j=0;j<100;j++){
     const i=ids[(j*37)%100],balance=await s.token.balanceOf(s.addresses[i]);
     if(balance===0n)continue;
-    const before=await s.usd.balanceOf(s.addresses[i]);
+    const before=await s.usd.balanceOf(s.addresses[i]),finalRedemption=balance===(await s.token.totalSupply());
     const[out]=await s.token.quoteSell(balance);
-    await(await s.token.connect(signers[i]).sell(balance,out,MaxUint256)).wait();
+    await(await s.token.connect(signers[i]).sell(balance,out,MaxUint256,{gasLimit:2000000})).wait();
     assert.equal((await s.usd.balanceOf(s.addresses[i]))-before,out);
-    usdOut+=out;await check(false);
+    usdOut+=out;await check(!finalRedemption);
   }
 
   for(const i of ids)assert.equal(await s.token.balanceOf(s.addresses[i]),0n);
-  const animalA=await s.token.animalSupportA(),animalB=await s.token.animalSupportB();
-  const animalBefore=(await s.token.balanceOf(animalA))+(await s.token.balanceOf(animalB));
-  assert(animalBefore>0n);
-  for(const [idx,a] of [[signers.length-2,animalA],[signers.length-1,animalB]]){
-    const bal=await s.token.balanceOf(a);if(!bal)continue;
-    const before=await s.usd.balanceOf(a);const[out,fee]=await s.token.quoteSell(bal);assert.equal(fee,0n);
-    await(await s.token.connect(signers[idx]).sell(bal,out,MaxUint256)).wait();
-    assert.equal((await s.usd.balanceOf(a))-before,out);
-  }
   assert.equal(await s.token.totalSupply(),0n);
   assert.equal(await s.token.reserve(),0n);
-  assert.equal(await s.token.price(),0n);
-  assert.equal(checks,321);
-  console.log('RESERVE_V2_100_USERS',JSON.stringify({registered:100,buys:100,transfers:20,sells:100,checks,usdIn:F(usdIn),usdOut:F(usdOut),priceAfterBuys:F(buyPeak),finalPrice:F(await s.token.price()),animalSupplyBeforeDrain:F(animalBefore),finalSupply:F(await s.token.totalSupply()),reserve:F(await s.token.reserve())}));
+  assert.equal(await s.token.emergencyExit(),false);
+  assert.equal(await s.token.lifecycleClosed(),true);
+  assert.equal(usdOut,usdIn+liveSupport,'complete normal exit returns buys plus live-supply support; pre-mint support remains protected');
+  assert.equal(await s.token.unallocatedReserve(),E('500'));assert.equal(await s.usd.balanceOf(s.token.target),E('500'));
+  assert((await s.token.price())>=buyPeak);
+  assert((await s.token.price())>0n);
+  assert.equal(checks,322);
+  console.log('RESERVE_V2_100_USERS',JSON.stringify({registered:100,buys:100,transfers:20,sells:100,exitMode:'normal-pressure-fees-final-full-refund',checks,usdIn:F(usdIn),liveSupport:F(liveSupport),usdOut:F(usdOut),priceAfterBuys:F(buyPeak),finalPrice:F(await s.token.price()),finalSupply:F(await s.token.totalSupply()),reserve:F(await s.token.reserve()),protectedUnallocated:F(await s.token.unallocatedReserve())}));
  }finally{await engine.disconnect();}
 });

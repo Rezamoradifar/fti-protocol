@@ -22,6 +22,8 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
     address public immutable development;
     struct Member {address parent;address left;address right;uint256 units;uint256 carryL;uint256 carryR;uint256 lifetimeL;uint256 lifetimeR;uint8 rank;bool exists;bool autoEnabled;uint256 maxAutoPrice;}
     mapping(address=>Member) public members;
+    /// @notice Gross manual FTI purchases authorized by this binary plan; sales never restore quota.
+    mapping(address=>uint256) public tokenBuySpent;
     address[] public memberList;
     mapping(address=>uint64[4]) public rankReachedAt;
     mapping(address=>uint256) public depth;
@@ -71,6 +73,7 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
     event Claimed(address indexed wallet,uint256 amount);
     event BuilderMonthClosed(uint256 indexed month);
     event AutoExecuted(address indexed wallet,uint256 usdIn,uint256 tokens);
+    event TokenBuyAuthorized(address indexed wallet,uint256 usdIn,uint256 cumulativeSpent);
     constructor(address stable,address fti,address gov,address emergency,address dev,address[31] memory genesis){
         require(IERC20Metadata(stable).decimals()==18,'requires 18 decimal USD');
         require(fti.code.length>0&&gov!=address(0)&&emergency!=address(0)&&dev!=address(0),'addresses');
@@ -90,6 +93,27 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
     function unitsOf(address who) external view returns(uint256){return members[who].units;}
     function rankOf(address who) external view returns(uint8){return members[who].rank;}
     function registered(address who) external view returns(bool){return members[who].exists;}
+    /// @notice Cumulative gross-buy capacity uses current permanent rank and all paid units.
+    ///         Builders alone receive the token's latched 10x-price milestone multiplier.
+    ///         Rank/top-up/milestone increases grant only extra capacity; spent is never reset.
+    function tokenBuyLimit(address who) public view returns(uint256){
+        Member storage m=members[who];
+        uint256[5] memory limits=[uint256(500),600,700,800,1000];
+        uint256 multiplier=m.rank==0?1:token.priceMultiplier();
+        return m.units*limits[m.rank]*1e18*multiplier;
+    }
+    function remainingTokenBuyAllowance(address who) public view returns(uint256){
+        uint256 limit=tokenBuyLimit(who);uint256 spent=tokenBuySpent[who];
+        return limit>spent?limit-spent:0;
+    }
+    /// @dev The bound token consumes permission atomically with the manual purchase. Reward auto-buys do not call this.
+    function authorizeTokenBuy(address who,uint256 amount) external nonReentrant {
+        require(msg.sender==address(token),'token only');
+        require(members[who].units>0&&amount>0,'buy input');
+        require(amount<=remainingTokenBuyAllowance(who),'allowance');
+        tokenBuySpent[who]+=amount;
+        emit TokenBuyAuthorized(who,amount,tokenBuySpent[who]);
+    }
     function pause() external {require(msg.sender==guardian||msg.sender==governance,'role');_pause();}
     function unpause() external {require(msg.sender==governance,'governance');_unpause();}
     function register(address sponsor,uint256 units) external nonReentrant whenNotPaused {

@@ -24,7 +24,7 @@ export function startKeeper(binary,provider,interval=5000){
  timer=setTimeout(step,0);return()=>{stopped=true;clearTimeout(timer);};
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
- const cfg=JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_FILE||'deployments/local.json'));const p=new JsonRpcProvider(process.env.RPC_URL||cfg.rpcUrl,undefined,{cacheTimeout:-1});
+ const cfg=JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_FILE||'deployments/local-reserve.json'));const p=new JsonRpcProvider(process.env.RPC_URL||cfg.rpcUrl,undefined,{cacheTimeout:-1});
  if(!process.env.KEEPER_PRIVATE_KEY)throw Error('KEEPER_PRIVATE_KEY is required; it needs gas only and has no admin authority');
  const name=cfg.binaryContract||'BinaryPlan';if(!['BinaryPlan','FundedBinaryPlan'].includes(name))throw Error('Unknown reward model');
  const signer=new Wallet(process.env.KEEPER_PRIVATE_KEY,p);const c=new Contract(cfg.binary,artifact(name).abi,signer);startKeeper(c,p,Number(process.env.KEEPER_INTERVAL_MS||5000));

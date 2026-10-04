@@ -1,106 +1,48 @@
-# FTI Protocol
+# FTI protocol: local paid-points/global-pool review
 
-**New funded-plan candidate:** `FundedBinaryPlan` fixes unrelated carried-pool capture with source-attributed credits and a hard 20 USD/point ceiling. This materially changes compensation: unused amounts are protected, nonclaimable reserves. The token now supports more than 64 live lock tranches and the keeper uses sparse queues. Read [FUNDED-PLAN](docs/FUNDED-PLAN.md) and its validation record. `npm run demo:funded` runs a separate private demo on **3083**. No existing testnet contract or live service has been replaced.
+This draft review combines **BinaryPlan** with **FTIReserveToken**. It is a local engineering candidate, not an independently audited, deployed or finally approved financial product. Draft publication is authorized; merge and deployment remain on hold.
 
-**New real-reserve candidate:** `FTIReserveToken` implements 3% buy/sell fees, a 3% transfer burn and an internally nondecreasing reserve/share price with a funded permanent anchor. Read [RESERVE-TOKEN](docs/RESERVE-TOKEN.md) for the proof, 100-user EVM tests, 300,000-wallet arithmetic simulation, exact limitations and separate deployment commands. Start it with `npm run demo:reserve` on private port **3082**. The existing public deployment remains the legacy curve model; the instructions below continue to describe that model unless marked otherwise.
+Read [the current rules and unresolved decisions](docs/TOKEN-V2.md) and [the current validation record](docs/CURRENT-REVIEW-VALIDATION.md). Earlier 119-test and integrated-pressure results cover different source states and do not certify this revision.
 
-Complete independent **local / BNB Testnet** development package: binary rewards, FTI curve token, 3-of-5 governance, 72-hour timelock, English web panel, browser-signed deployment launcher, settlement keeper, reference simulator and EVM tests.
+## Canonical flow
 
-**Not independently audited. Mainnet deployment is disabled. Test USD has no dollar value.** Economic interpretations and changes from the supplied specification are recorded in [DECISIONS](docs/DECISIONS.md).
-
-**Contract-core review candidate:** this branch adds auto-buy execution protections and reserve tests. Existing testnet contracts have not been upgraded. Read [CORE-REVIEW](docs/CORE-REVIEW.md) for confirmed fixes, open economic findings and the separate-deployment requirement. Some diagnostic tests intentionally pass when an unresolved weakness is reproduced.
-
-See [GitHub publishing and server installation](docs/GITHUB.md) for uploading this package.
-
-## Requirements
-
-Node.js 22 or newer, npm, and Git. A browser wallet is required for public testnet transactions. Use BNB Smart Chain **testnet, chain ID 97**.
+- Each $100 paid membership unit splits $90 into the global point pool, $5 into the token contract, $4 into builder pools (40/30/20/10), and $1 into development claims. Top-ups keep the same wallet position.
+- Hourly matched points are capped by rank and the existing protection level; matched excess is flushed. Funded capped points allocated in settlement, rather than raw branch units, accumulate toward rank thresholds 100/200/500/1,000. Counting allocation rather than later cash withdrawal is an explicit provisional interpretation.
+- The global hourly pool is distributed proportionally across capped paid points. $20 is a protection target, not a hard ceiling or a reason to stop payouts. Only the exact rounding residual goes to development. No-eligible-hour carry is provisional and retains ownership/concentration risk.
+- Manual token capacity is all paid units × current rank limit ($500/$600/$700/$800/$1,000) × the builder-only price multiplier, minus lifetime gross manual purchases. Auto-buy uses allocated rewards outside that quota.
+- Token supply starts at zero; the initial quote and fixed milestone anchor are $0.10. Buys retain all cash and mint using the 97% net value. Transfers burn 3% and credit 97% to the recipient. Charity is removed.
+- Positive-supply reserve injections add redeemable backing without minting. Zero-supply injections go into a separately tracked, protected, unallocated bucket pending ownership approval; the first minter cannot capture them.
+- Partial sales use an **experimental, not finally approved** 3% base plus up to 7% global-pressure surcharge. There are no age, newcomer-count or hard transaction/hourly waiting caps. A full-supply sale pays all redeemable backing and reaches R=S=0; protected unallocated cash remains separate. Restart is review-gated.
+- The council owner-rotation stale-approval fix is included, with a nominal 5-of-7 emergency council and fixed 72-hour normal timelock. Independent security review is still required.
 
 ## Run locally
 
-```bash
+Use the pinned dependencies and a supported Node environment. The validation environment currently uses Node 24 with Ganache's JavaScript fallback; project CI previously specified Node 22.
+
+```sh
 npm ci
 npm test
 npm run demo
 ```
 
-Open http://localhost:3000. A fresh in-memory EVM, 45 test accounts, test USD, contracts, English dashboard and keeper start together. Each restart resets the local chain. Keep this unlocked-account demo private; its default bind address is localhost.
+The canonical in-memory demo explicitly selects FTIReserveToken + BinaryPlan and serves at http://127.0.0.1:3082 by default. It uses mock USD and fresh ephemeral accounts. Keep it private. No real funds or existing chain state are used.
 
-For a remote server, use an SSH tunnel from your computer:
-
-```bash
-ssh -L 3000:127.0.0.1:3000 USER@SERVER
+```sh
+npm run build:web
+npm run build --prefix landing
+node scripts/verify.mjs --prepare --reserve-token
 ```
 
-Then open http://localhost:3000 on your computer. Docker users can run `docker compose up --build`; its published port also binds to localhost.
+Verification preparation recompiles standard input and checks bytecode locally; it does not deploy or sign transactions. `npm run deploy` now selects the canonical reserve-token/BinaryPlan script, but execution remains a separate user-authorized step with final parameters and real wallet addresses. Never send private keys in chat.
 
-## Deploy using your wallet, without putting its key on a server
+## Historical alternatives
 
-```bash
-npm ci
-npm run launch
-```
+FundedBinaryPlan is retained for comparison/regression only. Its branch-attributed credits, hard $20 ceiling, raw-unit ranks and nonclaimable retained reserves are **not** the current canonical economic direction. Explicit local historical demo: `npm run demo:historical-funded`. Existing source/tests document those differences rather than endorsing them.
 
-Open http://localhost:3000, or serve `launcher/` over HTTPS on your domain. The launcher is configured for the requested primary owner:
+The old FTIToken curve and browser deployment launcher are historical. The launcher still contains incompatible curve/governance artifacts and its default launch command is blocked. Do not treat it as a release path for this candidate. Existing deployment files are historical records and were not overwritten.
 
-`0x63c5B98AEfd69658B652d5F35FFda3C6c06847E3`
+## Remaining decisions and limits
 
-1. Connect that wallet and accept switching to BNB Testnet.
-2. Generate the 30 helper accounts. They are generated **in your browser**. Download the encrypted backup, keep its password, and confirm that you saved it.
-3. Click **Start / resume deployment**. Review and approve six transactions: test USD, council, timelock, FTI, binary plan, then contract binding.
-4. Download the deployment JSON. Progress can resume after interruptions. Keep both the deployment JSON and encrypted helper-account backup.
-5. Open **Test the protocol**. The primary wallet plus 30 helpers have Genesis positions but initially no units. Request test USD and add units. For a simple binary test, fund helper 1 and 2 with test gas, give each two units, and give the root one unit. After the hour boundary, process volume and settlement.
+Before any release: resolve protected zero-supply fund ownership, restart lifecycle, zero-eligible-hour carry ownership, exact paid-point semantics, pressure-fee parameters/split behavior, ordinary precision-dust exits and emergency exceptions. The existing 1,024× milestone multiplier cap and self-transfer-induced quote growth are also disclosed. Rank and monthly pool accounting need independent economic review; no returns, floor price or universal profitable exit is guaranteed.
 
-The test council uses the primary wallet plus four helper accounts controlled through the encrypted backup. This is suitable for single-person testing, **not independent production governance**. Passwords and helper keys are never uploaded. Never enter your primary wallet seed or private key in the launcher. The browser page is not a continuously running keeper.
-
-## Connect the full panel to the browser deployment
-
-Copy the non-secret deployment JSON to the server, then run:
-
-```bash
-npm run compile
-node scripts/import-browser-deployment.mjs FTI-Testnet-Deployment.json
-DEPLOYMENT_FILE=deployments/testnet.json npm start
-```
-
-The importer verifies chain ID, transaction sender, deployment bytecode, receipts and token binding. The full panel uses connected wallets for signatures; it does not hold user keys.
-
-For a continuous keeper, configure a **separate gas-only wallet** in the server environment:
-
-```bash
-DEPLOYMENT_FILE=deployments/testnet.json node --env-file=.env scripts/keeper.mjs
-```
-
-See [.env.example](.env.example). Do not add keys to Git. The keeper has no admin privileges.
-
-## CLI testnet deployment
-
-Alternatively, fill `deployments/testnet-input.json` from its example with 31 distinct Genesis addresses, five distinct council addresses, and a development address. Configure `RPC_URL` and `DEPLOYER_PRIVATE_KEY` locally in a protected environment file, then run:
-
-```bash
-npm run compile
-node --env-file=.env scripts/deploy.mjs
-```
-
-The supplied deploy script accepts only chain 97 or 31337 and deploys an explicitly test-only collateral token.
-
-## Tests and simulation
-
-```bash
-npm test
-npm run simulate -- 2000 42
-```
-
-The original checked-in report records **28 successful math/EVM tests** and a 2,000-member integrated cash-flow simulation. The latest contract-core run is recorded separately in [core-validation.json](docs/core-validation.json), with scope and open findings in [CORE-REVIEW](docs/CORE-REVIEW.md). The original simulation ends new inflows and redeems all real tokens, assuming lock deadlines have elapsed. It checks exact integer accounting and the reserve inequality, not investment returns or million-member gas performance.
-
-## Repository layout
-
-- `contracts/` — binary plan, token, council, timelock and test collateral.
-- `web/` — English full dashboard for local or deployed contracts.
-- `launcher/` — standalone HTTPS browser deployment and testing page.
-- `scripts/` — compiler, deployment, server, keeper and simulation tools.
-- `core/` — independent BigInt mathematical reference.
-- `test/` — math and EVM integration tests.
-- `docs/` — decisions, operations, reports. The original supplied Word specification is excluded from the public repository.
-
-See [operations](docs/OPERATIONS.md), [validation](docs/VALIDATION.md) and the optional [Persian guide](README.fa.md). A public testnet deployment is complete only after wallet transactions are confirmed; downloading or cloning this repository does not deploy contracts.
+No GitHub push, merge, mainnet transaction or deployment is authorized by this README or its test results.
