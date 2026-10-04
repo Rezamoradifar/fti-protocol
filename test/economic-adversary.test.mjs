@@ -7,7 +7,7 @@ let engine,p,signers,s,snapshot;
 before(async()=>{
  engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:45},chain:{chainId:31337},miner:{blockGasLimit:30000000}});
  p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
- signers=await Promise.all(Array.from({length:45},(_,i)=>p.getSigner(i)));s=await deploySuite(signers);
+ signers=await Promise.all(Array.from({length:45},(_,i)=>p.getSigner(i)));s=await deploySuite(signers,{tokenContract:'FTIToken',binaryContract:'BinaryPlan'});
  for(const i of [15,30,36,37,38]){await(await s.usd.connect(signers[i]).faucet()).wait();await(await s.usd.connect(signers[i]).approve(s.binary.target,MaxUint256)).wait();await(await s.usd.connect(signers[i]).approve(s.token.target,MaxUint256)).wait();}
  snapshot=await p.send('evm_snapshot',[]);
 });
@@ -34,7 +34,9 @@ test('economic finding: a 500 USD self-controlled subtree captures 9450 USD from
  await checkAccounting(s);
  console.log('CONFIRMED carried-pool capture: group cost=500, payout=9450, group net=8950 test USD before gas; no accounting insolvency');
 });
-test('economic finding: splitting the same unlocked balance lowers whale fees and raises proceeds',async()=>{
+// HISTORICAL diagnostic: FTIToken uses the original virtual-reserve curve.
+// This intentionally reproduces its splitting weakness, not the revised token.
+test('HISTORICAL FTIToken curve: splitting the same unlocked balance lowers whale fees and raises proceeds',async()=>{
  await(await s.binary.connect(signers[15]).addUnits(1)).wait();
  await(await s.token.connect(signers[15]).buy(E('400'),0,MaxUint256)).wait();
  await p.send('evm_increaseTime',[31*86400]);await p.send('evm_mine',[]);

@@ -15,9 +15,11 @@ contract Council is ReentrancyGuard {
     address[7] public owners;
     mapping(address=>bool) public isOwner;
 
-    struct Proposal {address target;bytes data;uint8 approvals;bool executed;}
+    struct Proposal {address target;bytes data;bool executed;}
     Proposal[] private proposals;
-    mapping(uint256=>mapping(address=>bool)) public approved;
+    // A new tenure gets a new generation, including when an old key returns.
+    mapping(address=>uint256) private ownerGeneration;
+    mapping(uint256=>mapping(address=>uint256)) private approvalGeneration;
 
     event Proposed(uint256 indexed id,address indexed target,bytes data);
     event Approved(uint256 indexed id,address indexed owner);
@@ -29,34 +31,43 @@ contract Council is ReentrancyGuard {
             require(initial[i]!=address(0)&&!isOwner[initial[i]],'owner');
             owners[i]=initial[i];
             isOwner[initial[i]]=true;
+            ownerGeneration[initial[i]]=1;
         }
     }
 
     function count() external view returns(uint256){return proposals.length;}
     function proposal(uint256 id) external view returns(address,bytes memory,uint8,bool){
         Proposal storage p=proposals[id];
-        return(p.target,p.data,p.approvals,p.executed);
+        return(p.target,p.data,_approvalCount(id),p.executed);
+    }
+
+    /// @notice Whether a current owner's current tenure approved this proposal.
+    function approved(uint256 id,address owner) public view returns(bool){
+        return isOwner[owner]&&approvalGeneration[id][owner]==ownerGeneration[owner];
+    }
+
+    function _approvalCount(uint256 id) private view returns(uint8 count_){
+        for(uint256 i;i<OWNER_COUNT;i++)if(approved(id,owners[i]))count_++;
     }
 
     function propose(address target,bytes calldata data) external returns(uint256 id){
         require(isOwner[msg.sender]&&target.code.length>0,'owner/target');
         id=proposals.length;
-        proposals.push(Proposal(target,data,1,false));
-        approved[id][msg.sender]=true;
+        proposals.push(Proposal(target,data,false));
+        approvalGeneration[id][msg.sender]=ownerGeneration[msg.sender];
         emit Proposed(id,target,data);
         emit Approved(id,msg.sender);
     }
 
     function approve(uint256 id) external {
-        require(isOwner[msg.sender]&&!approved[id][msg.sender]&&!proposals[id].executed,'approval');
-        approved[id][msg.sender]=true;
-        proposals[id].approvals++;
+        require(isOwner[msg.sender]&&!approved(id,msg.sender)&&!proposals[id].executed,'approval');
+        approvalGeneration[id][msg.sender]=ownerGeneration[msg.sender];
         emit Approved(id,msg.sender);
     }
 
     function execute(uint256 id) external nonReentrant returns(bytes memory result){
         Proposal storage p=proposals[id];
-        require(p.approvals>=THRESHOLD&&!p.executed,'threshold');
+        require(!p.executed&&_approvalCount(id)>=THRESHOLD,'threshold');
         p.executed=true;
         (bool ok,bytes memory ret)=p.target.call(p.data);
         if(!ok){assembly{revert(add(ret,32),mload(ret))}}
@@ -74,6 +85,7 @@ contract Council is ReentrancyGuard {
         owners[slot]=newOwner;
         isOwner[oldOwner]=false;
         isOwner[newOwner]=true;
+        ownerGeneration[newOwner]++;
         emit OwnerReplaced(oldOwner,newOwner,slot);
     }
 }

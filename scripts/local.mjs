@@ -5,7 +5,8 @@ import {deploySuite,settle} from './lib.mjs';
 import {startWeb} from './server.mjs';
 import {startKeeper} from './keeper.mjs';
 const fundedModel=process.argv.includes('--funded-plan');
-const reserveModel=fundedModel||process.argv.includes('--reserve-token');
+const reserveModel=!process.argv.includes('--legacy-token');
+if(fundedModel)console.warn('HISTORICAL FundedBinaryPlan: attributed credit, raw-unit ranks and hard $20 ceiling. Not the canonical review policy.');
 const tokenContract=reserveModel?'FTIReserveToken':'FTIToken';
 const binaryContract=fundedModel?'FundedBinaryPlan':'BinaryPlan';
 const chainPort=Number(process.env.LOCAL_RPC_PORT||(fundedModel?8547:reserveModel?8546:8545));
@@ -18,7 +19,7 @@ const p=new JsonRpcProvider(rpcUrl,undefined,{cacheTimeout:-1});p.pollingInterva
 const signers=await Promise.all(Array.from({length:45},(_,i)=>p.getSigner(i)));const s=await deploySuite(signers,{tokenContract,binaryContract});
 for(let i=0;i<45;i++){await(await s.usd.connect(signers[i]).faucet()).wait();await(await s.usd.connect(signers[i]).approve(s.binary.target,MaxUint256)).wait();await(await s.usd.connect(signers[i]).approve(s.token.target,MaxUint256)).wait();}
 for(const [i,n] of [[0,1],[1,100],[2,100]])await(await s.binary.connect(signers[i]).addUnits(n)).wait();await settle(s,p);
-const cfg={mode:'local',chainId:31337,rpcUrl,tokenContract,binaryContract,lockVersion:reserveModel?3:1,rewardModel:fundedModel?'attributed-credit-v1':'global-pool',pricingModel:reserveModel?'real-reserve-v2-zero-start':'crr-20',deployedBlock:0,accounts:s.addresses,genesis:s.addresses.slice(0,31),councilOwners:s.addresses.slice(31,38),animalSupport:reserveModel?s.addresses.slice(-2):[],binary:s.binary.target,token:s.token.target,usd:s.usd.target,council:s.council.target,timelock:s.timelock.target};
+const cfg={mode:'local',chainId:31337,rpcUrl,tokenContract,binaryContract,lockVersion:reserveModel?3:1,rewardModel:fundedModel?'historical-attributed-credit-v1':'global-pool-paid-points-v2',pricingModel:reserveModel?'real-reserve-quarantine-pressure-review':'crr-20',deployedBlock:0,accounts:s.addresses,genesis:s.addresses.slice(0,31),councilOwners:s.addresses.slice(31,38),binary:s.binary.target,token:s.token.target,usd:s.usd.target,council:s.council.target,timelock:s.timelock.target};
 fs.writeFileSync(configPath,JSON.stringify(cfg,null,2));
 const web=await startWeb(configPath);const stop=startKeeper(s.binary,p);console.log('Local test assets only. Fresh chain on each start. No real funds.');
 async function shutdown(){stop();web.close();await chain.close();process.exit(0);}process.on('SIGINT',shutdown);process.on('SIGTERM',shutdown);

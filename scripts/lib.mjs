@@ -2,13 +2,15 @@ import fs from 'node:fs';
 import {ContractFactory,Contract,parseEther} from 'ethers';
 export function artifact(name){return JSON.parse(fs.readFileSync(`artifacts/${name}.json`));}
 export async function deployOne(name,args,signer){const a=artifact(name);const c=await new ContractFactory(a.abi,a.bytecode,signer).deploy(...args);await c.waitForDeployment();return c;}
+// Test helper keeps the explicit historical FTIToken default for legacy regression suites.
+// Canonical demo/deploy entry points select FTIReserveToken + BinaryPlan explicitly.
 export async function deploySuite(signers,{tokenContract='FTIToken',binaryContract='BinaryPlan'}={}){
  if(!['FTIToken','FTIReserveToken'].includes(tokenContract))throw Error('Unknown token model');
  if(!['BinaryPlan','FundedBinaryPlan'].includes(binaryContract))throw Error('Unknown reward model');
- const addresses=await Promise.all(signers.map(s=>s.getAddress()));if(addresses.length<41)throw Error('Need 31 genesis, 7 council, 2 animal-support and 1 development signer');
+ const addresses=await Promise.all(signers.map(s=>s.getAddress()));if(addresses.length<41)throw Error('Need at least 41 local test signers');
  const usd=await deployOne('MockUSD',[],signers[0]);const council=await deployOne('Council',[addresses.slice(31,38)],signers[0]);
  const timelock=await deployOne('FTITimelock',[council.target],signers[0]);
- const token=tokenContract==='FTIReserveToken'?await deployOne(tokenContract,[usd.target,timelock.target,council.target,addresses[addresses.length-2],addresses[addresses.length-1]],signers[0]):await deployOne(tokenContract,[usd.target,timelock.target,council.target],signers[0]);
+ const token=await deployOne(tokenContract,[usd.target,timelock.target,council.target],signers[0]);
  const binary=await deployOne(binaryContract,[usd.target,token.target,timelock.target,council.target,addresses[35],addresses.slice(0,31)],signers[0]);
  await(await token.bind(binary.target)).wait();return{usd,council,timelock,token,binary,addresses};
 }

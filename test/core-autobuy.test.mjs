@@ -1,15 +1,18 @@
+import {deployPaidRankFeatureSuite,seedPaidRank} from './fixtures/paid-rank-feature-suite.mjs';
 import {test,before,beforeEach,after} from 'node:test';
 import assert from 'node:assert/strict';
 import ganache from 'ganache';
 import {BrowserProvider,parseEther as E,MaxUint256} from 'ethers';
-import {deploySuite,settle,checkAccounting} from '../scripts/lib.mjs';
+import {settle,checkAccounting} from '../scripts/lib.mjs';
 let engine,p,signers,s,snapshot;
 before(async()=>{
  engine=ganache.provider({logging:{quiet:true},chain:{chainId:31337,time:new Date('2026-09-15T12:00:00Z')},wallet:{totalAccounts:45},miner:{blockGasLimit:30000000}});
  p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
- signers=await Promise.all(Array.from({length:45},(_,i)=>p.getSigner(i)));s=await deploySuite(signers);
+ signers=await Promise.all(Array.from({length:45},(_,i)=>p.getSigner(i)));s=await deployPaidRankFeatureSuite(signers);
  for(const i of [0,1,2]){await(await s.usd.connect(signers[i]).faucet()).wait();await(await s.usd.connect(signers[i]).approve(s.binary.target,MaxUint256)).wait();await(await s.usd.connect(signers[i]).approve(s.token.target,MaxUint256)).wait();}
  for(const[i,n]of [[0,1],[1,100],[2,100]])await(await s.binary.connect(signers[i]).addUnits(n)).wait();await settle(s,p);
+ // TEST ONLY paid-rank fixture for authorization/price/queue feature coverage.
+ await seedPaidRank(s.binary,s.addresses[0],1);
  await(await s.binary.setAutoBuy(true,E('1'))).wait();for(const i of [1,2])await(await s.binary.connect(signers[i]).addUnits(5)).wait();await settle(s,p);
  assert.equal(await s.binary.pendingAuto(s.addresses[0]),E('45'));snapshot=await p.send('evm_snapshot',[]);
 });

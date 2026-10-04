@@ -42,11 +42,7 @@ try{
  const genesis=[];for(let i=0;i<31;i++)genesis.push(await binary.memberList(i));
  const dev=await binary.development(),coder=AbiCoder.defaultAbiCoder();
  let tokenTypes=['address','address','address'],tokenArgs=[d.usd,d.timelock,d.council];
- if(tokenContract==='FTIReserveToken'){
-  const token=new Contract(d.token,['function animalSupportA() view returns(address)','function animalSupportB() view returns(address)'],provider);
-  const animal=Array.isArray(d.animalSupport)&&d.animalSupport.length===2?d.animalSupport:[await token.animalSupportA(),await token.animalSupportB()];
-  tokenTypes=['address','address','address','address','address'];tokenArgs=[d.usd,d.timelock,d.council,animal[0],animal[1]];
- }
+
  const jobs=[['MockUSD','usd',[],[]],['Council','council',['address[7]'],[owners]],['FTITimelock','timelock',['address'],[d.council]],[tokenContract,'token',tokenTypes,tokenArgs],[binaryContract,'binary',['address','address','address','address','address','address[31]'],[d.usd,d.token,d.timelock,d.council,dev,genesis]]];
  let failed=false;
  for(const[name,key,types,args]of jobs){

@@ -1,145 +1,63 @@
-# FTI Token V2 — zero start, animal support and emergency redemption
+# Current FTI token and binary review
 
-**Branch:** `fix/zero-start-animal-protection`
+Local branch: `review/paid-points-global-pool`, based on PR5 `8fa961c5feb679a0d35077ddf2f0ff4b1a360ffd`. Canonical combination: BinaryPlan + FTIReserveToken. This is draft, undeployed review source with outstanding policy decisions, not a production or investment guarantee.
 
-This document is the working specification for the V2 candidate on this branch. It does **not** change or upgrade any already-deployed immutable contract. It is not a security audit, mainnet approval, profit promise or 100/100 certification.
+## 1. Membership cash and placement
 
-## Requested changes implemented
+Each paid unit costs 100 USD: 90 goes to the global point pool, 5 to the token contract, 4 to monthly builder pools and 1 to development claims. Builder shares are 40/30/20/10. Registration occupies the chosen sponsor's left then right slot; top-ups increase the same position's cumulative units and propagate volume to its ancestors. Membership funding itself never mints FTI.
 
-### Zero start
+Membership funding requires an open binary epoch and a nonpaused plan; processing/settlement may be needed at the hour boundary. Removing token waiting locks does not remove the binary settlement lifecycle.
 
-* Deployment starts with `reserve = 0`, `totalSupply = 0`, `price() = 0`.
-* There is no pre-minted anchor supply and no configured `P0`.
-* Binary membership support may add real collateral through `inject()`, but **never mints FTI**, including the first funded registration.
-* The first actual manual/automatic token purchase creates circulating FTI.
+## 2. Paid-point ranks and hourly distribution
 
-Membership support is still economically separate from a token trade: `inject()` has no 3% trading fee.
+Normal caps for Member/B1/B2/B3/B4 are 5/10/15/20/25 paid points. Protection levels use the existing rows 5/10/12/16/20, 5/10/10/12/15, and 5/10/10/10/10. The applicable cap is frozen for the epoch. Every raw matched pair is consumed; capped excess is flushed, while unmatched stronger-side volume remains.
 
-### No token vesting locks
+Rank thresholds are cumulative **capped, funded settlement points** 100/200/500/1,000. Raw descendant units and flushed points do not count. Rank is permanent. The current epoch uses the pre-promotion rank and auto-buy eligibility; promotion follows funded allocation.
 
-V2 does not use the previous 5,000-wallet / 30-day short lock or the 20k/28k/36k/44k / 90-day vesting stages.
+The review interprets 'actually paid points' as points credited by a successful funded settlement, not the user's later pull-payment withdrawal. That interpretation remains explicit/provisional. A different claim-dependent rule would need separate accounting for mixed hourly/monthly/development liabilities; a cash claim cannot be reverse-mapped to points from USD alone.
 
-`locked(wallet) = 0` and `unlocked(wallet) = balanceOf(wallet)`.
+The available global pool is distributed proportionally to capped paid points. Values above 20 USD are permitted; values below 20 do not halt payout. The 20 USD value is only a target that moves existing protection levels for the next epoch. No permanent retained reward reserve or hard 20 USD ceiling is introduced.
 
-Execution safety is instead provided by:
+Only the exact integer remainder after proportional allocations goes to development, leaving the distributed hourly pool at zero. If there are no eligible paid points, the whole pool remains protected carry for a later eligible epoch; it is not rounding and is not diverted to development. Ownership/concentration risk from this provisional carry policy remains open: later eligible participants can receive funding accumulated before they qualified.
 
-* user-specified `minTokens` / `minUSD`,
-* transaction deadlines,
-* a transparent sell-size impact,
-* a normal-mode maximum single sale,
-* a global hourly gross-redemption capacity.
+Monthly builder payouts preserve the legacy equal-share rule capped at 20% of the available pool per wallet, once per wallet per pool, with reusable remaining carry. FundedBinaryPlan's different attributed-credit/hard-ceiling/permanent-retention model is historical and is not the canonical deployment target.
 
-These controls are not a guarantee of execution during congestion, collateral failure or emergency conditions.
+## 3. Token authorization and fixed milestone anchor
 
-## 3% buy/sell fee and animal-support allocation
+Total manual capacity = cumulative paid units × current rank base limit × applicable multiplier. Member/B1/B2/B3/B4 limits are 500/600/700/800/1,000 USD per unit. Members always use multiplier 1; builders use the global latched price multiplier. Remaining capacity is max(total − lifetime gross manual purchases, 0). Promotions/top-ups apply the current formula to all paid units and grant only additional capacity; spending is never reset by selling, transfers or token lifecycle transitions.
 
-Interpretation used in V2: **one percentage point of the 3% base fee**, not 1% of the fee amount.
+The binary consumes authorization atomically with the token buy. A failed token/collateral operation restores the ledger. Only the bound token can consume it. Automatic purchases use the beneficiary's separately allocated reward cash, are callable on the token only by the binary, and do not consume manual quota.
 
-For a gross value `A`:
+The milestone anchor is fixed at 0.10 USD. Reaching a live quote of 1 USD doubles builder capacity, 10 USD gives four times, and so on. The inherited multiplier is global, never decreases, and is capped at 1,024. It is not a personal counter from each builder's qualification date. Transfers that burn supply can raise the quote and trigger these milestones without adding cash; that does not demonstrate reserve income or profit.
 
-* 97% is the user's buy-value / sell payout before any large-sale impact.
-* 1% of gross value is represented by fully-backed FTI minted to two immutable animal-support wallets.
-* The two wallets split that support token amount 50/50 (rounding dust goes to the second wallet).
-* 2% of gross value remains reserve-accretive.
+## 4. Real reserve, protected zero-supply funding and token formulas
 
-No unsupported/free-value animal token is minted. On an established reserve with price `P = R/S`, animal support shares are derived from the 1% collateral value at the pre-operation reserve/share ratio.
+Initial owned supply is zero. At positive supply S, redeemable reserve R gives displayed internal quote floor(R × 10^18 / S). At zero supply, the quote is initial/historical reference only; there is no live R/S.
 
-There is **no transfer tax** in V2. Wallet-to-wallet transfers use standard ERC20 balance movement.
+All binary injections while S=0 are recorded in protected `unallocatedReserve`. They mint no ownership, are not redeemable by the first minter and are not assigned to treasury/development/any wallet. The bucket has no silent allocation or withdrawal route. This is an experimental quarantine pending final ownership approval. Positive-supply injections add to redeemable R without minting.
 
-## Buy formula
+Actual USD must cover R + unallocatedReserve. Direct unsolicited USD transfers remain unaccounted surplus; the review does not silently award them to a token holder. Thus final R=S=0 does not promise raw USD balance zero when protected or unsolicited funds exist.
 
-Let `R` be recorded reserve, `S` current FTI supply and `A` gross buy collateral.
+Use W=10^18. Buy amount A has fee ceil(3A/100); the whole A enters R and only floor((A−fee)×W/pre-buy quote) is minted to the buyer. Retained fees are not credited a second time.
 
-For an established supply:
+A positive transfer q burns ceil(3q/100), credits the remaining tokens to the actual recipient and moves no USD. Gross delegated allowance is consumed. Mint/burn calls are not taxed again. Charity is removed completely. Zero transfers remain no-op events.
 
-```
-userAssets   = A - 3% fee
-animalAssets = 1% of A
-userMint     = floor(userAssets * S / R)
-animalMint   = floor(animalAssets * S / R)
-R'           = R + A
-S'           = S + userMint + animalMint
-```
+## 5. Experimental partial sales and complete exit
 
-Because only 98% of the gross buy value is represented by newly minted shares while 100% enters reserve, an admitted established-state buy is reserve/share accretive.
+The numerical pressure proposal remains experimental rather than finally approved: global pressure decays with an approximate five-minute half-life; a sale fraction x=q/S updates p1=1−(1−p0)(1−x). The total partial-sale fee is 3% plus up to 7%×p1², at most 10%. Solidity uses a documented WAD floor-rounded per-second exponential approximation and rounds the combined fee upward once.
 
-When `S == 0`, V2 uses one base share unit per collateral base unit for the first mint calculation: 97% user shares and 1% animal-support shares. Any previously injected membership support is real reserve and therefore affects the post-buy reserve/share value. This bootstrap behavior must be explicitly reviewed before public deployment.
+Gross G=floor(qR/S); normal partial payout=G−ceil(G×feeBps/10,000). Burn all q and subtract only the payout from R. Every retained fee stays in that same reserve once. Buys, wallet changes and transfers do not reset pressure. There are no age/newcomer-count locks or hard 5%-transaction/15%-hour waiting caps. User minimum output and deadline remain enforced.
 
-## Sell formula and anti-whale protection
+This fee is not split-proof. Two partial sales can pay more than one equal aggregate sale, even at identical final pressure. Global pressure can penalize unrelated sellers, and waiting changes fees. The UI adds measured gas padding of 25% plus 30,000 gas because elapsed decay can make a stale exact gas estimate insufficient; no formal worst-case gas bound is claimed.
 
-Base sell fee remains 3%. One percentage point is represented by animal-support FTI. In normal mode a size-based additional impact remains entirely in reserve.
+A sale of all remaining owned supply pays all redeemable R with no final fee, burns all supply and leaves R=S=0. Protected unallocated cash and unrelated binary funds are excluded. The prior live quote is frozen as a historical reference. Automatic restart remains review-gated; no new lifecycle ownership policy is silently enabled.
 
-Current candidate parameters:
+Normal positive buys, nonfinal sales and transfers must increase both exact R/S and the displayed quote, or revert atomically. Final redemption, fee-free emergency, zero transfers and precision boundaries are explicit exceptions. Two one-atom holders can face ordinary zero-net-output dust deadlock; no zero-payout destruction is silently implemented. The inherited emergency path can resolve that fixture but remains governance dependent.
 
-* first 1% of current supply: 0 additional impact,
-* 1% to 5% sale size: additional impact rises linearly from 0% to 3%,
-* larger quotes can rise toward a maximum 7% extra impact,
-* normal single transaction cap: 5% of current supply,
-* normal hourly gross redemption capacity: 15% of the reserve snapshot at the start of that hour.
+## 6. Governance and deployment boundary
 
-These numbers are **candidate risk parameters**, not final economic approval. They require adversarial simulation and public-testnet gas/operations testing.
+The owner-rotation stale-approval fix is included: only valid current-owner approvals count, and removed/re-added keys do not revive old consent. The council is 5-of-7 with a fixed 72-hour normal timelock. Emergency activation blocks buys/transfers and permits fee-free pro-rata redemption; it does not sweep backing to administrators. Independent security review is still needed.
 
-Splitting a sale can reduce per-transaction size impact, therefore the global hourly capacity is an additional protection. Multiple-wallet/Sybil behavior is not solved by this mechanism.
+Binary token addresses are immutable and token binding is one-time. This is not an in-place upgrade of existing deployments. The default demo/deployment scripts select the canonical corrected token and global-pool binary; FundedBinaryPlan and the old curve/browser launcher are historical alternatives, not release paths for this review. No deployment, transaction signing or merge is authorized by this review.
 
-## Builder buy-limit multiplier
-
-The original per-unit manual limits remain:
-
-| Rank | Base manual-buy allowance per membership unit |
-| --- | ---: |
-| B0 | 500 |
-| B1 | 600 |
-| B2 | 700 |
-| B3 | 800 |
-| B4 | 1,000 |
-
-Only builder ranks (`rank > 0`) use the price multiplier.
-
-After the first actual token purchase, `launchPrice` is recorded. Each time the internal reserve/share price reaches another 10x milestone, the builder multiplier doubles:
-
-```
-10x  -> 2x builder allowance
-100x -> 4x
-1000x -> 8x
-...
-```
-
-The multiplier is capped at 1024. B0 does not receive the multiplier. Milestone synchronization is automatic on token buys, sells and binary reserve support, and can also be called permissionlessly.
-
-Internal reserve/share growth is not a promise of market value or user profit.
-
-## Seven-wallet emergency governance
-
-The Council contains seven owner slots and requires five approvals. Owner-key rotation is possible only through a 5-of-7 proposal targeting the Council itself.
-
-The healthier emergency design deliberately does **not** allow the council to transfer the reserve to an arbitrary administrator wallet.
-
-After a 5-of-7 council proposal and execution, `activateEmergencyExit()` switches the token to **redemption-only** mode:
-
-* new token buys stop,
-* wallet-to-wallet transfers stop,
-* normal whale/hourly redemption caps are bypassed,
-* size-impact surcharge becomes zero,
-* holder sells remain available as fee-free pro-rata emergency redemptions,
-* no animal-support FTI is minted during emergency redemption, so all holders (including the support wallets) can drain modeled reserve and supply to zero;\n* collateral rescue remains prohibited.
-
-This means liquidity is evacuated by token holders through on-chain redemption rather than swept by governance.
-
-Emergency mode intentionally suspends normal trading fees and anti-whale throttles because the purpose is orderly pro-rata liquidation, not continued trading. Normal recovery/unpause requires the governance path. The standard governance delay is fixed at 72 hours in V2; `updateDelay` reverts, so the council cannot later reduce the timelock to zero.
-
-## Important remaining review items
-
-This change only addresses the requested token/governance items. It does not make the entire FTI project 100/100.
-
-Before any public-value deployment, at minimum:
-
-1. independently audit the V2 contracts;
-2. fuzz/invariant-test animal mint accounting, first-buy bootstrap and full-exit orderings;
-3. stress-test anti-whale/hourly-cap behavior and multi-wallet splitting;
-4. verify the exact collateral asset on a realistic fork/public testnet;
-5. review the binary compensation model and retained reserves separately;
-6. measure ancestor/settlement gas and keeper capacity;
-7. reconcile all website/PDF wording with this branch;
-8. define migration policy because existing contracts are immutable;
-9. review legal/regulatory treatment of membership-funded rewards and token reserve support.
-
+See CURRENT-REVIEW-VALIDATION.md for exact tested source/results; earlier candidate tests must not be presented as validating this revision.

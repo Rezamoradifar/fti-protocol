@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import ganache from 'ganache';
 import {BrowserProvider,parseEther as E,MaxUint256} from 'ethers';
 import {deploySuite,checkAccounting} from '../scripts/lib.mjs';
+import {sellQuote} from '../core/reserve-reference.mjs';
 
 let engine,p,signers,s,snapshot;
 before(async()=>{
@@ -47,12 +48,15 @@ test('user minOut replaces vesting as the immediate buy/sell execution guard',as
  await checkAccounting(s);
 });
 
-test('anti-whale guard rejects a sudden oversized normal redemption without locking the wallet',async()=>{
+test('oversized normal redemptions are immediately available with pressure fees and no wallet lock',async()=>{
  await(await s.token.buy(E('100'),0,MaxUint256)).wait();
  assert.equal(await s.token.locked(s.addresses[0]),0n);
- assert((await s.token.sellImpactBps(E('2')))>0n);
- await fails(()=>s.token.sell(E('6'),0,MaxUint256));
- // A smaller redemption is still immediately available.
- await(await s.token.sell(E('4'),0,MaxUint256)).wait();
+ const reserve=await s.token.reserve(),supply=await s.token.totalSupply(),tokens=supply/2n;
+ const expected=sellQuote(tokens,reserve,supply);assert.equal(expected.feeBps,475n);
+ assert.deepEqual(Array.from(await s.token.quoteSell(tokens)),[expected.payout,475n,expected.gross]);
+ await(await s.token.sell(tokens,expected.payout,MaxUint256)).wait();
+ assert.equal(await s.token.totalSupply(),supply-tokens);assert.equal(await s.token.reserve(),reserve-expected.payout);
+ assert.equal(await s.token.locked(s.addresses[0]),0n);assert.equal(await s.token.unlocked(s.addresses[0]),supply-tokens);
+ assert.equal(await s.token.pressureWad(),E('0.5'));
  await checkAccounting(s);
 });

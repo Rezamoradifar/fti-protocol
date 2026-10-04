@@ -1,0 +1,286 @@
+{
+  "aggregate_wrapper_status": "two execution-session cancellations before completion",
+  "base_commit": "8fa961c5feb679a0d35077ddf2f0ff4b1a360ffd",
+  "compile_evidence": {
+    "canonical_creation_bytecodes_verified": 5,
+    "command": "npm run compile",
+    "log_filename": "paidpoints-compile-completed.log",
+    "log_sha256": "00359f298dcd13a8a5b24c7a4b9c6b4be4fdd08ea2f11dcf13f609fb287c3bb8",
+    "source_standard_input_matches_all_six_contract_files": true
+  },
+  "completed_at_utc": "2026-10-04T13:54:09Z",
+  "completed_distinct_cases": 208,
+  "coverage_status": "complete partitioned evidence",
+  "expected_distinct_cases": 208,
+  "expected_test_files": 30,
+  "extended_run_manifest_sha256": "8aefed6e982305c3b24cb59498b1f82ef79b243fcf8f1e4a544890cab4eecfcb",
+  "files": {
+    "test/binary-buy-allowance.test.mjs": {
+      "expected_cases": 16,
+      "run_id": "migrated-focused",
+      "source_sha256": "aacb876e8123d239c01d207e2b33d32e3febbb5c5677545474f25c9c1fbb5530",
+      "status": "passed"
+    },
+    "test/core-autobuy.test.mjs": {
+      "expected_cases": 8,
+      "run_id": "migrated-focused",
+      "source_sha256": "1fcf5641a5e031bf5bbdf4734acb63e003588821c5eff98ee4ba7dbbba3695e8",
+      "status": "passed"
+    },
+    "test/core-solvency.test.mjs": {
+      "expected_cases": 1,
+      "run_id": "missing-coverage",
+      "source_sha256": "30ae90708c950ff9654ba0e1c093bb9fd579d76a7c75ec08bb8994e5adc82982",
+      "status": "passed"
+    },
+    "test/economic-adversary.test.mjs": {
+      "expected_cases": 3,
+      "run_id": "missing-coverage",
+      "source_sha256": "c6729fe3ede5ee791c61bd31ccf67a69abba9888efd4d6915cec92fa99b671a4",
+      "status": "passed"
+    },
+    "test/event-reader.test.mjs": {
+      "expected_cases": 3,
+      "run_id": "missing-coverage",
+      "source_sha256": "26d8fe9f8fb428a5a101356f50c967bb6b715b462c2da6feee4fe36b334b7a70",
+      "status": "passed"
+    },
+    "test/event-server.test.mjs": {
+      "expected_cases": 1,
+      "run_id": "missing-coverage",
+      "source_sha256": "12ead8d8bef95b703192837a492cf3e423e994f7e8cd2364a090c14af3da36a1",
+      "status": "passed"
+    },
+    "test/funded-collateral.test.mjs": {
+      "expected_cases": 4,
+      "run_id": "missing-coverage",
+      "source_sha256": "72a4f57f316e95bb9cd77afcda1c6ffe1ee6c0a36b57d82a6357c87ea101adf6",
+      "status": "passed"
+    },
+    "test/funded-economics.test.mjs": {
+      "expected_cases": 10,
+      "run_id": "missing-coverage",
+      "source_sha256": "f623bd5a59fdc57070902b577c71538573a831387b608e4960a5c398b10dd00b",
+      "status": "passed"
+    },
+    "test/funded-keeper.test.mjs": {
+      "expected_cases": 3,
+      "run_id": "missing-coverage",
+      "source_sha256": "d395d6fa4c5b3265dabaafd02c9b2190d1301e1548e9931403f8372e1b24f631",
+      "status": "passed"
+    },
+    "test/funded-load.test.mjs": {
+      "expected_cases": 1,
+      "run_id": "loads",
+      "source_sha256": "dbfec0db857463d673022b6b36a17a789a0669e69778c5fc99c593614c484f6b",
+      "status": "passed"
+    },
+    "test/funded-locks.test.mjs": {
+      "expected_cases": 3,
+      "run_id": "missing-coverage",
+      "source_sha256": "476a57f7ea2fa92fdf8e658beb5355114d8179d4ff2b13d1dd697d6b23858777",
+      "status": "passed"
+    },
+    "test/funded-reference.test.mjs": {
+      "expected_cases": 2,
+      "run_id": "missing-coverage",
+      "source_sha256": "44406747c862fe83f773235a14dfab027c3c1c15e73e9f0b1520f56e358aaf3e",
+      "status": "passed"
+    },
+    "test/governance-rotation.test.mjs": {
+      "expected_cases": 4,
+      "run_id": "governance",
+      "source_sha256": "4cfb93a005069918d9671044672dc83a89224f9df02d08e6cf24191314675581",
+      "status": "passed"
+    },
+    "test/integrated-binary-funding.test.mjs": {
+      "expected_cases": 22,
+      "run_id": "migrated-focused",
+      "source_sha256": "b6790e1b7e02e5adcd6146a39f8f5f73e570a10287b4f366ce233e1cf20a32d1",
+      "status": "passed"
+    },
+    "test/integrated-economics.test.mjs": {
+      "expected_cases": 15,
+      "run_id": "provenance-closeout",
+      "source_sha256": "45fc723b5245384899c54bba3d12415025acf769f98d4f5f92a06caa5cea2130",
+      "status": "passed"
+    },
+    "test/integrated-server-state.test.mjs": {
+      "expected_cases": 1,
+      "run_id": "migrated-focused",
+      "source_sha256": "c1b45ed079681db4234e60c9c67e5390208a2556d6198a391b5b1a4296f3c711",
+      "status": "passed"
+    },
+    "test/journey-sale.test.mjs": {
+      "expected_cases": 1,
+      "run_id": "missing-coverage",
+      "source_sha256": "6b8f75a6b39a0992fcb412ddb032978626de3f12728d675dc2fba6d13a214b54",
+      "status": "passed"
+    },
+    "test/math.test.mjs": {
+      "expected_cases": 4,
+      "run_id": "missing-coverage",
+      "source_sha256": "ccfd6d018e425a0cbf7d7d2906a8369e9cadbc915b14c731e5bbf5c294e65ec7",
+      "status": "passed"
+    },
+    "test/migration.test.mjs": {
+      "expected_cases": 1,
+      "run_id": "missing-coverage",
+      "source_sha256": "0d6068554b725800939491709b0f21878d08767149ee60312153f95d3bc77b94",
+      "status": "passed"
+    },
+    "test/paid-points-binary.test.mjs": {
+      "expected_cases": 12,
+      "run_id": "missing-coverage",
+      "source_sha256": "8e76da7b711689c075b7dcddc59ad0d7ef70be8cbe6605bb7aa87defceb5653a",
+      "status": "passed"
+    },
+    "test/protocol.test.mjs": {
+      "expected_cases": 26,
+      "run_id": "migrated-focused",
+      "source_sha256": "226e5efba12352a8ea428a2dd55b3f2f01a25e05543a0c718d9aecb364214f91",
+      "status": "passed"
+    },
+    "test/rank-buy-capacity.test.mjs": {
+      "expected_cases": 7,
+      "run_id": "rank",
+      "source_sha256": "209674d1626a59c972ca6153355a74c44d5fbd77b736d323f207f01a5f01f861",
+      "status": "passed"
+    },
+    "test/reserve-collateral.test.mjs": {
+      "expected_cases": 4,
+      "run_id": "missing-coverage",
+      "source_sha256": "aad08b82b1e8103200909ec190f4cf91786c01ac08de9773207b976e22f398b7",
+      "status": "passed"
+    },
+    "test/reserve-load.test.mjs": {
+      "expected_cases": 1,
+      "run_id": "loads",
+      "source_sha256": "ff6503f972b7cae0aff99d145da26f6114a3144dc490135b3b170b5ed8cfd1c6",
+      "status": "passed"
+    },
+    "test/reserve-model.test.mjs": {
+      "expected_cases": 7,
+      "run_id": "model",
+      "source_sha256": "e3f672f8bd4ca2977db5d320861a47bc479346fe56008a914a3f51fa44226028",
+      "status": "passed"
+    },
+    "test/reserve-token.test.mjs": {
+      "expected_cases": 10,
+      "run_id": "provenance-closeout",
+      "source_sha256": "a3876616fb1ef3aab69b997b1516515f8ed606498fce0ee323e8e327224aa5f9",
+      "status": "passed"
+    },
+    "test/review-entrypoints.test.mjs": {
+      "expected_cases": 3,
+      "run_id": "entrypoints",
+      "source_sha256": "7b2aed1ef570de743b0cacfeacdd1f91b90810d31a847231df000e43f27c2c0d",
+      "status": "passed"
+    },
+    "test/revised-economics.test.mjs": {
+      "expected_cases": 12,
+      "run_id": "provenance-closeout",
+      "source_sha256": "da54323d1ae63c5a4cc4ddbeb630ef8dc44dbd924af37a1381900afc2d78090b",
+      "status": "passed"
+    },
+    "test/token-gas.test.mjs": {
+      "expected_cases": 2,
+      "run_id": "missing-coverage",
+      "source_sha256": "a93682f56b4766ff0bd49a82a7f2a3543dd1ff5c7696fe9da535b6078c009763",
+      "status": "passed"
+    },
+    "test/zero-supply-quarantine.test.mjs": {
+      "expected_cases": 21,
+      "run_id": "quarantine",
+      "source_sha256": "49e380901d68d40ef8d484ab90340099040d326d3d23bb670515b9068bf3d2bd",
+      "status": "passed"
+    }
+  },
+  "qualification": "The earlier focused log began before label/reference-model edits. Affected files are credited only to final-source standalone or provenance-closeout runs. Historical119/167 results are excluded. Command metadata reflects recorded executed selections; no successful single aggregate is implied.",
+  "runs": [
+    {
+      "command": "node --test --test-concurrency=2 test/protocol.test.mjs test/core-autobuy.test.mjs test/binary-buy-allowance.test.mjs test/integrated-binary-funding.test.mjs test/integrated-economics.test.mjs test/revised-economics.test.mjs test/reserve-token.test.mjs test/integrated-server-state.test.mjs",
+      "command_provenance": "recorded executed Node selection; output capture shown by log_filename",
+      "credited_unique_cases": 73,
+      "id": "migrated-focused",
+      "log_filename": "fti-paidpoints-migrated-focused.log",
+      "log_sha256": "2b3ee5a212ba99d3b0b21648141df389ccc5d07ad64140b183682141983d0061",
+      "status": "passed"
+    },
+    {
+      "command": "node --test test/rank-buy-capacity.test.mjs",
+      "command_provenance": "recorded executed Node selection; output capture shown by log_filename",
+      "credited_unique_cases": 7,
+      "id": "rank",
+      "log_filename": "fti-rank-capacity-paidpoints.log",
+      "log_sha256": "7b63fe808fa1c304e7687fafc4fd24013e46e45a8979b49ea8373fde341c8507",
+      "status": "passed"
+    },
+    {
+      "command": "node --test test/reserve-model.test.mjs",
+      "command_provenance": "recorded executed Node selection; output capture shown by log_filename",
+      "credited_unique_cases": 7,
+      "id": "model",
+      "log_filename": "fti-paidpoints-reserve-model.log",
+      "log_sha256": "4f30f41477fbb88cdf474f033785b81dae9066df98b03648cdeda4211dfe00f8",
+      "status": "passed"
+    },
+    {
+      "command": "node --test --test-concurrency=2 test/reserve-load.test.mjs test/funded-load.test.mjs",
+      "command_provenance": "recorded executed Node selection; output capture shown by log_filename",
+      "credited_unique_cases": 2,
+      "id": "loads",
+      "log_filename": "fti-paidpoints-load-tests.log",
+      "log_sha256": "000d6570dd4f5a55ccc4abd5e88d95e800ebcdba08a809fe8ba9d86e2a0f01fb",
+      "status": "passed"
+    },
+    {
+      "command": "node --test --test-concurrency=1 test/zero-supply-quarantine.test.mjs",
+      "command_provenance": "recorded executed Node selection; output capture shown by log_filename",
+      "credited_unique_cases": 21,
+      "id": "quarantine",
+      "log_filename": "fti-zero-supply-quarantine-final.log",
+      "log_sha256": "72cc368f75cc951447ef7cbcd7e91d4b1cb73fd9f7e6b83ebc49e4c0af31047f",
+      "status": "passed"
+    },
+    {
+      "command": "node --test --test-concurrency=1 test/governance-rotation.test.mjs",
+      "command_provenance": "recorded executed Node selection; output capture shown by log_filename",
+      "credited_unique_cases": 4,
+      "id": "governance",
+      "log_filename": "paidpoints-governance.log",
+      "log_sha256": "5829f41ec8061d04ae3ec8ea087287202cd9c1521fb0a1ef6e7873ed609e66cc",
+      "status": "passed"
+    },
+    {
+      "command": "node --test test/review-entrypoints.test.mjs",
+      "command_provenance": "recorded executed Node selection; output capture shown by log_filename",
+      "credited_unique_cases": 3,
+      "id": "entrypoints",
+      "log_filename": "paidpoints-entrypoints.log",
+      "log_sha256": "ef54b30d574d293155b159a77b91ec6868b9371b5e8758ac423dd78af7818238",
+      "status": "passed"
+    },
+    {
+      "command": "node --test --test-concurrency=1 test/integrated-economics.test.mjs test/revised-economics.test.mjs test/reserve-token.test.mjs",
+      "command_provenance": "recorded executed Node selection; output capture shown by log_filename",
+      "credited_unique_cases": 37,
+      "id": "provenance-closeout",
+      "log_filename": "paidpoints-provenance-closeout.log",
+      "log_sha256": "56cf7178f2dd0aab18032c1034304bd5de8fad456cadbb55d315fc113431583f",
+      "status": "passed"
+    },
+    {
+      "command": "node --test --test-concurrency=1 test/core-solvency.test.mjs test/economic-adversary.test.mjs test/event-reader.test.mjs test/event-server.test.mjs test/funded-collateral.test.mjs test/funded-economics.test.mjs test/funded-keeper.test.mjs test/funded-locks.test.mjs test/funded-reference.test.mjs test/journey-sale.test.mjs test/math.test.mjs test/migration.test.mjs test/paid-points-binary.test.mjs test/reserve-collateral.test.mjs test/token-gas.test.mjs",
+      "command_provenance": "recorded executed Node selection; output capture shown by log_filename",
+      "credited_unique_cases": 54,
+      "exit_code": 0,
+      "id": "missing-coverage",
+      "log_filename": "paidpoints-missing-coverage.log",
+      "log_sha256": "12cac51613fc1cf5ee5dd1587d44e354e8c266e58db6c1839e3ceb5b62d4fb95",
+      "status": "passed"
+    }
+  ],
+  "single_npm_test_succeeded": false,
+  "source_manifest_sha256": "db16ddef2a882e71e104b84f676332d0c6ea73645c86e765994ae092d578b3cf"
+}
