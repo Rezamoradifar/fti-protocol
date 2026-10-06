@@ -181,7 +181,12 @@ const deploymentTxs = {
 
 const result = {
   release: 'FTI_V3_ZERO_START',
-  mode: chainId === 97 ? 'bnb-testnet' : 'local',
+  mode: chainId === 97 ? 'testnet' : 'local',
+  tokenContract: 'FTIReserveTokenV3',
+  binaryContract: 'FundedBinaryPlan',
+  councilContract: 'SevenGuardianCouncil',
+  lockVersion: 0,
+  liquidityVersion: 3,
   chainId,
   deployedAt: new Date().toISOString(),
   deployedBlock: bindReceipt.blockNumber,
