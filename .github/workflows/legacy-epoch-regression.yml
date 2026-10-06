@@ -1,0 +1,23 @@
+name: Legacy epoch regression
+
+on:
+  push:
+    branches:
+      - feat/zero-start-charity-protection
+
+jobs:
+  legacy-epoch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run compile
+      - name: Run the three previously flaky epoch tests
+        run: >
+          node --test --test-concurrency=1
+          --test-name-pattern='full unlock and complete sell-off|failed USD transfer leaves beneficiary claim intact|auto-buy settings freeze during matching'
+          test/protocol.test.mjs
