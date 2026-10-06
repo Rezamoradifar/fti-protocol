@@ -1,6 +1,6 @@
 import {
   BrowserProvider,Wallet,Contract,ContractFactory,parseEther,formatEther,
-  MaxUint256,isAddress
+  MaxUint256,ZeroAddress,isAddress
 } from './vendor/ethers.js';
 
 const RPC='https://bsc-testnet.bnbchain.org';
