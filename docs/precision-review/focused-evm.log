@@ -1,0 +1,23 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ old truncated-price overmint counterexample is removed; unchanged display still reverts without subsidy (19199.337125ms)
+✔ normal and large actual buys use exact mint, fee and manual quota (3180.477231ms)
+✔ auto buy uses identical quote and does not consume manual quota (873.978957ms)
+✔ split purchases each use fresh exact ratio, preserve strict growth and total quota (17872.016742ms)
+✔ partial sell and transfer maintain cash backing and exact/display growth (1000.532369ms)
+✔ bootstrap and support routing remain unchanged, final redemption still closes (2579.249417ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 45525.626443

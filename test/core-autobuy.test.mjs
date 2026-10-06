@@ -1,3 +1,5 @@
+// Historical FTIToken regression paired with current BinaryPlan. Token locks/curve
+// remain historical; auto setting, timing, immediate mint and retry use current policy.
 import {deployPaidRankFeatureSuite,seedPaidRank} from './fixtures/paid-rank-feature-suite.mjs';
 import {test,before,beforeEach,after} from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,7 +15,9 @@ before(async()=>{
  for(const[i,n]of [[0,1],[1,100],[2,100]])await(await s.binary.connect(signers[i]).addUnits(n)).wait();await settle(s,p);
  // TEST ONLY paid-rank fixture for authorization/price/queue feature coverage.
  await seedPaidRank(s.binary,s.addresses[0],1);
- await(await s.binary.setAutoBuy(true,E('1'))).wait();for(const i of [1,2])await(await s.binary.connect(signers[i]).addUnits(5)).wait();await settle(s,p);
+ await(await s.binary.setAutoBuy(true)).wait();for(const i of [1,2])await(await s.binary.connect(signers[i]).addUnits(5)).wait();
+ // Exercise pending retry through an actual failed immediate collateral transfer.
+ await(await s.usd.setBlocked(s.token.target,true)).wait();await settle(s,p);await(await s.usd.setBlocked(s.token.target,false)).wait();
  assert.equal(await s.binary.pendingAuto(s.addresses[0]),E('45'));snapshot=await p.send('evm_snapshot',[]);
 });
 beforeEach(async()=>{await p.send('evm_revert',[snapshot]);snapshot=await p.send('evm_snapshot',[]);});
@@ -34,17 +38,26 @@ test('an unrelated keeper can execute the complete pending amount only for its o
  assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);assert.equal(await s.token.balanceOf(s.addresses[44]),0n);assert.equal(await s.usd.balanceOf(s.addresses[44]),attackerUSD);assert((await s.token.balanceOf(s.addresses[0]))>0n);await checkAccounting(s);
 });
 test('disabling auto-buy revokes keeper execution and preserves cash release',async()=>{
- await(await s.binary.setAutoBuy(false,E('1'))).wait();await unchangedAuto(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],E('45')));
+ await(await s.binary.setAutoBuy(false)).wait();await unchangedAuto(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],E('45')));
  const cash=await s.binary.pendingReward(s.addresses[0]);await(await s.binary.releaseAutoToCash()).wait();assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);assert.equal(await s.binary.pendingReward(s.addresses[0]),cash+E('45'));await checkAccounting(s);
 });
-test('a maximum above spot but below the fee-inclusive execution price rejects atomically',async()=>{
- const spot=await s.token.price(),max=spot*101n/100n,quote=await s.token.quoteBuy(E('45'));assert(E('45')*E('1')>quote*max);
- await(await s.binary.setAutoBuy(true,max)).wait();await unchangedAuto(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],E('45')));
+test('current Binary has no user maximum-price ABI and retries the full current quote',async()=>{
+ assert.equal(s.binary.interface.hasFunction('setAutoBuy(bool,uint256)'),false);
+ assert.equal(s.binary.interface.hasFunction('setAutoBuy(bool)'),true);
+ const quote=await s.token.quoteBuy(E('45')),before=await s.token.balanceOf(s.addresses[0]);
+ await(await s.binary.connect(signers[44]).executeAuto(s.addresses[0],E('45'))).wait();
+ assert.equal(await s.token.balanceOf(s.addresses[0])-before,quote);
+ assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);await checkAccounting(s);
 });
-test('exact integer maximum price boundary rejects one wei below and accepts at the ceiling',async()=>{
- const amount=E('45'),quote=await s.token.quoteBuy(amount),cost=amount*E('1');const ceiling=cost/quote+(cost%quote?1n:0n);
- await(await s.binary.setAutoBuy(true,ceiling-1n)).wait();await unchangedAuto(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],amount));
- await(await s.binary.setAutoBuy(true,ceiling)).wait();await(await s.binary.connect(signers[44]).executeAuto(s.addresses[0],amount)).wait();const minted=await s.token.balanceOf(s.addresses[0]);assert.equal(minted,quote);assert(minted*ceiling>=cost);await checkAccounting(s);
+test('a pending retry reprices after intervening manual trading without a user price ceiling',async()=>{
+ const amount=E('45'),oldQuote=await s.token.quoteBuy(amount);
+ await(await s.token.connect(signers[1]).buy(E('100'),0,MaxUint256)).wait();
+ const quote=await s.token.quoteBuy(amount);assert(quote<oldQuote);
+ const before=await s.token.balanceOf(s.addresses[0]),spent=await s.token.lifetimeManualBuys(s.addresses[0]);
+ await(await s.binary.connect(signers[44]).executeAuto(s.addresses[0],amount)).wait();
+ assert.equal(await s.token.balanceOf(s.addresses[0])-before,quote);
+ assert.equal(await s.token.lifetimeManualBuys(s.addresses[0]),spent);
+ assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);await checkAccounting(s);
 });
 test('a failed collateral transfer restores pending balances and all token state',async()=>{
  await(await s.usd.setBlocked(s.token.target,true)).wait();await unchangedAuto(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],E('45')));

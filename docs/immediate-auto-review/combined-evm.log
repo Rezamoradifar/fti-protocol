@@ -1,0 +1,33 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ Immediate auto candidate: real unseeded BinaryPlan and current precision token
+  ✔ organic 20 epochs: default off, next-hour enable, rank threshold still old-rank snapshot (171568.565012ms)
+  ✔ enable at H does not buy H reward even when settlement delayed; H+1 buys in allocation tx (19909.171171ms)
+  ✔ failed new allocation preserves funds, other rewards, rank and existing manual quota; keeper retries current price (13052.490775ms)
+  ✔ bounded gas exhaustion in token collateral cannot revert other member allocation (10543.426101ms)
+  ✔ old pending is not silently included in new immediate attempt (20145.101284ms)
+  ✔ disable between matching and allocation stops buying immediately; owner cash release never enables wallet debit (10653.680158ms)
+  ✔ callbacks cannot reenter settlement or isolated helper; successful buy stays single (9486.173269ms)
+  ✔ taxed auto failure is isolated and fully rolls back token mint and earmarked cash (8808.824507ms)
+  ✔ unprocessed overdue hour refuses new enable; delayed H settlement never borrows H+1 choice (7290.511995ms)
+  ✔ pause alone cannot convert; true closed-token permissionless bounded release preserves each beneficiary and cash (21076.463394ms)
+  ✔ default gas estimate advances allocation cursor instead of successful zero-progress loops (9582.665283ms)
+  ✔ failed pending auto restarts an ordinary empty cycle at current exact reference, never captures support or development claim (11847.632248ms)
+  ✔ estimated minimum gas survives fully exhausted child and persists progress plus pending liability (10061.330138ms)
+  ✔ keeper preflight does not spend a transaction on disabled pending accounts (9099.577281ms)
+✔ Immediate auto candidate: real unseeded BinaryPlan and current precision token (340710.310278ms)
+ℹ tests 14
+ℹ suites 1
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 341281.47197

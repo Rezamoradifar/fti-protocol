@@ -1,0 +1,53 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: integrated experimental reserve funding
+  ✔ $100 paid registration and each top-up protect $5 actual cash while zero supply, without any mint (4273.435219ms)
+  ✔ unpaid genesis, nonmembers, direct callers and failed registration cannot acquire or consume quota (3085.290848ms)
+  ✔ Member-rank gross buy quota is cumulative 5x funding and stays consumed across transfers, sales and lifecycle closure (9214.681184ms)
+SIZE_FEE_TIME_INDEPENDENCE {"binaryContract":"BinaryPlan","originalEstimate":"99828","successfulGasUsed":"94842","unchangedQuote":true,"elapsedSeconds":300}
+  ✔ time-independent quotes execute after 300 seconds with the original gas estimate (5615.064665ms)
+  ✔ failed purchases and failed final payouts atomically preserve quota, lifecycle and every cash bucket (5157.347443ms)
+  ✔ hostile collateral callbacks cannot forge/double-consume quota and either transfer tax rolls it back (7843.721535ms)
+  ✔ token trading/final redemption never spends binary cash and existing reward/development payouts remain identical (12096.856987ms)
+  ✔ TEST ONLY paid-rank fixture: reward auto-buy transfers only its earmarked cash, leaves manual quota and unrelated reward/builder buckets intact (17195.633452ms)
+SIZE_FEE_CANONICAL_AUTOBUY_BOUNDARY {"grossUSD":"544.5","feeUSD":"16.589577594123048669","quote":"731533013905286632788","maxPrice":"744327309430901154","protectedFund":"5.0","manualQuotaUnchanged":true,"syntheticRankQualification":true}
+  ✔ TEST ONLY paid-rank fixture: canonical >$500 size-fee auto-buy enforces exact fee-inclusive maxPrice without consuming manual quota (10290.549028ms)
+QUARANTINE_PREVENTS_SUPPORT_CAPTURE {"binaryContract":"BinaryPlan","fixture":"10 paid members x $1,000; cash-equivalent to 100 x $100","membershipCash":"10000","preMintSupply":"0","preMintSupport":"500","soleBuyerGrossPurchase":"100","allSupplyPayout":"100.0","capturedSupport":"0","protectedUnallocatedSupport":"500","remainingTokenReserve":"0","remainingTokenSupply":"0","binaryCashIntact":"9500","allocationApproved":false}
+  ✔ QUARANTINE REGRESSION: pre-mint $500 support cannot be captured by a sole $100 buyer (21609.907898ms)
+DONATION_OWNERSHIP_BLOCKER {"binaryContract":"BinaryPlan","liveReserveBeforeFinal":"100","protectedSupport":"5","rawUnaccountedDonation":"17","finalPayout":"100","liveReserveAfterFinal":"0","actualUsdAfterFinal":"22","binaryCashIntact":"95.0","surplusAllocationApproved":false}
+  ✔ DONATION OWNERSHIP BLOCKER: all-supply sale pays live reserve while protected support and raw surplus remain (3919.991966ms)
+LIFECYCLE_REVIEW_BLOCKER {"binaryContract":"BinaryPlan","postClosureFunding":"200","newProtectedSupportInClosedToken":"10","totalProtectedSupport":"15","newBinaryCash":"190","supply":"0","buysBlocked":true,"priorGrossQuotaStillSpent":"100","automaticRestartApproved":false}
+  ✔ LIFECYCLE REVIEW BLOCKER: support funding still enters a closed token while buys stay gated and spent quota never resets (9272.484314ms)
+✔ BinaryPlan: integrated experimental reserve funding (112547.958034ms)
+▶ FundedBinaryPlan: integrated experimental reserve funding
+  ✔ $100 paid registration and each top-up protect $5 actual cash while zero supply, without any mint (6101.54791ms)
+  ✔ unpaid genesis, nonmembers, direct callers and failed registration cannot acquire or consume quota (3743.337033ms)
+  ✔ Member-rank gross buy quota is cumulative 5x funding and stays consumed across transfers, sales and lifecycle closure (10138.448895ms)
+SIZE_FEE_TIME_INDEPENDENCE {"binaryContract":"FundedBinaryPlan","originalEstimate":"99828","successfulGasUsed":"94842","unchangedQuote":true,"elapsedSeconds":300}
+  ✔ time-independent quotes execute after 300 seconds with the original gas estimate (5451.222195ms)
+  ✔ failed purchases and failed final payouts atomically preserve quota, lifecycle and every cash bucket (5440.117108ms)
+  ✔ hostile collateral callbacks cannot forge/double-consume quota and either transfer tax rolls it back (7623.190231ms)
+  ✔ token trading/final redemption never spends binary cash and existing reward/development payouts remain identical (13987.930805ms)
+  ✔ TEST ONLY paid-rank fixture: reward auto-buy transfers only its earmarked cash, leaves manual quota and unrelated reward/builder buckets intact (18949.006711ms)
+QUARANTINE_PREVENTS_SUPPORT_CAPTURE {"binaryContract":"FundedBinaryPlan","fixture":"10 paid members x $1,000; cash-equivalent to 100 x $100","membershipCash":"10000","preMintSupply":"0","preMintSupport":"500","soleBuyerGrossPurchase":"100","allSupplyPayout":"100.0","capturedSupport":"0","protectedUnallocatedSupport":"500","remainingTokenReserve":"0","remainingTokenSupply":"0","binaryCashIntact":"9500","allocationApproved":false}
+  ✔ QUARANTINE REGRESSION: pre-mint $500 support cannot be captured by a sole $100 buyer (27461.152767ms)
+DONATION_OWNERSHIP_BLOCKER {"binaryContract":"FundedBinaryPlan","liveReserveBeforeFinal":"100","protectedSupport":"5","rawUnaccountedDonation":"17","finalPayout":"100","liveReserveAfterFinal":"0","actualUsdAfterFinal":"22","binaryCashIntact":"95.0","surplusAllocationApproved":false}
+  ✔ DONATION OWNERSHIP BLOCKER: all-supply sale pays live reserve while protected support and raw surplus remain (3975.607911ms)
+LIFECYCLE_REVIEW_BLOCKER {"binaryContract":"FundedBinaryPlan","postClosureFunding":"200","newProtectedSupportInClosedToken":"10","totalProtectedSupport":"15","newBinaryCash":"190","supply":"0","buysBlocked":true,"priorGrossQuotaStillSpent":"100","automaticRestartApproved":false}
+  ✔ LIFECYCLE REVIEW BLOCKER: support funding still enters a closed token while buys stay gated and spent quota never resets (9061.19855ms)
+✔ FundedBinaryPlan: integrated experimental reserve funding (115020.225285ms)
+ℹ tests 23
+ℹ suites 2
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 228241.298396

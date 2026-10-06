@@ -17,18 +17,18 @@ interface IReserveMembership {
     function authorizeTokenBuy(address,uint256) external;
 }
 
-/// @notice Zero-supply real-reserve FTI candidate.
-/// @dev Starts with zero FTI. Binary support NEVER mints FTI. At zero supply it
-///      is quarantined as protected, unallocated cash, not redeemable collateral.
-///      This quarantine is experimental pending final cash-ownership approval;
-///      no allocation, withdrawal or treasury payment path is provided.
-///      Buys retain all cash and mint against 97% of the payment. Normal partial
-///      sales retain 3% plus an experimental 0%-7% global sell-pressure surcharge.
-///      Positive wallet transfers burn 3% of the gross amount without moving USD.
-///      User tokens have no time, wallet-count, transaction-size or hourly sale locks.
-///      Full final sales return the ENTIRE redeemable reserve, with no retained fee.
-///      Protected unallocated cash and unaccounted donations are not sale proceeds.
-///      Zero supply exposes only a bootstrap/historical reference; restart is review-gated.
+/// @notice LOCAL size-fee review: approved $500/5% threshold; 7% curve remains provisional.
+/// @dev Starts with zero FTI. Binary support NEVER mints FTI. Zero-supply
+///      support is held in the price-protection fund, outside redeemable reserve.
+///      No fund spending, release, trigger or governance path is implemented.
+///      Ordinary buys/sells have a 3% base fee. Only the current trade's gross
+///      value above BOTH $500 and 5% of pretrade live reserve incurs the surcharge.
+///      No pressure snapshot, timer, wallet history or previous trade is charged.
+///      Buys retain all cash; net-of-fee value mints at the pretrade price.
+///      Positive wallet transfers burn 3%; normal partial sales burn the sold
+///      tokens and retain their fee in reserve. Full final and emergency exits
+///      are fee-free. Protected fund cash and donations are not sale proceeds.
+///      There are no personal waiting locks; restart remains review-gated.
 contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
 
@@ -37,13 +37,18 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     uint256 public constant FEE_BPS = 300;
     uint256 public constant TRANSFER_BURN_BPS = 300;
     uint256 public constant RETAINED_BPS = 300;
-    uint256 public constant MAX_PRESSURE_FEE_BPS = 700;
-    uint256 public constant MAX_SELL_FEE_BPS = FEE_BPS+MAX_PRESSURE_FEE_BPS;
-    uint256 public constant PRESSURE_HALF_LIFE = 300;
-    // floor(2^(-1/300) * WAD). Deterministic integer approximation, not exact
-    // real-number exponentiation: every WAD multiplication rounds down.
-    uint256 public constant PRESSURE_DECAY_PER_SECOND = 997692176527023318;
-    uint256 public constant MAX_PRESSURE_DECAY_SECONDS = 64*PRESSURE_HALF_LIFE;
+    // Threshold correction approved for local review; 7% coefficient remains provisional.
+    uint256 public constant LARGE_TRADE_MIN_USD = 500e18;
+    uint256 public constant LARGE_TRADE_THRESHOLD_BPS = 500;
+    uint256 public constant MAX_SIZE_FEE_BPS = 700;
+    uint256 public constant MAX_SELL_FEE_BPS = FEE_BPS+MAX_SIZE_FEE_BPS;
+    uint256 public constant MAX_BUY_FEE_BPS = FEE_BPS+MAX_SIZE_FEE_BPS;
+    // Explicitly disabled pressure compatibility getters. No temporal fee exists.
+    bool public constant SELL_PRESSURE_ACTIVE = false;
+    uint256 public constant MAX_PRESSURE_FEE_BPS = 0;
+    uint256 public constant PRESSURE_HALF_LIFE = 0;
+    uint256 public constant PRESSURE_DECAY_PER_SECOND = 0;
+    uint256 public constant MAX_PRESSURE_DECAY_SECONDS = 0;
     // Deprecated compatibility getters: zero means DISABLED, never a 0% sale cap.
     bool public constant SELL_CAPS_ACTIVE = false;
     uint256 public constant MAX_SINGLE_SELL_BPS = 0;
@@ -52,7 +57,7 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     uint256 public constant MAX_SUPPLY = 1e36;
     uint256 public constant MIN_MINT = 1e6;
     uint256 public constant CAP_REFERENCE_SUPPLY = 1000000e18;
-    bytes32 public constant pricingModel = 'REAL_RESERVE_V3_PRESSURE';
+    bytes32 public constant pricingModel = 'REAL_RESERVE_SIZE_PROPOSAL';
 
     IERC20 public immutable usd;
     address public immutable governance;
@@ -61,7 +66,7 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     IReserveMembership public binary;
 
     uint256 public reserve; // Redeemable backing of circulating FTI only.
-    uint256 public unallocatedReserve; // Protected zero-supply binary cash; no owner assigned.
+    uint256 public priceProtectionFund; // Protected zero-supply cash; spending policy remains unapproved.
     uint256 public constant launchPrice = INITIAL_PRICE; // Fixed milestone anchor, not the first buy quote.
     uint256 public milestonePrice = INITIAL_PRICE*10;
     uint256 public ath; // status/compatibility metric, not a guaranteed liquidation price
@@ -79,8 +84,8 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     bool public emergencyExit;
     bool public lifecycleClosed; // Restart remains review-gated pending explicit approval.
     uint256 public referencePrice = INITIAL_PRICE;
-    uint256 public pressureWad; // Snapshot after the latest successful normal partial sale.
-    uint256 public lastPartialSellAt;
+    uint256 public constant pressureWad = 0; // Deprecated; pressure is disabled.
+    uint256 public constant lastPartialSellAt = 0; // Deprecated; no fee timer exists.
 
 
     event Bound(address indexed binary);
@@ -94,6 +99,7 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     event EmergencyExitDeactivated();
     event LifecycleClosed(uint256 residualReserve,uint256 referencePrice,bool emergency);
     event SellWindowReset(uint256 indexed start,uint256 reserveSnapshot);
+    // Deprecated compatibility event; never emitted by this proposal.
     event SellPressureUpdated(uint256 pressureWad,uint256 timestamp);
 
     modifier onlyBinary(){require(msg.sender==address(binary),'binary only');_;}
@@ -142,7 +148,10 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     function buybackFund() external pure returns(uint256){return 0;}
     function floorFund() external pure returns(uint256){return 0;}
     function anchorSupply() external pure returns(uint256){return 0;}
+    /// @notice Base fee only. Use buyFeeQuote(amount) for the actual fee amount.
     function buyFeeBps() external pure returns(uint256){return FEE_BPS;}
+    /// @notice Deprecated name for protected price-protection-fund cash.
+    function unallocatedReserve() external view returns(uint256){return priceProtectionFund;}
 
     /// @notice Cumulative manual-buy authorization is owned by the binary contract.
     ///         Each paid unit grants its rank-based capacity; selling never restores quota.
@@ -153,84 +162,94 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     function _fee(uint256 amount,uint256 bps) private pure returns(uint256){
         return Math.mulDiv(amount,bps,10000,Math.Rounding.Ceil);
     }
-    function _userNetBuy(uint256 amount) private pure returns(uint256){
-        uint256 fee=_fee(amount,FEE_BPS);
-        require(amount>fee,'dust');
-        return amount-fee;
+    /// @dev T = max(500 USD, R/20), keeping fractional USD atoms exact.
+    ///      With thresholdTimes20=max(20*500e18,R), X=max(20V-thresholdTimes20,0).
+    ///      B=X/20 and F=ceil((300*400*V^2+700*X^2)/(10000*400*V)).
+    ///      One combined rational amount receives ONE ceil. V,R<=1e30 bounds
+    ///      the numerator by 4e65 (<2^256) and denominator by 4e36.
+    ///      R=0/S=0 retains the existing base-only bootstrap review exception.
+    function _sizeExcessTimes20(uint256 value) private view returns(uint256){
+        uint256 thresholdTimes20=Math.max(LARGE_TRADE_MIN_USD*20,reserve);
+        return value*20>thresholdTimes20?value*20-thresholdTimes20:0;
+    }
+    function _tradeFee(uint256 value) private view returns(uint256){
+        require(value<=MAX_RESERVE&&reserve<=MAX_RESERVE,'fee range');
+        if(value==0)return 0;
+        if(totalSupply()==0||reserve==0)return _fee(value,FEE_BPS);
+        uint256 excessTimes20=_sizeExcessTimes20(value);
+        if(excessTimes20==0)return _fee(value,FEE_BPS);
+        uint256 numerator=FEE_BPS*400*value*value+MAX_SIZE_FEE_BPS*excessTimes20*excessTimes20;
+        uint256 denominator=10000*400*value;
+        return Math.ceilDiv(numerator,denominator);
+    }
+
+    /// @notice Amount-specific total fee in USD atoms and net minting value.
+    /// @dev All amount is retained in reserve; only netAssets mints FTI.
+    ///      Zero netAssets is a dust quote and cannot execute as a buy.
+    function buyFeeQuote(uint256 amount) public view returns(uint256 feeAmount,uint256 netAssets){
+        require(amount>0&&amount<=MAX_RESERVE,'amount');
+        feeAmount=_tradeFee(amount);
+        netAssets=amount-feeAmount;
     }
 
     /// @notice Only net-of-fee user value mints tokens. Restart after final redemption is disabled.
     function quoteBuy(uint256 amount) public view returns(uint256){
         require(!lifecycleClosed,'restart policy pending');
-        require(amount>0&&amount<=MAX_RESERVE,'amount');
-        uint256 userAssets=_userNetBuy(amount);
+        (,uint256 userAssets)=buyFeeQuote(amount);
+        require(userAssets>0,'dust');
         uint256 prePrice=price();
         require(prePrice>0,'reserve');
         return Math.mulDiv(userAssets,WAD,prePrice);
     }
 
-    /// @notice Global pressure after deterministic per-second exponential decay.
-    /// @dev The approximation floors each WAD product. At 64 half-lives even a
-    ///      pressure of WAD is below one WAD atom, so the result is explicitly zero.
-    ///      Exponentiation by squaring runs at most 15 iterations (elapsed < 19200).
-    function currentSellPressure() public view returns(uint256){
-        if(pressureWad==0||block.timestamp<=lastPartialSellAt)return pressureWad;
-        uint256 elapsed=block.timestamp-lastPartialSellAt;
-        if(elapsed>=MAX_PRESSURE_DECAY_SECONDS)return 0;
-        uint256 factor=WAD;
-        uint256 base=PRESSURE_DECAY_PER_SECOND;
-        while(elapsed>0){
-            if((elapsed&1)!=0)factor=Math.mulDiv(factor,base,WAD);
-            elapsed>>=1;
-            if(elapsed>0)base=Math.mulDiv(base,base,WAD);
-        }
-        return Math.mulDiv(pressureWad,factor,WAD);
+    /// @notice Deprecated compatibility views: temporal/global pressure is disabled.
+    function currentSellPressure() public pure returns(uint256){return 0;}
+    function previewSellPressure(uint256 tokens) public view returns(uint256){
+        require(tokens<=totalSupply(),'supply');
+        return 0;
     }
 
-    /// @notice Hypothetical next pressure p1=1-(1-p0)*(1-q/S), as WAD.
-    /// @dev The complementary product rounds down, so p1 rounds up by <1 WAD atom.
-    ///      Buys, transfers and wallet changes never reset the stored snapshot.
-    function previewSellPressure(uint256 tokens) public view returns(uint256){
+    /// @notice Truncated indicative average surcharge in bps, NOT a fee calculator.
+    /// @dev Use sellFeeQuote for the exact, once-rounded USD fee. A sub-bps size
+    ///      surcharge can exist even when this compatibility display returns zero.
+    function sellImpactBps(uint256 tokens) public view returns(uint256){
         uint256 supply=totalSupply();
         require(tokens<=supply,'supply');
-        uint256 p0=currentSellPressure();
-        if(tokens==0||supply==0)return p0;
-        return WAD-Math.mulDiv(WAD-p0,supply-tokens,supply);
+        if(tokens==0||tokens==supply||emergencyExit||reserve==0)return 0;
+        uint256 gross=Math.mulDiv(tokens,reserve,supply);
+        require(gross<=MAX_RESERVE&&reserve<=MAX_RESERVE,'fee range');
+        uint256 excessTimes20=_sizeExcessTimes20(gross);
+        if(excessTimes20==0)return 0;
+        return Math.mulDiv(MAX_SIZE_FEE_BPS,excessTimes20*excessTimes20,400*gross*gross);
     }
 
-    /// @notice Actual extra fee in basis points; final and emergency exits are fee-free.
-    /// @dev floor(700 * floor(p1*p1/WAD) / WAD). Applying the endpoint fee to
-    ///      each trade is NOT split-invariant; timing and splitting can alter payouts.
-    function sellImpactBps(uint256 tokens) public view returns(uint256){
-        require(tokens<=totalSupply(),'supply');
-        if(tokens==0||tokens==totalSupply()||emergencyExit)return 0;
-        uint256 p1=previewSellPressure(tokens);
-        return Math.mulDiv(MAX_PRESSURE_FEE_BPS,Math.mulDiv(p1,p1,WAD),WAD);
+    /// @notice Exact USD fee, payout and gross claim. Full and emergency exits pay no fee.
+    function sellFeeQuote(uint256 tokens) public view returns(uint256 feeAmount,uint256 payout,uint256 gross){
+        uint256 supply=totalSupply();
+        require(tokens<=supply,'supply');
+        if(tokens==0||supply==0)return(0,0,0);
+        gross=Math.mulDiv(tokens,reserve,supply);
+        if(!emergencyExit&&tokens!=supply)feeAmount=_tradeFee(gross);
+        require(gross>feeAmount,'dust');
+        payout=gross-feeAmount;
     }
 
+    /// @notice Legacy quote shape; feeBps is truncated indicative average only.
+    /// @dev Never reconstruct the fee from feeBps. sellFeeQuote exposes exact USD.
     function quoteSell(uint256 tokens) public view returns(uint256 payout,uint256 feeBps,uint256 gross){
-        require(tokens<=circulatingSupply(),'supply');
-        if(tokens==0||totalSupply()==0)return(0,FEE_BPS,0);
-        gross=Math.mulDiv(tokens,reserve,totalSupply());
-        if(emergencyExit||tokens==totalSupply()){
-            require(gross>0,'dust');
-            return(gross,0,gross);
-        }
-        feeBps=FEE_BPS+sellImpactBps(tokens);
-        uint256 totalFee=_fee(gross,feeBps);
-        require(gross>totalFee,'dust');
-        payout=gross-totalFee;
+        (,payout,gross)=sellFeeQuote(tokens);
+        feeBps=emergencyExit||(tokens>0&&tokens==totalSupply())?0:FEE_BPS+sellImpactBps(tokens);
     }
 
     /// @notice Binary funding never creates FTI. Only funding received while supply
     ///         is positive becomes redeemable backing. Zero-supply cash remains
-    ///         protected and unallocated, even after closure and after later buys.
+    ///         in the price-protection fund, including after closure and later buys.
     function inject(uint256 amount,bool newWallet) external onlyBinary nonReentrant {
-        require(amount>0&&amount<=MAX_RESERVE&&reserve+unallocatedReserve+amount<=MAX_RESERVE,'reserve range');
+        require(amount>0&&amount<=MAX_RESERVE&&reserve+priceProtectionFund+amount<=MAX_RESERVE,'reserve range');
         _receive(msg.sender,amount);
         if(totalSupply()==0){
-            unallocatedReserve+=amount;
-            emit ReserveQuarantined(amount,unallocatedReserve);
+            priceProtectionFund+=amount;
+            emit ReserveQuarantined(amount,priceProtectionFund);
         }else reserve+=amount;
         if(newWallet)walletClock++;
         _backed();
@@ -262,7 +281,7 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
         uint256 previousS=totalSupply();
         minted=quoteBuy(amount);
         require(minted>=MIN_MINT&&minted>=minTokens,'slippage/dust');
-        require(reserve+unallocatedReserve+amount<=MAX_RESERVE&&previousS+minted<=MAX_SUPPLY,'range');
+        require(reserve+priceProtectionFund+amount<=MAX_RESERVE&&previousS+minted<=MAX_SUPPLY,'range');
 
         // The binary consumes manual authorization before collateral moves. Any later
         // failure reverts both the quota and token state in the same transaction.
@@ -291,12 +310,6 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
         (payout,totalFeeBps,gross)=quoteSell(tokens);
         require(payout>0&&payout>=minUSD&&payout<=reserve,'slippage/dust');
 
-        if(!emergencyExit&&!finalRedemption){
-            pressureWad=previewSellPressure(tokens);
-            lastPartialSellAt=block.timestamp;
-            emit SellPressureUpdated(pressureWad,block.timestamp);
-        }
-
         uint256 previousR=reserve;
         uint256 previousS=totalSupply();
         uint256 previousPrice=price();
@@ -309,7 +322,7 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
             // No live R/S exists at zero supply. Preserve the last real quote without
             // fabricating a price step. Exact full redemption leaves no redeemable
             // fee residue; quarantined cash and raw donations remain protected.
-            // Do not reset pressure or the binary-owned lifetime manual-buy quota.
+            // The binary-owned lifetime manual-buy quota is never reset.
             referencePrice=previousPrice;
             lifecycleClosed=true;
             _backed();
@@ -337,7 +350,7 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
             beforePayer-usd.balanceOf(payer)==amount,'unsupported USD');
     }
 
-    function _backed() private view {require(usd.balanceOf(address(this))>=reserve+unallocatedReserve,'reserve deficit');}
+    function _backed() private view {require(usd.balanceOf(address(this))>=reserve+priceProtectionFund,'reserve deficit');}
     function _requireGrowth(uint256 oldR,uint256 oldS) private view {
         require(oldS>0&&totalSupply()>0,'supply');
         require(reserve*oldS>oldR*totalSupply(),'price must increase');
@@ -410,7 +423,7 @@ contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
     /// @notice All tracked cash includes redeemable backing and protected cash.
     /// @dev Direct USD donations remain unaccounted surplus, never silently assigned.
     function accounting() external view returns(uint256 actual,uint256 accounted){
-        return(usd.balanceOf(address(this)),reserve+unallocatedReserve);
+        return(usd.balanceOf(address(this)),reserve+priceProtectionFund);
     }
     function rescue(address asset,address to,uint256 amount) external nonReentrant {
         require(msg.sender==governance&&asset!=address(usd)&&asset!=address(this),'protected');

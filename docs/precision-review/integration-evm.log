@@ -1,0 +1,26 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ Retirement current-token integrations with canonical BinaryPlan
+  ✔ current-token actual large buys retain gross cash, mint net assets at pretrade price and consume gross manual quota (3718.405152ms)
+  ✔ current-token real registration grants cumulative gross quota and paid top-ups do not reset spent (6423.160057ms)
+  ✔ current-token minOut, deadline, dust, allowance and collateral failures roll back real Binary authorization (4686.679171ms)
+✔ Retirement current-token integrations with canonical BinaryPlan (17630.171417ms)
+▶ Retirement current-token TEST_ONLY paid-rank feature isolation, not organic qualification
+  ✔ TEST_ONLY builder auto: all-in max price and blocked collateral failure roll back; exact allowed execution stays outside manual quota (10530.648036ms)
+  ✔ TEST_ONLY builder auto: disabling and keeper partial execution reject; owner release remains cash owned by that wallet (8440.518701ms)
+✔ Retirement current-token TEST_ONLY paid-rank feature isolation, not organic qualification (29857.728029ms)
+ℹ tests 5
+ℹ suites 2
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 48064.683465

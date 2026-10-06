@@ -1,0 +1,6 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> fti-protocol@0.2.0 build:web
+> node scripts/build-web.mjs
+
+React workspace built: web/app.js

@@ -1,0 +1,92 @@
+{
+  "status": "OFFLINE_SOURCE_TO_ARTIFACT_MATCH",
+  "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "viaIR": true,
+    "evmVersion": "shanghai"
+  },
+  "method": "Fresh source copy compiled in isolated temporary directory; all five full artifacts compared byte-for-byte",
+  "contractCount": 5,
+  "deploymentReady": false,
+  "deploymentApproved": false,
+  "signed": false,
+  "broadcast": false,
+  "networkVerified": false,
+  "artifacts": {
+    "MockUSD": {
+      "contractName": "MockUSD",
+      "source": "contracts/MockUSD.sol",
+      "sourceSHA256": "660b95edc8684c476f7c50c0da618c16b71ef5c82d948042d20dcd963a229157",
+      "artifact": "artifacts/MockUSD.json",
+      "artifactSHA256": "ec1f602838cc94fe7cf974c6f063c2936a10bb4435a34f1e392da60c9c0e9d22",
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "73890c1ec514ed52729d451d6daa26150cffc28dd3cbc0e577e812414de37a5c",
+      "creationBytecodeKeccak256": "0xe8d1a5ccc7ff77acf1daefdf9bccf2fa1e32ff06a523a86fadb967af3d65a394",
+      "constructorTypes": []
+    },
+    "Council": {
+      "contractName": "Council",
+      "source": "contracts/Governance.sol",
+      "sourceSHA256": "ca1e638e4c4f9184c03dabdd23e6fc444c1b1fb4c5c3822898dda1f6263c7540",
+      "artifact": "artifacts/Council.json",
+      "artifactSHA256": "d32c0d79be8f09daa734597a9c9def3ced264de9b7c8f226b9be44b6e1d3241c",
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "22f3bb42488a02ec8f622bc64b16bdab06202d98af42773b51afd01e0c76d864",
+      "creationBytecodeKeccak256": "0x8610b95571801605129657e8e344a20e8b6acd932090c81a21a8d700f813ce97",
+      "constructorTypes": [
+        "address[7]"
+      ]
+    },
+    "FTITimelock": {
+      "contractName": "FTITimelock",
+      "source": "contracts/Governance.sol",
+      "sourceSHA256": "ca1e638e4c4f9184c03dabdd23e6fc444c1b1fb4c5c3822898dda1f6263c7540",
+      "artifact": "artifacts/FTITimelock.json",
+      "artifactSHA256": "ba6672cc9864c4c1eefebf2d391c13b3f548e6f132ae50bb92a99410cd9cfcb1",
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "1ecbacd578ae5cb9efc6ece356ad4be2869b1c13fe3870b2fa390905af5a319c",
+      "creationBytecodeKeccak256": "0x4b2bb1ab9a0502e9ae1a9a07dce72f1378d50a014de5e5c8bce1d5ddd5902376",
+      "constructorTypes": [
+        "address"
+      ]
+    },
+    "FTIRetirementReviewToken": {
+      "contractName": "FTIRetirementReviewToken",
+      "source": "contracts/FTIRetirementReviewToken.sol",
+      "sourceSHA256": "89de8c1e8babbb0b5cf8ad20b92d96f176f2d3f89e9319e7328c7c52f0676ccb",
+      "artifact": "artifacts/FTIRetirementReviewToken.json",
+      "artifactSHA256": "f7821bc76f101bc010d5c61a34408f821f2867e13f53007308335036e0d8d0dd",
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "0da1c63d426d5058918f3277dc56555d7927321ff9f22feb861646b88ac7cbe8",
+      "creationBytecodeKeccak256": "0xf19ff4ab958d46fd424f58ba28e800d898aff4423becc99fac8393ef70cabcec",
+      "constructorTypes": [
+        "address",
+        "address",
+        "address",
+        "address"
+      ]
+    },
+    "BinaryPlan": {
+      "contractName": "BinaryPlan",
+      "source": "contracts/BinaryPlan.sol",
+      "sourceSHA256": "9844e9b6b14553e0eb14352d43ab65e0cefda18d7c07a87101d074959c198271",
+      "artifact": "artifacts/BinaryPlan.json",
+      "artifactSHA256": "74c55aff04054d58d9f7ea9c9720032a0d6fe7572b248fa881dca0b9ee1cd4cb",
+      "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+      "creationBytecodeSHA256": "6119774c0c3b2c8b1e27f96ae9f9c3129fed13be16bf8e655a32a313ffc46d01",
+      "creationBytecodeKeccak256": "0xc9149ffff1474f372ff913a9011e6d08784b3cf045ad928df1bde93e302b2a9a",
+      "constructorTypes": [
+        "address",
+        "address",
+        "address",
+        "address",
+        "address",
+        "address[31]"
+      ]
+    }
+  }
+}

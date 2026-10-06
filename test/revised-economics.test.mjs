@@ -57,10 +57,10 @@ test('subsequent buy mints net 97% at pre-operation displayed quote and retains 
  await growth(oldR,oldS,oldP);
 });
 
-test('partial sells apply quadratic pressure above the 3% base and burn exactly sold tokens once',async()=>{
+test('sub-$500 partial sells apply only the 3% base and burn exactly sold tokens once',async()=>{
  await seed();const oldR=await s.token.reserve(),oldS=await s.token.totalSupply(),oldP=await s.token.price(),tokens=oldS*4n/100n;
  const q=sellQuote(tokens,oldR,oldS),gross=q.gross,expected=q.payout,beforeUSD=await s.usd.balanceOf(s.addresses[0]);
- assert.equal(q.impactBps,1n);assert.equal(await s.token.sellImpactBps(tokens),q.impactBps);
+ assert.equal(q.impactBps,0n);assert.equal(await s.token.sellImpactBps(tokens),q.impactBps);
  assert.deepEqual(Array.from(await s.token.quoteSell(tokens)),[expected,q.feeBps,gross]);
  const receipt=await(await s.token.sell(tokens,expected,MaxUint256)).wait();
  assert.equal(await s.token.reserve(),oldR-expected);assert.equal(await s.token.totalSupply(),oldS-tokens);
@@ -128,13 +128,13 @@ test('retained emergency exception is fee-free, closes final lifecycle and prese
  await checkAccounting(s);
 });
 
-test('independent revised model matches buys, transfer burn, pressure sale fees and terminal restart guard',()=>{
+test('independent revised model matches buys, transfer burn, trade-size sale fees and terminal restart guard',()=>{
  const m=new ReserveModel();assert.equal(m.price(),INITIAL_PRICE);m.register('a');m.register('b');
  assert.deepEqual(m.buy('a',100n*W),{userMint:970n*W});
  assert.equal(m.reserve,100n*W);assert.equal(m.unallocatedReserve,10n*W);assert.equal(m.supply,970n*W);
  const p=m.price();assert.deepEqual(m.transfer('a','b',100n*W),{burned:3n*W,received:97n*W});assert(m.price()>p);
  const expected=sellQuote(100n*W,m.reserve,m.supply),q=m.sell('a',100n*W);
- assert.equal(q.impactBps,7n);assert.deepEqual(q,expected);assert.equal(q.baseFee,baseFee(q.gross));
+ assert.equal(q.impactBps,0n);assert.deepEqual(q,expected);assert.equal(q.baseFee,baseFee(q.gross));
  m.sell('b',m.wallets.get('b').balance,{emergency:true});
  const last=m.price();m.sell('a',m.wallets.get('a').balance);assert.equal(m.supply,0n);assert.equal(m.price(),last);assert.equal(m.lifecycleClosed,true);
  assert.throws(()=>m.buy('a',W),/restart policy pending/);

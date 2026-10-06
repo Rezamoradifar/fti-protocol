@@ -1,0 +1,237 @@
+--- a/contracts/FTIReserveToken.sol
++++ b/contracts/FTIReserveToken.sol
+@@ -17,12 +17,12 @@
+     function authorizeTokenBuy(address,uint256) external;
+ }
+ 
+-/// @notice LOCAL size-fee proposal; the 5% threshold and 7% curve are NOT approved.
++/// @notice LOCAL size-fee review: approved $500/5% threshold; 7% curve remains provisional.
+ /// @dev Starts with zero FTI. Binary support NEVER mints FTI. Zero-supply
+ ///      support is held in the price-protection fund, outside redeemable reserve.
+ ///      No fund spending, release, trigger or governance path is implemented.
+ ///      Ordinary buys/sells have a 3% base fee. Only the current trade's gross
+-///      value above 5% of pretrade live reserve incurs the smooth size surcharge.
++///      value above BOTH $500 and 5% of pretrade live reserve incurs the surcharge.
+ ///      No pressure snapshot, timer, wallet history or previous trade is charged.
+ ///      Buys retain all cash; net-of-fee value mints at the pretrade price.
+ ///      Positive wallet transfers burn 3%; normal partial sales burn the sold
+@@ -37,7 +37,8 @@
+     uint256 public constant FEE_BPS = 300;
+     uint256 public constant TRANSFER_BURN_BPS = 300;
+     uint256 public constant RETAINED_BPS = 300;
+-    // LOCAL REVIEW SETTINGS ONLY: not final economic parameters.
++    // Threshold correction approved for local review; 7% coefficient remains provisional.
++    uint256 public constant LARGE_TRADE_MIN_USD = 500e18;
+     uint256 public constant LARGE_TRADE_THRESHOLD_BPS = 500;
+     uint256 public constant MAX_SIZE_FEE_BPS = 700;
+     uint256 public constant MAX_SELL_FEE_BPS = FEE_BPS+MAX_SIZE_FEE_BPS;
+@@ -161,17 +162,22 @@
+     function _fee(uint256 amount,uint256 bps) private pure returns(uint256){
+         return Math.mulDiv(amount,bps,10000,Math.Rounding.Ceil);
+     }
+-    /// @dev T = R/20 EXACTLY, including fractional USD atoms. For V>T set
+-    ///      X=20V-R. Then B=X/20 and F=ceil((300*400*V^2+700*X^2)/(10000*400*V)).
+-    ///      This computes base plus size fee as ONE rational amount with ONE ceil.
+-    ///      V,R<=1e30 bounds the numerator by 4e65 (<2^256), denominator by 4e36.
+-    ///      The bound also makes 20V, X^2 and all intermediate products safe.
+-    ///      The R=0/S=0 bootstrap has the base fee alone, regardless of fund cash.
++    /// @dev T = max(500 USD, R/20), keeping fractional USD atoms exact.
++    ///      With thresholdTimes20=max(20*500e18,R), X=max(20V-thresholdTimes20,0).
++    ///      B=X/20 and F=ceil((300*400*V^2+700*X^2)/(10000*400*V)).
++    ///      One combined rational amount receives ONE ceil. V,R<=1e30 bounds
++    ///      the numerator by 4e65 (<2^256) and denominator by 4e36.
++    ///      R=0/S=0 retains the existing base-only bootstrap review exception.
++    function _sizeExcessTimes20(uint256 value) private view returns(uint256){
++        uint256 thresholdTimes20=Math.max(LARGE_TRADE_MIN_USD*20,reserve);
++        return value*20>thresholdTimes20?value*20-thresholdTimes20:0;
++    }
+     function _tradeFee(uint256 value) private view returns(uint256){
+         require(value<=MAX_RESERVE&&reserve<=MAX_RESERVE,'fee range');
+         if(value==0)return 0;
+-        if(totalSupply()==0||reserve==0||value*20<=reserve)return _fee(value,FEE_BPS);
+-        uint256 excessTimes20=value*20-reserve;
++        if(totalSupply()==0||reserve==0)return _fee(value,FEE_BPS);
++        uint256 excessTimes20=_sizeExcessTimes20(value);
++        if(excessTimes20==0)return _fee(value,FEE_BPS);
+         uint256 numerator=FEE_BPS*400*value*value+MAX_SIZE_FEE_BPS*excessTimes20*excessTimes20;
+         uint256 denominator=10000*400*value;
+         return Math.ceilDiv(numerator,denominator);
+@@ -212,8 +218,8 @@
+         if(tokens==0||tokens==supply||emergencyExit||reserve==0)return 0;
+         uint256 gross=Math.mulDiv(tokens,reserve,supply);
+         require(gross<=MAX_RESERVE&&reserve<=MAX_RESERVE,'fee range');
+-        if(gross*20<=reserve)return 0;
+-        uint256 excessTimes20=gross*20-reserve;
++        uint256 excessTimes20=_sizeExcessTimes20(gross);
++        if(excessTimes20==0)return 0;
+         return Math.mulDiv(MAX_SIZE_FEE_BPS,excessTimes20*excessTimes20,400*gross*gross);
+     }
+ 
+--- a/test/size-fee-proposal.test.mjs
++++ b/test/size-fee-proposal.test.mjs
+@@ -22,6 +22,9 @@
+   require(!rejectTransfers||from==address(0)||to==address(0),'fixture blocked');super._update(from,to,value);
+  }
+ }
++contract TEST_ONLY_SizeFeeUSD6 is TEST_ONLY_SizeFeeUSD {
++ function decimals() public pure override returns(uint8){return 6;}
++}
+ contract TEST_ONLY_SizeFeeToken is FTIReserveToken {
+  constructor(address stable,address owner) FTIReserveToken(stable,owner,owner) {}
+  function TEST_ONLY_seed(address who,uint256 assets,uint256 shares) external {
+@@ -51,8 +54,9 @@
+ const W=10n**18n,MAX_R=10n**30n;
+ const ceil=(n,d)=>(n+d-1n)/d;
+ function fee(v,r,s=1n){
+- if(!r||!s||20n*v<=r)return ceil(3n*v,100n);
+- const x=20n*v-r;
++ const t20=r>10000n*W?r:10000n*W;
++ if(!r||!s||20n*v<=t20)return ceil(3n*v,100n);
++ const x=20n*v-t20;
+  return ceil(120000n*v*v+700n*x*x,4000000n*v);
+ }
+ let engine,p,signers,addresses,usd,token,binary,snapshot,compiled;
+@@ -98,6 +102,7 @@
+ // Deliberately focused proposal coverage; historical pressure suites are not
+ // asserted to validate this incompatible, unapproved local economic revision.
+ test('proposal settings and fixed launch/milestone anchors; no production state setter',async()=>{
++ assert.equal(await token.LARGE_TRADE_MIN_USD(),E('500'));
+  assert.equal(await token.LARGE_TRADE_THRESHOLD_BPS(),500n);assert.equal(await token.MAX_SIZE_FEE_BPS(),700n);
+  assert.equal(await token.buyFeeBps(),300n);assert.equal(await token.TRANSFER_BURN_BPS(),300n);
+  assert.equal(await token.launchPrice(),E('0.1'));assert.equal(await token.milestonePrice(),E('1'));
+@@ -115,6 +120,80 @@
+  }
+ });
+ 
++for(const reserveUSD of ['100','1000','9999.999999999999999999','10000.000000000000000001','20000','1000000']){
++ test(`$500 floor: buy and valid partial sell quotes stay 3% for R=${reserveUSD}`,async()=>{
++  const r=E(reserveUSD);await seed(r);
++  for(const v of [E('1'),E('99'),E('499.999999999999999999'),E('500')]){
++   const f=ceil(v*3n,100n);
++   assert.deepEqual(Array.from(await token.buyFeeQuote(v)),[f,v-f]);
++   if(v<r){
++    assert.deepEqual(Array.from(await token.sellFeeQuote(v*10n)),[f,v-f,v]);
++    assert.equal(await token.sellImpactBps(v*10n),0n);
++   }
++  }
++ });
++}
++
++test('extra fee needs both conditions: above $500 and above 5% of live reserve',async()=>{
++ await seed(E('20000'));
++ for(const v of [E('500'),E('750'),E('1000')]){
++  assert.equal((await token.buyFeeQuote(v))[0],ceil(3n*v,100n));
++  assert.equal((await token.sellFeeQuote(v*10n))[0],ceil(3n*v,100n));
++ }
++ for(const v of [E('1000.01'),E('1500'),E('2000')]){
++  assert.equal((await token.buyFeeQuote(v))[0],fee(v,E('20000')));
++  assert((await token.buyFeeQuote(v))[0]>ceil(v*3n,100n));
++  assert.equal((await token.sellFeeQuote(v*10n))[0],fee(v,E('20000')));
++ }
++});
++
++test('small live reserve $500 boundary is smooth, and larger trades use only the excess',async()=>{
++ await seed(E('1000'));
++ const t=E('500');
++ for(const v of [t-1n,t,t+1n,E('500.01'),E('600')]){
++  assert.equal((await token.buyFeeQuote(v))[0],fee(v,E('1000')));
++  assert.equal((await token.sellFeeQuote(v*10n))[0],fee(v,E('1000')));
++ }
++ assert.equal((await token.buyFeeQuote(t))[0],E('15'));
++ assert((await token.buyFeeQuote(t+1n))[0]-(await token.buyFeeQuote(t))[0]<=1n);
++ assert((await token.buyFeeQuote(E('500.01')))[0]>ceil(E('500.01')*3n,100n));
++});
++
++test('actual $500 buy against small reserve keeps all cash, mints at exactly the base fee and enforces minOut',async()=>{
++ await seed(E('100'));const amount=E('500'),minted=E('4850');
++ assert.equal(await token.quoteBuy(amount),minted);
++ await unchanged(token.buy,[amount,minted+1n,MaxUint256],'slippage/dust');
++ await grows(()=>tx(token.buy(amount,minted,MaxUint256)));
++ assert.equal(await token.reserve(),E('600'));assert.equal(await token.totalSupply(),E('5850'));
++ assert.equal(await binary.tokenBuySpent(addresses[0]),amount);
++});
++
++test('actual $500 partial sale from $1000 reserve burns q, retains $15 and enforces minOut',async()=>{
++ await seed(E('1000'));const q=E('5000'),payout=E('485'),before=await usd.balanceOf(addresses[0]);
++ await unchanged(token.sell,[q,payout+1n,MaxUint256],'slippage/dust');
++ await grows(()=>tx(token.sell(q,payout,MaxUint256)));
++ assert.equal(await token.reserve(),E('515'));assert.equal(await token.totalSupply(),E('5000'));
++ assert.equal(await usd.balanceOf(addresses[0])-before,payout);
++});
++
++test('USD floor uses 18-decimal dollars; unsupported six-decimal collateral is rejected',async()=>{
++ const other=await deploy('TEST_ONLY_SizeFeeUSD6',[]);
++ await assert.rejects(deploy('FTIReserveToken',[other.target,addresses[0],addresses[0]]));
++ assert.equal(await token.LARGE_TRADE_MIN_USD(),500n*10n**18n);
++});
++
++test('bootstrap retains the existing 3% review exception below and above $500, excluding protected cash',async()=>{
++ await tx(binary.inject(E('900000')));
++ for(const v of [E('100'),E('500'),E('1000'),E('100000')]){
++  assert.deepEqual(Array.from(await token.buyFeeQuote(v)),[v*3n/100n,v*97n/100n]);
++ }
++ await tx(token.buy(E('1000'),E('9700'),MaxUint256));
++ assert.equal(await token.reserve(),E('1000'));assert.equal(await token.priceProtectionFund(),E('900000'));
++ // Once live, that same amount uses the dollar-floor size curve.
++ assert.equal((await token.buyFeeQuote(E('1000')))[0],E('47.5'));
++ await backed();
++});
++
+ test('R=10000 T=500: both directions quote total fees 47.5 on 1000 and 433.5 on 5000',async()=>{
+  await seed();
+  for(const [v,f] of [[E('1000'),E('47.5')],[E('5000'),E('433.5')]]){
+@@ -136,7 +215,7 @@
+ 
+ test('large buy leaves a different wallet’s next small buy and sell at exactly base 3%',async()=>{
+  await seed();await grows(()=>tx(token.buy(E('5000'),0,MaxUint256)));
+- const r=await token.reserve(),s=await token.totalSupply(),amount=r/25n;
++ const r=await token.reserve(),s=await token.totalSupply(),amount=E('400');
+  assert.equal((await token.buyFeeQuote(amount))[0],ceil(amount*3n,100n));
+  await grows(()=>tx(token.connect(signers[1]).buy(amount,0,MaxUint256)));
+  const q=await token.balanceOf(addresses[1]),gross=q*(await token.reserve())/(await token.totalSupply());
+@@ -206,18 +285,24 @@
+ });
+ 
+ test('one combined ceiling avoids charging a second atom for separately rounded base and surcharge',async()=>{
+- await seed(1000n,10000n); // T=50 atoms; V=51 => base=1.53, extra=0.07/51.
+- const once=(await token.buyFeeQuote(51n))[0];
+- assert.equal(once,2n);assert.equal(ceil(51n*3n,100n)+ceil(7n,5100n),3n);
+- assert.equal((await token.sellFeeQuote(510n))[0],once);
+-});
+-
+-test('fractional-atom threshold remains exact rather than flooring R/20 early',async()=>{
+- await seed(39n,390n); // Exact T=1.95 atoms.
+- for(let v=1n;v<=400n;v++)assert.equal((await token.buyFeeQuote(v))[0],fee(v,39n));
+- // V=12 has exact combined fee 0.94918125 atoms => 1; prematurely
+- // flooring T to 1 atom would instead ceil(1.065833...) to 2 atoms.
+- assert.equal((await token.buyFeeQuote(12n))[0],1n);
++ await seed(E('1000'));
++ const v=E('500')+51n,once=(await token.buyFeeQuote(v))[0];
++ assert.equal(once,E('15')+2n);
++ assert.equal(ceil(v*3n,100n)+ceil(7n*51n*51n,100n*v),E('15')+3n);
++ assert.equal((await token.sellFeeQuote(v*10n))[0],once);
++});
++
++test('fractional-atom reserve threshold above the dollar floor stays exact',async()=>{
++ const r=E('20000')+39n;await seed(r);
++ for(let i=0n;i<400n;i++){
++  const v=E('12000')+i;
++  assert.equal((await token.buyFeeQuote(v))[0],fee(v,r));
++ }
++ const v=E('12000')+8n,b=v-r/20n;
++ const earlyFloor=ceil(3n*v*v+7n*b*b,100n*v);
++ assert.equal(fee(v,r),1065833333333333333334n);
++ assert.equal(earlyFloor,fee(v,r)+1n,'flooring the threshold early would overcharge one atom');
++ assert.equal((await token.sellFeeQuote(v*10n))[0],fee(v,r));
+ });
+ 
+ test('quote and execution dust, minOut and deadline failures atomically preserve quota and every cash bucket',async()=>{
+@@ -327,7 +412,7 @@
+  assert.equal(await plan.tokenBuySpent(addresses[0]),E('100'));
+  assert.equal(await plan.remainingTokenBuyAllowance(addresses[0]),E('400'));
+  const amount=E('400'),r=await live.reserve(),s=await live.totalSupply(),expected=await live.quoteBuy(amount),actualFee=(await live.buyFeeQuote(amount))[0];
+- assert.equal(actualFee,fee(amount,r,s));assert(actualFee>ceil(amount*3n,100n));
++ assert.equal(actualFee,fee(amount,r,s));assert.equal(actualFee,ceil(amount*3n,100n));
+  await tx(live.buy(amount,expected,MaxUint256));
+  assert.equal(await live.totalSupply(),s+expected);assert.equal(await live.reserve(),r+amount);
+  assert.equal(await plan.tokenBuySpent(addresses[0]),E('500'));

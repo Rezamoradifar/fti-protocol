@@ -1,0 +1,109 @@
+FTI testnet: http://127.0.0.1:36193
+FTI testnet: http://127.0.0.1:38795
+✔ separate event RPC validates network and caches successful results (72.927119ms)
+✔ exact 3% fee growth at reserve 1000000 (1.463442ms)
+✔ exact 3% fee growth at reserve 1000000000 (0.150983ms)
+✔ 6e-20 growth is visible without changing a floor-to-18 getter (0.235288ms)
+✔ zero, negative, repeating and extreme deltas do not fabricate increments (0.429264ms)
+✔ pinned snapshots and receipt-isolated delta verify hashes (0.597492ms)
+✔ shared blocks, reorgs, unconfirmed receipts and failed RPC never produce deltas (0.591264ms)
+✔ actual controller renderer uses calculated ratio; stale and terminal states are distinct (1.973896ms)
+✔ one USD buy at P=.1 preserves the exact fee-derived change instead of rounding it to 3e-9 (0.343778ms)
+✔ reserve buy fee and output share one block and exact amounts drive displayed minimum (2.451652ms)
+✔ reserve sale displays sub-bps fee atoms without calling truncated legacy quoteSell (0.425719ms)
+✔ historical full-supply or current emergency sale shows zero exact fee and one-atom outputs remain visible (0.230731ms)
+✔ legacy token buys and sells need no reserve-only fee ABI and preserve quoted output (0.466639ms)
+✔ quote failures remain failures rather than falling back to a guessed fee (0.721135ms)
+✔ buy prerequisites do not block holder sales during pause/emergency or after transfers (0.327584ms)
+✔ reserve policy labels and quote path remain distinct from legacy fee-rate display (0.297539ms)
+✔ retirement ordinary terminal sales preserve exact net quote and slippage instead of assuming a free full exit (0.23736ms)
+✔ rendered current-model policy text never describes an ordinary full exit as fee-free (0.477726ms)
+✔ zero-supply lifecycle labels distinguish historical R=0 from a live quote and permanent retirement (0.302718ms)
+✔ closed or retired token access blocks new funding before approval but does not block beneficiary sales or claims (0.649199ms)
+✔ restart-capable ordinary zero supply permits funding and buys but permanent closure is separate (0.282367ms)
+✔ default off and future next-hour intent are distinct from effective permission (1.223016ms)
+✔ enable waits for current open hour while immediate opt-out works during every phase and after boundary (0.707465ms)
+✔ disconnected, stale and historical capability states cannot submit unsupported preferences (0.424197ms)
+✔ inactive and scheduled requests cannot execute pending funds, but owner cash release remains (0.305311ms)
+✔ copy explains bounded current-quote retries without a price cap, deadline or wallet re-debit promise (0.807653ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FTI local: http://127.0.0.1:45729
+(node:44) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ earlier reserve API retains size-fee review, disabled pressure/caps, protected fund and fee-free final payout (8442.646498ms)
+FTI local: http://127.0.0.1:38191
+(node:44) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+✔ historical FTIToken config, state and quote ABI routes remain compatible (2466.445289ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FTI local: http://127.0.0.1:45467
+(node:56) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ current retirement API with fresh fixture ABI/config
+  ✔ current model serves the exact new ABI and fresh initial state while retaining legacy ABI routes (609.914446ms)
+  ✔ ordinary terminal payout, fixed fee claim, permanent retirement and separate binary cash claims stay truthful through the API (17861.944073ms)
+  ✔ current emergency terminal redemption is fee-free and creates no development fee claim (4377.876454ms)
+✔ current retirement API with fresh fixture ABI/config (26546.804288ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FTI local: http://127.0.0.1:38917
+(node:69) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ workspace readiness against current retirement contracts and API
+  ✔ all workspace assets, config and current ABI resolve without granting a wallet role (600.030971ms)
+  ✔ same-hour five-unit registration, queue readiness and funded rank remain separate facts (4259.560644ms)
+  ✔ auto ABI and API expose effective next-hour settings while deprecated maxAutoPrice stays zero (6129.208149ms)
+  ✔ hourly boundary blocks funding and exposes real settlement phases to any public caller (7394.500899ms)
+  ✔ current token has immediately available purchased tokens and exact terminal fee accounting (5290.236971ms)
+  ✔ confirmed real buy and terminal sale snapshots separate exact growth from reference prices (4743.731714ms)
+  ✔ proposal gates match actual council ownership, existing approval and five-of-seven execution (1761.424054ms)
+  ✔ timelock readiness remains false until the fixed 72-hour delay expires, then public execution works (1514.554628ms)
+FTI local: http://127.0.0.1:33373
+  ✔ API rejects a changed state block instead of showing a mixed-branch retained reference or auto setting (1013.015708ms)
+✔ workspace readiness against current retirement contracts and API (36161.462143ms)
+✔ all three entry points server-render a distinct labeled workspace and one initially visible page (58.703585ms)
+✔ all controller literal DOM IDs exist and React markup contains no duplicate IDs (15.950725ms)
+✔ form controls retain stable IDs, meaningful labels and current safety disclosures (16.742335ms)
+✔ workspace paths use exact segments and each surface has a distinct navigation contract (1.518744ms)
+✔ navigation uses history entries; repeated clicks do not duplicate entries (0.801093ms)
+✔ deep links and unknown hashes render a valid local page without history loops (0.298601ms)
+✔ cross-panel links preserve their target and activity remains in the current panel (0.178814ms)
+✔ initial, failed and aged data are stale; successful recent data is actionable (1.024143ms)
+✔ disconnected and stale states disable every write capability (0.435713ms)
+✔ public callers are not council owners and membership does not grant governance (0.295967ms)
+✔ funding waits for an open phase and unexpired epoch while cash claims remain accessible (0.252042ms)
+✔ retired and paused lifecycle gating separates holder sales, transfers and new funding (0.18265ms)
+✔ volume, hourly matching and allocation readiness reflect all exposed contract prerequisites (0.335235ms)
+✔ monthly readiness requires calendar boundary and completed boundary-hour settlement (0.27078ms)
+✔ proposal readiness prevents repeat approval and keeps execution permissionless at threshold (0.860311ms)
+✔ timelock and wallet error states never infer a successful execution (1.001479ms)
+ℹ tests 56
+ℹ suites 2
+ℹ pass 56
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 75709.157077

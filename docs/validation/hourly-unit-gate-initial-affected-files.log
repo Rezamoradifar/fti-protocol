@@ -1,0 +1,436 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+PAID_POINT_REAL_PATH {"epochs":20,"rawMatched":200,"rankPoints":100,"flushed":100,"rank":1,"rankCredit":"funded allocation; not cash claim","autoStartsNextEpoch":true}
+▶ BinaryPlan: actual funded paid points and global point-pool allocation
+  ✔ 20 real hourly epochs: raw 10 pays 5 and flushes 5; only allocation 100 promotes Builder 1, with old-rank auto timing (115902.375925ms)
+  ✔ hourly registration-unit gate: four then one in separate hours carry fully; one-wallet five-unit top-up settles (13921.629736ms)
+  ✔ one new wallet registering five units reaches the hourly gate; zero eligible points still carry the full pool (3402.818636ms)
+  ✔ proportional full-pool distribution rounds only exact residual to development and preserves every protected bucket (9968.099622ms)
+PROVISIONAL_GLOBAL_POOL_RISK {"unrelatedCarriedPool":"9000","subtreeCost":"500","subtreeReward":"9450","paidRankPoints":2,"ownershipApproved":false}
+  ✔ no eligible points carries the whole pool provisionally; later self-controlled matches still expose global-pool ownership risk (9616.626663ms)
+✔ BinaryPlan: actual funded paid points and global point-pool allocation (155297.259038ms)
+▶ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures
+  ✔ TEST ONLY prior paid history: threshold 100 advances only after funded allocation under rank 0 (6608.369118ms)
+  ✔ TEST ONLY prior paid history: threshold 200 advances only after funded allocation under rank 1 (6807.147204ms)
+  ✔ TEST ONLY prior paid history: threshold 500 advances only after funded allocation under rank 2 (6627.361056ms)
+  ✔ TEST ONLY prior paid history: threshold 1000 advances only after funded allocation under rank 3 (7399.695678ms)
+  ✔ TEST ONLY dense matches: PV below $20 still settles all funds, changes next protection row, and preserves monthly buckets (15015.011981ms)
+  ✔ funding deficit blocks allocation and rank progress atomically; repairing collateral permits the same allocation (7213.937499ms)
+  ✔ sender and recipient taxed funding/claims revert atomically; collateral callback cannot process pending volume (7746.105461ms)
+  ✔ TEST ONLY six eligible builders retain equal monthly shares and later once-per-pool exclusion (6477.277869ms)
+✔ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures (75981.52844ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ 31 unique Genesis positions contain no artificial cash, units or tokens (1939.444552ms)
+✖ 100 USDT is exactly split 90/5/4/1 without FTI mint (1924.576795ms)
+✖ automatic left/right placement; third direct, duplicate and invalid sponsor rejected (294.648684ms)
+✖ bounded ancestor propagation includes every ancestor once (101.913131ms)
+✖ hourly unit minimum: 3 then 2 in separate hours carry; 5 current-hour units settle all carried cash (99.76915ms)
+✖ matched points above cap burn, only heavy-side imbalance carries (98.333413ms)
+✖ raw branch units do not grant rank; successful funded capped points accumulate before any claim (111.077537ms)
+✔ cap and protection tables reproduce specification (65.529733ms)
+✖ claims are pull payments and cannot be repeated (121.862891ms)
+✖ batch order/size leaves identical wallet economics (89.754415ms)
+✖ buy uses actual stablecoin, increases price, respects lifetime allowance (100.830446ms)
+✖ holding cap and min output revert atomically (105.386283ms)
+✖ locked tokens cannot sell; fallback deadline unlocks without new registrations (107.953618ms)
+✖ transfer burns 3%, rejects self-transfer, unregistered recipient, and locked amount (119.198204ms)
+✔ unauthorized auto buy, reserve injection, rebinding, pause and rescue rejected (67.367963ms)
+✖ TEST ONLY paid-rank fixture: actual hourly rewards fund auto-buy, no fabricated income (121.373417ms)
+✖ failed auto execution preserves claim and user can release it as USD (110.997611ms)
+✖ TEST ONLY paid-rank fixture: monthly pool pays only 20% to sole eligible builder, one time (114.993092ms)
+✔ 5 of 7 council required for emergency pause; timelock starts at 72 hours (892.539249ms)
+✖ full unlock and complete sell-off pay from real reserve without new inflows (101.905765ms)
+✖ failed USD transfer leaves beneficiary claim intact and does not affect others (98.823165ms)
+✔ 5-of-7 council can rotate a compromised owner only through a self-governed proposal (741.487191ms)
+✔ 72-hour timelock floor cannot be reduced even by a fully approved self-call (696.142912ms)
+✔ five approvals cannot bypass timelock delay or replay execution (1327.210162ms)
+✔ EVM integer buy quotes match independent BigInt model (4310.983835ms)
+✖ auto-buy settings freeze during matching so batching cannot change economics (77.544742ms)
+ℹ tests 39
+ℹ suites 2
+ℹ pass 21
+ℹ fail 18
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 246550.822977
+
+✖ failing tests:
+
+test at test/protocol.test.mjs:19:1
+✖ 100 USDT is exactly split 90/5/4/1 without FTI mint (1924.576795ms)
+  Error: transaction execution reverted (action="sendTransaction", data=null, reason=null, invocation=null, revert=null, transaction={ "data": "", "from": "0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, receipt={ "_type": "TransactionReceipt", "blobGasPrice": null, "blobGasUsed": null, "blockHash": "0x7de5be274e757c7fa3c4eab2afd9a3a8eb6adfdbe2d2aa915ef53323f1318796", "blockNumber": 10, "contractAddress": null, "cumulativeGasUsed": "36676", "from": "0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486", "gasPrice": "379010080", "gasUsed": "36676", "hash": "0x76e9068b54a597af60c072cb7fdbb2f2b58e47ebb30ccb42c7d7c247496619bb", "index": 0, "logs": [  ], "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "root": null, "status": 0, "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at checkReceipt (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider.js:1135:13)
+      at ContractTransactionResponse.wait (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider.js:1151:24)
+      at async ContractTransactionResponse.wait (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/wrappers.js:109:25)
+      at async units (file:///workspace/shared/fti-sizefee-experiment/test/protocol.test.mjs:12:42)
+      at async TestContext.<anonymous> (file:///workspace/shared/fti-sizefee-experiment/test/protocol.test.mjs:19:70)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'CALL_EXCEPTION',
+    action: 'sendTransaction',
+    data: null,
+    reason: null,
+    invocation: null,
+    revert: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', from: '0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486', data: '' },
+    receipt: { provider: {}, to: '0x64e038f0F197A347F08941b77760f58A7A032C88', from: '0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486', contractAddress: null, hash: '0x76e9068b54a597af60c072cb7fdbb2f2b58e47ebb30ccb42c7d7c247496619bb', index: 0, blockHash: '0x7de5be274e757c7fa3c4eab2afd9a3a8eb6adfdbe2d2aa915ef53323f1318796', blockNumber: 10, logsBloom: '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000', gasUsed: 36676n, blobGasUsed: null, cumulativeGasUsed: 36676n, gasPrice: 379010080n, blobGasPrice: null, type: 2, status: 0, root: undefined },
+    shortMessage: 'transaction execution reverted'
+  }
+
+test at test/protocol.test.mjs:20:1
+✖ automatic left/right placement; third direct, duplicate and invalid sponsor rejected (294.648684ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0x6d705ebb0000000000000000000000009158d1c425e9d131ae72131f68f6c9eb6e92f4860000000000000000000000000000000000000000000000000000000000000001", "from": "0x779885ba8a2b67f401f066A008D3E25B8b1Ff723", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0x6d705ebb0000000000000000000000009158d1c425e9d131ae72131f68f6c9eb6e92f4860000000000000000000000000000000000000000000000000000000000000001', from: '0x779885ba8a2b67f401f066A008D3E25B8b1Ff723' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 243, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:21:1
+✖ bounded ancestor propagation includes every ancestor once (101.913131ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000003", "from": "0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000003', from: '0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 268, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:22:1
+✖ hourly unit minimum: 3 then 2 in separate hours carry; 5 current-hour units settle all carried cash (99.76915ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 293, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:33:1
+✖ matched points above cap burn, only heavy-side imbalance carries (98.333413ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 318, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:34:1
+✖ raw branch units do not grant rank; successful funded capped points accumulate before any claim (111.077537ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 343, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:36:1
+✖ claims are pull payments and cannot be repeated (121.862891ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 376, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:37:1
+✖ batch order/size leaves identical wallet economics (89.754415ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 401, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:38:1
+✖ buy uses actual stablecoin, increases price, respects lifetime allowance (100.830446ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 426, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:39:1
+✖ holding cap and min output revert atomically (105.386283ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000064", "from": "0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000064', from: '0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 451, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:40:1
+✖ locked tokens cannot sell; fallback deadline unlocks without new registrations (107.953618ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 476, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:41:1
+✖ transfer burns 3%, rejects self-transfer, unregistered recipient, and locked amount (119.198204ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 501, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:43:1
+✖ TEST ONLY paid-rank fixture: actual hourly rewards fund auto-buy, no fabricated income (121.373417ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 540, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:44:1
+✖ failed auto execution preserves claim and user can release it as USD (110.997611ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 565, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:45:1
+✖ TEST ONLY paid-rank fixture: monthly pool pays only 20% to sole eligible builder, one time (114.993092ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 590, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:47:1
+✖ full unlock and complete sell-off pay from real reserve without new inflows (101.905765ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000005", "from": "0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000005', from: '0x9158d1c425E9d131aE72131F68f6C9Eb6e92f486' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 692, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:48:1
+✖ failed USD transfer leaves beneficiary claim intact and does not affect others (98.823165ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 717, jsonrpc: '2.0' } }
+  }
+
+test at test/protocol.test.mjs:53:1
+✖ auto-buy settings freeze during matching so batching cannot change economics (77.544742ms)
+  Error: missing revert data (action="estimateGas", data=null, reason=null, transaction={ "data": "0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001", "from": "0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9", "to": "0x64e038f0F197A347F08941b77760f58A7A032C88" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:102:12)
+      at AbiCoder.getBuiltinCallException (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:203:16)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:32)
+      at BrowserProvider.getRpcError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-browser.js:75:22)
+      at file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:45 {
+    code: 'CALL_EXCEPTION',
+    action: 'estimateGas',
+    data: null,
+    reason: null,
+    transaction: { to: '0x64e038f0F197A347F08941b77760f58A7A032C88', data: '0xf64a2f7b0000000000000000000000000000000000000000000000000000000000000001', from: '0xC66B2eE6D98857C937E8bA8E40aCEA1E4f94d9d9' },
+    invocation: null,
+    revert: null,
+    shortMessage: 'missing revert data',
+    info: { error: { code: -32000, data: [Object], message: 'VM Exception while processing transaction: revert settlement required' }, payload: { method: 'eth_estimateGas', params: [Array], id: 955, jsonrpc: '2.0' } }
+  }

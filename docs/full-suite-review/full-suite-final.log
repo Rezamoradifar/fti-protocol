@@ -1,0 +1,882 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> fti-protocol@0.2.0 test
+> npm run compile && node --test --test-concurrency=1 test/*.test.mjs
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> fti-protocol@0.2.0 compile
+> node scripts/compile.mjs
+
+BinaryPlan 21277 runtime bytes
+Calendar 57 runtime bytes
+IClosedAutoToken 0 runtime bytes
+IFTI 0 runtime bytes
+FTIReserveToken 14000 runtime bytes
+IReserveMembership 0 runtime bytes
+FTIRetirementReviewToken 20877 runtime bytes
+IRetirementCouncil 0 runtime bytes
+IRetirementMembership 0 runtime bytes
+IRetirementTimelock 0 runtime bytes
+FTIToken 13427 runtime bytes
+IBinary 0 runtime bytes
+FundedBinaryPlan 21341 runtime bytes
+Council 3721 runtime bytes
+FTITimelock 5461 runtime bytes
+MockUSD 1994 runtime bytes
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: binary-owned token allowance
+  ✔ unpaid genesis and nonmembers have no allowance; callers cannot forge or consume permission (2522.858736ms)
+  ✔ 100 USD registration grants 500 USD cumulative token purchases without spending quota on support (5599.245153ms)
+  ✔ 200 USD cumulative membership authorizes 1,000 USD of total purchases (5461.922273ms)
+  ✔ 100 USD plus 9,900 USD paid top-ups raises total quota to 50,000 USD without resetting spent (6141.606725ms)
+  ✔ rejected purchases roll back binary quota and all token accounting (4191.020268ms)
+  ✔ selling and receiving token transfers never restore or transfer manual purchase allowance (4844.355879ms)
+  ✔ collateral callbacks cannot forge or double-consume quota; collateral failure rolls back authorization (6180.535326ms)
+  ✔ TEST ONLY paid-rank fixture: builder rank and price milestones expand total capacity without resetting spent; auto-buys consume no manual quota (14518.795137ms)
+✔ BinaryPlan: binary-owned token allowance (51728.922657ms)
+▶ FundedBinaryPlan: binary-owned token allowance
+  ✔ unpaid genesis and nonmembers have no allowance; callers cannot forge or consume permission (2445.974686ms)
+  ✔ 100 USD registration grants 500 USD cumulative token purchases without spending quota on support (5529.121308ms)
+  ✔ 200 USD cumulative membership authorizes 1,000 USD of total purchases (5455.583744ms)
+  ✔ 100 USD plus 9,900 USD paid top-ups raises total quota to 50,000 USD without resetting spent (5928.678017ms)
+  ✔ rejected purchases roll back binary quota and all token accounting (4102.10097ms)
+  ✔ selling and receiving token transfers never restore or transfer manual purchase allowance (4719.528349ms)
+  ✔ collateral callbacks cannot forge or double-consume quota; collateral failure rolls back authorization (6187.907599ms)
+  ✔ TEST ONLY paid-rank fixture: builder rank and price milestones expand total capacity without resetting spent; auto-buys consume no manual quota (15226.670343ms)
+✔ FundedBinaryPlan: binary-owned token allowance (51653.845913ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ a stranger cannot fragment a beneficiary pending reward into dust locks (20681.169529ms)
+✔ the beneficiary may intentionally choose a partial auto purchase (8824.533076ms)
+✔ an unrelated keeper can execute the complete pending amount only for its owner (10354.56839ms)
+✔ disabling auto-buy revokes keeper execution and preserves cash release (523.903047ms)
+✔ current Binary has no user maximum-price ABI and retries the full current quote (11110.753294ms)
+✔ a pending retry reprices after intervening manual trading without a user price ceiling (15637.89475ms)
+✔ a failed collateral transfer restores pending balances and all token state (11283.265317ms)
+✔ release cannot be repeated to create cash or leave an executable stale auto balance (456.844942ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+EXACT_EVM_INVARIANT_CHECKS 72 mixed sales 14 transfers 10
+✔ seeded mixed trades, burns and full exit preserve exact integer reserve coverage (196548.399951ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ economic baseline: a self-funded three-wallet tree recovers 450 of 500 USD without outside pool (9168.154515ms)
+CONFIRMED carried-pool capture: group cost=500, payout=9450, group net=8950 test USD before gas; no accounting insolvency
+✔ economic finding: a 500 USD self-controlled subtree captures 9450 USD from an unmatched carried pool (10090.000353ms)
+CONFIRMED sale splitting: {"wholeFeeBps":"870","wholeNet":"354.243999999999888935","splitNet":"376.546718234653758065"}
+✔ HISTORICAL FTIToken curve: splitting the same unlocked balance lowers whale fees and raises proceeds (11452.542975ms)
+✔ event pagination splits rejected ranges and returns ordered actual events (1.72618ms)
+✔ per-block failure and exhausted request budget fail instead of empty success (0.75782ms)
+✔ cache-independent empty logs remain a genuine empty success (0.895743ms)
+FTI testnet: http://127.0.0.1:34191
+FTI testnet: http://127.0.0.1:35521
+✔ separate event RPC validates network and caches successful results (70.983609ms)
+✔ exact 3% fee growth at reserve 1000000 (0.978686ms)
+✔ exact 3% fee growth at reserve 1000000000 (0.185003ms)
+✔ 6e-20 growth is visible without changing a floor-to-18 getter (0.152876ms)
+✔ zero, negative, repeating and extreme deltas do not fabricate increments (0.294466ms)
+✔ pinned snapshots and receipt-isolated delta verify hashes (0.45387ms)
+✔ shared blocks, reorgs, unconfirmed receipts and failed RPC never produce deltas (0.404838ms)
+✔ actual controller renderer uses calculated ratio; stale and terminal states are distinct (1.653733ms)
+✔ one USD buy at P=.1 preserves the exact fee-derived change instead of rounding it to 3e-9 (0.175459ms)
+✔ reserve buy fee and output share one block and exact amounts drive displayed minimum (2.243475ms)
+✔ reserve sale displays sub-bps fee atoms without calling truncated legacy quoteSell (0.402845ms)
+✔ historical full-supply or current emergency sale shows zero exact fee and one-atom outputs remain visible (0.296568ms)
+✔ legacy token buys and sells need no reserve-only fee ABI and preserve quoted output (0.474461ms)
+✔ quote failures remain failures rather than falling back to a guessed fee (0.664722ms)
+✔ buy prerequisites do not block holder sales during pause/emergency or after transfers (0.306072ms)
+✔ reserve policy labels and quote path remain distinct from legacy fee-rate display (0.346933ms)
+✔ retirement ordinary terminal sales preserve exact net quote and slippage instead of assuming a free full exit (0.254386ms)
+✔ rendered current-model policy text never describes an ordinary full exit as fee-free (0.457817ms)
+✔ zero-supply lifecycle labels distinguish historical R=0 from a live quote and permanent retirement (0.296849ms)
+✔ closed or retired token access blocks new funding before approval but does not block beneficiary sales or claims (0.475402ms)
+✔ restart-capable ordinary zero supply permits funding and buys but permanent closure is separate (0.280824ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ membership rejects collateral tax on either sender or recipient without changing balances or credits (8667.388846ms)
+✔ a collateral callback cannot process volume inside a membership funding transaction (2270.64666ms)
+✔ a taxed claim reverts without reducing the beneficiary entitlement (1348.573843ms)
+✔ missing collateral blocks claims and funding; direct donations cannot create payout credits or be rescued (786.392153ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FIXED_CARRY_CAPTURE {"groupCost":"500","legacyReward":"9450","newReward":"40.0","unrelatedCarry":"9000","carryCaptured":"0"}
+✔ fresh subtree receives the same funded 40 USD with or without an unrelated 9,000 USD carried pool (22514.366255ms)
+✔ one branch cannot spend another branch unmatched funded credit (13735.4193ms)
+✔ activating an ancestor after a purchase cannot retroactively earn queued volume or credits (7537.761274ms)
+✔ point cap consumes proportional matched credit, preserves heavy-side credit and caps USD per point (7898.141255ms)
+✔ keeper batch sizes do not change allocation, carry, ranks or credit partitions (19876.904368ms)
+SPARSE_EPOCH_GAS 150097
+✔ hourly close visits only touched active accounts and reuses dirty slots across epochs (13561.828332ms)
+✔ monthly rewards use attributed current-month credits, never an unrelated prior-month carry (19940.173157ms)
+✔ auto-buy queues contain only enabled funded accounts, preserve owner controls and remove completed entries (13981.659658ms)
+✔ blocked cash claims restore the beneficiary liability and do not affect another claim (8247.237881ms)
+✔ deep placement is rejected before funding or consuming a sponsor slot (153944.711521ms)
+✔ funded keeper scans only eligible pending auto accounts (1.062471ms)
+✔ funded keeper uses bounded 25-item batches and waits for receipt (0.306633ms)
+{"time":"2026-10-06T00:58:45.879Z","service":"keeper","result":"epoch batch"}
+{"time":"2026-10-06T00:58:45.886Z","service":"keeper","result":"epoch batch"}
+{"time":"2026-10-06T00:58:45.893Z","service":"keeper","result":"epoch batch"}
+✔ keeper drains work without interval delays, never overlaps writes, and stops scheduling cleanly (52.03207ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FUNDED_V2_100_USERS {"registered":100,"pointRewardClaimed":"100.0","buys":100,"transfers":20,"sells":100,"exitMode":"normal-pressure-fees-final-full-refund","checks":322,"usdIn":"1785.0","liveSupport":"5.0","usdOut":"1790.0","priceAfterBuys":"0.119251997943372169","finalPrice":"0.13811172195350011","finalSupply":"0.0","reserve":"0.0","protectedUnallocated":"655.0"}
+✔ funded binary and token V2: 100 registrations, buys, transfers and normal full user exits without emergency or waiting caps (499756.765169ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ repeated purchases create no time or wallet-count locks (69221.161093ms)
+✔ user minOut replaces vesting as the immediate buy/sell execution guard (1353.682927ms)
+✔ oversized normal redemptions are immediately available with trade-size-only fees and no wallet lock (1386.61271ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ independent attributed ledger agrees with EVM across activation, two epochs and unmatched credit (34480.579816ms)
+✔ funded reference reconciles current-month builder funding and rejects a depth beyond 64 (4.828925ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ rotating an approving key cannot turn four current approvals into five (2136.388313ms)
+✔ removing and later restoring an owner never revives their old consent (2270.233926ms)
+✔ repeated rotations preserve one current approval per owner slot (3923.307004ms)
+✔ five unchanged current owners keep their approvals across an unrelated rotation (1468.629281ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ TEST_ONLY seeded rank: matured and rolled enable cannot create an auto snapshot for older unmatched backlog (8181.045635ms)
+✔ default off and future next-hour intent are distinct from effective permission (1.300431ms)
+✔ enable targets a future wall-clock boundary even during overdue settlement; opt-out stays immediate (0.578595ms)
+✔ disconnected, stale and historical capability states cannot submit unsupported preferences (0.350287ms)
+✔ inactive and scheduled requests cannot execute pending funds, but owner cash release remains (0.206716ms)
+✔ copy explains bounded current-quote retries without a price cap, deadline or wallet re-debit promise (0.71759ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ Immediate auto candidate: real unseeded BinaryPlan and current precision token
+  ✔ organic 20 epochs: default off, next-hour enable, rank threshold still old-rank snapshot (141448.164481ms)
+  ✔ enable at 12:30 buys the next 13:00 settlement in the allocation transaction (7967.93167ms)
+  ✔ failed new allocation preserves funds, other rewards, rank and existing manual quota; keeper retries current price (11849.260164ms)
+  ✔ bounded gas exhaustion in token collateral cannot revert other member allocation (8018.202235ms)
+  ✔ old pending is not silently included in new immediate attempt (15484.888443ms)
+  ✔ disable between matching and allocation stops buying immediately; owner cash release never enables wallet debit (8724.055104ms)
+  ✔ callbacks cannot reenter settlement or isolated helper; successful buy stays single (8420.783438ms)
+  ✔ taxed auto failure is isolated and fully rolls back token mint and earmarked cash (8414.034047ms)
+  ✔ enable during an old backlog excludes old earned hours and schedules the next wall-clock boundary (7239.277281ms)
+  ✔ pause alone cannot convert; true closed-token permissionless bounded release preserves each beneficiary and cash (21062.440652ms)
+  ✔ default gas estimate advances allocation cursor instead of successful zero-progress loops (8680.675999ms)
+  ✔ failed pending auto restarts an ordinary empty cycle at current exact reference, never captures support or development claim (10001.465824ms)
+  ✔ estimated minimum gas survives fully exhausted child and persists progress plus pending liability (8806.341484ms)
+  ✔ keeper preflight does not spend a transaction on disabled pending accounts (8394.187877ms)
+  ✔ 12:59 enable buys at 13; request exactly 13 schedules 14; redundant enables and off/on keep exact boundary (8860.596759ms)
+✔ Immediate auto candidate: real unseeded BinaryPlan and current precision token (289534.488117ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ independent current pair: 1 TEST_ONLY tier-four builders enforce each tier's 20% cap and lifetime one-time award (7733.56455ms)
+✔ independent current pair: 6 TEST_ONLY tier-four builders enforce each tier's 20% cap and lifetime one-time award (18311.437868ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+PAID_POINT_REAL_PATH {"epochs":20,"rawMatched":200,"rankPoints":100,"flushed":100,"rank":1,"rankCredit":"funded allocation; not cash claim","autoStartsNextEpoch":true}
+▶ BinaryPlan: actual funded paid points and global point-pool allocation
+  ✔ 20 real hourly epochs: raw 10 pays 5 and flushes 5; only allocation 100 promotes Builder 1, with old-rank auto timing (110263.164959ms)
+  ✔ hourly registration-unit gate: four then one in separate hours carry fully; one-wallet five-unit top-up settles (10931.339227ms)
+  ✔ one new wallet registering five units reaches the hourly gate; zero eligible points still carry the full pool (3192.003511ms)
+  ✔ proportional full-pool distribution rounds only exact residual to development and preserves every protected bucket (10124.956647ms)
+PROVISIONAL_GLOBAL_POOL_RISK {"unrelatedCarriedPool":"9000","subtreeCost":"500","subtreeReward":"9450","paidRankPoints":2,"ownershipApproved":false}
+  ✔ no eligible points carries the whole pool provisionally; later self-controlled matches still expose global-pool ownership risk (10176.076489ms)
+✔ BinaryPlan: actual funded paid points and global point-pool allocation (147208.951924ms)
+▶ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures
+  ✔ TEST ONLY prior paid history: threshold 100 advances only after funded allocation under rank 0 (8059.855252ms)
+  ✔ TEST ONLY prior paid history: threshold 200 advances only after funded allocation under rank 1 (7769.223214ms)
+  ✔ TEST ONLY prior paid history: threshold 500 advances only after funded allocation under rank 2 (8718.355435ms)
+  ✔ TEST ONLY prior paid history: threshold 1000 advances only after funded allocation under rank 3 (8008.250805ms)
+  ✔ TEST ONLY dense matches: PV below $20 still settles all funds, changes next protection row, and preserves monthly buckets (16510.581352ms)
+  ✔ funding deficit blocks allocation and rank progress atomically; repairing collateral permits the same allocation (6416.84804ms)
+  ✔ sender and recipient taxed funding/claims revert atomically; collateral callback cannot process pending volume (6943.237725ms)
+  ✔ TEST ONLY six eligible builders retain equal monthly shares and later once-per-pool exclusion (6259.087438ms)
+✔ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures (81035.623109ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: integrated experimental reserve funding
+  ✔ $100 paid registration and each top-up protect $5 actual cash while zero supply, without any mint (3965.777484ms)
+  ✔ unpaid genesis, nonmembers, direct callers and failed registration cannot acquire or consume quota (2869.435989ms)
+  ✔ Member-rank gross buy quota is cumulative 5x funding and stays consumed across transfers, sales and lifecycle closure (8088.978717ms)
+SIZE_FEE_TIME_INDEPENDENCE {"binaryContract":"BinaryPlan","originalEstimate":"99828","successfulGasUsed":"94842","unchangedQuote":true,"elapsedSeconds":300}
+  ✔ time-independent quotes execute after 300 seconds with the original gas estimate (4931.518134ms)
+  ✔ failed purchases and failed final payouts atomically preserve quota, lifecycle and every cash bucket (4625.175309ms)
+  ✔ hostile collateral callbacks cannot forge/double-consume quota and either transfer tax rolls it back (6368.27601ms)
+  ✔ token trading/final redemption never spends binary cash and existing reward/development payouts remain identical (10210.71164ms)
+  ✔ TEST ONLY paid-rank fixture: reward auto-buy transfers only its earmarked cash, leaves manual quota and unrelated reward/builder buckets intact (14290.698996ms)
+SIZE_FEE_CANONICAL_AUTOBUY_CURRENT_QUOTE {"grossUSD":"544.5","feeUSD":"16.589577594123048669","quote":"731533013905286632788","userPriceCap":false,"protectedFund":"5.0","manualQuotaUnchanged":true,"syntheticRankQualification":true}
+  ✔ TEST ONLY paid-rank fixture: canonical >$500 size-fee auto-buy retries the exact current quote without a user price cap or manual quota (10184.800102ms)
+QUARANTINE_PREVENTS_SUPPORT_CAPTURE {"binaryContract":"BinaryPlan","fixture":"10 paid members x $1,000; cash-equivalent to 100 x $100","membershipCash":"10000","preMintSupply":"0","preMintSupport":"500","soleBuyerGrossPurchase":"100","allSupplyPayout":"100.0","capturedSupport":"0","protectedUnallocatedSupport":"500","remainingTokenReserve":"0","remainingTokenSupply":"0","binaryCashIntact":"9500","allocationApproved":false}
+  ✔ QUARANTINE REGRESSION: pre-mint $500 support cannot be captured by a sole $100 buyer (19801.77938ms)
+DONATION_OWNERSHIP_BLOCKER {"binaryContract":"BinaryPlan","liveReserveBeforeFinal":"100","protectedSupport":"5","rawUnaccountedDonation":"17","finalPayout":"100","liveReserveAfterFinal":"0","actualUsdAfterFinal":"22","binaryCashIntact":"95.0","surplusAllocationApproved":false}
+  ✔ DONATION OWNERSHIP BLOCKER: all-supply sale pays live reserve while protected support and raw surplus remain (3342.247004ms)
+LIFECYCLE_REVIEW_BLOCKER {"binaryContract":"BinaryPlan","postClosureFunding":"200","newProtectedSupportInClosedToken":"10","totalProtectedSupport":"15","newBinaryCash":"190","supply":"0","buysBlocked":true,"priorGrossQuotaStillSpent":"100","automaticRestartApproved":false}
+  ✔ LIFECYCLE REVIEW BLOCKER: support funding still enters a closed token while buys stay gated and spent quota never resets (6663.763075ms)
+✔ BinaryPlan: integrated experimental reserve funding (97934.271529ms)
+▶ FundedBinaryPlan: integrated experimental reserve funding
+  ✔ $100 paid registration and each top-up protect $5 actual cash while zero supply, without any mint (4772.869871ms)
+  ✔ unpaid genesis, nonmembers, direct callers and failed registration cannot acquire or consume quota (2989.623009ms)
+  ✔ Member-rank gross buy quota is cumulative 5x funding and stays consumed across transfers, sales and lifecycle closure (8671.354784ms)
+SIZE_FEE_TIME_INDEPENDENCE {"binaryContract":"FundedBinaryPlan","originalEstimate":"99828","successfulGasUsed":"94842","unchangedQuote":true,"elapsedSeconds":300}
+  ✔ time-independent quotes execute after 300 seconds with the original gas estimate (4915.016009ms)
+  ✔ failed purchases and failed final payouts atomically preserve quota, lifecycle and every cash bucket (5082.281708ms)
+  ✔ hostile collateral callbacks cannot forge/double-consume quota and either transfer tax rolls it back (6701.8592ms)
+  ✔ token trading/final redemption never spends binary cash and existing reward/development payouts remain identical (11143.186599ms)
+  ✔ TEST ONLY paid-rank fixture: reward auto-buy transfers only its earmarked cash, leaves manual quota and unrelated reward/builder buckets intact (15632.998891ms)
+QUARANTINE_PREVENTS_SUPPORT_CAPTURE {"binaryContract":"FundedBinaryPlan","fixture":"10 paid members x $1,000; cash-equivalent to 100 x $100","membershipCash":"10000","preMintSupply":"0","preMintSupport":"500","soleBuyerGrossPurchase":"100","allSupplyPayout":"100.0","capturedSupport":"0","protectedUnallocatedSupport":"500","remainingTokenReserve":"0","remainingTokenSupply":"0","binaryCashIntact":"9500","allocationApproved":false}
+  ✔ QUARANTINE REGRESSION: pre-mint $500 support cannot be captured by a sole $100 buyer (23138.103101ms)
+DONATION_OWNERSHIP_BLOCKER {"binaryContract":"FundedBinaryPlan","liveReserveBeforeFinal":"100","protectedSupport":"5","rawUnaccountedDonation":"17","finalPayout":"100","liveReserveAfterFinal":"0","actualUsdAfterFinal":"22","binaryCashIntact":"95.0","surplusAllocationApproved":false}
+  ✔ DONATION OWNERSHIP BLOCKER: all-supply sale pays live reserve while protected support and raw surplus remain (3763.81211ms)
+LIFECYCLE_REVIEW_BLOCKER {"binaryContract":"FundedBinaryPlan","postClosureFunding":"200","newProtectedSupportInClosedToken":"10","totalProtectedSupport":"15","newBinaryCash":"190","supply":"0","buysBlocked":true,"priorGrossQuotaStillSpent":"100","automaticRestartApproved":false}
+  ✔ LIFECYCLE REVIEW BLOCKER: support funding still enters a closed token while buys stay gated and spent quota never resets (8132.539832ms)
+✔ FundedBinaryPlan: integrated experimental reserve funding (97560.176203ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ integrated: zero start, $0.10 reference, 3% buy fee and no charity ABI (5349.808758ms)
+✔ integrated: exact size surcharge uses current gross value; indicative bps never sets payout (3064.088338ms)
+✔ integrated: >5% immediate sales and same-hour outflow >15% succeed without capacity or age locks (4809.221959ms)
+✔ integrated: consecutive same-block partial sales price only their own pretrade value (3924.306579ms)
+✔ integrated: elapsed seconds never change live buy or sell quotes (4068.63169ms)
+✔ integrated: buys, binary injections, transfer burns and seller wallets add no history-dependent fees (7454.930433ms)
+✔ integrated: normal full redemption pays exact reserve, freezes quote, preserves quota and keeps restart gated (4517.661004ms)
+✔ integrated: fee-free emergency partial and final exits keep disabled compatibility getters at zero and redeem every live reserve atom (5553.31957ms)
+✔ integrated: quote deadlines/minOut and dust reverts are atomic including disabled compatibility getters and buy quota (3386.397327ms)
+EXPERIMENTAL_SIZE_SPLIT_LIMITATION {"bulkOut":"4566500000000000000000","splitOut":"4682270287498373877975","extraPayout":"115770287498373877975","pressureActive":false}
+✔ integrated: same-time splitting can reduce size surcharge; no anti-splitting claim is made (4541.809443ms)
+✔ integrated: waiting 300 seconds changes neither fee nor immediately executable payout (4034.117584ms)
+✔ integrated: unchanged trades use the same gas across sampled elapsed times (4759.223251ms)
+✔ integrated: one-atom final reserve is fully redeemable without fee dust; failed minOut is atomic (12653.075352ms)
+✔ integrated: recipient-tax collateral reverts partial reserve changes and final lifecycle changes atomically (1242.879565ms)
+✔ integrated: two-holder atom dust blocks normal exit and consolidation; only existing emergency path resolves fixture (2008.148262ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FTI local: http://127.0.0.1:34329
+(node:308) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ earlier reserve API retains size-fee review, disabled pressure/caps, protected fund and fee-free final payout (7592.143507ms)
+FTI local: http://127.0.0.1:36305
+(node:308) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+✔ historical FTIToken config, state and quote ABI routes remain compatible (2076.969603ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+SALE_FLOW_PASS {
+  status: 'PASS',
+  sold: '96981187474179000000',
+  receivedUSD: '9408999999999824891'
+}
+✔ registered user buys, locked sale waits, unlocked sale pays USD, second sale waits (8407.806353ms)
+✔ document matching example exact (1.395832ms)
+✔ builder equal share, 20% cap and dust for zero through 20 eligible (0.271091ms)
+✔ curve rounding never creates a negative reserve or lowers exact k (14.41007ms)
+✔ historical model: integrated 500 members conserve all cash through settlement, auto-buy, monthly payouts and total exit (16.119886ms)
+✔ private migration retains journals and secrets, excludes dependencies, rejects traversal (165.480826ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+PAID_POINT_REAL_PATH {"epochs":20,"rawMatched":200,"rankPoints":100,"flushed":100,"rank":1,"rankCredit":"funded allocation; not cash claim","autoStartsNextEpoch":true}
+▶ BinaryPlan: actual funded paid points and global point-pool allocation
+  ✔ 20 real hourly epochs: raw 10 pays 5 and flushes 5; only allocation 100 promotes Builder 1, with old-rank auto timing (120602.984473ms)
+  ✔ hourly registration-unit gate: four then one in separate hours carry fully; one-wallet five-unit top-up settles (12876.566723ms)
+  ✔ one new wallet registering five units reaches the hourly gate; zero eligible points still carry the full pool (2950.575732ms)
+  ✔ proportional full-pool distribution rounds only exact residual to development and preserves every protected bucket (10800.422968ms)
+PROVISIONAL_GLOBAL_POOL_RISK {"unrelatedCarriedPool":"9000","subtreeCost":"500","subtreeReward":"9450","paidRankPoints":2,"ownershipApproved":false}
+  ✔ no eligible points carries the whole pool provisionally; later self-controlled matches still expose global-pool ownership risk (10453.478874ms)
+✔ BinaryPlan: actual funded paid points and global point-pool allocation (160559.033319ms)
+▶ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures
+  ✔ TEST ONLY prior paid history: threshold 100 advances only after funded allocation under rank 0 (7349.70914ms)
+  ✔ TEST ONLY prior paid history: threshold 200 advances only after funded allocation under rank 1 (7703.844525ms)
+  ✔ TEST ONLY prior paid history: threshold 500 advances only after funded allocation under rank 2 (8539.941045ms)
+  ✔ TEST ONLY prior paid history: threshold 1000 advances only after funded allocation under rank 3 (8184.221357ms)
+  ✔ TEST ONLY dense matches: PV below $20 still settles all funds, changes next protection row, and preserves monthly buckets (17286.279804ms)
+  ✔ funding deficit blocks allocation and rank progress atomically; repairing collateral permits the same allocation (6809.197189ms)
+  ✔ sender and recipient taxed funding/claims revert atomically; collateral callback cannot process pending volume (8720.222299ms)
+  ✔ TEST ONLY six eligible builders retain equal monthly shares and later once-per-pool exclusion (6933.97476ms)
+✔ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures (83694.01884ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ 31 unique Genesis positions contain no artificial cash, units or tokens (1828.979819ms)
+✔ 100 USDT is exactly split 90/5/4/1 without FTI mint (1761.148126ms)
+✔ automatic left/right placement; third direct, duplicate and invalid sponsor rejected (4119.416275ms)
+✔ bounded ancestor propagation includes every ancestor once (2207.223267ms)
+✔ hourly unit minimum: 3 then 2 in separate hours carry; 5 current-hour units settle all carried cash (9296.924401ms)
+✔ matched points above cap burn, only heavy-side imbalance carries (6523.323539ms)
+✔ raw branch units do not grant rank; successful funded capped points accumulate before any claim (11099.042799ms)
+✔ cap and protection tables reproduce specification (34.826736ms)
+✔ claims are pull payments and cannot be repeated (6017.593742ms)
+✔ batch order/size leaves identical wallet economics (9740.238463ms)
+✔ buy uses actual stablecoin, increases price, respects lifetime allowance (6405.249261ms)
+✔ holding cap and min output revert atomically (3033.284838ms)
+✔ locked tokens cannot sell; fallback deadline unlocks without new registrations (7135.092519ms)
+✔ transfer burns 3%, rejects self-transfer, unregistered recipient, and locked amount (7722.048363ms)
+✔ unauthorized auto buy, reserve injection, rebinding, pause and rescue rejected (73.643538ms)
+✔ TEST ONLY legacy token fixture: bounded immediate attempt preserves actual rewards for a full retry (30040.579204ms)
+✔ failed immediate auto and retry preserve claim and user can release it as USD (14106.929515ms)
+✔ TEST ONLY paid-rank fixture: monthly pool pays only 20% to sole eligible builder, one time (17796.218811ms)
+✔ 5 of 7 council required for emergency pause; timelock starts at 72 hours (1026.556908ms)
+✔ full unlock and complete sell-off pay from real reserve without new inflows (31363.111521ms)
+✔ failed USD transfer leaves beneficiary claim intact and does not affect others (7273.738641ms)
+✔ 5-of-7 council can rotate a compromised owner only through a self-governed proposal (723.95509ms)
+✔ 72-hour timelock floor cannot be reduced even by a fully approved self-call (638.953779ms)
+✔ five approvals cannot bypass timelock delay or replay execution (1312.414128ms)
+✔ EVM integer buy quotes match independent BigInt model (3943.910462ms)
+✔ enabling during matching schedules the next hour without rewriting old settlement economics (24305.863747ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: rank-based cumulative capacity (TEST ONLY paid-rank fixtures)
+  ✔ all five rank rates apply to every paid unit; top-ups and rank changes never reset spent (40183.050887ms)
+  ✔ actual $5 support crosses 10x and 100x launch-price milestones for builders only, globally and automatically (27139.56187ms)
+  ✔ TEST ONLY defensive lowered-limit state saturates remaining allowance instead of underflowing or restoring spent (14994.428003ms)
+✔ BinaryPlan: rank-based cumulative capacity (TEST ONLY paid-rank fixtures) (84537.684969ms)
+▶ FundedBinaryPlan: rank-based cumulative capacity (historical raw-volume ranks)
+  ✔ all five rank rates apply to every paid unit; top-ups and rank changes never reset spent (43023.358607ms)
+  ✔ actual $5 support crosses 10x and 100x launch-price milestones for builders only, globally and automatically (32185.253265ms)
+  ✔ TEST ONLY defensive lowered-limit state saturates remaining allowance instead of underflowing or restoring spent (10710.735751ms)
+✔ FundedBinaryPlan: rank-based cumulative capacity (historical raw-volume ranks) (87835.113534ms)
+✔ TEST ONLY milestone arithmetic: exact inclusive boundaries, multi-decade catch-up, falling quote, and existing 1024 cap (3264.539845ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ fees taken from either collateral sender or recipient are rejected on buys and sells (7793.898188ms)
+✔ a collateral callback cannot burn/transfer approved FTI during a priced purchase (1114.870209ms)
+✔ a collateral deficit blocks trades instead of minting or paying against missing assets (555.966394ms)
+✔ pause blocks new buys/transfers but keeps small redemptions open; rescue cannot remove protected assets (2057.34096ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+RESERVE_V2_100_USERS {"registered":100,"buys":100,"transfers":20,"sells":100,"exitMode":"normal-pressure-fees-final-full-refund","checks":322,"usdIn":"1785.0","liveSupport":"5.0","usdOut":"1790.0","priceAfterBuys":"0.119251997943372169","finalPrice":"0.13811172195350011","finalSupply":"0.0","reserve":"0.0","protectedUnallocated":"500.0"}
+✔ token V2: 100 registered users buy, transfer and complete normal user exits without emergency or waiting caps (323043.189489ms)
+RESERVE_V2_MODEL_300K {"model":"real-reserve-v2-sizefee-floor-review","economics":"trade-size-only-500usd-or-5percent-threshold-3percent-base-7percent-provisional-surcharge","wallets":300000,"buys":300000,"sells":399966,"transfers":59999,"checks":1059965,"observedPriceTransitions":{"attemptedTradingOperations":759965,"ordinaryPositiveSupply":{"buy":{"accepted":299999,"displayed":{"rise":299999,"equal":0,"fall":0},"exactReservePerShare":{"rise":299999,"equal":0,"fall":0}},"sell":{"accepted":399965,"displayed":{"rise":399965,"equal":0,"fall":0},"exactReservePerShare":{"rise":399965,"equal":0,"fall":0}},"transfer":{"accepted":59999,"displayed":{"rise":59999,"equal":0,"fall":0},"exactReservePerShare":{"rise":59999,"equal":0,"fall":0}}},"bootstrapBuys":1,"normalTerminalSells":1,"emergencyPartialSells":0,"emergencyTerminalSells":0,"rejectedAttempts":{"total":0,"byReason":{}},"scope":"Accepted normal buys, partial sells and positive transfers with positive supply before and after. Bootstrap and terminal states have no two-sided live R/S and are counted separately. Registration support injections are excluded. Rejections are separate; invariant checks are not the denominator. No probability estimate or exhaustive guarantee."},"largestBuyUSDWei":"500000000000000000000000","largestSaleUSDWei":"576089713160248885659418","priceBeforeFinalExitWad":"202939909049775604","finalPriceWad":"347674962988259693","cashInUSDWei":"92628565000000000000000000","cashOutUSDWei":"92628560000000000000000000","finalReserveUSDWei":"0","finalUnallocatedReserveUSDWei":"5000000000000000000","finalActualUSDWei":"5000000000000000000","finalUserCirculatingSupply":"0","finalTotalSupply":"0","lifecycleClosed":true,"allUserTokensSold":true,"negativePriceTransitions":0,"unfundedPayouts":0,"scope":"BigInt token-accounting simulation only. Live buys and partial sells charge ceil(3% V + 7% B^2/(B+T)), T=max($500,5% pretrade live reserve), B=max(V-T,0), with exact fractional-atom threshold and one combined ceiling. The 7% coefficient remains provisional. Bootstrap buys retain the base-only exception. No global pressure, time decay or wallet history. Final normal and all emergency sales are fee-free. Protected price-protection-fund cash stays outside live reserve, and restart remains review-gated. This model does not establish binary settlement equivalence, EVM/RPC throughput, gas, identity/Sybil safety or legal conclusions."}
+✔ independent experimental arithmetic keeps backing across 300,000 wallets and unrestricted normal exits (2624.253277ms)
+✔ zero start uses $0.10 reference; buys and transfers conserve cash and mint only user shares (0.293704ms)
+✔ integer quotes preserve the exact rational $500/5% threshold and one combined fee ceiling (1.843585ms)
+✔ normal final redemption pays all live reserve, freezes reference and blocks restart (0.479538ms)
+✔ time and wallet history never enter fees; compatibility pressure views stay zero (0.336287ms)
+✔ model dust rejection is atomic and zero transfer leaves state unchanged (0.34465ms)
+✔ independent model: $500 pre-mint support stays protected after a sole buyer redeems only their $100 (0.25006ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ starts with zero reserve and supply, and a $0.10 bootstrap reference (2085.683054ms)
+✔ binary registration/funding supports reserve but never mints the first FTI (4073.955665ms)
+✔ first $100 buy mints 970 user tokens and retains the entire payment as backing (2473.647513ms)
+✔ tokens are immediately unlocked; transfers burn 3%, credit 97% and never move USD (3361.171674ms)
+✔ normal partial sales have no 5% hard cap and exact trade-size-only fees (3874.049286ms)
+✔ 5-of-7 council vote activates redemption-only emergency mode without an admin liquidity transfer (3880.22046ms)
+✔ a 10x milestone does not multiply base Member binary-owned purchase quota (4589.650945ms)
+FTI_V2_FEE_CHECK {"price":"0.103225806451612903","retainedUSD":"0.123711340206185568"}
+✔ partial sells burn the full sale amount and retain every fee dollar for remaining holders (3324.27614ms)
+✔ normal buys and sells strictly advance displayed price; sub-price-step dust reverts atomically (4135.858789ms)
+✔ normal sales exceed former hourly capacity without pressure or timer fees (4469.469963ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ different first buyer restarts at exact last ratio; prior support, claims and donation are never allocated (23305.718689ms)
+✔ fractional historical anchor below display precision is preserved across restart (1465.310356ms)
+✔ repeated micro restart round trips cannot extract old support or terminal claims (31707.842774ms)
+✔ automatic buy restarts through the same exact quote without consuming manual authorization (2272.46327ms)
+✔ pending retirement cannot sweep a restarted balance; closure needs separate approval and rechecks state (5858.751507ms)
+✔ 5/7 plus 72h permanent closure permits pending claims but blocks manual/auto/funding and reopening (4057.179109ms)
+✔ closure authorization uses five council votes, delay, revocation, and cannot be reused (4990.757273ms)
+✔ permanent closure breaks pending-auto circularity; retirement still waits for all claims and quiescence (6120.306838ms)
+✔ unexecuted Council proposal from an earlier lifecycle cannot create fresh authorization (5983.01475ms)
+✔ description validates five exact artifacts and fixed 5/7 + 72h metadata without claiming readiness (23.739513ms)
+✔ public config is normalized, fixture-labelled, and copied only through an explicit allowlist (61.105412ms)
+✔ five unsigned creations and sixth bind have correct constructor encodings, linking, sender, nonce, and chain (32.748984ms)
+✔ new retirement token pins are frozen and no old token is a deployment target (23.43993ms)
+✔ unsigned preparation is deterministic for the same explicit public inputs (53.412724ms)
+✔ default CLI and --describe remain read-only with missing public configuration (382.93183ms)
+✔ CLI creates exactly one clearly unsigned fixture manifest with restrictive permissions (227.794059ms)
+✔ all chains except explicitly numeric chain 97 fail closed (6.724355ms)
+✔ every required public input must be explicit, with no defaults or inferred addresses/nonces (5.689957ms)
+✔ seven Council owners must be distinct after address normalization (1.071523ms)
+✔ seven nonzero valid Council owners are required (6.221862ms)
+✔ 31 genesis addresses must be distinct after normalization (1.192642ms)
+✔ 31 nonzero valid genesis addresses are required (6.252131ms)
+✔ development and deployer must be valid explicit nonzero addresses (8.655247ms)
+✔ development destination cannot conflict with stablecoin, token, or BinaryPlan predictions (56.027686ms)
+✔ nonce rejects absent, fractional, negative, ambiguous, unsafe, or exhausted account values (15.279114ms)
+✔ explicit decimal nonces beyond Number precision are preserved without guessing (42.275688ms)
+✔ unknown configuration fields, secrets, and attempted governance overrides are rejected without echoing them (4.526177ms)
+✔ CLI does not leak invalid JSON or unsupported secret values (307.893784ms)
+✔ source hash mismatch and missing sources stop preparation before output (5.702115ms)
+✔ artifact hash mismatch or substitution of the old token is rejected (6.961375ms)
+✔ governance changes are rejected rather than reported as fixed 5/7 + 72h (1.449862ms)
+✔ output and every supported related journal/deployment record are preserved without overwrite (163.666463ms)
+✔ dangling output or journal symlinks are treated as existing records (62.403135ms)
+✔ writing requires an explicitly unsigned complete chain-97 manifest and new unsigned filename (21.475197ms)
+✔ broadcast, execute, signer, RPC, legacy and unknown CLI flags fail before config reads or file writes (1496.20033ms)
+✔ incomplete and contradictory CLI modes fail closed (1006.420558ms)
+✔ unsigned CLI preparation works with all network calls and credential/environment-file reads actively blocked (207.607534ms)
+✔ frozen artifacts retain identity, compiler, ABI and exact creation-bytecode evidence (10.22985ms)
+✔ combined lifecycle and immediate-auto ABI metadata describe the frozen implementation (9.834471ms)
+✔ actual historical token and Binary source/artifact pins are rejected independently (23.468696ms)
+✔ writer atomically rejects incomplete sequence, modified bytecode, dependencies, bind, or evidence (285.668059ms)
+✔ checked-in descriptor equals the current validated public-input-free description (10.505903ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ Retirement current-token integrations with canonical BinaryPlan
+  ✔ shared helper binds the current token and matching immutable development fund to real governance (121.969041ms)
+  ✔ current-token fee floor and 5% threshold quote boundaries at live R=100 (2624.370735ms)
+  ✔ current-token fee floor and 5% threshold quote boundaries at live R=1000 (2557.059525ms)
+  ✔ current-token fee floor and 5% threshold quote boundaries at live R=20000 (2333.408715ms)
+  ✔ current-token actual large buys retain gross cash, mint net assets at pretrade price and consume gross manual quota (2889.342912ms)
+  ✔ current-token partial sales retain exact fee, transfers burn 3%, and neither restores manual quota (2891.321285ms)
+  ✔ current-token real registration grants cumulative gross quota and paid top-ups do not reset spent (5127.155492ms)
+  ✔ current-token minOut, deadline, dust, allowance and collateral failures roll back real Binary authorization (4254.17216ms)
+  ✔ unranked Members cannot create auto allocations merely by enabling auto on the new token (6990.352016ms)
+  ✔ current-token hourly gate: four units then one in another hour carry fully; one-wallet five-unit top-up settles (9435.725358ms)
+  ✔ current-token five-unit registration with no eligible points carries the entire pool and protects all buckets (2569.56691ms)
+  ✔ current-token proportional rewards assign only exact rounding residual to development (9023.159515ms)
+✔ Retirement current-token integrations with canonical BinaryPlan (53325.68264ms)
+▶ Retirement current-token hostile collateral with canonical BinaryPlan
+  ✔ current-token taxed buys, partial sells, terminal sells and membership funding fail atomically in both tax modes (2757.80665ms)
+  ✔ current-token collateral callbacks cannot forge quota, reenter buy or transfer approved FTI (3346.347031ms)
+  ✔ current-token deficits block buys, sells and transfers without modifying claims or quota (1064.747041ms)
+  ✔ current-token terminal claim is part of collateral liability and rejects taxed or underbacked payment (2079.206964ms)
+✔ Retirement current-token hostile collateral with canonical BinaryPlan (16446.024887ms)
+▶ Retirement current-token TEST_ONLY paid-rank feature isolation, not organic qualification
+  ✔ TEST_ONLY rank features: all five rates cover full paid-unit history and top-ups retain gross spent (12316.465046ms)
+  ✔ TEST_ONLY builder eligibility with real $5 support latches 10x and 100x price milestones, Members stay unmultiplied (13976.082803ms)
+  ✔ TEST_ONLY builder auto: failed immediate allocation retries at current price without a cap or manual quota consumption (10860.371257ms)
+  ✔ TEST_ONLY builder auto: disabling and keeper partial execution reject; owner release remains cash owned by that wallet (8530.14722ms)
+✔ Retirement current-token TEST_ONLY paid-rank feature isolation, not organic qualification (47696.675602ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+RETIREMENT_100_USER_CURRENT_LIFECYCLE {"token":"FTIRetirementReviewToken","binary":"BinaryPlan","registered":100,"buys":104,"liveSupportTopups":4,"transfers":20,"sells":100,"checks":334,"exitMode":"normal-current-fee-then-paid-development-claim","usdIn":"4385.0","liveSupport":"20.0","holderProceeds":"4404.20447688671651509","terminalReserve":"26.517437109449496969","terminalHolderPayout":"25.721913996166012059","terminalDevelopmentFee":"0.79552311328348491","retiredProtectedSupport":"500","separatelyGovernedPermanentClosure":true,"permanentlyRetired":true,"finalSupply":"0.0","finalTokenCash":"0.0","binaryCashBeforeRetirement":"9880.0","binaryClaimAfterRetirement":"104.0"}
+✔ Retirement current lifecycle: 100 users mixed buys/transfers and complete normal exits, fee claim, then separately governed permanent closure and retirement (341154.20071ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+RETIREMENT_REVIEW_HASHES {"contracts/FTIRetirementReviewToken.sol":"89de8c1e8babbb0b5cf8ad20b92d96f176f2d3f89e9319e7328c7c52f0676ccb","contracts/BinaryPlan.sol":"9844e9b6b14553e0eb14352d43ab65e0cefda18d7c07a87101d074959c198271","contracts/Governance.sol":"ca1e638e4c4f9184c03dabdd23e6fc444c1b1fb4c5c3822898dda1f6263c7540","artifacts/FTIRetirementReviewToken.json":"f7821bc76f101bc010d5c61a34408f821f2867e13f53007308335036e0d8d0dd","artifacts/BinaryPlan.json":"74c55aff04054d58d9f7ea9c9720032a0d6fe7572b248fa881dca0b9ee1cd4cb","test/retirement-review.test.mjs":"726bdfa5c1792d9ab432c0870f993e0c8067de8fbf48535f8259d31b03c57a9e"}
+▶ Permanent-retirement review: isolated EVM lifecycle and failure guards
+  ✔ fixture binds the exact token, collateral, council, timelock and immutable development fund (65.638972ms)
+  ✔ constructor rejects an EOA governor/guardian and zero or collateral-token development destination (275.115618ms)
+  ✔ fixed recipient rejects the token itself and the future bound binary, while a separate contract fund is allowed (374.121425ms)
+  ✔ bind rejects each mismatched dependency individually and never replaces a valid binding (989.555659ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=100000000000000000000 atoms (1921.395982ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=500000000000000000000 atoms (1946.707679ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=500000000000000000001 atoms (1970.424546ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=1000000000000000000000 atoms (1991.600201ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=12345678901234567890123 atoms (2071.311441ms)
+  ✔ permissionless fee claim pays only the immutable fund and preserves protected support (2400.447832ms)
+  ✔ emergency partial and terminal redemption stay fee-free and separate from normal terminal claims (3022.902306ms)
+  ✔ ordinary zero-supply lifecycles restart manually and automatically without consuming protected support or owed fees (5256.909649ms)
+  ✔ four council votes cannot authorize retirement; fifth vote can and unauthorized callers cannot (2008.931481ms)
+  ✔ each retirement action requires its own council approval and at least 72 hours after that approval (5068.837551ms)
+  ✔ Council revocation clears a mature approval and a replacement approval must mature again (5549.509544ms)
+  ✔ Council approval cannot authorize arbitrary selectors or silently preserve an older approval time (4247.927154ms)
+  ✔ the timelock itself rejects execution before its 72-hour operation delay (3681.991005ms)
+  ✔ active backing blocks permanent buy closure and owed terminal fees independently prohibit retirement (6779.492525ms)
+  ✔ retirement guard separately rejects pending auto liability in clearly marked TEST_ONLY membership (3873.684274ms)
+  ✔ retirement guard separately rejects unpaused binary in clearly marked TEST_ONLY membership (3794.00749ms)
+  ✔ retirement guard separately rejects matching phase in clearly marked TEST_ONLY membership (3587.48123ms)
+  ✔ retirement guard separately rejects allocation phase in clearly marked TEST_ONLY membership (3676.869871ms)
+  ✔ retirement guard separately rejects builder-month matching in clearly marked TEST_ONLY membership (3753.757033ms)
+  ✔ retirement guard separately rejects builder-month allocation in clearly marked TEST_ONLY membership (3901.166774ms)
+  ✔ retirement guard separately rejects unsettled current-hour units in clearly marked TEST_ONLY membership (3537.669269ms)
+  ✔ retirement guard separately rejects undrained volume jobs in clearly marked TEST_ONLY membership (3341.225713ms)
+  ✔ missing binary binding blocks permanent closure and retirement even with real approval and delay (3155.778379ms)
+  ✔ blocked seller or taxed collateral atomically rolls back the complete normal terminal transition (2920.52201ms)
+  ✔ blocked or taxed development-fee transfer restores the owed claim and all cash accounting (3031.54775ms)
+  ✔ blocked or taxed retirement transfer preserves support, closure flags, approval and the pending timelock operation (4705.982652ms)
+  ✔ terminal seller payout rejects a nested fee claim while preserving the newly credited development claim (2142.156039ms)
+  ✔ development-fee payout rejects nested entry and pays the fixed fund exactly once (2288.618228ms)
+  ✔ permanent-retirement payout rejects nested entry without duplicating or losing protected cash (3734.118138ms)
+  ✔ delayed-donation payout rejects nested recovery and leaves retirement permanent (4542.393907ms)
+  ✔ propagated callback failures atomically restore terminal sale, fee claim, retirement and donation recovery (8718.788421ms)
+  ✔ retirement routes only tracked support; raw donations require a fresh distinct council vote and delay (9745.42538ms)
+  ✔ blocked or taxed delayed-donation recovery preserves approval, retirement flags and exact surplus (5264.557854ms)
+  ✔ a later expanded timelock proposer role cannot bypass the independent Council approval (2889.386239ms)
+  ✔ partial-sale fee remains live backing and terminal routing conserves all tracked and donated cash (6366.842692ms)
+  ✔ retirement never permits rescue of collateral or governance to reopen any token funding path (7586.690261ms)
+  ✔ a collateral deficit cannot be hidden by fee-claim payment or permanent retirement (5885.009865ms)
+UNRESOLVED_TERMINAL_DUST Gross <= rounded fee remains rejected; no approved fee waiver, dust write-off, or alternate terminal payout has been inferred.
+  ✔ ordinary precision dust is explicitly rejected rather than promising that every terminal dust state can close (1415.046075ms)
+✔ Permanent-retirement review: isolated EVM lifecycle and failure guards (156873.177001ms)
+REAL_BINARY_RETIREMENT_PATH {"fundedEpochs":21,"organicRank":1,"pendingAutoUSD":"108","release":"permanent-marker-gated permissionless same-beneficiary conversion","cashClaimsPreserved":true,"fundingRollback":true}
+▶ Permanent-retirement review: real BinaryPlan integration, no seeded ranks or liabilities
+  ✔ organic pending-auto ownership, cash release, retirement and post-retirement funding rollback (116456.86086ms)
+✔ Permanent-retirement review: real BinaryPlan integration, no seeded ranks or liabilities (118315.316573ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FTI local: http://127.0.0.1:35973
+(node:683) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ current retirement API with fresh fixture ABI/config
+  ✔ current model serves the exact new ABI and fresh initial state while retaining legacy ABI routes (561.907284ms)
+  ✔ ordinary terminal payout, fixed fee claim, permanent retirement and separate binary cash claims stay truthful through the API (15069.266103ms)
+  ✔ current emergency terminal redemption is fee-free and creates no development fee claim (3825.575127ms)
+✔ current retirement API with fresh fixture ABI/config (22279.649664ms)
+✔ canonical demo selects retirement review and preserves explicit historical local demos (1.041298ms)
+✔ canonical deploy and prepare entrypoints have no compilation, credential, live-network, or historical deployment hooks (0.26337ms)
+✔ canonical deployment default only describes the current token with unresolved public inputs (169.585234ms)
+✔ default historical browser launcher fails closed before opening a server (56.500688ms)
+✔ canonical deployment rejects historical models and execution requests before public config reads (557.578148ms)
+✔ historical direct deployment scripts are retained unchanged but never invoked by npm scripts (0.78522ms)
+✔ local retirement configuration and generated unsigned manifests are excluded from source publication (0.363447ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ revised initial reference is $0.10 with zero tokens/reserve and no charity ABI or constructor arguments (1953.83407ms)
+✔ membership grants 5x cumulative same-wallet permission and injects support without minting (2607.730285ms)
+✔ subsequent buy mints net 97% at pre-operation displayed quote and retains all collateral (3225.011528ms)
+✔ sub-$500 partial sells apply only the 3% base and burn exactly sold tokens once (3000.581677ms)
+✔ positive transfer debits 100%, burns 3%, credits 97%, grows real/displayed price and moves no USD (2766.339343ms)
+✔ transferFrom spends gross allowance and has the same single burn and net receipt (2540.920896ms)
+✔ self-transfer requires gross balance and burns once; zero transfer is the explicit no-op exception (2844.733419ms)
+✔ dust transfer and sub-displayed-price-step transfer revert atomically including gross allowance (2761.332136ms)
+✔ final normal redemption pays 100% of live reserve, freezes reference and blocks restart (3777.545919ms)
+✔ retained emergency exception is fee-free, closes final lifecycle and preserves historical reference (3631.577977ms)
+✔ independent revised model matches buys, transfer burn, trade-size sale fees and terminal restart guard (5.044123ms)
+✔ arithmetic keeps post-close support protected and prevents capture without approving restart (3.164717ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ proposal settings and fixed launch/milestone anchors; no production state setter (673.019056ms)
+✔ R=10000: buys and partial sells at or below 500 have only the 3% base fee (287.212342ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=100 (192.568199ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=1000 (243.404078ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=9999.999999999999999999 (229.310818ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=10000.000000000000000001 (226.619504ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=20000 (228.320167ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=1000000 (222.852443ms)
+✔ extra fee needs both conditions: above $500 and above 5% of live reserve (267.375954ms)
+✔ small live reserve $500 boundary is smooth, and larger trades use only the excess (267.032952ms)
+✔ actual $500 buy against small reserve keeps all cash, mints at exactly the base fee and enforces minOut (1059.727801ms)
+✔ actual $500 partial sale from $1000 reserve burns q, retains $15 and enforces minOut (1112.514687ms)
+✔ USD floor uses 18-decimal dollars; unsupported six-decimal collateral is rejected (60.752047ms)
+✔ bootstrap retains the existing 3% review exception below and above $500, excluding protected cash (1127.557686ms)
+✔ R=10000 T=500: both directions quote total fees 47.5 on 1000 and 433.5 on 5000 (158.663903ms)
+✔ curve has no threshold jump; ideal marginal fee is below 10%, with atom-level rounding disclosed (192.156198ms)
+✔ large buy leaves a different wallet’s next small buy and sell at exactly base 3% (2449.094329ms)
+✔ large sell leaves small later transactions at base 3%, independent of elapsed time (2273.902344ms)
+✔ actual buy retains all gross cash and mints only net fee value at pretrade price (883.180534ms)
+✔ actual partial sell burns gross tokens, pays V-F and retains F; transfer still burns 3% (992.096559ms)
+✔ bootstrap uses only 3% with protected fund excluded; final sale returns full live reserve and closes lifecycle (2097.879573ms)
+✔ large fund is excluded from threshold, reserve, minting price and final redemptions (2417.530124ms)
+✔ one combined ceiling avoids charging a second atom for separately rounded base and surcharge (83.59131ms)
+✔ fractional-atom reserve threshold above the dollar floor stays exact (5822.109108ms)
+✔ quote and execution dust, minOut and deadline failures atomically preserve quota and every cash bucket (2260.928566ms)
+✔ failed collateral movement rolls back manual authorization and auto-buy/sell accounting (1443.319697ms)
+✔ MAX_RESERVE quote bounds and deterministic reference samples are overflow-safe (1047.772021ms)
+✔ splitting buys below their live threshold bypasses the extra fee: explicit limitation evidence (1860.493284ms)
+✔ splitting sales can bypass the surcharge; retained base fees and changing prices still affect proceeds (3401.809802ms)
+✔ auto-buy pays the same amount-based fee while only gross manual buys consume quota (2327.010652ms)
+✔ emergency partial and terminal exits retain their existing fee-free exception and protect the fund (1737.889736ms)
+✔ indicative legacy bps never replace exact fee amounts; sub-bps surcharge is still charged (133.471731ms)
+✔ real BinaryPlan integration: gross manual quota and Member auto eligibility remain unchanged (8950.46171ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ old overmint is removed; positive exact growth below one display atom executes with zero support (18850.495557ms)
+✔ one dollar at large reserve grows exact ratio below getter precision without support (882.393864ms)
+✔ zero exact growth still rejects and rolls back the actual transaction (270.825693ms)
+✔ normal and large actual buys use exact mint, fee and manual quota (2592.824429ms)
+✔ auto buy uses identical quote and does not consume manual quota (899.736259ms)
+✔ split purchases each use fresh exact ratio, preserve strict growth and total quota (17406.950029ms)
+✔ partial sell and transfer maintain cash backing and exact/display growth (947.257868ms)
+✔ bootstrap and support routing remain unchanged, final redemption still closes (2578.830583ms)
+✔ tiny transfer and positive-payout sell both grow real ratio below display resolution (904.803378ms)
+✔ token sell gas padding adds a rounded-up quarter plus 30k without Number precision loss (0.909594ms)
+✔ token sell gas padding rejects malformed, zero and negative estimates (0.475052ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FTI local: http://127.0.0.1:42773
+(node:799) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ workspace readiness against current retirement contracts and API
+  ✔ all workspace assets, config and current ABI resolve without granting a wallet role (607.594311ms)
+  ✔ same-hour five-unit registration, queue readiness and funded rank remain separate facts (3471.074851ms)
+  ✔ auto API reflects next wall-clock boundary and permits changes during overdue settlement (6605.032349ms)
+  ✔ hourly boundary blocks funding and exposes real settlement phases to any public caller (5394.939734ms)
+  ✔ current token has immediately available purchased tokens and exact terminal fee accounting (5021.066536ms)
+  ✔ confirmed real buy and terminal sale snapshots separate exact growth from reference prices (3884.844291ms)
+  ✔ proposal gates match actual council ownership, existing approval and five-of-seven execution (1503.989802ms)
+  ✔ timelock readiness remains false until the fixed 72-hour delay expires, then public execution works (1120.907515ms)
+FTI local: http://127.0.0.1:33387
+  ✔ API rejects reorg snapshots, verifies deployed getters and preserves RPC failures (5544.035835ms)
+✔ workspace readiness against current retirement contracts and API (35690.648332ms)
+✔ all three entry points server-render a distinct labeled workspace and one initially visible page (58.140299ms)
+✔ all controller literal DOM IDs exist and React markup contains no duplicate IDs (12.579646ms)
+✔ form controls retain stable IDs, meaningful labels and current safety disclosures (11.888164ms)
+✔ workspace paths use exact segments and each surface has a distinct navigation contract (1.647685ms)
+✔ navigation uses history entries; repeated clicks do not duplicate entries (0.719844ms)
+✔ deep links and unknown hashes render a valid local page without history loops (0.323528ms)
+✔ cross-panel links preserve their target and activity remains in the current panel (0.174879ms)
+✔ initial, failed and aged data are stale; successful recent data is actionable (0.800432ms)
+✔ disconnected and stale states disable every write capability (0.347774ms)
+✔ public callers are not council owners and membership does not grant governance (0.178254ms)
+✔ funding waits for an open phase and unexpired epoch while cash claims remain accessible (0.392309ms)
+✔ retired and paused lifecycle gating separates holder sales, transfers and new funding (0.226145ms)
+✔ volume, hourly matching and allocation readiness reflect all exposed contract prerequisites (0.291811ms)
+✔ monthly readiness requires calendar boundary and completed boundary-hour settlement (0.188728ms)
+✔ proposal readiness prevents repeat approval and keeps execution permissionless at threshold (0.626887ms)
+✔ timelock and wallet error states never infer a successful execution (0.68319ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ quarantine: empty deployment has a fixed $0.10 anchor and a $1 first milestone (473.700064ms)
+✔ quarantine: membership-only cash stays protected, unowned and outside live reserve (838.507214ms)
+✔ quarantine: first $100 buyer mints 970 FTI and can redeem only $100, never the prior $500 (1717.756137ms)
+✔ quarantine: positive-supply injection adds redeemable support without minting or allocating prior cash (2148.433282ms)
+✔ quarantine: an authorized first automatic buy also cannot capture protected cash or consume manual quota (1837.396639ms)
+✔ quarantine: post-closure injections remain protected, preserve the historical quote and cannot restart minting (2608.613823ms)
+✔ quarantine: raw USD donations remain unaccounted surplus through first buy, injection and final redemption (1850.717616ms)
+✔ quarantine: emergency partial and full exits remain separately fee-free and leave protected cash intact (3209.678257ms)
+✔ quarantine: trade-size-only partial-sale fees and 3% transfer burn do not touch protected cash (1844.941144ms)
+✔ quarantine: failed buy/sell minOut and deadline checks roll back reserve, quarantine, quota and lifecycle (2047.647327ms)
+✔ quarantine: collateral sender/recipient taxes revert zero-supply injection and never fabricate protected accounting (583.140166ms)
+✔ quarantine: taxed live injection, buys, partial sales and full redemption atomically preserve both buckets (3379.287944ms)
+✔ quarantine: backing checks protect unallocated cash even if actual USD still covers all live reserve (2166.069583ms)
+✔ quarantine: governance cannot rescue or allocate protected USD before or after lifecycle closure (2205.619269ms)
+✔ quarantine: nested reentrant injection is rejected and outer injection accounts for its payment exactly once (817.267456ms)
+✔ quarantine: propagated callback failure rolls back zero-supply injection and manual-buy authorization (1269.814632ms)
+✔ quarantine: callback transferFrom cannot burn FTI or consume its allowance during a priced buy (1997.872437ms)
+✔ quarantine: fixed $1 and $10 milestones are independent of the first post-fee quote and prior binary cash (3675.483495ms)
+✔ quarantine: zero-supply historical references cannot trigger milestones, even in a TEST ONLY boundary fixture (234.744803ms)
+✔ quarantine: live milestone multiplier latches and remains capped at 1024 (1299.217513ms)
+✔ quarantine: redeemable and unallocated cash share the reserve cap; raw donations are not silently counted (2832.865117ms)
+ℹ tests 447
+ℹ suites 18
+ℹ pass 447
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4247994.557026
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

@@ -1,0 +1,35 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+RETIREMENT_REVIEW_HASHES {"contracts/FTIRetirementReviewToken.sol":"89de8c1e8babbb0b5cf8ad20b92d96f176f2d3f89e9319e7328c7c52f0676ccb","contracts/BinaryPlan.sol":"9844e9b6b14553e0eb14352d43ab65e0cefda18d7c07a87101d074959c198271","contracts/Governance.sol":"ca1e638e4c4f9184c03dabdd23e6fc444c1b1fb4c5c3822898dda1f6263c7540","artifacts/FTIRetirementReviewToken.json":"f7821bc76f101bc010d5c61a34408f821f2867e13f53007308335036e0d8d0dd","artifacts/BinaryPlan.json":"74c55aff04054d58d9f7ea9c9720032a0d6fe7572b248fa881dca0b9ee1cd4cb","test/retirement-review.test.mjs":"37b186f1c0979c047068d752a887d21821c4958e1121bd891381953ab90dcd0b"}
+▶ Permanent-retirement review: isolated EVM lifecycle and failure guards
+  ✔ fixture binds the exact token, collateral, council, timelock and immutable development fund (93.634864ms)
+  ✔ constructor rejects an EOA governor/guardian and zero or collateral-token development destination (291.325779ms)
+  ✔ fixed recipient rejects the token itself and the future bound binary, while a separate contract fund is allowed (442.165813ms)
+  ✔ bind rejects each mismatched dependency individually and never replaces a valid binding (1076.672891ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=100000000000000000000 atoms (2113.351774ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=500000000000000000000 atoms (1894.298746ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=500000000000000000001 atoms (1871.234208ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=1000000000000000000000 atoms (1870.09624ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=12345678901234567890123 atoms (1833.624595ms)
+  ✔ permissionless fee claim pays only the immutable fund and preserves protected support (2521.923308ms)
+  ✔ emergency partial and terminal redemption stay fee-free and separate from normal terminal claims (2985.42704ms)
+  ✔ blocked seller or taxed collateral atomically rolls back the complete normal terminal transition (3015.739528ms)
+  ✔ blocked or taxed development-fee transfer restores the owed claim and all cash accounting (3573.439224ms)
+  ✔ terminal seller payout rejects a nested fee claim while preserving the newly credited development claim (2146.167098ms)
+  ✔ development-fee payout rejects nested entry and pays the fixed fund exactly once (2452.617771ms)
+✔ Permanent-retirement review: isolated EVM lifecycle and failure guards (31953.276978ms)
+ℹ tests 15
+ℹ suites 1
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 32526.140954

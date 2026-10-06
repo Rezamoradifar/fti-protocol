@@ -1,0 +1,369 @@
+--- baseline/FTIReserveToken.sol
++++ review/FTIRetirementReviewToken.sol
+@@ -9,27 +9,43 @@
+ import {Pausable} from '@openzeppelin/contracts/utils/Pausable.sol';
+ import {Math} from '@openzeppelin/contracts/utils/math/Math.sol';
+ 
+-interface IReserveMembership {
++interface IRetirementMembership {
+     function unitsOf(address) external view returns (uint256);
+     function tokenBuyLimit(address) external view returns (uint256);
+     function remainingTokenBuyAllowance(address) external view returns (uint256);
+     function tokenBuySpent(address) external view returns (uint256);
+     function authorizeTokenBuy(address,uint256) external;
++    function development() external view returns(address);
++    function token() external view returns(address);
++    function usd() external view returns(address);
++    function governance() external view returns(address);
++    function guardian() external view returns(address);
++    function totalAuto() external view returns(uint256);
++    function phase() external view returns(uint8);
++    function epochUnits() external view returns(uint256);
++    function monthPhase() external view returns(uint8);
++    function jobCursor() external view returns(uint256);
++    function jobCount() external view returns(uint256);
++    function paused() external view returns(bool);
+ }
+-
+-/// @notice LOCAL size-fee review: approved $500/5% threshold; 7% curve remains provisional.
+-/// @dev Starts with zero FTI. Binary support NEVER mints FTI. Zero-supply
+-///      support is held in the price-protection fund, outside redeemable reserve.
+-///      No fund spending, release, trigger or governance path is implemented.
+-///      Ordinary buys/sells have a 3% base fee. Only the current trade's gross
+-///      value above BOTH $500 and 5% of pretrade live reserve incurs the surcharge.
+-///      No pressure snapshot, timer, wallet history or previous trade is charged.
+-///      Buys retain all cash; net-of-fee value mints at the pretrade price.
+-///      Positive wallet transfers burn 3%; normal partial sales burn the sold
+-///      tokens and retain their fee in reserve. Full final and emergency exits
+-///      are fee-free. Protected fund cash and donations are not sale proceeds.
+-///      There are no personal waiting locks; restart remains review-gated.
+-contract FTIReserveToken is ERC20, ReentrancyGuard, Pausable {
++interface IRetirementTimelock {
++    function getMinDelay() external view returns(uint256);
++    function PROPOSER_ROLE() external view returns(bytes32);
++    function hasRole(bytes32,address) external view returns(bool);
++}
++interface IRetirementCouncil {
++    function OWNER_COUNT() external view returns(uint8);
++    function THRESHOLD() external view returns(uint8);
++}
++
++/// @notice SEPARATE LOCAL lifecycle review. Not a deployed upgrade or a final release.
++/// @dev The prior fee/gate candidate stays unchanged in FTIReserveToken.sol.
++///      Ordinary terminal sales pay net of the current-trade fee; that terminal
++///      fee becomes an owed development claim, never ownerless live reserve.
++///      Governance may permanently retire only after zero supply/backing/claims
++///      and a quiescent bound binary, through the existing 5/7 and 72h machinery.
++///      All retirement USD goes to the fixed development-fund review parameter.
++contract FTIRetirementReviewToken is ERC20, ReentrancyGuard, Pausable {
+     using SafeERC20 for IERC20;
+ 
+     uint256 public constant WAD = 1e18;
+@@ -57,16 +73,21 @@
+     uint256 public constant MAX_SUPPLY = 1e36;
+     uint256 public constant MIN_MINT = 1e6;
+     uint256 public constant CAP_REFERENCE_SUPPLY = 1000000e18;
+-    bytes32 public constant pricingModel = 'REAL_RESERVE_SIZE_PROPOSAL';
++    bytes32 public constant pricingModel = 'RETIREMENT_REVIEW_SIZE_FEE';
+ 
+     IERC20 public immutable usd;
+     address public immutable governance;
+     address public immutable guardian;
+     address public immutable deployer;
+-    IReserveMembership public binary;
+-
+-    uint256 public reserve; // Redeemable backing of circulating FTI only.
+-    uint256 public priceProtectionFund; // Protected zero-supply cash; spending policy remains unapproved.
++    IRetirementMembership public binary;
++    address public immutable developmentFund; // Actual public address still requires deployment review.
++    uint256 public developmentFeeClaim; // Reserved liability, outside redeemable R and protected support.
++    bool public permanentlyRetired;
++    mapping(bytes4=>uint256) public councilApprovalAt;
++    uint256 public constant RETIREMENT_DELAY = 72 hours;
++
++    uint256 public reserve; // Redeemable backing of circulating FTI only; terminal development claims excluded.
++    uint256 public priceProtectionFund; // No active-price release; retirement-only disposition is explicit below.
+     uint256 public constant launchPrice = INITIAL_PRICE; // Fixed milestone anchor, not the first buy quote.
+     uint256 public milestonePrice = INITIAL_PRICE*10;
+     uint256 public ath; // status/compatibility metric, not a guaranteed liquidation price
+@@ -89,6 +110,12 @@
+ 
+ 
+     event Bound(address indexed binary);
++    event TerminalDevelopmentFeeCredited(uint256 amount,uint256 totalClaim);
++    event DevelopmentFeeClaimPaid(address indexed destination,uint256 amount);
++    event RetirementActionApproved(bytes4 indexed action,uint256 approvedAt,uint256 executableAfter);
++    event RetirementActionRevoked(bytes4 indexed action);
++    event PermanentlyRetired(address indexed destination,uint256 protectedSupport,uint256 untrackedSurplusRemaining);
++    event RetiredDonationRecovered(address indexed destination,uint256 amount);
+     event Bought(address indexed wallet,uint256 usdIn,uint256 userTokens,bool automatic);
+     event Sold(address indexed wallet,uint256 tokens,uint256 usdOut,uint256 baseFeeBps,uint256 impactBps);
+     event ReserveInjected(uint256 amount);
+@@ -104,10 +131,15 @@
+ 
+     modifier onlyBinary(){require(msg.sender==address(binary),'binary only');_;}
+ 
+-    constructor(address stable,address gov,address emergency)
++    constructor(address stable,address gov,address emergency,address development)
+         ERC20('FTI Protocol','FTI')
+     {
+-        require(stable.code.length>0&&gov!=address(0)&&emergency!=address(0),'addresses');
++        require(stable.code.length>0&&gov.code.length>0&&emergency.code.length>0,'addresses');
++        require(development!=address(0)&&development!=address(this)&&development!=stable,'development destination');
++        require(IRetirementTimelock(gov).getMinDelay()==72 hours,'72h governance');
++        require(IRetirementCouncil(emergency).OWNER_COUNT()==7&&IRetirementCouncil(emergency).THRESHOLD()==5,'5 of 7 council');
++        require(IRetirementTimelock(gov).hasRole(IRetirementTimelock(gov).PROPOSER_ROLE(),emergency),'council proposer');
++        developmentFund=development;
+         require(IERC20Metadata(stable).decimals()==18,'requires 18 decimal USD');
+         usd=IERC20(stable);
+         governance=gov;
+@@ -117,24 +149,30 @@
+ 
+     function bind(address c1) external {
+         require(msg.sender==deployer&&address(binary)==address(0)&&c1.code.length>0,'bind');
+-        binary=IReserveMembership(c1);
++        IRetirementMembership candidate=IRetirementMembership(c1);
++        require(c1!=developmentFund&&candidate.development()==developmentFund,'development mismatch');
++        require(candidate.token()==address(this)&&candidate.usd()==address(usd)&&
++            candidate.governance()==governance&&candidate.guardian()==guardian,'binary binding mismatch');
++        binary=candidate;
+         emit Bound(c1);
+     }
+ 
+     /// @dev Pause blocks buys and wallet-to-wallet transfers. Sells remain open.
+     function pause() external {require(msg.sender==guardian||msg.sender==governance,'role');_pause();}
+-    function unpause() external {require(msg.sender==governance,'governance');_unpause();}
++    function unpause() external {require(msg.sender==governance,'governance');require(!permanentlyRetired,'permanently retired');_unpause();}
+ 
+     /// @notice 7-wallet council (guardian) may activate after its on-chain threshold vote.
+     ///         This does not transfer reserve to administrators; it makes the protocol redemption-only.
+     function activateEmergencyExit() external {
+         require(msg.sender==guardian||msg.sender==governance,'role');
++        require(!permanentlyRetired,'permanently retired');
+         emergencyExit=true;
+         if(!paused())_pause();
+         emit EmergencyExitActivated(msg.sender);
+     }
+     function deactivateEmergencyExit() external {
+         require(msg.sender==governance,'governance');
++        require(!permanentlyRetired,'permanently retired');
+         emergencyExit=false;
+         if(paused())_unpause();
+         emit EmergencyExitDeactivated();
+@@ -194,6 +232,7 @@
+ 
+     /// @notice Only net-of-fee user value mints tokens. Restart after final redemption is disabled.
+     function quoteBuy(uint256 amount) public view returns(uint256){
++        require(!permanentlyRetired,'permanently retired');
+         require(!lifecycleClosed,'restart policy pending');
+         (,uint256 userAssets)=buyFeeQuote(amount);
+         require(userAssets>0,'dust');
+@@ -215,7 +254,7 @@
+     function sellImpactBps(uint256 tokens) public view returns(uint256){
+         uint256 supply=totalSupply();
+         require(tokens<=supply,'supply');
+-        if(tokens==0||tokens==supply||emergencyExit||reserve==0)return 0;
++        if(tokens==0||emergencyExit||reserve==0)return 0;
+         uint256 gross=Math.mulDiv(tokens,reserve,supply);
+         require(gross<=MAX_RESERVE&&reserve<=MAX_RESERVE,'fee range');
+         uint256 excessTimes20=_sizeExcessTimes20(gross);
+@@ -223,13 +262,13 @@
+         return Math.mulDiv(MAX_SIZE_FEE_BPS,excessTimes20*excessTimes20,400*gross*gross);
+     }
+ 
+-    /// @notice Exact USD fee, payout and gross claim. Full and emergency exits pay no fee.
++    /// @notice Exact USD fee and payout. Only emergency exits remain fee-free; normal terminal fees are reserved development claims.
+     function sellFeeQuote(uint256 tokens) public view returns(uint256 feeAmount,uint256 payout,uint256 gross){
+         uint256 supply=totalSupply();
+         require(tokens<=supply,'supply');
+         if(tokens==0||supply==0)return(0,0,0);
+         gross=Math.mulDiv(tokens,reserve,supply);
+-        if(!emergencyExit&&tokens!=supply)feeAmount=_tradeFee(gross);
++        if(!emergencyExit)feeAmount=_tradeFee(gross);
+         require(gross>feeAmount,'dust');
+         payout=gross-feeAmount;
+     }
+@@ -238,14 +277,15 @@
+     /// @dev Never reconstruct the fee from feeBps. sellFeeQuote exposes exact USD.
+     function quoteSell(uint256 tokens) public view returns(uint256 payout,uint256 feeBps,uint256 gross){
+         (,payout,gross)=sellFeeQuote(tokens);
+-        feeBps=emergencyExit||(tokens>0&&tokens==totalSupply())?0:FEE_BPS+sellImpactBps(tokens);
++        feeBps=emergencyExit?0:FEE_BPS+sellImpactBps(tokens);
+     }
+ 
+     /// @notice Binary funding never creates FTI. Only funding received while supply
+     ///         is positive becomes redeemable backing. Zero-supply cash remains
+     ///         in the price-protection fund, including after closure and later buys.
+     function inject(uint256 amount,bool newWallet) external onlyBinary nonReentrant {
+-        require(amount>0&&amount<=MAX_RESERVE&&reserve+priceProtectionFund+amount<=MAX_RESERVE,'reserve range');
++        require(!permanentlyRetired,'permanently retired');
++        require(amount>0&&amount<=MAX_RESERVE&&reserve+priceProtectionFund+developmentFeeClaim+amount<=MAX_RESERVE,'reserve range');
+         _receive(msg.sender,amount);
+         if(totalSupply()==0){
+             priceProtectionFund+=amount;
+@@ -274,6 +314,7 @@
+     function _buy(address payer,address who,uint256 amount,uint256 minTokens,uint256 deadline,bool automatic)
+         private returns(uint256 minted)
+     {
++        require(!permanentlyRetired,'permanently retired');
+         require(!lifecycleClosed,'restart policy pending');
+         require(block.timestamp<=deadline&&amount>0&&binary.unitsOf(who)>0,'buy input');
+ 
+@@ -281,7 +322,7 @@
+         uint256 previousS=totalSupply();
+         minted=quoteBuy(amount);
+         require(minted>=MIN_MINT&&minted>=minTokens,'slippage/dust');
+-        require(reserve+priceProtectionFund+amount<=MAX_RESERVE&&previousS+minted<=MAX_SUPPLY,'range');
++        require(reserve+priceProtectionFund+developmentFeeClaim+amount<=MAX_RESERVE&&previousS+minted<=MAX_SUPPLY,'range');
+ 
+         // The binary consumes manual authorization before collateral moves. Any later
+         // failure reverts both the quota and token state in the same transaction.
+@@ -319,14 +360,18 @@
+         _burn(msg.sender,tokens);
+ 
+         if(finalRedemption){
+-            // No live R/S exists at zero supply. Preserve the last real quote without
+-            // fabricating a price step. Exact full redemption leaves no redeemable
+-            // fee residue; quarantined cash and raw donations remain protected.
+-            // The binary-owned lifetime manual-buy quota is never reset.
++            // Normal terminal fee is an explicit owed development claim. There
++            // is no live R/S after burning all shares and no silent fee residue.
++            uint256 terminalFee=reserve; // previousR - payout; emergency fee is zero.
++            reserve=0;
++            if(terminalFee>0){
++                developmentFeeClaim+=terminalFee;
++                emit TerminalDevelopmentFeeCredited(terminalFee,developmentFeeClaim);
++            }
+             referencePrice=previousPrice;
+             lifecycleClosed=true;
+             _backed();
+-            emit LifecycleClosed(reserve,referencePrice,emergencyExit);
++            emit LifecycleClosed(0,referencePrice,emergencyExit);
+         }else if(emergencyExit)_backed();
+         else _requireGrowth(previousR,previousS);
+         _syncMilestone();
+@@ -350,7 +395,7 @@
+             beforePayer-usd.balanceOf(payer)==amount,'unsupported USD');
+     }
+ 
+-    function _backed() private view {require(usd.balanceOf(address(this))>=reserve+priceProtectionFund,'reserve deficit');}
++    function _backed() private view {require(usd.balanceOf(address(this))>=reserve+priceProtectionFund+developmentFeeClaim,'reserve deficit');}
+     function _requireGrowth(uint256 oldR,uint256 oldS) private view {
+         require(oldS>0&&totalSupply()>0,'supply');
+         require(reserve*oldS>oldR*totalSupply(),'price must increase');
+@@ -420,11 +465,112 @@
+         super._update(from,to,value);
+     }
+ 
+-    /// @notice All tracked cash includes redeemable backing and protected cash.
++    /// @notice All tracked cash includes live backing, protected support and owed development fees.
+     /// @dev Direct USD donations remain unaccounted surplus, never silently assigned.
+     function accounting() external view returns(uint256 actual,uint256 accounted){
+-        return(usd.balanceOf(address(this)),reserve+priceProtectionFund);
+-    }
++        return(usd.balanceOf(address(this)),reserve+priceProtectionFund+developmentFeeClaim);
++    }
++    /// @notice Anyone may trigger payment of the already-owed terminal fee to
++    ///         the fixed development fund; no caller-supplied recipient exists.
++    function claimDevelopmentFees() external nonReentrant {
++        _backed();
++        uint256 amount=developmentFeeClaim;
++        require(amount>0,'no development claim');
++        developmentFeeClaim=0;
++        _payDevelopment(amount);
++        _backed();
++        emit DevelopmentFeeClaimPaid(developmentFund,amount);
++    }
++
++    /// @dev Constant-time checks only. Binary reward cash stays in the binary;
++    ///      its totalAuto is the aggregate earmarked for future token buys.
++    ///      Pausing, clearing jobs and closing this hour prevent new auto claims
++    ///      from being created by a half-finished settlement after retirement.
++    function _requireRetirementReady() private view {
++        require(totalSupply()==0&&reserve==0,'active token backing');
++        require(developmentFeeClaim==0,'pending token claims');
++        require(address(binary)!=address(0),'binary not bound');
++        require(binary.totalAuto()==0,'pending auto claims');
++        require(binary.paused()&&binary.phase()==0&&binary.monthPhase()==0&&binary.epochUnits()==0&&
++            binary.jobCursor()==binary.jobCount(),'binary not quiescent');
++        _backed();
++    }
++
++    /// @notice A separate explicit Council vote is required for each terminal
++    ///         action, even if timelock proposer roles are expanded in future.
++    ///         This approval and timelock scheduling can occur concurrently;
++    ///         their 72h waits do not have to be serial.
++    function approveRetirementAction(bytes4 action) external nonReentrant {
++        require(msg.sender==guardian,'council only');
++        require(action==this.retirePermanently.selector||action==this.recoverRetiredDonations.selector,'retirement action');
++        if(action==this.retirePermanently.selector)require(!permanentlyRetired,'permanently retired');
++        else require(permanentlyRetired,'not retired');
++        councilApprovalAt[action]=block.timestamp;
++        emit RetirementActionApproved(action,block.timestamp,block.timestamp+RETIREMENT_DELAY);
++    }
++
++    /// @notice The Council can revoke a still-pending token authorization;
++    ///         cancelling a timelock operation alone does not erase this approval.
++    function revokeRetirementAction(bytes4 action) external nonReentrant {
++        require(msg.sender==guardian,'council only');
++        require(action==this.retirePermanently.selector||action==this.recoverRetiredDonations.selector,'retirement action');
++        councilApprovalAt[action]=0;
++        emit RetirementActionRevoked(action);
++    }
++
++    function _consumeCouncilApproval(bytes4 action) private {
++        uint256 approvedAt=councilApprovalAt[action];
++        require(approvedAt>0&&block.timestamp>=approvedAt+RETIREMENT_DELAY,'council approval/delay');
++        councilApprovalAt[action]=0;
++    }
++
++    /// @notice Council-approved permanent termination, executed by the 72h
++    ///         timelock. No live backing or unsettled token claim may be swept.
++    /// @dev Protected support goes to the fixed development fund. Unaccounted
++    ///      USD is disclosed separately and stays until a distinct Council-
++    ///      approved delayed recovery action. Other binary cash is untouched.
++    function retirePermanently() external nonReentrant {
++        require(msg.sender==governance,'governance');
++        require(!permanentlyRetired,'permanently retired');
++        _requireRetirementReady();
++        _consumeCouncilApproval(msg.sig);
++        uint256 actual=usd.balanceOf(address(this));
++        uint256 support=priceProtectionFund;
++        uint256 surplus=actual-support;
++        permanentlyRetired=true;
++        lifecycleClosed=true;
++        if(!paused())_pause();
++        priceProtectionFund=0;
++        if(support>0)_payDevelopment(support);
++        _backed();
++        emit PermanentlyRetired(developmentFund,support,surplus);
++    }
++
++    /// @notice A retired ERC20 address can still receive unsolicited USD.
++    ///         The same delayed governance may recover untracked USD left at
++    ///         retirement or received later, always
++    ///         to the same fixed fund, without reopening any lifecycle.
++    function recoverRetiredDonations() external nonReentrant {
++        require(msg.sender==governance,'governance');
++        require(permanentlyRetired,'not retired');
++        _requireRetirementReady();
++        require(priceProtectionFund==0,'protected support');
++        _consumeCouncilApproval(msg.sig);
++        uint256 amount=usd.balanceOf(address(this));
++        require(amount>0,'no surplus');
++        _payDevelopment(amount);
++        _backed();
++        emit RetiredDonationRecovered(developmentFund,amount);
++    }
++
++    function _payDevelopment(uint256 amount) private {
++        uint256 beforePool=usd.balanceOf(address(this));
++        uint256 beforeFund=usd.balanceOf(developmentFund);
++        usd.safeTransfer(developmentFund,amount);
++        require(beforePool-usd.balanceOf(address(this))==amount&&
++            usd.balanceOf(developmentFund)-beforeFund==amount,'unsupported USD');
++    }
++
+     function rescue(address asset,address to,uint256 amount) external nonReentrant {
+         require(msg.sender==governance&&asset!=address(usd)&&asset!=address(this),'protected');
+         IERC20(asset).safeTransfer(to,amount);

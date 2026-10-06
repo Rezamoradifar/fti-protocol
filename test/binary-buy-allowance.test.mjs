@@ -180,9 +180,14 @@ for(const binaryContract of ['BinaryPlan','FundedBinaryPlan'])describe(`${binary
   assert((await s.binary.rankOf(s.addresses[0]))>0n);
   assert((await s.token.priceMultiplier())>=2n);
   await checkAllowance(s.addresses[0],E('600')*(await s.token.priceMultiplier()),E('100'));
-  await(await s.binary.setAutoBuy(true,E('1000000'))).wait();
+  await(await s.binary.setAutoBuy(...(binaryContract==='FundedBinaryPlan'?[true,E('1000000')]:[true]))).wait();
   for(const i of [1,2])await(await s.binary.connect(signers[i]).addUnits(5)).wait();
+  // Current BinaryPlan retries only genuinely failed allocation purchases; the historical plan queues normally.
+  if(binaryContract==='BinaryPlan')await(await s.usd.setBlocked(s.token.target,true)).wait();
+  const balanceBefore=await s.token.balanceOf(s.addresses[0]);
   await settle(s,provider);
+  assert.equal(await s.token.balanceOf(s.addresses[0]),balanceBefore,'failed or queued auto does not mint');
+  if(binaryContract==='BinaryPlan')await(await s.usd.setBlocked(s.token.target,false)).wait();
   const amount=await s.binary.pendingAuto(s.addresses[0]);
   assert(amount>0n);
   const previousTokens=await s.token.balanceOf(s.addresses[0]);

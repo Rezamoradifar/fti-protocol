@@ -1,0 +1,15 @@
+{
+  "COMBINED-SOURCE-MANIFEST.json": "f57896b98f788a2b878cfb44355e8a03732f7a47feed0e95f713b22c264fbfaa",
+  "REQUIREMENTS-AUDIT.md": "69450e0909678b4e924321ebe7b110666e0687ce479cc408c8b48d97934909f6",
+  "TEST-INVENTORY.json": "ab3a46f609f37930e0230d095a17cf7d2de46532b71a02e17dd48a802515db11",
+  "check_integer_requirements.json": "fb2f7fb096b47c3539328e409f43eae8500aa58350a76f750e519447ae50c807",
+  "check_integer_requirements.py": "b0d7c41beaec6d5c23a5563c01561dc3e63fb690073bd4477d1fc1755ec44011",
+  "independent-binding-terminal-exploratory.log": "3c335add28c55532c8e6ee94921aac24c4f9e6a096ce0de33cd2fd13fc328bbf",
+  "independent-binding-terminal.log": "b42f1f14f09f092773001914f3bf9b0df5a01182baadc7690fcaf0cf853ffe5b",
+  "independent-canonical-economics.log": "f2acfec6a125791d537645ba9e0d8c4fe36189f7ce8ed7af79ed26991df75f3f",
+  "independent-compile.log": "e479e87e74febaea9184cfc21cb50cac38ed9505543793e24624d12d2f48f79c",
+  "independent-monthly.log": "e149ce6b957532e6caac11af78c54882d1ba6f174dd8737c96a40b9f2dc4d6c3",
+  "independent-precision.log": "16c31619b90a60b1bc65dfa90955f229af371b29a99e5b7a36ee9066872375d1",
+  "independent-protection-deficit.log": "5c6c03ea32a34e1c38c3680128d42d393ef007f5fa454b93927529980f637983",
+  "independent-rank-boundaries.log": "15f78688fa98d880b2992e0d04d3d1918048831462fdbbeea2598c03e4eb361d"
+}

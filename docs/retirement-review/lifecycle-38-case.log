@@ -1,0 +1,62 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+RETIREMENT_REVIEW_HASHES {"contracts/FTIRetirementReviewToken.sol":"0ad9664006aadb83ba5141ec0b43982e3dd444356922974a2fb1d6593d34aba3","contracts/BinaryPlan.sol":"92a39d6f728b492b46ae54f53d36e15d8d20a1c1a082acca81bcdc6babe81789","contracts/Governance.sol":"ca1e638e4c4f9184c03dabdd23e6fc444c1b1fb4c5c3822898dda1f6263c7540","artifacts/FTIRetirementReviewToken.json":"052ca59dd7f550d8656c9f43f7c5d56c0b90479c8bebe4e2dd976f9ecbfe4b3a","artifacts/BinaryPlan.json":"066818fc06217e09abfe76f9b2189947cbef1b6f328739023c1d9f93c362fe1d","test/retirement-review.test.mjs":"379559f8ef0ec8db441ab08a9f505925281e1b66bb7921ef776b604523bc8c63"}
+▶ Permanent-retirement review: isolated EVM lifecycle and failure guards
+  ✔ fixture binds the exact token, collateral, council, timelock and immutable development fund (101.595974ms)
+  ✔ constructor rejects an EOA governor/guardian and zero or collateral-token development destination (336.354975ms)
+  ✔ fixed recipient rejects the token itself and the future bound binary, while a separate contract fund is allowed (389.920897ms)
+  ✔ bind rejects each mismatched dependency individually and never replaces a valid binding (1115.955032ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=100000000000000000000 atoms (2110.715132ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=500000000000000000000 atoms (2138.558544ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=500000000000000000001 atoms (2241.342107ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=1000000000000000000000 atoms (2195.966479ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=12345678901234567890123 atoms (2207.447159ms)
+  ✔ permissionless fee claim pays only the immutable fund and preserves protected support (2825.221955ms)
+  ✔ emergency partial and terminal redemption stay fee-free and separate from normal terminal claims (3734.179507ms)
+  ✔ closed lifecycle cannot restart through manual or automatic buys before permanent retirement (3039.153623ms)
+  ✔ four council votes cannot authorize retirement; fifth vote can and unauthorized callers cannot (1897.770081ms)
+  ✔ each retirement action requires its own council approval and at least 72 hours after that approval (3982.448477ms)
+  ✔ Council revocation clears a mature approval and a replacement approval must mature again (4219.692587ms)
+  ✔ Council approval cannot authorize arbitrary selectors or silently preserve an older approval time (3025.187777ms)
+  ✔ the timelock itself rejects execution before its 72-hour operation delay (2681.024612ms)
+  ✔ active supply/backing and an owed terminal fee independently prohibit retirement and any backing sweep (4871.507994ms)
+  ✔ retirement guard separately rejects pending auto liability in clearly marked TEST_ONLY membership (2448.987829ms)
+  ✔ retirement guard separately rejects unpaused binary in clearly marked TEST_ONLY membership (2481.911916ms)
+  ✔ retirement guard separately rejects matching phase in clearly marked TEST_ONLY membership (2659.8663ms)
+  ✔ retirement guard separately rejects allocation phase in clearly marked TEST_ONLY membership (2890.720201ms)
+  ✔ retirement guard separately rejects builder-month matching in clearly marked TEST_ONLY membership (2634.320174ms)
+  ✔ retirement guard separately rejects builder-month allocation in clearly marked TEST_ONLY membership (2515.956872ms)
+  ✔ retirement guard separately rejects unsettled current-hour units in clearly marked TEST_ONLY membership (2328.76523ms)
+  ✔ retirement guard separately rejects undrained volume jobs in clearly marked TEST_ONLY membership (2193.795442ms)
+  ✔ missing binary binding blocks retirement even with real approval and delay (1797.764914ms)
+  ✔ blocked seller or taxed collateral atomically rolls back the complete normal terminal transition (3111.478073ms)
+  ✔ blocked or taxed development-fee transfer restores the owed claim and all cash accounting (3029.474724ms)
+  ✔ blocked or taxed retirement transfer preserves support, closure flags, approval and the pending timelock operation (3226.823339ms)
+  ✔ retirement routes only tracked support; raw donations require a fresh distinct council vote and delay (8465.554011ms)
+  ✔ blocked or taxed delayed-donation recovery preserves approval, retirement flags and exact surplus (4362.956331ms)
+  ✔ a later expanded timelock proposer role cannot bypass the independent Council approval (2132.202587ms)
+  ✔ partial-sale fee remains live backing and terminal routing conserves all tracked and donated cash (5316.872665ms)
+  ✔ retirement never permits rescue of collateral or governance to reopen any token funding path (6631.809217ms)
+  ✔ a collateral deficit cannot be hidden by fee-claim payment or permanent retirement (4126.985704ms)
+UNRESOLVED_TERMINAL_DUST Gross <= rounded fee remains rejected; no approved fee waiver, dust write-off, or alternate terminal payout has been inferred.
+  ✔ ordinary precision dust is explicitly rejected rather than promising that every terminal dust state can close (1320.759684ms)
+✔ Permanent-retirement review: isolated EVM lifecycle and failure guards (110128.383488ms)
+REAL_BINARY_RETIREMENT_PATH {"fundedEpochs":21,"organicRank":1,"pendingAutoUSD":"108","release":"owner-only existing releaseAutoToCash","cashClaimsPreserved":true,"fundingRollback":true}
+▶ Permanent-retirement review: real BinaryPlan integration, no seeded ranks or liabilities
+  ✔ organic pending-auto ownership, cash release, retirement and post-retirement funding rollback (103381.995698ms)
+✔ Permanent-retirement review: real BinaryPlan integration, no seeded ranks or liabilities (105248.422388ms)
+ℹ tests 38
+ℹ suites 2
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 216046.091349

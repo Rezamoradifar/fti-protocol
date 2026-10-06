@@ -1,0 +1,40 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ Retirement current-token integrations with canonical BinaryPlan
+  ✔ shared helper binds the current token and matching immutable development fund to real governance (152.795704ms)
+  ✔ current-token fee floor and 5% threshold quote boundaries at live R=100 (3242.616859ms)
+  ✔ current-token fee floor and 5% threshold quote boundaries at live R=1000 (2670.440796ms)
+  ✔ current-token fee floor and 5% threshold quote boundaries at live R=20000 (3037.168737ms)
+  ✔ current-token actual large buys retain gross cash, mint net assets at pretrade price and consume gross manual quota (3475.794449ms)
+  ✔ current-token partial sales retain exact fee, transfers burn 3%, and neither restores manual quota (4057.530061ms)
+  ✔ current-token real registration grants cumulative gross quota and paid top-ups do not reset spent (7019.3897ms)
+  ✔ current-token minOut, deadline, dust, allowance and collateral failures roll back real Binary authorization (4881.650423ms)
+  ✔ current-token hourly gate: four units then one in another hour carry fully; one-wallet five-unit top-up settles (10961.956059ms)
+  ✔ current-token five-unit registration with no eligible points carries the entire pool and protects all buckets (2781.914875ms)
+  ✔ current-token proportional rewards assign only exact rounding residual to development (9572.410215ms)
+✔ Retirement current-token integrations with canonical BinaryPlan (54889.599265ms)
+▶ Retirement current-token hostile collateral with canonical BinaryPlan
+  ✔ current-token taxed buys, partial sells, terminal sells and membership funding fail atomically in both tax modes (3306.359689ms)
+  ✔ current-token collateral callbacks cannot forge quota, reenter buy or transfer approved FTI (3630.004097ms)
+  ✔ current-token deficits block buys, sells and transfers without modifying claims or quota (1109.614269ms)
+  ✔ current-token terminal claim is part of collateral liability and rejects taxed or underbacked payment (2389.879249ms)
+✔ Retirement current-token hostile collateral with canonical BinaryPlan (17608.700081ms)
+▶ Retirement current-token TEST_ONLY paid-rank feature isolation, not organic qualification
+  ✔ TEST_ONLY rank features: all five rates cover full paid-unit history and top-ups retain gross spent (14259.218211ms)
+  ✔ TEST_ONLY builder eligibility with real $5 support latches 10x and 100x price milestones, Members stay unmultiplied (17234.347006ms)
+✔ Retirement current-token TEST_ONLY paid-rank feature isolation, not organic qualification (33980.26918ms)
+ℹ tests 17
+ℹ suites 3
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 107108.56753

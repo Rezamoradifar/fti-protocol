@@ -5,12 +5,14 @@ export async function deployOne(name,args,signer){const a=artifact(name);const c
 // Test helper keeps the explicit historical FTIToken default for legacy regression suites.
 // Canonical demo/deploy entry points select FTIReserveToken + BinaryPlan explicitly.
 export async function deploySuite(signers,{tokenContract='FTIToken',binaryContract='BinaryPlan'}={}){
- if(!['FTIToken','FTIReserveToken'].includes(tokenContract))throw Error('Unknown token model');
+ if(!['FTIToken','FTIReserveToken','FTIRetirementReviewToken'].includes(tokenContract))throw Error('Unknown token model');
  if(!['BinaryPlan','FundedBinaryPlan'].includes(binaryContract))throw Error('Unknown reward model');
  const addresses=await Promise.all(signers.map(s=>s.getAddress()));if(addresses.length<41)throw Error('Need at least 41 local test signers');
  const usd=await deployOne('MockUSD',[],signers[0]);const council=await deployOne('Council',[addresses.slice(31,38)],signers[0]);
  const timelock=await deployOne('FTITimelock',[council.target],signers[0]);
- const token=await deployOne(tokenContract,[usd.target,timelock.target,council.target],signers[0]);
+ const tokenArgs=[usd.target,timelock.target,council.target];
+ if(tokenContract==='FTIRetirementReviewToken')tokenArgs.push(addresses[35]);
+ const token=await deployOne(tokenContract,tokenArgs,signers[0]);
  const binary=await deployOne(binaryContract,[usd.target,token.target,timelock.target,council.target,addresses[35],addresses.slice(0,31)],signers[0]);
  await(await token.bind(binary.target)).wait();return{usd,council,timelock,token,binary,addresses};
 }

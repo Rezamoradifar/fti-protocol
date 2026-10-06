@@ -13,8 +13,9 @@ export async function keeperStep(binary,provider){
  if(await binary.monthPhase()>0n){await(await binary.processBuilderMonth(batch)).wait();return 'builder batch';}
  const key=Number(await binary.nextBuilderMonth());const monthEnd=Date.UTC(Math.floor(key/12),key%12+1,1)/1000;
  if(now>=monthEnd&&Number(await binary.lastClosedAt())>=monthEnd){await(await binary.beginBuilderMonth()).wait();return 'builder close';}
- const count=Number(await (funded?binary.autoAccountCount():binary.memberCount()));let cursor=autoCursor.get(binary.target)||0;
- for(let i=0;i<Math.min(5,count);i++){const who=await (funded?binary.autoAccounts(cursor%count):binary.memberList(cursor%count));cursor++;autoCursor.set(binary.target,cursor%count);const amount=await binary.pendingAuto(who);if(amount>0n){try{await(await binary.executeAuto(who,amount)).wait();return 'auto-buy executed';}catch{/* A failed auto-buy remains owned by the beneficiary and never blocks settlement. */}}}
+ const indexed=!!binary.interface?.hasFunction('pendingAutoAccountCount');
+ const count=Number(await (indexed?binary.pendingAutoAccountCount():funded?binary.autoAccountCount():binary.memberCount()));let cursor=autoCursor.get(binary.target)||0;
+ for(let i=0;i<Math.min(5,count);i++){const who=await (indexed?binary.pendingAutoAccounts(cursor%count):funded?binary.autoAccounts(cursor%count):binary.memberList(cursor%count));cursor++;autoCursor.set(binary.target,cursor%count);const amount=await binary.pendingAuto(who);if(amount>0n){try{await binary.executeAuto.staticCall(who,amount,{gasLimit:900000});await(await binary.executeAuto(who,amount,{gasLimit:900000})).wait();return 'auto-buy executed';}catch{/* A failed auto-buy remains owned by the beneficiary and never blocks settlement. */}}}
  return 'idle';
 }
 export function startKeeper(binary,provider,interval=5000){

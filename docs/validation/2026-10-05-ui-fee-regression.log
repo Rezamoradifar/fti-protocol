@@ -1,0 +1,33 @@
+✔ reserve buy fee and output share one block and exact amounts drive displayed minimum (2.600575ms)
+✔ reserve sale displays sub-bps fee atoms without calling truncated legacy quoteSell (0.46368ms)
+✔ full/emergency reserve sale shows zero exact fee and one-atom outputs remain visible (0.293733ms)
+✔ legacy token buys and sells need no reserve-only fee ABI and preserve quoted output (0.534987ms)
+✔ quote failures remain failures rather than falling back to a guessed fee (0.8088ms)
+✔ buy prerequisites do not block holder sales during pause/emergency or after transfers (0.382517ms)
+✔ reserve policy labels and quote path remain distinct from legacy fee-rate display (0.387405ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FTI local: http://127.0.0.1:0
+(node:20) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ integrated API reports local size-fee review, disabled pressure/caps, protected fund and complete final payout (8740.52587ms)
+✔ canonical demo and deployment select the reserve token/global-pool route (1.459183ms)
+✔ default historical browser launcher fails closed before opening a server (71.871693ms)
+✔ canonical deployment refuses the historical funded variant before reading credentials or sending anything (161.697384ms)
+✔ token sell gas padding adds a rounded-up quarter plus 30k without Number precision loss (0.951275ms)
+✔ token sell gas padding rejects malformed, zero and negative estimates (0.526595ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9662.817709

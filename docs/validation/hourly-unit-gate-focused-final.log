@@ -1,0 +1,31 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: actual funded paid points and global point-pool allocation
+  ✔ hourly registration-unit gate: four then one in separate hours carry fully; one-wallet five-unit top-up settles (13918.116635ms)
+  ✔ one new wallet registering five units reaches the hourly gate; zero eligible points still carry the full pool (3971.64501ms)
+✔ BinaryPlan: actual funded paid points and global point-pool allocation (20780.066708ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ hourly unit minimum: 3 then 2 in separate hours carry; 5 current-hour units settle all carried cash (21868.046465ms)
+ℹ tests 3
+ℹ suites 1
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 44314.07229

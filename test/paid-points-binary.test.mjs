@@ -43,7 +43,7 @@ describe('BinaryPlan: actual funded paid points and global point-pool allocation
 
  test('20 real hourly epochs: raw 10 pays 5 and flushes 5; only allocation 100 promotes Builder 1, with old-rank auto timing',async()=>{
   const root=s.addresses[0],dev=s.addresses[35];await units(0,1);
-  await(await s.binary.setAutoBuy(true,E('1000000'))).wait();
+  await(await s.binary.setAutoBuy(true)).wait();
   let expectedReward=0n;
   for(let hour=1;hour<=20;hour++){
    await units(1,10);await units(2,10);
@@ -78,7 +78,13 @@ describe('BinaryPlan: actual funded paid points and global point-pool allocation
   await fails(()=>s.binary.claim());assert.equal(await s.binary.cumulativePaidRankPoints(root),100n);
   await(await s.token.buy(E('100'),0,MaxUint256)).wait();
   const spent=await s.binary.tokenBuySpent(root);assert.equal(spent,E('100'));
-  await units(1,12);await units(2,12);const current=await s.binary.epoch();await settle(s,p);
+  await units(1,12);await units(2,12);const current=await s.binary.epoch();
+  // Create a real pending liability by failing the new immediate allocation attempt.
+  await(await s.usd.setBlocked(s.token.target,true)).wait();
+  const tokensBefore=await s.token.balanceOf(root),reserveBefore=await s.token.reserve();
+  await settle(s,p);
+  assert.equal(await s.token.balanceOf(root),tokensBefore);assert.equal(await s.token.reserve(),reserveBefore);
+  await(await s.usd.setBlocked(s.token.target,false)).wait();
   assert.equal(await s.binary.paidPoints(current,root),10n,'next epoch uses the new Builder 1 cap');
   assert.equal(await s.binary.cumulativePaidRankPoints(root),110n);
   assert.equal(await s.binary.autoSnapshot(current,root),true);
@@ -104,13 +110,50 @@ describe('BinaryPlan: actual funded paid points and global point-pool allocation
   console.log('PAID_POINT_REAL_PATH',JSON.stringify({epochs:20,rawMatched:200,rankPoints:100,flushed:100,rank:1,rankCredit:'funded allocation; not cash claim',autoStartsNextEpoch:true}));
  });
 
- test('all cap rows are unchanged and cumulative minimum below five units preserves pool',async()=>{
+ test('hourly registration-unit gate: four then one in separate hours carry fully; one-wallet five-unit top-up settles',async()=>{
   for(let level=0;level<4;level++)for(let rank=0;rank<5;rank++)assert.equal(await s.binary.cap(rank,level),capRows[level][rank]);
-  await units(0,1);await units(1,2);await settle(s,p);
-  assert.equal(await s.binary.pointPool(),E('270'));assert.equal(await s.binary.cumulativePaidRankPoints(s.addresses[0]),0n);
-  await units(2,2);await settle(s,p);
-  assert.equal(await s.binary.pointPool(),0n);assert.equal(await s.binary.pendingReward(s.addresses[0]),E('450'));
-  assert.equal(await s.binary.cumulativePaidRankPoints(s.addresses[0]),2n);await checkAccounting(s);
+  const root=s.addresses[0],dev=s.addresses[35];
+  await units(0,1);await units(1,1);await units(2,2);await drainVolume(s);
+  const count=await s.binary.memberCount();assert.equal(await s.binary.epochUnits(),4n);
+  const carry=await s.binary.members(root);assert.equal(carry.carryL,1n);assert.equal(carry.carryR,2n);
+  await settle(s,p);
+  assert.equal(await s.binary.pointPool(),E('360'),'four units cannot distribute even with eligible matches');
+  assert.equal(await s.binary.pendingReward(root),0n);assert.equal(await s.binary.cumulativePaidRankPoints(root),0n);
+  assert.equal(await s.binary.pendingReward(dev),E('4'),'development gets only the ordinary 1 USD per unit');
+  assert.equal((await s.binary.members(root)).carryL,carry.carryL);assert.equal((await s.binary.members(root)).carryR,carry.carryR);
+  assert.equal(await s.binary.epochUnits(),0n);await checkAccounting(s);
+  // Registration units from another hour cannot satisfy this hour's gate.
+  await units(2,1);assert.equal(await s.binary.epochUnits(),1n);await settle(s,p);
+  assert.equal(await s.binary.pointPool(),E('450'),'four previous-hour units plus one current-hour unit remain full carry');
+  assert.equal(await s.binary.pendingReward(root),0n);assert.equal(await s.binary.pendingReward(dev),E('5'));
+  assert.equal(await s.binary.cumulativePaidRankPoints(root),0n);await checkAccounting(s);
+  await settle(s,p);assert.equal(await s.binary.pointPool(),E('450'),'an empty hour does not divert carry');
+  assert.equal(await s.binary.pendingReward(dev),E('5'));
+  // A single existing wallet pays 500 USD: five registration units, no new wallets.
+  await units(2,5);assert.equal(await s.binary.epochUnits(),5n);assert.equal(await s.binary.memberCount(),count);
+  const pool=await s.binary.pointPool(),builder=await s.binary.builderAccounted(),tokenCash=await s.usd.balanceOf(s.token.target);
+  assert.equal(pool,E('900'));assert.equal(builder,E('40'));assert.equal(tokenCash,E('50'));
+  const epoch=await s.binary.epoch();await settle(s,p);
+  assert.equal(await s.binary.paidPoints(epoch,root),1n);assert.equal(await s.binary.pendingReward(root),pool);
+  assert.equal(await s.binary.pointPool(),0n);assert.equal(await s.binary.cumulativePaidRankPoints(root),1n);
+  assert.equal(await s.binary.pendingReward(dev),E('10'),'no development exception consumes the carried point pool');
+  assert.equal(await s.binary.builderAccounted(),builder);assert.equal(await s.usd.balanceOf(s.token.target),tokenCash);
+  assert.equal(await s.binary.memberCount(),count);assert.equal(await s.binary.unitsOf(s.addresses[2]),8n);
+  assert.equal(await s.binary.unitsSinceSettlement(),0n);await checkAccounting(s);
+ });
+
+ test('one new wallet registering five units reaches the hourly gate; zero eligible points still carry the full pool',async()=>{
+  const who=s.addresses[36],dev=s.addresses[35],count=await s.binary.memberCount();
+  await(await s.binary.connect(signers[36]).register(s.addresses[15],5)).wait();
+  assert.equal(await s.binary.memberCount(),count+1n);assert.equal(await s.binary.unitsOf(who),5n);
+  assert.equal(await s.binary.epochUnits(),5n);assert.equal(await s.binary.pointPool(),E('450'));
+  await advanceToClose(s,p);assert.equal(await s.binary.phase(),1n,'five units reaches matching despite only one registering wallet');
+  await finishEpoch(s);
+  assert.equal(await s.binary.totalPaidPoints(),0n);assert.equal(await s.binary.allocated(),0n);assert.equal(await s.binary.pointValue(),0n);
+  assert.equal(await s.binary.pointPool(),E('450'));assert.equal(await s.binary.pendingReward(who),0n);
+  assert.equal(await s.binary.pendingReward(dev),E('5'));assert.equal(await s.binary.builderAccounted(),E('20'));
+  assert.equal(await s.usd.balanceOf(s.token.target),E('25'));await checkAccounting(s);
+  await settle(s,p);assert.equal(await s.binary.pointPool(),E('450'));assert.equal(await s.binary.pendingReward(dev),E('5'));await checkAccounting(s);
  });
 
  test('proportional full-pool distribution rounds only exact residual to development and preserves every protected bucket',async()=>{
@@ -191,15 +234,22 @@ describe('BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtur
  for(const[rank,threshold]of [100n,200n,500n,1000n].entries())test(`TEST ONLY prior paid history: threshold ${threshold} advances only after funded allocation under rank ${rank}`,async()=>{
   const root=s.addresses[0],oldCap=capRows[0][rank];await units(0,1);
   await(await s.binary.TEST_ONLY_seedHistory(root,threshold-oldCap,rank)).wait();
-  await(await s.binary.setAutoBuy(true,E('1000000'))).wait();await units(1,30);await units(2,30);
+  await(await s.binary.setAutoBuy(true)).wait();await units(1,30);await units(2,30);
   const oldLimit=E(String(rankRates[rank]))*await s.token.priceMultiplier();assert.equal(await s.binary.tokenBuyLimit(root),oldLimit);
   await(await s.token.buy(E('100'),0,MaxUint256)).wait();const spent=await s.binary.tokenBuySpent(root);
   await advanceToClose(s,p);await(await s.binary.processEpoch(100,{gasLimit:12000000})).wait();
   assert.equal(await s.binary.paidPoints(1,root),oldCap);assert.equal(await s.binary.rankOf(root),BigInt(rank));
   assert.equal(await s.binary.cumulativePaidRankPoints(root),threshold-oldCap);
-  const pool=await s.binary.frozenPool();await(await s.binary.processEpoch(1,{gasLimit:12000000})).wait();
-  assert.equal(await s.binary.pendingReward(root),rank===0?pool:pool*95n/100n);
-  assert.equal(await s.binary.pendingAuto(root),rank===0?0n:pool*5n/100n);
+  const pool=await s.binary.frozenPool(),auto=rank===0?0n:pool*5n/100n;
+  const reserveBefore=await s.token.reserve(),supplyBefore=await s.token.totalSupply(),tokensBefore=await s.token.balanceOf(root),cashBefore=await s.usd.balanceOf(s.binary.target);
+  const quote=auto===0n?0n:await s.token.quoteBuy(auto);
+  assert.equal(await s.binary.autoSnapshot(1,root),rank>0,'old rank controls the allocation even when it promotes');
+  await(await s.binary.processEpoch(1,{gasLimit:12000000})).wait();
+  assert.equal(await s.binary.pendingReward(root),pool-auto);
+  assert.equal(await s.binary.pendingAuto(root),0n,'eligible auto purchases in the allocation transaction');
+  assert.equal(await s.token.balanceOf(root),tokensBefore+quote);
+  assert.equal(await s.token.totalSupply(),supplyBefore+quote);assert.equal(await s.token.reserve(),reserveBefore+auto);
+  assert.equal(await s.usd.balanceOf(s.binary.target),cashBefore-auto);
   assert.equal(await s.binary.rankOf(root),BigInt(rank+1));assert.equal(await s.binary.cumulativePaidRankPoints(root),threshold);
   assert.equal(await s.binary.tokenBuyLimit(root),E(String(rankRates[rank+1]))*await s.token.priceMultiplier());
   assert.equal(await s.binary.tokenBuySpent(root),spent,'permanent gross spent survives rank upgrade');

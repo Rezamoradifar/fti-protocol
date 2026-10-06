@@ -1,0 +1,91 @@
+{
+  "recordedAtUTC": "2026-10-05T12:00:00Z",
+  "publicationBaseCommit": "5e0809f9f302355af8e0c5571a1ba889f1ca847e",
+  "recentLocalCases": 177,
+  "selections": [
+    {
+      "selection": "lifecycle",
+      "tests": 43,
+      "passed": 43,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "files": {
+        "test/retirement-review.test.mjs": "37b186f1c0979c047068d752a887d21821c4958e1121bd891381953ab90dcd0b"
+      },
+      "logSha256": "11da17a1627f36c4ba91d2ea5fdfa090bf407418cfc31b094b08c958227d9660"
+    },
+    {
+      "selection": "fee-and-rotation",
+      "tests": 37,
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "files": {
+        "test/size-fee-proposal.test.mjs": "5960833242cf6a2e3dda12d9245c39ba6268f39a670e6eae5e6dfa3900385203",
+        "test/governance-rotation.test.mjs": "4cfb93a005069918d9671044672dc83a89224f9df02d08e6cf24191314675581"
+      },
+      "logSha256": "29b68c4b1f2ff0ade4c10099d97a905cb67ed886295ce11a95912dce57c09df5"
+    },
+    {
+      "selection": "current-token-integration-and-load",
+      "tests": 21,
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "files": {
+        "test/retirement-integrations.test.mjs": "75d1776bbf999570e719eb41b5c370ca2598e02a189d03bdce108a2248374be2",
+        "test/retirement-load.test.mjs": "4bcbad40a4340af03a175bf2a003de6709f6b42f6ce122e8cb0a5bad672624bb"
+      },
+      "logSha256": "04b6f35292b8bfe0ebcbdee0d7fa209ac4071d1296eea930be9f454c8263751b"
+    },
+    {
+      "selection": "helper-regression",
+      "tests": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "files": {
+        "test/binary-buy-allowance.test.mjs": "aacb876e8123d239c01d207e2b33d32e3febbb5c5677545474f25c9c1fbb5530",
+        "test/core-autobuy.test.mjs": "1fcf5641a5e031bf5bbdf4734acb63e003588821c5eff98ee4ba7dbbba3695e8"
+      },
+      "logSha256": "b33c9730a9f6c4710f3709e777f885ae755ea0429548325c8fb805fb73a7a29a"
+    },
+    {
+      "selection": "application",
+      "tests": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "files": {
+        "test/frontend-trade-quotes.test.mjs": "1cda3bd99d861d04a596a3c2d5c1867500bb5d963414cc17a11ace164aebed7a",
+        "test/integrated-server-state.test.mjs": "4cab10c6b2893b01c19670864af42feb2f6656aa2721a6b0d83acde655838919",
+        "test/retirement-server-state.test.mjs": "e4bd1209a18540498b7b5de261c35d65b5d05a439a62ceb23760ad618cc2acef"
+      },
+      "logSha256": "df314e51a6b338632874709c47d0381dd2f9d8e95291acc2c7327d2b341f4108"
+    },
+    {
+      "selection": "unsigned-deployment",
+      "tests": 36,
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "files": {
+        "test/retirement-deployment.test.mjs": "c58589f62e12330a73ef65495306b2fdacca2bc667fe48f23556c8934ac9ec82",
+        "test/review-entrypoints.test.mjs": "e497ebe37bc49a7c3205312b4a37b712ae68150e61bb08c8e1ddf5e6a8bab605"
+      },
+      "logSha256": "0df21becb219bb4bb6a70a852aed89f17e11a3d4358b5ee1366c2622ba2ab969"
+    }
+  ],
+  "fullCurrentRepositoryCI": "Check the exact published commit; no full single local npm-test pass claimed",
+  "older250Result": "Historical fee-floor candidate only; not relabeled as new lifecycle validation",
+  "newTokenSourceSha256": "0ad9664006aadb83ba5141ec0b43982e3dd444356922974a2fb1d6593d34aba3",
+  "newTokenArtifactSha256": "052ca59dd7f550d8656c9f43f7c5d56c0b90479c8bebe4e2dd976f9ecbfe4b3a",
+  "browserRendering": "Not reverified; earlier Chromium startup was environment-blocked",
+  "externalMutations": "No signing, deployment or live-server change"
+}

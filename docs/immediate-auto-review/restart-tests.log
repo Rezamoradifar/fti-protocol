@@ -1,0 +1,25 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ different first buyer restarts at exact last ratio; prior support, claims and donation are never allocated (24852.762916ms)
+✔ fractional historical anchor below display precision is preserved across restart (1887.602651ms)
+✔ repeated micro restart round trips cannot extract old support or terminal claims (39922.152722ms)
+✔ automatic buy restarts through the same exact quote without consuming manual authorization (4299.750895ms)
+✔ pending retirement cannot sweep a restarted balance; closure needs separate approval and rechecks state (7393.247343ms)
+✔ 5/7 plus 72h permanent closure permits pending claims but blocks manual/auto/funding and reopening (5418.828955ms)
+✔ closure authorization uses five council votes, delay, revocation, and cannot be reused (5366.068232ms)
+✔ permanent closure breaks pending-auto circularity; retirement still waits for all claims and quiescence (6698.901572ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 96598.655118

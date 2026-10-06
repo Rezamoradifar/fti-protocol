@@ -23,7 +23,7 @@ try{
  if(await provider.getBalance(signer.address)===0n)throw Error('The deployer needs test BNB for gas');
  const names=['MockUSD','Council','FTITimelock','FTIReserveToken',binaryContract];
  const artifacts=Object.fromEntries(names.map(n=>[n,artifact(n)]));
- const record={mode:'testnet',chainId:97,tokenContract:'FTIReserveToken',binaryContract,lockVersion:3,rewardModel:'global-pool-paid-points-v2',pricingModel:'real-reserve-quarantine-pressure-review',owner:signer.address,config,steps:[],artifactSHA256:Object.fromEntries(names.map(n=>[n,createHash('sha256').update(Buffer.from(artifacts[n].bytecode.slice(2),'hex')).digest('hex')]))};
+ const record={mode:'testnet',chainId:97,tokenContract:'FTIReserveToken',binaryContract,lockVersion:3,rewardModel:'global-pool-paid-points-v2',pricingModel:'real-reserve-size-fee-floor-review',owner:signer.address,config,steps:[],artifactSHA256:Object.fromEntries(names.map(n=>[n,createHash('sha256').update(Buffer.from(artifacts[n].bytecode.slice(2),'hex')).digest('hex')]))};
  fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(journal,JSON.stringify(record,null,2)+'\n',{flag:'wx',mode:0o600});
  const save=()=>{fs.writeFileSync(journal+'.tmp',JSON.stringify(record,null,2)+'\n',{mode:0o600});fs.renameSync(journal+'.tmp',journal);};
  async function deploy(name,args){
@@ -37,6 +37,6 @@ try{
  const binary=await deploy(binaryContract,[usd.target,token.target,timelock.target,council.target,config.development,config.genesis]);
  const step={name:'bind',status:'prepared',nonce:await provider.getTransactionCount(signer.address,'pending')};record.steps.push(step);save();const tx=await token.bind(binary.target,{nonce:step.nonce});step.hash=tx.hash;step.status='broadcast';save();const receipt=await tx.wait();if(receipt.status!==1)throw Error('Binding failed');step.status='confirmed';save();
  if((await token.binary()).toLowerCase()!==binary.target.toLowerCase()||await token.reserve()!==0n||await token.unallocatedReserve()!==0n||await token.totalSupply()!==0n)throw Error('Unexpected zero-start reserve/supply state');
- const result={mode:'testnet',chainId:97,tokenContract:'FTIReserveToken',binaryContract,lockVersion:3,rewardModel:'global-pool-paid-points-v2',pricingModel:'real-reserve-quarantine-pressure-review',deployedBlock:record.steps[0].block,usd:usd.target,token:token.target,binary:binary.target,council:council.target,timelock:timelock.target,genesis:config.genesis,councilOwners:config.owners};
+ const result={mode:'testnet',chainId:97,tokenContract:'FTIReserveToken',binaryContract,lockVersion:3,rewardModel:'global-pool-paid-points-v2',pricingModel:'real-reserve-size-fee-floor-review',deployedBlock:record.steps[0].block,usd:usd.target,token:token.target,binary:binary.target,council:council.target,timelock:timelock.target,genesis:config.genesis,councilOwners:config.owners};
  fs.writeFileSync(output,JSON.stringify(result,null,2)+'\n',{flag:'wx',mode:0o600});console.log('SAVED',output);console.log('Zero-start token deployed. Binary support never mints FTI; first protocol buy creates user supply. Existing deployments are unchanged.');
 }catch(error){console.error('STOPPED:',error.shortMessage||error.message);console.error('Keep any progress journal. Inspect receipts and pending nonces before attempting another deployment.');process.exitCode=1;}finally{provider.destroy();}

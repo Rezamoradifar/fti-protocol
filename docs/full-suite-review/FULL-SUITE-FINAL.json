@@ -1,0 +1,53 @@
+{
+  "status": "FULL_REPOSITORY_TEST_PASS_TEST_ONLY_MIGRATION",
+  "command": "npm test",
+  "nodeVersion": "v24.19.0",
+  "solcVersion": "0.8.30+commit.73712a01.Emscripten.clang",
+  "testFileCount": 49,
+  "tests": 447,
+  "suites": 18,
+  "passed": 447,
+  "failed": 0,
+  "cancelled": 0,
+  "skipped": 0,
+  "todo": 0,
+  "exitCode": 0,
+  "durationMs": 4247994.557026,
+  "startedAt": "2026-10-06T00:46:08Z",
+  "finishedAt": "2026-10-06T01:57:45Z",
+  "inputHashVerification": "ALL_MATCHED_AFTER_RUN",
+  "productionFilesChanged": false,
+  "testFilesChanged": 10,
+  "baseline": {
+    "tests": 447,
+    "passed": 395,
+    "failed": 52,
+    "cancelled": 0,
+    "skipped": 0,
+    "exitCode": 1
+  },
+  "sourceHashes": {
+    "contracts/BinaryPlan.sol": "9844e9b6b14553e0eb14352d43ab65e0cefda18d7c07a87101d074959c198271",
+    "contracts/FTIRetirementReviewToken.sol": "89de8c1e8babbb0b5cf8ad20b92d96f176f2d3f89e9319e7328c7c52f0676ccb"
+  },
+  "artifactHashes": {
+    "artifacts/BinaryPlan.json": "74c55aff04054d58d9f7ea9c9720032a0d6fe7572b248fa881dca0b9ee1cd4cb",
+    "artifacts/FTIRetirementReviewToken.json": "f7821bc76f101bc010d5c61a34408f821f2867e13f53007308335036e0d8d0dd"
+  },
+  "testPatchSHA256": "aeef2081311307daa993238e36bb2f4508a24b0c2bb3d36efc303b57048e3e06",
+  "finalLogSHA256": "614a02a91a43c2c739f62a49f2077906785f6949cce160decdc9eacf43dac89d",
+  "baselineLogSHA256": "7787b7b4f89d63e2176e8db3d8837291efa41b5f76608014199bdb7230790cf8",
+  "boundaries": [
+    "Historical and mixed-model regression tests are included; counts are not added to focused totals.",
+    "No independent security audit or complete requirements implementation claimed.",
+    "Automatic H support use remains unimplemented.",
+    "Node 22 was not tested; Node 24.19.0 satisfies repository >=22 requirement.",
+    "Ganache used its JavaScript fallback for unavailable native uWS binding.",
+    "Not yet integrated into the frozen delivery candidate."
+  ],
+  "deploymentReady": false,
+  "deploymentApproved": false,
+  "signed": false,
+  "broadcast": false,
+  "networkVerified": false
+}

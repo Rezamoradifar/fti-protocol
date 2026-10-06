@@ -1,0 +1,19 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ independent current pair: 1 TEST_ONLY tier-four builders enforce each tier's 20% cap and lifetime one-time award (8222.936309ms)
+✔ independent current pair: 6 TEST_ONLY tier-four builders enforce each tier's 20% cap and lifetime one-time award (20443.694639ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29308.736119

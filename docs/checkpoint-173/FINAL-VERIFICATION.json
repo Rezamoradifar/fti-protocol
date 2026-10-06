@@ -1,0 +1,31 @@
+{
+  "status": "LOCAL_REVIEW_CHECKPOINT_NOT_PRODUCTION_READY",
+  "selectedDistinctPassed": 173,
+  "fullRepositoryPass": false,
+  "requirementRowsAssessed": 39,
+  "allRequirementsImplemented": false,
+  "HSupportPolicy": "OPEN_UNIMPLEMENTED",
+  "selections": {
+    "contractsKeeper": 27,
+    "syntheticTimingEdge": 1,
+    "uiApi": 56,
+    "unsignedPreparation": 40,
+    "independentAudit": 49
+  },
+  "contractHashes": {
+    "BinaryPlan.sol": "9844e9b6b14553e0eb14352d43ab65e0cefda18d7c07a87101d074959c198271",
+    "FTIRetirementReviewToken.sol": "89de8c1e8babbb0b5cf8ad20b92d96f176f2d3f89e9319e7328c7c52f0676ccb"
+  },
+  "artifactHashes": {
+    "BinaryPlan.json": "74c55aff04054d58d9f7ea9c9720032a0d6fe7572b248fa881dca0b9ee1cd4cb",
+    "FTIRetirementReviewToken.json": "f7821bc76f101bc010d5c61a34408f821f2867e13f53007308335036e0d8d0dd"
+  },
+  "published": false,
+  "deployed": false,
+  "signed": false,
+  "browserRendered": false,
+  "liveWalletTested": false,
+  "fullSuiteFollowup": "ONGOING_SEPARATE_SCOPE_NOT_COUNTED",
+  "numericSupportModelChecks": 551339,
+  "numericModelIncludedInSelectedCaseCount": false
+}

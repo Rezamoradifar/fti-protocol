@@ -1,0 +1,23 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: actual funded paid points and global point-pool allocation
+  ✔ all cap rows are unchanged and cumulative minimum below five units preserves pool (6540.505999ms)
+  ✔ proportional full-pool distribution rounds only exact residual to development and preserves every protected bucket (9058.483196ms)
+PROVISIONAL_GLOBAL_POOL_RISK {"unrelatedCarriedPool":"9000","subtreeCost":"500","subtreeReward":"9450","paidRankPoints":2,"ownershipApproved":false}
+  ✔ no eligible points carries the whole pool provisionally; later self-controlled matches still expose global-pool ownership risk (8569.440775ms)
+✔ BinaryPlan: actual funded paid points and global point-pool allocation (26682.27066ms)
+ℹ tests 3
+ℹ suites 1
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 27360.604986

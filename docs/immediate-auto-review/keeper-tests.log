@@ -1,0 +1,14 @@
+✔ funded keeper scans only eligible pending auto accounts (1.420318ms)
+✔ funded keeper uses bounded 25-item batches and waits for receipt (0.313734ms)
+{"time":"2026-10-06T00:17:32.127Z","service":"keeper","result":"epoch batch"}
+{"time":"2026-10-06T00:17:32.134Z","service":"keeper","result":"epoch batch"}
+{"time":"2026-10-06T00:17:32.139Z","service":"keeper","result":"epoch batch"}
+✔ keeper drains work without interval delays, never overlaps writes, and stops scheduling cleanly (52.057346ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 230.37096

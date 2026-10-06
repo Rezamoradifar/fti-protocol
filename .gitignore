@@ -22,3 +22,10 @@ deployments/local-reserve.json
 deployments/reserve-testnet*.json
 deployments/local-funded.json
 deployments/funded-testnet*.json
+
+# Separate retirement-review local state and public-input preparation outputs
+deployments/local-retirement.json
+deployments/retirement-input.json
+*.unsigned.json
+*.unsigned.json.progress.json
+*.unsigned.json.journal.json

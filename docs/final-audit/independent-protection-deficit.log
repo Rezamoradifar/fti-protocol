@@ -1,0 +1,21 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures
+  ✔ TEST ONLY dense matches: PV below $20 still settles all funds, changes next protection row, and preserves monthly buckets (14892.157403ms)
+  ✔ funding deficit blocks allocation and rank progress atomically; repairing collateral permits the same allocation (5951.896377ms)
+✔ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures (33304.875584ms)
+ℹ tests 2
+ℹ suites 1
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 33859.600021

@@ -1,0 +1,37 @@
+✔ reserve buy fee and output share one block and exact amounts drive displayed minimum (2.547101ms)
+✔ reserve sale displays sub-bps fee atoms without calling truncated legacy quoteSell (0.379184ms)
+✔ historical full-supply or current emergency sale shows zero exact fee and one-atom outputs remain visible (0.247398ms)
+✔ legacy token buys and sells need no reserve-only fee ABI and preserve quoted output (0.566082ms)
+✔ quote failures remain failures rather than falling back to a guessed fee (0.655636ms)
+✔ buy prerequisites do not block holder sales during pause/emergency or after transfers (0.298034ms)
+✔ reserve policy labels and quote path remain distinct from legacy fee-rate display (0.323071ms)
+✔ retirement ordinary terminal sales preserve exact net quote and slippage instead of assuming a free full exit (0.301709ms)
+✔ rendered current-model policy text never describes an ordinary full exit as fee-free (0.460355ms)
+✔ zero-supply lifecycle labels distinguish historical R=0 from a live quote and permanent retirement (0.403861ms)
+✔ closed or retired token access blocks new funding before approval but does not block beneficiary sales or claims (0.558121ms)
+✔ restart-capable ordinary zero supply permits funding and buys but permanent closure is separate (0.282961ms)
+✔ default off and future next-hour intent are distinct from effective permission (1.277461ms)
+✔ enable targets a future wall-clock boundary even during overdue settlement; opt-out stays immediate (0.609197ms)
+✔ disconnected, stale and historical capability states cannot submit unsupported preferences (0.303582ms)
+✔ inactive and scheduled requests cannot execute pending funds, but owner cash release remains (0.238025ms)
+✔ copy explains bounded current-quote retries without a price cap, deadline or wallet re-debit promise (0.560484ms)
+✔ all three entry points server-render a distinct labeled workspace and one initially visible page (50.299912ms)
+✔ all controller literal DOM IDs exist and React markup contains no duplicate IDs (12.830536ms)
+✔ form controls retain stable IDs, meaningful labels and current safety disclosures (11.152529ms)
+✔ initial, failed and aged data are stale; successful recent data is actionable (1.732158ms)
+✔ disconnected and stale states disable every write capability (0.372495ms)
+✔ public callers are not council owners and membership does not grant governance (0.261549ms)
+✔ funding waits for an open phase and unexpired epoch while cash claims remain accessible (0.262931ms)
+✔ retired and paused lifecycle gating separates holder sales, transfers and new funding (0.270292ms)
+✔ volume, hourly matching and allocation readiness reflect all exposed contract prerequisites (0.354017ms)
+✔ monthly readiness requires calendar boundary and completed boundary-hour settlement (0.190674ms)
+✔ proposal readiness prevents repeat approval and keeps execution permissionless at threshold (0.751979ms)
+✔ timelock and wallet error states never infer a successful execution (2.763654ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 579.694566

@@ -1,48 +1,34 @@
-# FTI protocol: local paid-points/global-pool review
+> **Review checkpoint only, not the newly requested final version.** This snapshot preserves the 447-tested baseline plus the later H-scope documentation/UI-copy decision. Its Council is still 5-of-7. The owner subsequently requested 7-of-7 governance and emergency recovery; those changes are unfinished and are not included or certified here. Do not install this expecting that newer functionality, and do not deploy it. See [publication scope](PUBLICATION-CHECKPOINT.md).
 
-This draft review combines **BinaryPlan** with **FTIReserveToken**. It is a local engineering candidate, not an independently audited, deployed or finally approved financial product. Draft publication is authorized; merge and deployment remain on hold.
+# Local immediate-auto, exact-price and restart review
 
-Read [the current rules and unresolved decisions](docs/TOKEN-V2.md) and [the current validation record](docs/CURRENT-REVIEW-VALIDATION.md). Earlier 119-test and integrated-pressure results cover different source states and do not certify this revision.
+This isolated candidate combines `BinaryPlan` immediate auto-buy with the exact-ratio/restart version of `FTIRetirementReviewToken`. It is not deployed, independently audited, or production-approved. Old validation totals do not certify this source; current unsigned preparation pins have been refreshed and independently rebuilt.
 
-## Canonical flow
+Current support scope is fixed by the [owner decision of 2026-10-06](docs/OWNER-SUPPORT-DECISION-2026-10-06.md): buy fees remain in live reserve R; the Binary 5% goes to R when supply S > 0 and protected H when S = 0. H stays inactive, separate from price, and provides no automatic insurance or loss repair. Only permanent governed retirement after liability checks can dispose of H to the fixed development recipient. Contracts and economics are unchanged.
 
-- Each $100 paid membership unit splits $90 into the global point pool, $5 into the token contract, $4 into builder pools (40/30/20/10), and $1 into development claims. Top-ups keep the same wallet position.
-- Hourly matched points are capped by rank and the existing protection level; matched excess is flushed. Funded capped points allocated in settlement, rather than raw branch units, accumulate toward rank thresholds 100/200/500/1,000. Counting allocation rather than later cash withdrawal is an explicit provisional interpretation.
-- The global hourly pool is distributed proportionally across capped paid points. $20 is a protection target, not a hard ceiling or a reason to stop payouts. Only the exact rounding residual goes to development. No-eligible-hour carry is provisional and retains ownership/concentration risk.
-- Manual token capacity is all paid units × current rank limit ($500/$600/$700/$800/$1,000) × the builder-only price multiplier, minus lifetime gross manual purchases. Auto-buy uses allocated rewards outside that quota.
-- Token supply starts at zero; the initial quote and fixed milestone anchor are $0.10. Buys retain all cash and mint using the 97% net value. Transfers burn 3% and credit 97% to the recipient. Charity is removed.
-- Positive-supply reserve injections add redeemable backing without minting. Zero-supply injections go into a separately tracked, protected, unallocated bucket pending ownership approval; the first minter cannot capture them.
-- Partial sales use an **experimental, not finally approved** 3% base plus up to 7% global-pressure surcharge. There are no age, newcomer-count or hard transaction/hourly waiting caps. A full-supply sale pays all redeemable backing and reaches R=S=0; protected unallocated cash remains separate. Restart is review-gated.
-- The council owner-rotation stale-approval fix is included, with a nominal 5-of-7 emergency council and fixed 72-hour normal timelock. Independent security review is still required.
+Current rules: [immediate auto](docs/immediate-auto-review/REVIEW.md), [restart and permanent shutdown](docs/RETIREMENT-REVIEW.md), and [test scope](docs/immediate-auto-review/TEST-SCOPE.md).
 
-## Run locally
+- Auto defaults off; an enable applies at the next UTC hourly settlement boundary (12:30 → 13:00). Disable stops purchases immediately, including between allocation batches
+- Five percent remains fixed. No user maximum price: the current exact internal quote is used atomically
+- Eligible allocations attempt to mint directly to their beneficiary in the same settlement transaction; manual quota is untouched
+- Failed attempts preserve beneficiary-owned funds. Bounded keeper retries require an active request and an available service/network
+- An ordinary last sale pays net of fee and records a development claim. The same token can restart at the last exact price ratio; protected support, old claims and donations are not captured by the next buyer
+- A distinct 5-of-7 Council/72-hour action permanently closes buys. Only that irreversible marker permits bounded permissionless conversion of pending auto to the same beneficiary's cash claim
+- Later retirement still requires zero supply/backing/token claims/auto claims and quiescent Binary. It never sweeps Binary rewards, point or builder funds
 
-Use the pinned dependencies and a supported Node environment. The validation environment currently uses Node 24 with Ganache's JavaScript fallback; project CI previously specified Node 22.
+## Full repository validation
+
+A fresh `npm test` run passed **447/447 tests across 49 files and 18 suites**, with zero failures, skips or cancellations and exit code 0. It ran from 2026-10-06 00:46:08 UTC to 01:57:45 UTC on Node 24.19.0. Ten test files were migrated to the approved interfaces and behavior; production contracts, bytecode, core logic, keeper, configuration and UI were unchanged. An independent replay approved the exact test patch without removed tests or skip/only controls.
 
 ```sh
 npm ci
 npm test
-npm run demo
 ```
 
-The canonical in-memory demo explicitly selects FTIReserveToken + BinaryPlan and serves at http://127.0.0.1:3082 by default. It uses mock USD and fresh ephemeral accounts. Keep it private. No real funds or existing chain state are used.
+The earlier 173-case focused checkpoint is preserved; it overlaps this full run and is not added to 447. The full suite includes historical and mixed-model regression cases, not only the current contract pair. See [full-run evidence](docs/full-suite-review/FULL-SUITE-FINAL.json), [migration review](docs/full-suite-review/INDEPENDENT-MIGRATION-REVIEW.json) and [current scope](docs/immediate-auto-review/TEST-SCOPE.md). Node 22 was not tested. Ganache used its JavaScript fallback.
 
-```sh
-npm run build:web
-npm run build --prefix landing
-node scripts/verify.mjs --prepare --reserve-token
-```
+All 39 requirement rows have been assessed. H01 is resolved by the owner’s explicit scope decision to retain this model; the former automatic H funding/release policy is superseded, not implemented. Passing tests is not independent external security certification, production-throughput proof or deployment clearance. No earlier three-hour soak is relabeled as this run. The 447-case result predates the documentation/UI-copy update; its original records and the 173-case checkpoint remain unchanged. See the [decision-update checks](docs/owner-support-decision/VALIDATION.md).
 
-Verification preparation recompiles standard input and checks bytecode locally; it does not deploy or sign transactions. `npm run deploy` now selects the canonical reserve-token/BinaryPlan script, but execution remains a separate user-authorized step with final parameters and real wallet addresses. Never send private keys in chat.
+## Deployment boundary
 
-## Historical alternatives
-
-FundedBinaryPlan is retained for comparison/regression only. Its branch-attributed credits, hard $20 ceiling, raw-unit ranks and nonclaimable retained reserves are **not** the current canonical economic direction. Explicit local historical demo: `npm run demo:historical-funded`. Existing source/tests document those differences rather than endorsing them.
-
-The old FTIToken curve and browser deployment launcher are historical. The launcher still contains incompatible curve/governance artifacts and its default launch command is blocked. Do not treat it as a release path for this candidate. Existing deployment files are historical records and were not overwritten.
-
-## Remaining decisions and limits
-
-Before any release: resolve protected zero-supply fund ownership, restart lifecycle, zero-eligible-hour carry ownership, exact paid-point semantics, pressure-fee parameters/split behavior, ordinary precision-dust exits and emergency exceptions. The existing 1,024× milestone multiplier cap and self-transfer-induced quote growth are also disclosed. Rank and monthly pool accounting need independent economic review; no returns, floor price or universal profitable exit is guaranteed.
-
-No GitHub push, merge, mainnet transaction or deployment is authorized by this README or its test results.
+No signing, broadcast, deployment, real-fund movement, GitHub retry or email occurs in this candidate task. The current offline unsigned preparer pins the final artifacts and passed a separate independent rebuild and focused preparation check; its output still grants no deployment authorization. Historical deployment and verification scripts are not the current preparation path. BNB Smart Chain Testnet (chain 97) is owner-confirmed, with TEST ONLY MockUSD collateral. Network/runtime verification, deployment readiness/approval, signing and broadcast remain false. No real treasury, signer or owner address is invented. The [blank-input checklist](docs/owner-support-decision/CHAIN97-UNSIGNED-CHECKLIST.md) records what is still needed before any separately authorized deployment. The 7% size-fee coefficient and true zero-output/dust handling remain open policy boundaries.

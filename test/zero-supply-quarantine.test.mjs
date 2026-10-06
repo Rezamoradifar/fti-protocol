@@ -189,16 +189,16 @@ test('quarantine: emergency partial and full exits remain separately fee-free an
  await tx(token.deactivateEmergencyExit());await unchanged(token.buy,[E('1'),0,MaxUint256],'restart policy pending');
 });
 
-test('quarantine: experimental partial-sale pressure and 3% transfer burn do not touch protected cash',async()=>{
+test('quarantine: trade-size-only partial-sale fees and 3% transfer burn do not touch protected cash',async()=>{
  await seed();const supply=await token.totalSupply(),q=supply/2n;
- assert.equal(await token.sellImpactBps(q),175n);
- const gross=E('50'),bps=475n,payout=gross-(gross*bps+9999n)/10000n;
+ assert.equal(await token.sellImpactBps(q),0n);
+ const gross=E('50'),bps=300n,payout=gross-(gross*bps+9999n)/10000n;
  assert.deepEqual(Array.from(await token.quoteSell(q)),[payout,bps,gross]);
- await tx(token.sell(q,payout,MaxUint256));assert.equal(await token.pressureWad(),E('0.5'));
+ await tx(token.sell(q,payout,MaxUint256));assert.equal(await token.pressureWad(),0n);
  const remainingR=await token.reserve(),remainingS=await token.totalSupply();
  await tx(token.transfer(addresses[1],E('100')));
  assert.equal(await token.balanceOf(addresses[1]),E('97'));assert.equal(await token.totalSupply(),remainingS-E('3'));
- await backed(remainingR,E('500'));assert.equal(await token.pressureWad(),E('0.5'));
+ await backed(remainingR,E('500'));assert.equal(await token.pressureWad(),0n);
  assert.equal(await token.FEE_BPS(),300n);assert.equal(await token.MAX_SELL_FEE_BPS(),1000n);
 });
 

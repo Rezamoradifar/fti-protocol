@@ -1,0 +1,26 @@
+{
+  "command": "npm test",
+  "nodeVersion": "v24.19.0",
+  "exitCode": 1,
+  "tests": 447,
+  "suites": 18,
+  "passed": 395,
+  "failed": 52,
+  "cancelled": 0,
+  "skipped": 0,
+  "todo": 0,
+  "durationMs": 3745807.400964,
+  "failureLocationsByFile": {
+    "binary-buy-allowance.test.mjs": 1,
+    "core-autobuy.test.mjs": 8,
+    "independent-rank-boundaries.test.mjs": 1,
+    "integrated-binary-funding.test.mjs": 2,
+    "paid-points-binary.test.mjs": 5,
+    "protocol.test.mjs": 3,
+    "retirement-integrations.test.mjs": 3,
+    "retirement-load.test.mjs": 1,
+    "retirement-review.test.mjs": 27,
+    "size-fee-proposal.test.mjs": 1
+  },
+  "log": "docs/immediate-auto-review/full-suite-baseline-failed.log"
+}

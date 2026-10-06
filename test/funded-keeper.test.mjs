@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {keeperStep,startKeeper} from '../scripts/keeper.mjs';
 const provider={getBlock:async()=>({timestamp:100})};
-function stub(){return {target:'stub-'+Math.random(),interface:{hasFunction:()=>true},phase:async()=>0n,jobCursor:async()=>0n,jobCount:async()=>0n,epochEnd:async()=>1000n,monthPhase:async()=>0n,nextBuilderMonth:async()=>24000n,autoAccountCount:async()=>0n,memberCount:async()=>{throw Error('Must not scan full member list');}};}
+function stub(){return {target:'stub-'+Math.random(),interface:{hasFunction:name=>name==='autoAccountCount'},phase:async()=>0n,jobCursor:async()=>0n,jobCount:async()=>0n,epochEnd:async()=>1000n,monthPhase:async()=>0n,nextBuilderMonth:async()=>24000n,autoAccountCount:async()=>0n,memberCount:async()=>{throw Error('Must not scan full member list');}};}
 test('funded keeper scans only eligible pending auto accounts',async()=>{
- const b=stub();let calls=0;b.autoAccountCount=async()=>2n;b.autoAccounts=async i=>'wallet-'+i;b.pendingAuto=async()=>5n;b.executeAuto=async who=>{calls++;assert.equal(who,'wallet-0');return {wait:async()=>({status:1})};};assert.equal(await keeperStep(b,provider),'auto-buy executed');assert.equal(calls,1);
+ const b=stub();let calls=0;b.autoAccountCount=async()=>2n;b.autoAccounts=async i=>'wallet-'+i;b.pendingAuto=async()=>5n;b.executeAuto=async who=>{calls++;assert.equal(who,'wallet-0');return {wait:async()=>({status:1})};};b.executeAuto.staticCall=async()=>{};assert.equal(await keeperStep(b,provider),'auto-buy executed');assert.equal(calls,1);
 });
 test('funded keeper uses bounded 25-item batches and waits for receipt',async()=>{
  const b=stub();b.phase=async()=>1n;let receipt=false;b.processEpoch=async batch=>{assert.equal(batch,25);return {wait:async()=>{receipt=true;}};};assert.equal(await keeperStep(b,provider),'epoch batch');assert(receipt);

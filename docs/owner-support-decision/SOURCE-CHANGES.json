@@ -1,0 +1,132 @@
+{
+  "recordedAt": "2026-10-06",
+  "node": "24.19.0",
+  "existingFilesChanged": [
+    {
+      "path": "README.md",
+      "beforeSHA256": "5537dcc8438429eb55dad0536e914f04c1f168b0b842e2812404bb90ce0522f2",
+      "afterSHA256": "ec1164361d39a729f836eebb0ce9df5aa1127a239b4b975967d39da643d95bb6"
+    },
+    {
+      "path": "README.fa.md",
+      "beforeSHA256": "113ca8f099f4ed621469034413f79f8781579f0b218e35584badb61011060b70",
+      "afterSHA256": "05871d3f212ed4c5d4b082ffe1cbecdf3547846f433c4fad4de2bb1afc4b1a8a"
+    },
+    {
+      "path": "frontend/main.jsx",
+      "beforeSHA256": "54706ec824c895a2c9844dcab1bfade858ef8ace8c1f45563b3ba02e067e2098",
+      "afterSHA256": "6069ab59076f253ae16a56f7ef3313cb43d86607577654d057f1ac7c9a2f6564"
+    },
+    {
+      "path": "frontend/controller.js",
+      "beforeSHA256": "af979ec17d1745bab0ae48a7b1144f624a25047800a7cde3cc4c4b09d6bec796",
+      "afterSHA256": "61da9b12f105469139a7ab79cc4f207d875956f27b1816ea10e17bc90fa31ba6"
+    },
+    {
+      "path": "web/app.js",
+      "beforeSHA256": "4111324d20bd70470de16edbf85e3b44894e05164d7625aebd9e142bd4c02a6c",
+      "afterSHA256": "283a25431c42e4527e15a42311a640aafc93add18a6b46c5858ceee73cb1c919"
+    },
+    {
+      "path": "landing/README.md",
+      "beforeSHA256": "ba4683270a775c21b647e29062a381a7b3dc714a4178dfc7a0122652b9543f95",
+      "afterSHA256": "0c268595ea2e069d3488bb688440fa4476a027da202f474ae68bf411afe0e0f5"
+    },
+    {
+      "path": "docs/RETIREMENT-REVIEW.md",
+      "beforeSHA256": "0d28a31737048ab9735c9db763a57bd49f0f84a6051e670c775e499de07f8b3f",
+      "afterSHA256": "f4fd0b2936cdc35c59038ccb835a1c198f2a486624fb06582f50ba0d788357ed"
+    },
+    {
+      "path": "docs/CURRENT-REVIEW-VALIDATION.md",
+      "beforeSHA256": "3796a7d0cb9195c0997dfebf1848f103aeacda3ec47801b3df2e2a8d917256f4",
+      "afterSHA256": "c0b1dbbf79b012679384433ca95fe759000dce64cfb697eafe1d1edc7915c9b1"
+    },
+    {
+      "path": "landing/src/sections.jsx",
+      "beforeSHA256": "cb3cf7a85d6ce918e789468cc809daef0d853556ee34d30d61fdd60d3e3a59bc",
+      "afterSHA256": "d2df7db844c10e2bac3d1e34c4dd5b8086605cae82812bcf3a1e476cf1f0e660"
+    },
+    {
+      "path": "landing/src/main.jsx",
+      "beforeSHA256": "cf0f820ad3583e1bb0257c3abc7e8a8be74097b1800f4d418bb6c606d29aadb0",
+      "afterSHA256": "358104a2c66fe97662766998e4d856b264830738516e764c5d253979342da42f"
+    },
+    {
+      "path": "landing/dist/app.js",
+      "beforeSHA256": "b6637a8560778a6bf7e6806fb342eddac66d8127e15012692e3a5013b1250fee",
+      "afterSHA256": "9cd4ff1a001a40aaf0885743407cf7e9855fc76d5ab729062a9c91f03fbd544f"
+    },
+    {
+      "path": "docs/final-audit/REQUIREMENTS-AUDIT.md",
+      "beforeSHA256": "dbf014a86ccd623410078133c41d13f979935d6b33ae3a347c471ed60373f926",
+      "afterSHA256": "e5ac63bb44f8a11b445d6aa3538011a2d683897026a18598f743df7fbed70b19"
+    },
+    {
+      "path": "docs/retirement-review/DEPLOYMENT-PREPARATION.md",
+      "beforeSHA256": "32b83c96edf734287e8cd83ff081020d36574fbd55d3769147857e931d824f8a",
+      "afterSHA256": "94c39f467d4ec982718c421b06a6064f9da26bb97426b99de4a6867d07207d6d"
+    },
+    {
+      "path": "docs/immediate-auto-review/VALIDATION.md",
+      "beforeSHA256": "f92fdefbf49fb99668dd86afae53730b3352efdcf6339016ef310d904a05ec04",
+      "afterSHA256": "62bb58f4902a7e5b530202d3b38877f2a73fe413e222f206ee8bd59bd0425499"
+    },
+    {
+      "path": "docs/immediate-auto-review/TEST-SCOPE.md",
+      "beforeSHA256": "9659bf9d407e70caf67d47bdab9f36ecbc6ab480907c10c675fd0abbd8c43262",
+      "afterSHA256": "71cc9f8861f9f2d8cbae53f0cf87f264be401aec44cbe680511b3a0df6ef1ed0"
+    }
+  ],
+  "protectedFileCount": 170,
+  "protectedFilesUnchanged": true,
+  "protectedPrefixes": [
+    "contracts/",
+    "artifacts/",
+    "test/",
+    "core/",
+    "scripts/",
+    "docs/checkpoint-173/",
+    "docs/full-suite-review/",
+    "docs/validation/"
+  ],
+  "existingLogsUnchanged": true,
+  "contractHashes": {
+    "contracts/FTIRetirementReviewToken.sol": "89de8c1e8babbb0b5cf8ad20b92d96f176f2d3f89e9319e7328c7c52f0676ccb",
+    "contracts/BinaryPlan.sol": "9844e9b6b14553e0eb14352d43ab65e0cefda18d7c07a87101d074959c198271",
+    "artifacts/FTIRetirementReviewToken.json": "f7821bc76f101bc010d5c61a34408f821f2867e13f53007308335036e0d8d0dd",
+    "artifacts/BinaryPlan.json": "74c55aff04054d58d9f7ea9c9720032a0d6fe7572b248fa881dca0b9ee1cd4cb"
+  },
+  "newFiles": [
+    "docs/OWNER-SUPPORT-DECISION-2026-10-06.md",
+    "docs/owner-support-decision/CHAIN97-PREPARATION-STATUS.json",
+    "docs/owner-support-decision/CHAIN97-UNSIGNED-CHECKLIST.md",
+    "docs/owner-support-decision/OFFLINE-DESCRIPTION.json",
+    "docs/owner-support-decision/SOURCE-CHANGES.json",
+    "docs/owner-support-decision/VALIDATION.md",
+    "docs/owner-support-decision/focused-preparation-tests.log",
+    "docs/owner-support-decision/focused-ui-tests.log",
+    "docs/owner-support-decision/landing-build.log",
+    "docs/owner-support-decision/retirement-input.blank.json",
+    "docs/owner-support-decision/scope-guards.log",
+    "docs/owner-support-decision/workspace-build.log"
+  ],
+  "checks": {
+    "focusedUI": {
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    },
+    "focusedPreparation": {
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0
+    },
+    "scopeGuardsPassed": 5,
+    "workspaceBuild": "PASS",
+    "landingBuild": "PASS",
+    "fullSuiteRerun": false,
+    "browserQARun": false,
+    "networkActions": false
+  }
+}

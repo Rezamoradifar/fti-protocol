@@ -1,0 +1,58 @@
+✔ funded keeper scans only eligible pending auto accounts (1.081789ms)
+✔ funded keeper uses bounded 25-item batches and waits for receipt (0.260645ms)
+{"time":"2026-10-06T00:22:26.030Z","service":"keeper","result":"epoch batch"}
+{"time":"2026-10-06T00:22:26.037Z","service":"keeper","result":"epoch batch"}
+{"time":"2026-10-06T00:22:26.044Z","service":"keeper","result":"epoch batch"}
+✔ keeper drains work without interval delays, never overlaps writes, and stops scheduling cleanly (52.748957ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ Immediate auto candidate: real unseeded BinaryPlan and current precision token
+  ✔ organic 20 epochs: default off, next-hour enable, rank threshold still old-rank snapshot (152751.250577ms)
+  ✔ enable at 12:30 buys the next 13:00 settlement in the allocation transaction (7036.77765ms)
+  ✔ failed new allocation preserves funds, other rewards, rank and existing manual quota; keeper retries current price (11132.040825ms)
+  ✔ bounded gas exhaustion in token collateral cannot revert other member allocation (8311.984728ms)
+  ✔ old pending is not silently included in new immediate attempt (17527.980375ms)
+  ✔ disable between matching and allocation stops buying immediately; owner cash release never enables wallet debit (9988.112234ms)
+  ✔ callbacks cannot reenter settlement or isolated helper; successful buy stays single (8788.816893ms)
+  ✔ taxed auto failure is isolated and fully rolls back token mint and earmarked cash (8152.351101ms)
+  ✔ enable during an old backlog excludes old earned hours and schedules the next wall-clock boundary (6966.662917ms)
+  ✔ pause alone cannot convert; true closed-token permissionless bounded release preserves each beneficiary and cash (19269.965041ms)
+  ✔ default gas estimate advances allocation cursor instead of successful zero-progress loops (9685.622779ms)
+  ✔ failed pending auto restarts an ordinary empty cycle at current exact reference, never captures support or development claim (10746.440062ms)
+  ✔ estimated minimum gas survives fully exhausted child and persists progress plus pending liability (9653.025531ms)
+  ✔ keeper preflight does not spend a transaction on disabled pending accounts (9191.091216ms)
+  ✔ 12:59 enable buys at 13; request exactly 13 schedules 14; redundant enables and off/on keep exact boundary (8881.804585ms)
+✔ Immediate auto candidate: real unseeded BinaryPlan and current precision token (304641.628635ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ different first buyer restarts at exact last ratio; prior support, claims and donation are never allocated (22439.319892ms)
+✔ fractional historical anchor below display precision is preserved across restart (1228.242924ms)
+✔ repeated micro restart round trips cannot extract old support or terminal claims (30738.272284ms)
+✔ automatic buy restarts through the same exact quote without consuming manual authorization (2368.787764ms)
+✔ pending retirement cannot sweep a restarted balance; closure needs separate approval and rechecks state (6668.062655ms)
+✔ 5/7 plus 72h permanent closure permits pending claims but blocks manual/auto/funding and reopening (3893.380989ms)
+✔ closure authorization uses five council votes, delay, revocation, and cannot be reused (4183.928083ms)
+✔ permanent closure breaks pending-auto circularity; retirement still waits for all claims and quiescence (4812.020878ms)
+✔ unexecuted Council proposal from an earlier lifecycle cannot create fresh authorization (5239.297195ms)
+ℹ tests 27
+ℹ suites 1
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 387840.170169

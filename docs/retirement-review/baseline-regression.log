@@ -1,0 +1,63 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ rotating an approving key cannot turn four current approvals into five (2099.265091ms)
+✔ removing and later restoring an owner never revives their old consent (2227.466699ms)
+✔ repeated rotations preserve one current approval per owner slot (3177.553563ms)
+✔ five unchanged current owners keep their approvals across an unrelated rotation (1480.50384ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ proposal settings and fixed launch/milestone anchors; no production state setter (705.46852ms)
+✔ R=10000: buys and partial sells at or below 500 have only the 3% base fee (313.156947ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=100 (212.977752ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=1000 (237.674437ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=9999.999999999999999999 (360.852808ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=10000.000000000000000001 (312.753103ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=20000 (326.86495ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=1000000 (289.615915ms)
+✔ extra fee needs both conditions: above $500 and above 5% of live reserve (345.657151ms)
+✔ small live reserve $500 boundary is smooth, and larger trades use only the excess (324.954982ms)
+✔ actual $500 buy against small reserve keeps all cash, mints at exactly the base fee and enforces minOut (1228.340467ms)
+✔ actual $500 partial sale from $1000 reserve burns q, retains $15 and enforces minOut (1251.346081ms)
+✔ USD floor uses 18-decimal dollars; unsupported six-decimal collateral is rejected (75.760004ms)
+✔ bootstrap retains the existing 3% review exception below and above $500, excluding protected cash (1303.787398ms)
+✔ R=10000 T=500: both directions quote total fees 47.5 on 1000 and 433.5 on 5000 (192.074154ms)
+✔ curve has no threshold jump; ideal marginal fee is below 10%, with atom-level rounding disclosed (299.58114ms)
+✔ large buy leaves a different wallet’s next small buy and sell at exactly base 3% (2410.131069ms)
+✔ large sell leaves small later transactions at base 3%, independent of elapsed time (2430.430342ms)
+✔ actual buy retains all gross cash and mints only net fee value at pretrade price (741.819318ms)
+✔ actual partial sell burns gross tokens, pays V-F and retains F; transfer still burns 3% (980.455713ms)
+✔ bootstrap uses only 3% with protected fund excluded; final sale returns full live reserve and closes lifecycle (2108.015444ms)
+✔ large fund is excluded from threshold, reserve, minting price and final redemptions (2650.524083ms)
+✔ one combined ceiling avoids charging a second atom for separately rounded base and surcharge (105.943059ms)
+✔ fractional-atom reserve threshold above the dollar floor stays exact (5717.514917ms)
+✔ quote and execution dust, minOut and deadline failures atomically preserve quota and every cash bucket (2220.428504ms)
+✔ failed collateral movement rolls back manual authorization and auto-buy/sell accounting (1751.659438ms)
+✔ MAX_RESERVE quote bounds and deterministic reference samples are overflow-safe (1197.778516ms)
+✔ splitting buys below their live threshold bypasses the extra fee: explicit limitation evidence (1778.969159ms)
+✔ splitting sales can bypass the surcharge; retained base fees and changing prices still affect proceeds (3040.032907ms)
+✔ auto-buy pays the same amount-based fee while only gross manual buys consume quota (2359.950041ms)
+✔ emergency partial and terminal exits retain their existing fee-free exception and protect the fund (1807.445662ms)
+✔ indicative legacy bps never replace exact fee amounts; sub-bps surcharge is still charged (163.920897ms)
+✔ real BinaryPlan integration: gross manual quota and Member auto eligibility remain unchanged (9964.201991ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 74480.48175

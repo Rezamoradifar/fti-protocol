@@ -1,0 +1,14 @@
+{
+  "contracts/FTIRetirementReviewToken.sol": {
+    "candidate_sha256": "0464ebd187262dbd155d1a4afc42df6ec35fdfdf10be59d6618dedc20fe74cc3",
+    "baseline_sha256": "0ad9664006aadb83ba5141ec0b43982e3dd444356922974a2fb1d6593d34aba3"
+  },
+  "test/retirement-integrations.test.mjs": {
+    "candidate_sha256": "bd51d8aaf91cb10bcdac076e7fb7906d873f5239b157bd40267513ff509f5185",
+    "baseline_sha256": "75d1776bbf999570e719eb41b5c370ca2598e02a189d03bdce108a2248374be2"
+  },
+  "test/support-precision.test.mjs": {
+    "candidate_sha256": "53b05614858b2c7f8f6125bd52e6877b793b8b4afc0923e39d044782c2886415",
+    "baseline_sha256": null
+  }
+}
