@@ -32,7 +32,8 @@
     "launch:v3": "npm run build:launcher:v3 && node scripts/launch-server.mjs",
     "smoke:v3": "npm run compile && npm run build:web && node scripts/v3-http-smoke.mjs",
     "demo:v3": "npm run build:web && npm run compile && node scripts/local-v3.mjs",
-    "verify:v3:testnet": "node scripts/verify-v3-testnet.mjs"
+    "verify:v3:testnet": "npm run compile && node scripts/verify-v3.mjs",
+    "verify:v3:prepare": "npm run compile && node scripts/verify-v3.mjs --prepare"
   },
   "keywords": [],
   "author": "",
