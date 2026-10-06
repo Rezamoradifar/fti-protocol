@@ -19,4 +19,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run compile
+      - run: npm run build:web
       - run: node --test --test-concurrency=1 test/v3-*.test.mjs
+      - run: node scripts/v3-http-smoke.mjs
+      - run: node scripts/build-launcher-v3.mjs
+      - name: Validate V3 launcher content
+        run: |
+          test -s launcher/artifacts/FTIReserveTokenV3.json
+          test -s launcher/artifacts/FundedBinaryPlan.json
+          test -s launcher/artifacts/SevenGuardianCouncil.json
+          grep -q "5-of-7 Partner DAO" launcher/index.html
+          grep -q "FTIReserveTokenV3" launcher/app.js
