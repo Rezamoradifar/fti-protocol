@@ -1,7 +1,7 @@
 {
   "name": "fti-protocol",
   "version": "0.2.0",
-  "description": "FTI independent local/testnet release candidate \u2014 not audited",
+  "description": "FTI independent local/testnet release candidate — not audited",
   "main": "index.js",
   "directories": {
     "doc": "docs",
@@ -25,7 +25,8 @@
     "simulate:reserve": "node scripts/simulate-reserve.mjs 300000 docs/reserve-simulation-300000.json",
     "demo:funded": "npm run build:web && npm run compile && node scripts/local.mjs --funded-plan",
     "test:funded": "npm run compile && node --test --test-concurrency=1 test/funded-*.test.mjs",
-    "simulate:funded": "node scripts/simulate-funded.mjs 300000 docs/funded-simulation-300000.json"
+    "simulate:funded": "node scripts/simulate-funded.mjs 300000 docs/funded-simulation-300000.json",
+    "deploy:v3:testnet": "npm run compile && node scripts/deploy-v3-testnet.mjs"
   },
   "keywords": [],
   "author": "",
