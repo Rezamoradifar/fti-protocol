@@ -1,0 +1,331 @@
+{
+  "totalSelectedPassedCases": 173,
+  "fullRepositoryPass": false,
+  "selections": [
+    {
+      "id": "E1",
+      "log": "independent-canonical-economics.log",
+      "logSHA256": "f2acfec6a125791d537645ba9e0d8c4fe36189f7ce8ed7af79ed26991df75f3f",
+      "passed": 17,
+      "tests": [
+        "test/retirement-integrations.test.mjs"
+      ],
+      "caseNames": [
+        "shared helper binds the current token and matching immutable development fund to real governance",
+        "current-token fee floor and 5% threshold quote boundaries at live R=100",
+        "current-token fee floor and 5% threshold quote boundaries at live R=1000",
+        "current-token fee floor and 5% threshold quote boundaries at live R=20000",
+        "current-token actual large buys retain gross cash, mint net assets at pretrade price and consume gross manual quota",
+        "current-token partial sales retain exact fee, transfers burn 3%, and neither restores manual quota",
+        "current-token real registration grants cumulative gross quota and paid top-ups do not reset spent",
+        "current-token minOut, deadline, dust, allowance and collateral failures roll back real Binary authorization",
+        "current-token hourly gate: four units then one in another hour carry fully; one-wallet five-unit top-up settles",
+        "current-token five-unit registration with no eligible points carries the entire pool and protects all buckets",
+        "current-token proportional rewards assign only exact rounding residual to development",
+        "current-token taxed buys, partial sells, terminal sells and membership funding fail atomically in both tax modes",
+        "current-token collateral callbacks cannot forge quota, reenter buy or transfer approved FTI",
+        "current-token deficits block buys, sells and transfers without modifying claims or quota",
+        "current-token terminal claim is part of collateral liability and rejects taxed or underbacked payment",
+        "TEST_ONLY rank features: all five rates cover full paid-unit history and top-ups retain gross spent",
+        "TEST_ONLY builder eligibility with real $5 support latches 10x and 100x price milestones, Members stay unmultiplied"
+      ],
+      "execution": "independent audit"
+    },
+    {
+      "id": "E2",
+      "log": "independent-monthly.log",
+      "logSHA256": "e149ce6b957532e6caac11af78c54882d1ba6f174dd8737c96a40b9f2dc4d6c3",
+      "passed": 2,
+      "tests": [
+        "test/independent-monthly-audit.test.mjs"
+      ],
+      "caseNames": [
+        "independent current pair: 1 TEST_ONLY tier-four builders enforce each tier's 20% cap and lifetime one-time award",
+        "independent current pair: 6 TEST_ONLY tier-four builders enforce each tier's 20% cap and lifetime one-time award"
+      ],
+      "execution": "independent audit"
+    },
+    {
+      "id": "E3",
+      "log": "independent-precision.log",
+      "logSHA256": "16c31619b90a60b1bc65dfa90955f229af371b29a99e5b7a36ee9066872375d1",
+      "passed": 9,
+      "tests": [
+        "test/support-precision.test.mjs"
+      ],
+      "caseNames": [
+        "old overmint is removed; positive exact growth below one display atom executes with zero support",
+        "one dollar at large reserve grows exact ratio below getter precision without support",
+        "zero exact growth still rejects and rolls back the actual transaction",
+        "normal and large actual buys use exact mint, fee and manual quota",
+        "auto buy uses identical quote and does not consume manual quota",
+        "split purchases each use fresh exact ratio, preserve strict growth and total quota",
+        "partial sell and transfer maintain cash backing and exact/display growth",
+        "bootstrap and support routing remain unchanged, final redemption still closes",
+        "tiny transfer and positive-payout sell both grow real ratio below display resolution"
+      ],
+      "execution": "independent audit"
+    },
+    {
+      "id": "E4",
+      "log": "independent-binding-terminal.log",
+      "logSHA256": "b42f1f14f09f092773001914f3bf9b0df5a01182baadc7690fcaf0cf853ffe5b",
+      "passed": 15,
+      "tests": [
+        "test/retirement-review.test.mjs"
+      ],
+      "caseNames": [
+        "fixture binds the exact token, collateral, council, timelock and immutable development fund",
+        "constructor rejects an EOA governor/guardian and zero or collateral-token development destination",
+        "fixed recipient rejects the token itself and the future bound binary, while a separate contract fund is allowed",
+        "bind rejects each mismatched dependency individually and never replaces a valid binding",
+        "normal terminal q=S quotes and reserves the exact current-trade fee at V=100000000000000000000 atoms",
+        "normal terminal q=S quotes and reserves the exact current-trade fee at V=500000000000000000000 atoms",
+        "normal terminal q=S quotes and reserves the exact current-trade fee at V=500000000000000000001 atoms",
+        "normal terminal q=S quotes and reserves the exact current-trade fee at V=1000000000000000000000 atoms",
+        "normal terminal q=S quotes and reserves the exact current-trade fee at V=12345678901234567890123 atoms",
+        "permissionless fee claim pays only the immutable fund and preserves protected support",
+        "emergency partial and terminal redemption stay fee-free and separate from normal terminal claims",
+        "blocked seller or taxed collateral atomically rolls back the complete normal terminal transition",
+        "blocked or taxed development-fee transfer restores the owed claim and all cash accounting",
+        "terminal seller payout rejects a nested fee claim while preserving the newly credited development claim",
+        "development-fee payout rejects nested entry and pays the fixed fund exactly once"
+      ],
+      "execution": "independent audit"
+    },
+    {
+      "id": "E5",
+      "log": "independent-rank-boundaries.log",
+      "logSHA256": "15f78688fa98d880b2992e0d04d3d1918048831462fdbbeea2598c03e4eb361d",
+      "passed": 4,
+      "tests": [
+        "test/independent-rank-boundaries.test.mjs"
+      ],
+      "caseNames": [
+        "TEST ONLY prior paid history: threshold 100 advances only after funded allocation under rank 0",
+        "TEST ONLY prior paid history: threshold 200 advances only after funded allocation under rank 1",
+        "TEST ONLY prior paid history: threshold 500 advances only after funded allocation under rank 2",
+        "TEST ONLY prior paid history: threshold 1000 advances only after funded allocation under rank 3"
+      ],
+      "execution": "independent audit"
+    },
+    {
+      "id": "E10",
+      "log": "independent-protection-deficit.log",
+      "logSHA256": "5c6c03ea32a34e1c38c3680128d42d393ef007f5fa454b93927529980f637983",
+      "passed": 2,
+      "tests": [
+        "test/independent-rank-boundaries.test.mjs"
+      ],
+      "caseNames": [
+        "TEST ONLY dense matches: PV below $20 still settles all funds, changes next protection row, and preserves monthly buckets",
+        "funding deficit blocks allocation and rank progress atomically; repairing collateral permits the same allocation"
+      ],
+      "execution": "independent audit"
+    },
+    {
+      "id": "E6",
+      "log": "reviewed-evidence/final-contract-tests.log",
+      "logSHA256": "2e4d717a7ffc60efa73cd34256638c8e91ec21a381f551e5330a1aa7e83583b4",
+      "passed": 27,
+      "tests": [
+        "test/immediate-auto.test.mjs",
+        "test/restart-policy.test.mjs",
+        "test/funded-keeper.test.mjs"
+      ],
+      "caseNames": [
+        "funded keeper scans only eligible pending auto accounts",
+        "funded keeper uses bounded 25-item batches and waits for receipt",
+        "keeper drains work without interval delays, never overlaps writes, and stops scheduling cleanly",
+        "organic 20 epochs: default off, next-hour enable, rank threshold still old-rank snapshot",
+        "enable at 12:30 buys the next 13:00 settlement in the allocation transaction",
+        "failed new allocation preserves funds, other rewards, rank and existing manual quota; keeper retries current price",
+        "bounded gas exhaustion in token collateral cannot revert other member allocation",
+        "old pending is not silently included in new immediate attempt",
+        "disable between matching and allocation stops buying immediately; owner cash release never enables wallet debit",
+        "callbacks cannot reenter settlement or isolated helper; successful buy stays single",
+        "taxed auto failure is isolated and fully rolls back token mint and earmarked cash",
+        "enable during an old backlog excludes old earned hours and schedules the next wall-clock boundary",
+        "pause alone cannot convert; true closed-token permissionless bounded release preserves each beneficiary and cash",
+        "default gas estimate advances allocation cursor instead of successful zero-progress loops",
+        "failed pending auto restarts an ordinary empty cycle at current exact reference, never captures support or development claim",
+        "estimated minimum gas survives fully exhausted child and persists progress plus pending liability",
+        "keeper preflight does not spend a transaction on disabled pending accounts",
+        "12:59 enable buys at 13; request exactly 13 schedules 14; redundant enables and off/on keep exact boundary",
+        "different first buyer restarts at exact last ratio; prior support, claims and donation are never allocated",
+        "fractional historical anchor below display precision is preserved across restart",
+        "repeated micro restart round trips cannot extract old support or terminal claims",
+        "automatic buy restarts through the same exact quote without consuming manual authorization",
+        "pending retirement cannot sweep a restarted balance; closure needs separate approval and rechecks state",
+        "5/7 plus 72h permanent closure permits pending claims but blocks manual/auto/funding and reopening",
+        "closure authorization uses five council votes, delay, revocation, and cannot be reused",
+        "permanent closure breaks pending-auto circularity; retirement still waits for all claims and quiescence",
+        "unexecuted Council proposal from an earlier lifecycle cannot create fresh authorization"
+      ],
+      "execution": "reviewed external workstream evidence"
+    },
+    {
+      "id": "E6-edge",
+      "log": "reviewed-evidence/timing-edge.log",
+      "logSHA256": "2be601fc0bd79efa6e46fe2e22717a75d75c3538eae22cd969ab28bd7b65ad01",
+      "passed": 1,
+      "tests": [
+        "test/immediate-auto-timing-edge.test.mjs"
+      ],
+      "caseNames": [
+        "TEST_ONLY seeded rank: matured and rolled enable cannot create an auto snapshot for older unmatched backlog"
+      ],
+      "execution": "reviewed external workstream evidence"
+    },
+    {
+      "id": "E7",
+      "log": "reviewed-evidence/ui-api.log",
+      "logSHA256": "6d1a07daa3ae046e1f6ba3b10965e882b3e76b46ad6f66b9a198b4bfcbd0a75e",
+      "passed": 56,
+      "tests": [
+        "test/exact-price.test.mjs",
+        "test/frontend-trade-quotes.test.mjs",
+        "test/workspace-markup.test.mjs",
+        "test/workspace-state.test.mjs",
+        "test/workspace-routing.test.mjs",
+        "test/immediate-auto-ui.test.mjs",
+        "test/workspace-integration.test.mjs",
+        "test/retirement-server-state.test.mjs",
+        "test/integrated-server-state.test.mjs",
+        "test/event-server.test.mjs"
+      ],
+      "caseNames": [
+        "separate event RPC validates network and caches successful results",
+        "exact 3% fee growth at reserve 1000000",
+        "exact 3% fee growth at reserve 1000000000",
+        "6e-20 growth is visible without changing a floor-to-18 getter",
+        "zero, negative, repeating and extreme deltas do not fabricate increments",
+        "pinned snapshots and receipt-isolated delta verify hashes",
+        "shared blocks, reorgs, unconfirmed receipts and failed RPC never produce deltas",
+        "actual controller renderer uses calculated ratio; stale and terminal states are distinct",
+        "one USD buy at P=.1 preserves the exact fee-derived change instead of rounding it to 3e-9",
+        "reserve buy fee and output share one block and exact amounts drive displayed minimum",
+        "reserve sale displays sub-bps fee atoms without calling truncated legacy quoteSell",
+        "historical full-supply or current emergency sale shows zero exact fee and one-atom outputs remain visible",
+        "legacy token buys and sells need no reserve-only fee ABI and preserve quoted output",
+        "quote failures remain failures rather than falling back to a guessed fee",
+        "buy prerequisites do not block holder sales during pause/emergency or after transfers",
+        "reserve policy labels and quote path remain distinct from legacy fee-rate display",
+        "retirement ordinary terminal sales preserve exact net quote and slippage instead of assuming a free full exit",
+        "rendered current-model policy text never describes an ordinary full exit as fee-free",
+        "zero-supply lifecycle labels distinguish historical R=0 from a live quote and permanent retirement",
+        "closed or retired token access blocks new funding before approval but does not block beneficiary sales or claims",
+        "restart-capable ordinary zero supply permits funding and buys but permanent closure is separate",
+        "default off and future next-hour intent are distinct from effective permission",
+        "enable targets a future wall-clock boundary even during overdue settlement; opt-out stays immediate",
+        "disconnected, stale and historical capability states cannot submit unsupported preferences",
+        "inactive and scheduled requests cannot execute pending funds, but owner cash release remains",
+        "copy explains bounded current-quote retries without a price cap, deadline or wallet re-debit promise",
+        "earlier reserve API retains size-fee review, disabled pressure/caps, protected fund and fee-free final payout",
+        "historical FTIToken config, state and quote ABI routes remain compatible",
+        "current model serves the exact new ABI and fresh initial state while retaining legacy ABI routes",
+        "ordinary terminal payout, fixed fee claim, permanent retirement and separate binary cash claims stay truthful through the API",
+        "current emergency terminal redemption is fee-free and creates no development fee claim",
+        "all workspace assets, config and current ABI resolve without granting a wallet role",
+        "same-hour five-unit registration, queue readiness and funded rank remain separate facts",
+        "auto API reflects next wall-clock boundary and permits changes during overdue settlement",
+        "hourly boundary blocks funding and exposes real settlement phases to any public caller",
+        "current token has immediately available purchased tokens and exact terminal fee accounting",
+        "confirmed real buy and terminal sale snapshots separate exact growth from reference prices",
+        "proposal gates match actual council ownership, existing approval and five-of-seven execution",
+        "timelock readiness remains false until the fixed 72-hour delay expires, then public execution works",
+        "API rejects reorg snapshots, verifies deployed getters and preserves RPC failures",
+        "all three entry points server-render a distinct labeled workspace and one initially visible page",
+        "all controller literal DOM IDs exist and React markup contains no duplicate IDs",
+        "form controls retain stable IDs, meaningful labels and current safety disclosures",
+        "workspace paths use exact segments and each surface has a distinct navigation contract",
+        "navigation uses history entries; repeated clicks do not duplicate entries",
+        "deep links and unknown hashes render a valid local page without history loops",
+        "cross-panel links preserve their target and activity remains in the current panel",
+        "initial, failed and aged data are stale; successful recent data is actionable",
+        "disconnected and stale states disable every write capability",
+        "public callers are not council owners and membership does not grant governance",
+        "funding waits for an open phase and unexpired epoch while cash claims remain accessible",
+        "retired and paused lifecycle gating separates holder sales, transfers and new funding",
+        "volume, hourly matching and allocation readiness reflect all exposed contract prerequisites",
+        "monthly readiness requires calendar boundary and completed boundary-hour settlement",
+        "proposal readiness prevents repeat approval and keeps execution permissionless at threshold",
+        "timelock and wallet error states never infer a successful execution"
+      ],
+      "execution": "reviewed external workstream evidence"
+    },
+    {
+      "id": "E8",
+      "log": "reviewed-evidence/unsigned-preparation-tests.log",
+      "logSHA256": "f8ee5d8c9e95c3bf76dcc0f5b02d3edc2647775aed35823beed4dec2c3db63d2",
+      "passed": 40,
+      "tests": [
+        "test/retirement-deployment.test.mjs",
+        "test/review-entrypoints.test.mjs"
+      ],
+      "caseNames": [
+        "description validates five exact artifacts and fixed 5/7 + 72h metadata without claiming readiness",
+        "public config is normalized, fixture-labelled, and copied only through an explicit allowlist",
+        "five unsigned creations and sixth bind have correct constructor encodings, linking, sender, nonce, and chain",
+        "new retirement token pins are frozen and no old token is a deployment target",
+        "unsigned preparation is deterministic for the same explicit public inputs",
+        "default CLI and --describe remain read-only with missing public configuration",
+        "CLI creates exactly one clearly unsigned fixture manifest with restrictive permissions",
+        "all chains except explicitly numeric chain 97 fail closed",
+        "every required public input must be explicit, with no defaults or inferred addresses/nonces",
+        "seven Council owners must be distinct after address normalization",
+        "seven nonzero valid Council owners are required",
+        "31 genesis addresses must be distinct after normalization",
+        "31 nonzero valid genesis addresses are required",
+        "development and deployer must be valid explicit nonzero addresses",
+        "development destination cannot conflict with stablecoin, token, or BinaryPlan predictions",
+        "nonce rejects absent, fractional, negative, ambiguous, unsafe, or exhausted account values",
+        "explicit decimal nonces beyond Number precision are preserved without guessing",
+        "unknown configuration fields, secrets, and attempted governance overrides are rejected without echoing them",
+        "CLI does not leak invalid JSON or unsupported secret values",
+        "source hash mismatch and missing sources stop preparation before output",
+        "artifact hash mismatch or substitution of the old token is rejected",
+        "governance changes are rejected rather than reported as fixed 5/7 + 72h",
+        "output and every supported related journal/deployment record are preserved without overwrite",
+        "dangling output or journal symlinks are treated as existing records",
+        "writing requires an explicitly unsigned complete chain-97 manifest and new unsigned filename",
+        "broadcast, execute, signer, RPC, legacy and unknown CLI flags fail before config reads or file writes",
+        "incomplete and contradictory CLI modes fail closed",
+        "unsigned CLI preparation works with all network calls and credential/environment-file reads actively blocked",
+        "frozen artifacts retain identity, compiler, ABI and exact creation-bytecode evidence",
+        "combined lifecycle and immediate-auto ABI metadata describe the frozen implementation",
+        "actual historical token and Binary source/artifact pins are rejected independently",
+        "writer atomically rejects incomplete sequence, modified bytecode, dependencies, bind, or evidence",
+        "checked-in descriptor equals the current validated public-input-free description",
+        "canonical demo selects retirement review and preserves explicit historical local demos",
+        "canonical deploy and prepare entrypoints have no compilation, credential, live-network, or historical deployment hooks",
+        "canonical deployment default only describes the current token with unresolved public inputs",
+        "default historical browser launcher fails closed before opening a server",
+        "canonical deployment rejects historical models and execution requests before public config reads",
+        "historical direct deployment scripts are retained unchanged but never invoked by npm scripts",
+        "local retirement configuration and generated unsigned manifests are excluded from source publication"
+      ],
+      "execution": "reviewed external workstream evidence"
+    }
+  ],
+  "notCredited": [
+    "independent-binding-terminal-exploratory.log: 15 passed and 1 stale-helper ABI failure",
+    "Three obsolete auto-policy cases excluded from retirement-integrations",
+    "All unselected inherited tests",
+    "Earlier 177/208/250-case histories",
+    "Interrupted and provisional-source runs"
+  ],
+  "auditOnlyHarnesses": {
+    "test/independent-monthly-audit.test.mjs": "f48352ece6b8ef59e0edcc4634f17470035422054adcf2998966e03ef684e380",
+    "test/independent-rank-boundaries.test.mjs": "182a254686cd855228adf945c265d4a3554caaa36d9eeccb194a498acb1bf649"
+  },
+  "independentFrozenTestInputs": {
+    "test/retirement-integrations.test.mjs": "bd51d8aaf91cb10bcdac076e7fb7906d873f5239b157bd40267513ff509f5185",
+    "test/support-precision.test.mjs": "2a9fe33db5f7d427b1fb85b6ade3151953d7665b8bebb8acb599163c70263c85",
+    "test/retirement-review.test.mjs": "37b186f1c0979c047068d752a887d21821c4958e1121bd891381953ab90dcd0b",
+    "test/fixtures/paid-rank-feature-suite.mjs": "3f4225d2169b39542e3a394e95a789811523f4aec803cde88e97133a74802dda",
+    "test/fixtures/HostileUSD.sol": "6e8b0a544b287d54739e2e302940dc06761987ed69715d2cfef956c14446c88e",
+    "scripts/lib.mjs": "035ad8ae0d341afce1285f5228f6c8e389497240ff03d564c88b6127eb45960f",
+    "package-lock.json": "50c3f6d053793cd81c776a0bc461bf1550de93b0713e0c928ba18ff43917682a"
+  }
+}

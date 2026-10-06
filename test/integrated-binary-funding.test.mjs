@@ -28,8 +28,8 @@ for(const binaryContract of ['BinaryPlan','FundedBinaryPlan'])describe(`${binary
  let engine,provider,signers,s,snapshot;
  const funded=binaryContract==='FundedBinaryPlan';
  before(async()=>{
-  // Keep integration transactions deterministic. Decay-cost changes between gas
-  // estimation and mining are covered explicitly below with an advanced clock.
+  // Keep integration transactions deterministic; elapsed-time quote and gas
+  // independence are checked below with an advanced clock.
   engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:45},chain:{chainId:31337,time:new Date('2026-10-04T00:00:00Z')},miner:{blockGasLimit:30000000,timestampIncrement:0}});
   provider=new BrowserProvider(engine,undefined,{cacheTimeout:-1});provider.pollingInterval=10;
   signers=await Promise.all(Array.from({length:45},(_,i)=>provider.getSigner(i)));
@@ -164,25 +164,19 @@ for(const binaryContract of ['BinaryPlan','FundedBinaryPlan'])describe(`${binary
   await checks();
  });
 
- test('GAS ESTIMATION RISK: elapsed decay can exhaust a stale gas quote; revert preserves state and sufficient gas succeeds',async()=>{
+ test('time-independent quotes execute after 300 seconds with the original gas estimate',async()=>{
   await units(0,1);await buy('100');
   await(await s.token.sell(E('194'),0,MaxUint256)).wait();
   const amount=E('194'),estimated=await s.token.sell.estimateGas(amount,0,MaxUint256),before=await tradeState();
-  await provider.send('evm_increaseTime',[300]);
-  const tx=await s.token.sell(amount,0,MaxUint256,{gasLimit:estimated});
-  let failedReceipt;
-  await assert.rejects(async()=>{await tx.wait();},error=>{failedReceipt=error.receipt;return failedReceipt?.status===0;});
-  assert.equal((await provider.getTransaction(tx.hash)).gasLimit,estimated);
-  assert(failedReceipt.gasUsed<=estimated);
-  assert.deepEqual(await tradeState(),before,'insufficient gas must not consume reserve, supply, pressure or quota');
-  const staticPayout=await s.token.sell.staticCall(amount,0,MaxUint256);
-  assert(staticPayout>0n,'the identical trade is economically valid in the failed transaction state');
-  const freshEstimate=await s.token.sell.estimateGas(amount,0,MaxUint256);
-  assert(freshEstimate>estimated,'executing the now-required decay loop costs more gas');
-  const receipt=await(await s.token.sell(amount,0,MaxUint256,{gasLimit:estimated+1000000n})).wait();
-  assert(receipt.gasUsed>estimated,'the original quote really was insufficient');
+  const quoted=Array.from(await s.token.sellFeeQuote(amount)),legacy=Array.from(await s.token.quoteSell(amount));
+  await provider.send('evm_increaseTime',[300]);await provider.send('evm_mine',[]);
+  assert.deepEqual(Array.from(await s.token.sellFeeQuote(amount)),quoted);assert.deepEqual(Array.from(await s.token.quoteSell(amount)),legacy);
+  assert.deepEqual(await tradeState(),before);assert.equal(await s.token.sell.staticCall(amount,0,MaxUint256),quoted[1]);
+  const receipt=await(await s.token.sell(amount,0,MaxUint256,{gasLimit:estimated})).wait();
+  assert(receipt.gasUsed<=estimated);assert.equal(await s.token.reserve(),before.reserve-quoted[1]);assert.equal(await s.token.totalSupply(),before.supply-amount);
+  assert.equal(await s.token.pressureWad(),0n);assert.equal(await s.token.lastPartialSellAt(),0n);
   await allowance(s.addresses[0],E('500'),E('100'));await checks();
-  console.log('PRESSURE_DECAY_GAS_RISK',JSON.stringify({binaryContract,oldEstimate:estimated.toString(),failedGasUsed:failedReceipt.gasUsed.toString(),freshEstimate:freshEstimate.toString(),successfulGasUsed:receipt.gasUsed.toString(),staticCallPayout:F(staticPayout),failedStateRolledBack:true}));
+  console.log('SIZE_FEE_TIME_INDEPENDENCE',JSON.stringify({binaryContract,originalEstimate:estimated.toString(),successfulGasUsed:receipt.gasUsed.toString(),unchangedQuote:true,elapsedSeconds:300}));
  });
 
  test('failed purchases and failed final payouts atomically preserve quota, lifecycle and every cash bucket',async()=>{
@@ -273,8 +267,14 @@ for(const binaryContract of ['BinaryPlan','FundedBinaryPlan'])describe(`${binary
   // an ordinary Member receives $500 per unit even after that same price milestone.
   await allowance(s.addresses[0],E('1200'),E('100'));
   await allowance(s.addresses[1],E('50000'),0n);
-  await(await s.binary.setAutoBuy(true,E('1000000'))).wait();
-  await units(1,5);await units(2,5);await settle(s,provider);
+  await(await s.binary.setAutoBuy(...(funded?[true,E('1000000')]:[true]))).wait();
+  await units(1,5);await units(2,5);
+  // Preserve the pending-liability/retry assertions using a real failed immediate transfer.
+  if(!funded)await(await s.usd.setBlocked(s.token.target,true)).wait();
+  const tokensBefore=await s.token.balanceOf(s.addresses[0]);
+  await settle(s,provider);
+  assert.equal(await s.token.balanceOf(s.addresses[0]),tokensBefore);
+  if(!funded)await(await s.usd.setBlocked(s.token.target,false)).wait();
   const amount=funded?E('5'):E('45');assert.equal(await s.binary.pendingAuto(s.addresses[0]),amount);
   const before=await binaryCash(),reserve=await s.token.reserve(),supply=await s.token.totalSupply();
   await(await s.binary.connect(signers[41]).executeAuto(s.addresses[0],amount)).wait();
@@ -289,6 +289,43 @@ for(const binaryContract of ['BinaryPlan','FundedBinaryPlan'])describe(`${binary
   assert.equal((await s.usd.balanceOf(s.addresses[0]))-cash,before.reward0);
   assert.equal(await s.token.reserve(),reserve+amount,'cash reward claims do not draw on token reserve');
   await checks();
+ });
+
+ if(!funded)test('TEST ONLY paid-rank fixture: canonical >$500 size-fee auto-buy retries the exact current quote without a user price cap or manual quota',async()=>{
+  await units(0,1);await buy('100');
+  // Only rank qualification is synthetic. The pending reward, collateral funding,
+  // hourly settlement, permission check and token purchase use the real paths.
+  await seedPaidRank(s.binary,s.addresses[0],1);
+  await(await s.binary.setAutoBuy(true)).wait();
+  await units(1,60);await units(2,60);
+  await(await s.usd.setBlocked(s.token.target,true)).wait();
+  const beforeAllocation=await tradeState();
+  await settle(s,provider);
+  assert.equal(await s.token.reserve(),beforeAllocation.reserve);
+  assert.equal(await s.token.totalSupply(),beforeAllocation.supply);
+  assert.equal(await s.token.balanceOf(s.addresses[0]),beforeAllocation.userTokens);
+  assert.equal(await s.binary.tokenBuySpent(s.addresses[0]),beforeAllocation.spent);
+  const amount=await s.binary.pendingAuto(s.addresses[0]);assert(amount>E('500'));
+  const reserve=await s.token.reserve(),supply=await s.token.totalSupply(),fund=await s.token.priceProtectionFund();
+  assert(amount*20n>reserve,'auto-buy also exceeds 5% of the pretrade live reserve');
+  const quote=await s.token.quoteBuy(amount),[fee,net]=await s.token.buyFeeQuote(amount),price=await s.token.price();
+  assert(fee>(amount*300n+9999n)/10000n,'this exercises a positive size surcharge');assert.equal(quote,net*E('1')/price);
+  const limit=await s.token.buyLimit(s.addresses[0]),spent=await s.binary.tokenBuySpent(s.addresses[0]);
+  assert.deepEqual(s.binary.interface.getFunction('setAutoBuy').inputs.map(x=>x.type),['bool']);
+  const before=await tradeState();
+  await assert.rejects(s.binary.connect(signers[41]).executeAuto.staticCall(s.addresses[0],amount),{reason:'mock recipient blocked'});
+  await fails(()=>s.binary.connect(signers[41]).executeAuto(s.addresses[0],amount,{gasLimit:3000000}));
+  assert.deepEqual(await tradeState(),before,'rejection restores reward cash, token balances, fund and quota');
+  await(await s.usd.setBlocked(s.token.target,false)).wait();
+  const receipt=await(await s.binary.connect(signers[41]).executeAuto(s.addresses[0],amount)).wait();
+  const executed=receipt.logs.filter(log=>log.address.toLowerCase()===s.binary.target.toLowerCase()).map(log=>s.binary.interface.parseLog(log)).find(log=>log?.name==='AutoExecuted');
+  assert.equal(executed.args[2],quote);assert.equal(await s.token.totalSupply(),supply+quote);assert.equal(await s.token.balanceOf(s.addresses[0]),before.userTokens+quote);
+  assert.equal(await s.token.reserve(),reserve+amount);assert.equal(await s.token.priceProtectionFund(),fund);
+  assert.equal(await s.usd.balanceOf(s.token.target),before.actual+amount);
+  const after=await binaryCash();assert.equal(after.actual,before.binary.actual-amount);assert.equal(after.totalAuto,before.binary.totalAuto-amount);assert.equal(after.auto0,0n);
+  for(const field of ['pointPool','builderAccounted','totalPending','reward0','reward35'])assert.equal(after[field],before.binary[field],field);
+  await allowance(s.addresses[0],limit,spent);await checks();
+  console.log('SIZE_FEE_CANONICAL_AUTOBUY_CURRENT_QUOTE',JSON.stringify({grossUSD:F(amount),feeUSD:F(fee),quote:quote.toString(),userPriceCap:false,protectedFund:F(fund),manualQuotaUnchanged:true,syntheticRankQualification:true}));
  });
 
  test('QUARANTINE REGRESSION: pre-mint $500 support cannot be captured by a sole $100 buyer',async()=>{

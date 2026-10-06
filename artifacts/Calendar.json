@@ -1,0 +1,7 @@
+{
+  "contractName": "Calendar",
+  "source": "BinaryPlan.sol",
+  "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+  "abi": [],
+  "bytecode": "0x6080806040523460175760399081601c823930815050f35b5f80fdfe5f80fdfea2646970667358221220e5ad3e9a867e486a7088700b8bedc255bd60e9d89a62c7091bd7a3fd5fa0fc9d64736f6c634300081e0033"
+}

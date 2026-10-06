@@ -1,0 +1,134 @@
+{
+  "status": "all current top-level test files have successful final-source coverage through partitioned commands",
+  "distinctTestFiles": 32,
+  "distinctPassedCases": 250,
+  "failuresInCreditedRuns": 0,
+  "skipsOrCancellationsInCreditedRuns": 0,
+  "singleNpmTestInvocation": false,
+  "sourceManifest": "docs/validation/2026-10-05-fee-floor-source-manifest.json",
+  "sourceManifestSha256": "8567d994dd21ddd9fb3239cc80259fa37abaaa954dd6c0ea7d2d552480a5b96a",
+  "selections": [
+    {
+      "selection": "fee-floor",
+      "files": [
+        "test/size-fee-proposal.test.mjs"
+      ],
+      "tests": 33,
+      "passed": 33,
+      "failed": 0,
+      "log": "docs/validation/2026-10-05-final-fee-floor.log",
+      "logSha256": "55effd49de5c31bda9c854d99a96f9a1106e2700c74b4890edb307a7de348f86"
+    },
+    {
+      "selection": "model",
+      "files": [
+        "test/reserve-model.test.mjs"
+      ],
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "log": "docs/validation/2026-10-05-final-model.log",
+      "logSha256": "d8e91067e7e6c0c21d35c69493099863642b5d788dee79b36ece54e8e3e1d69e"
+    },
+    {
+      "selection": "migrated-evm",
+      "files": [
+        "test/funded-locks.test.mjs",
+        "test/integrated-economics.test.mjs",
+        "test/reserve-token.test.mjs",
+        "test/revised-economics.test.mjs",
+        "test/zero-supply-quarantine.test.mjs"
+      ],
+      "tests": 61,
+      "passed": 61,
+      "failed": 0,
+      "log": "docs/validation/2026-10-05-final-migrated-evm.log",
+      "logSha256": "c6a7393a73eab230c096f8e5ad26e108578f432ebef0be98fa0f28a7fe0f16b5"
+    },
+    {
+      "selection": "binary-integration",
+      "files": [
+        "test/integrated-binary-funding.test.mjs"
+      ],
+      "tests": 23,
+      "passed": 23,
+      "failed": 0,
+      "log": "docs/validation/2026-10-05-final-binary-integration.log",
+      "logSha256": "8cced9687457ca770c3fe80709a7f02ff4851f1afe240d97e3156ea88da1a7b9"
+    },
+    {
+      "selection": "paid-points",
+      "files": [
+        "test/paid-points-binary.test.mjs"
+      ],
+      "tests": 13,
+      "passed": 13,
+      "failed": 0,
+      "log": "docs/validation/2026-10-05-final-paid-points.log",
+      "logSha256": "1027425e25a7474f8b758e6a4b67929bcc0bb10c8988adc0d631f2dc236ea520"
+    },
+    {
+      "selection": "compatibility",
+      "files": [
+        "test/core-autobuy.test.mjs",
+        "test/core-solvency.test.mjs",
+        "test/economic-adversary.test.mjs",
+        "test/event-reader.test.mjs",
+        "test/event-server.test.mjs",
+        "test/funded-economics.test.mjs",
+        "test/funded-keeper.test.mjs",
+        "test/funded-reference.test.mjs",
+        "test/journey-sale.test.mjs",
+        "test/math.test.mjs",
+        "test/migration.test.mjs",
+        "test/token-gas.test.mjs"
+      ],
+      "tests": 39,
+      "passed": 39,
+      "failed": 0,
+      "log": "docs/validation/2026-10-05-final-compatibility.log",
+      "logSha256": "73a539fd1be73a54d381f1f375d8c449d988990e17643618099652ad033243b5"
+    },
+    {
+      "selection": "accounting-load",
+      "files": [
+        "test/binary-buy-allowance.test.mjs",
+        "test/funded-collateral.test.mjs",
+        "test/funded-load.test.mjs",
+        "test/governance-rotation.test.mjs",
+        "test/rank-buy-capacity.test.mjs",
+        "test/reserve-collateral.test.mjs",
+        "test/reserve-load.test.mjs",
+        "test/review-entrypoints.test.mjs"
+      ],
+      "tests": 40,
+      "passed": 40,
+      "failed": 0,
+      "log": "docs/validation/2026-10-05-final-accounting-load.log",
+      "logSha256": "bd5e2cc8943e21abbb3fbe92505ca3c81964382130b384e940dea34453a603e3"
+    },
+    {
+      "selection": "protocol",
+      "files": [
+        "test/protocol.test.mjs"
+      ],
+      "tests": 26,
+      "passed": 26,
+      "failed": 0,
+      "log": "docs/validation/2026-10-05-final-protocol.log",
+      "logSha256": "b970b18a7a07ebffa664e543474f6b3b24d5852291f3b0d427683bca29055c4a"
+    },
+    {
+      "selection": "ui-api",
+      "files": [
+        "test/frontend-trade-quotes.test.mjs",
+        "test/integrated-server-state.test.mjs"
+      ],
+      "testsCredited": 8,
+      "combinedSelectionPassed": 13,
+      "duplicatesExcluded": 5,
+      "log": "docs/validation/2026-10-05-ui-fee-regression.log",
+      "logSha256": "b4030cbbda7b6ac49cc1a894643d4e2c5bebdb613bae2b2c5004b8cbb23a824f"
+    }
+  ]
+}

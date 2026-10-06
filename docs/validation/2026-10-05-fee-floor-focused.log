@@ -1,0 +1,49 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ proposal settings and fixed launch/milestone anchors; no production state setter (658.017739ms)
+✔ R=10000: buys and partial sells at or below 500 have only the 3% base fee (282.016003ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=100 (199.616001ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=1000 (260.615119ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=9999.999999999999999999 (267.115311ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=20000 (229.231846ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=1000000 (276.119291ms)
+✔ extra fee needs both conditions: above $500 and above 5% of live reserve (320.609615ms)
+✔ small live reserve $500 boundary is smooth, and larger trades use only the excess (260.640748ms)
+✔ actual $500 buy against small reserve keeps all cash, mints at exactly the base fee and enforces minOut (1093.724061ms)
+✔ actual $500 partial sale from $1000 reserve burns q, retains $15 and enforces minOut (1045.399413ms)
+✔ USD floor uses 18-decimal dollars; unsupported six-decimal collateral is rejected (73.621384ms)
+✔ bootstrap retains the existing 3% review exception below and above $500, excluding protected cash (1124.574381ms)
+✔ R=10000 T=500: both directions quote total fees 47.5 on 1000 and 433.5 on 5000 (141.106752ms)
+✔ curve has no threshold jump; ideal marginal fee is below 10%, with atom-level rounding disclosed (236.000319ms)
+✔ large buy leaves a different wallet’s next small buy and sell at exactly base 3% (2765.636765ms)
+✔ large sell leaves small later transactions at base 3%, independent of elapsed time (2175.607812ms)
+✔ actual buy retains all gross cash and mints only net fee value at pretrade price (945.719023ms)
+✔ actual partial sell burns gross tokens, pays V-F and retains F; transfer still burns 3% (1210.226353ms)
+✔ bootstrap uses only 3% with protected fund excluded; final sale returns full live reserve and closes lifecycle (2505.133286ms)
+✔ large fund is excluded from threshold, reserve, minting price and final redemptions (2859.524079ms)
+✔ one combined ceiling avoids charging a second atom for separately rounded base and surcharge (90.896361ms)
+✔ fractional-atom reserve threshold above the dollar floor stays exact (8371.647814ms)
+✔ quote and execution dust, minOut and deadline failures atomically preserve quota and every cash bucket (2504.951704ms)
+✔ failed collateral movement rolls back manual authorization and auto-buy/sell accounting (1820.025552ms)
+✔ MAX_RESERVE quote bounds and deterministic reference samples are overflow-safe (1234.167802ms)
+✔ splitting buys below their live threshold bypasses the extra fee: explicit limitation evidence (1939.202794ms)
+✔ splitting sales can bypass the surcharge; retained base fees and changing prices still affect proceeds (3459.676312ms)
+✔ auto-buy pays the same amount-based fee while only gross manual buys consume quota (3114.818259ms)
+✔ emergency partial and terminal exits retain their existing fee-free exception and protect the fund (1908.298928ms)
+✔ indicative legacy bps never replace exact fee amounts; sub-bps surcharge is still charged (146.462025ms)
+✔ real BinaryPlan integration: gross manual quota and Member auto eligibility remain unchanged (10032.343153ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 66737.082124

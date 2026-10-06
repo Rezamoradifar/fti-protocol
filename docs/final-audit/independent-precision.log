@@ -1,0 +1,26 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ old overmint is removed; positive exact growth below one display atom executes with zero support (20134.690552ms)
+✔ one dollar at large reserve grows exact ratio below getter precision without support (852.023967ms)
+✔ zero exact growth still rejects and rolls back the actual transaction (287.107907ms)
+✔ normal and large actual buys use exact mint, fee and manual quota (2838.327017ms)
+✔ auto buy uses identical quote and does not consume manual quota (961.79952ms)
+✔ split purchases each use fresh exact ratio, preserve strict growth and total quota (20479.309015ms)
+✔ partial sell and transfer maintain cash backing and exact/display growth (1035.267618ms)
+✔ bootstrap and support routing remain unchanged, final redemption still closes (2942.244505ms)
+✔ tiny transfer and positive-payout sell both grow real ratio below display resolution (1203.22439ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51522.138179

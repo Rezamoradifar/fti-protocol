@@ -1,0 +1,13 @@
+{
+  "contracts/BinaryPlan.sol": "29e8e41b624aa9e522356dd819897f1e3bd0298c280b6c17a44c7449bc971418",
+  "contracts/FTIReserveToken.sol": "c92a91a9cd21335c5eeef805faba5185204bd39c5d239bb339eb19a4a825b3be",
+  "contracts/FTIRetirementReviewToken.sol": "a0d535df1dcc1763adf489b266595d233e6a0bd2a885fbc9853c6f52ddad72d1",
+  "contracts/FTIToken.sol": "64e65c01d4af204eca1d971c9c82b6558f59820b98f4a526514768aa50030efe",
+  "contracts/FundedBinaryPlan.sol": "f80eb2ac3fa1d7337a6f99dce2d42d694ab90abc07ef286f8411abd71b27e2fc",
+  "contracts/Governance.sol": "ca1e638e4c4f9184c03dabdd23e6fc444c1b1fb4c5c3822898dda1f6263c7540",
+  "contracts/MockUSD.sol": "660b95edc8684c476f7c50c0da618c16b71ef5c82d948042d20dcd963a229157",
+  "deployments/local-retirement.json": "3ebf5016ad13c198a5ee42b0ebfaba13fc363c6fe133a196a844ba84a5ca52ae",
+  "deployments/testnet-input.example.json": "59430d351f93278ed99e8a3b45ce5018ed20806070110fc29602e6ca85b66906",
+  "scripts/keeper.mjs": "70fd8ac9e399a14714c63fb1cd10c2b3faeb13a3e5156696428f58949bb2714a",
+  "test/immediate-auto.test.mjs": "00cfd0d0dbb1f3fcad69408183e2e12e018e0b866117d2c28d15ae26891060a1"
+}

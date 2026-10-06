@@ -1,0 +1,116 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ a stranger cannot fragment a beneficiary pending reward into dust locks (18414.549821ms)
+✔ the beneficiary may intentionally choose a partial auto purchase (9882.975008ms)
+✔ an unrelated keeper can execute the complete pending amount only for its owner (10036.461473ms)
+✔ disabling auto-buy revokes keeper execution and preserves cash release (507.368532ms)
+✔ a maximum above spot but below the fee-inclusive execution price rejects atomically (2056.755456ms)
+✔ exact integer maximum price boundary rejects one wei below and accepts at the ceiling (12053.013892ms)
+✔ a failed collateral transfer restores pending balances and all token state (11207.153333ms)
+✔ release cannot be repeated to create cash or leave an executable stale auto balance (417.428124ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+EXACT_EVM_INVARIANT_CHECKS 72 mixed sales 14 transfers 10
+✔ seeded mixed trades, burns and full exit preserve exact integer reserve coverage (217949.214826ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ economic baseline: a self-funded three-wallet tree recovers 450 of 500 USD without outside pool (12276.512169ms)
+CONFIRMED carried-pool capture: group cost=500, payout=9450, group net=8950 test USD before gas; no accounting insolvency
+✔ economic finding: a 500 USD self-controlled subtree captures 9450 USD from an unmatched carried pool (12813.764472ms)
+CONFIRMED sale splitting: {"wholeFeeBps":"870","wholeNet":"354.243999999999888935","splitNet":"376.546718234653758065"}
+✔ HISTORICAL FTIToken curve: splitting the same unlocked balance lowers whale fees and raises proceeds (14287.656116ms)
+✔ event pagination splits rejected ranges and returns ordered actual events (1.682309ms)
+✔ per-block failure and exhausted request budget fail instead of empty success (0.815451ms)
+✔ cache-independent empty logs remain a genuine empty success (0.883643ms)
+FTI testnet: http://127.0.0.1:0
+FTI testnet: http://127.0.0.1:0
+✔ separate event RPC validates network and caches successful results (83.003154ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FIXED_CARRY_CAPTURE {"groupCost":"500","legacyReward":"9450","newReward":"40.0","unrelatedCarry":"9000","carryCaptured":"0"}
+✔ fresh subtree receives the same funded 40 USD with or without an unrelated 9,000 USD carried pool (29859.848313ms)
+✔ one branch cannot spend another branch unmatched funded credit (15077.713399ms)
+✔ activating an ancestor after a purchase cannot retroactively earn queued volume or credits (8616.603113ms)
+✔ point cap consumes proportional matched credit, preserves heavy-side credit and caps USD per point (7900.408917ms)
+✔ keeper batch sizes do not change allocation, carry, ranks or credit partitions (21900.364159ms)
+SPARSE_EPOCH_GAS 150097
+✔ hourly close visits only touched active accounts and reuses dirty slots across epochs (14919.214909ms)
+✔ monthly rewards use attributed current-month credits, never an unrelated prior-month carry (22236.227579ms)
+✔ auto-buy queues contain only enabled funded accounts, preserve owner controls and remove completed entries (15461.534686ms)
+✔ blocked cash claims restore the beneficiary liability and do not affect another claim (9880.335657ms)
+✔ deep placement is rejected before funding or consuming a sponsor slot (182257.700904ms)
+✔ funded keeper scans only eligible pending auto accounts (1.130196ms)
+✔ funded keeper uses bounded 25-item batches and waits for receipt (0.251119ms)
+{"time":"2026-10-05T10:12:19.326Z","service":"keeper","result":"epoch batch"}
+{"time":"2026-10-05T10:12:19.333Z","service":"keeper","result":"epoch batch"}
+{"time":"2026-10-05T10:12:19.340Z","service":"keeper","result":"epoch batch"}
+✔ keeper drains work without interval delays, never overlaps writes, and stops scheduling cleanly (53.16998ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ independent attributed ledger agrees with EVM across activation, two epochs and unmatched credit (33814.974618ms)
+✔ funded reference reconciles current-month builder funding and rejects a depth beyond 64 (4.940719ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+SALE_FLOW_PASS {
+  status: 'PASS',
+  sold: '96981187474179000000',
+  receivedUSD: '9408999999999824891'
+}
+✔ registered user buys, locked sale waits, unlocked sale pays USD, second sale waits (8881.8115ms)
+✔ document matching example exact (1.223277ms)
+✔ builder equal share, 20% cap and dust for zero through 20 eligible (0.267383ms)
+✔ curve rounding never creates a negative reserve or lowers exact k (15.186966ms)
+✔ historical model: integrated 500 members conserve all cash through settlement, auto-buy, monthly payouts and total exit (20.201807ms)
+✔ private migration retains journals and secrets, excludes dependencies, rejects traversal (195.812988ms)
+✔ token sell gas padding adds a rounded-up quarter plus 30k without Number precision loss (0.894039ms)
+✔ token sell gas padding rejects malformed, zero and negative estimates (0.919117ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 696678.408169

@@ -1,0 +1,16 @@
+RESERVE_V2_MODEL_300K {"model":"real-reserve-v2-sizefee-floor-review","economics":"trade-size-only-500usd-or-5percent-threshold-3percent-base-7percent-provisional-surcharge","wallets":300000,"buys":300000,"sells":399966,"transfers":59999,"checks":1059965,"observedPriceTransitions":{"attemptedTradingOperations":759965,"ordinaryPositiveSupply":{"buy":{"accepted":299999,"displayed":{"rise":299999,"equal":0,"fall":0},"exactReservePerShare":{"rise":299999,"equal":0,"fall":0}},"sell":{"accepted":399965,"displayed":{"rise":399965,"equal":0,"fall":0},"exactReservePerShare":{"rise":399965,"equal":0,"fall":0}},"transfer":{"accepted":59999,"displayed":{"rise":59999,"equal":0,"fall":0},"exactReservePerShare":{"rise":59999,"equal":0,"fall":0}}},"bootstrapBuys":1,"normalTerminalSells":1,"emergencyPartialSells":0,"emergencyTerminalSells":0,"rejectedAttempts":{"total":0,"byReason":{}},"scope":"Accepted normal buys, partial sells and positive transfers with positive supply before and after. Bootstrap and terminal states have no two-sided live R/S and are counted separately. Registration support injections are excluded. Rejections are separate; invariant checks are not the denominator. No probability estimate or exhaustive guarantee."},"largestBuyUSDWei":"500000000000000000000000","largestSaleUSDWei":"576089713160248885659418","priceBeforeFinalExitWad":"202939909049775604","finalPriceWad":"347674962988259693","cashInUSDWei":"92628565000000000000000000","cashOutUSDWei":"92628560000000000000000000","finalReserveUSDWei":"0","finalUnallocatedReserveUSDWei":"5000000000000000000","finalActualUSDWei":"5000000000000000000","finalUserCirculatingSupply":"0","finalTotalSupply":"0","lifecycleClosed":true,"allUserTokensSold":true,"negativePriceTransitions":0,"unfundedPayouts":0,"scope":"BigInt token-accounting simulation only. Live buys and partial sells charge ceil(3% V + 7% B^2/(B+T)), T=max($500,5% pretrade live reserve), B=max(V-T,0), with exact fractional-atom threshold and one combined ceiling. The 7% coefficient remains provisional. Bootstrap buys retain the base-only exception. No global pressure, time decay or wallet history. Final normal and all emergency sales are fee-free. Protected price-protection-fund cash stays outside live reserve, and restart remains review-gated. This model does not establish binary settlement equivalence, EVM/RPC throughput, gas, identity/Sybil safety or legal conclusions."}
+✔ independent experimental arithmetic keeps backing across 300,000 wallets and unrestricted normal exits (3337.524242ms)
+✔ zero start uses $0.10 reference; buys and transfers conserve cash and mint only user shares (0.58281ms)
+✔ integer quotes preserve the exact rational $500/5% threshold and one combined fee ceiling (2.834148ms)
+✔ normal final redemption pays all live reserve, freezes reference and blocks restart (0.653095ms)
+✔ time and wallet history never enter fees; compatibility pressure views stay zero (0.513595ms)
+✔ model dust rejection is atomic and zero transfer leaves state unchanged (0.48311ms)
+✔ independent model: $500 pre-mint support stays protected after a sole buyer redeems only their $100 (0.334926ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3464.329425

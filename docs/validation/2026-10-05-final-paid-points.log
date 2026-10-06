@@ -1,0 +1,36 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+PAID_POINT_REAL_PATH {"epochs":20,"rawMatched":200,"rankPoints":100,"flushed":100,"rank":1,"rankCredit":"funded allocation; not cash claim","autoStartsNextEpoch":true}
+▶ BinaryPlan: actual funded paid points and global point-pool allocation
+  ✔ 20 real hourly epochs: raw 10 pays 5 and flushes 5; only allocation 100 promotes Builder 1, with old-rank auto timing (136547.88006ms)
+  ✔ hourly registration-unit gate: four then one in separate hours carry fully; one-wallet five-unit top-up settles (13044.000889ms)
+  ✔ one new wallet registering five units reaches the hourly gate; zero eligible points still carry the full pool (3210.691068ms)
+  ✔ proportional full-pool distribution rounds only exact residual to development and preserves every protected bucket (12234.278814ms)
+PROVISIONAL_GLOBAL_POOL_RISK {"unrelatedCarriedPool":"9000","subtreeCost":"500","subtreeReward":"9450","paidRankPoints":2,"ownershipApproved":false}
+  ✔ no eligible points carries the whole pool provisionally; later self-controlled matches still expose global-pool ownership risk (11932.162039ms)
+✔ BinaryPlan: actual funded paid points and global point-pool allocation (180292.844163ms)
+▶ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures
+  ✔ TEST ONLY prior paid history: threshold 100 advances only after funded allocation under rank 0 (9395.867481ms)
+  ✔ TEST ONLY prior paid history: threshold 200 advances only after funded allocation under rank 1 (9206.246285ms)
+  ✔ TEST ONLY prior paid history: threshold 500 advances only after funded allocation under rank 2 (9489.282742ms)
+  ✔ TEST ONLY prior paid history: threshold 1000 advances only after funded allocation under rank 3 (10473.042397ms)
+  ✔ TEST ONLY dense matches: PV below $20 still settles all funds, changes next protection row, and preserves monthly buckets (19805.770001ms)
+  ✔ funding deficit blocks allocation and rank progress atomically; repairing collateral permits the same allocation (8644.927406ms)
+  ✔ sender and recipient taxed funding/claims revert atomically; collateral callback cannot process pending volume (9168.6993ms)
+  ✔ TEST ONLY six eligible builders retain equal monthly shares and later once-per-pool exclusion (7817.747914ms)
+✔ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures (98064.105146ms)
+ℹ tests 13
+ℹ suites 2
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 278992.761577

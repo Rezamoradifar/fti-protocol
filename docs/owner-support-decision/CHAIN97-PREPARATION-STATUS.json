@@ -1,0 +1,44 @@
+{
+  "schema": "fti-owner-selected-target-status-v1",
+  "recordedAt": "2026-10-06",
+  "status": "BLANK_PUBLIC_INPUTS_UNSIGNED_LOCAL_REVIEW_ONLY",
+  "chainId": 97,
+  "network": "BNB Smart Chain Testnet",
+  "targetOwnerConfirmed": true,
+  "collateral": "TEST ONLY MockUSD public faucet; never real collateral",
+  "tokenContract": "FTIRetirementReviewToken",
+  "binaryContract": "BinaryPlan",
+  "preparationComplete": false,
+  "deploymentReady": false,
+  "deploymentApproved": false,
+  "networkVerified": false,
+  "runtimeVerified": false,
+  "addressesVerified": false,
+  "nonceVerified": false,
+  "signed": false,
+  "broadcast": false,
+  "deployed": false,
+  "publicInputTemplate": "retirement-input.blank.json",
+  "publicInputs": {
+    "chainId": 97,
+    "deployer": "",
+    "nonce": null,
+    "development": "",
+    "owners": [],
+    "genesis": []
+  },
+  "unsignedTransactions": [],
+  "predictedAddresses": {},
+  "supportPolicy": {
+    "buyFees": "RETAINED_IN_R",
+    "binaryTokenAllocation": "FULL_5_PERCENT_TO_R_WHEN_S_POSITIVE_ELSE_H",
+    "H": "PROTECTED_INACTIVE_NO_AUTOMATIC_INSURANCE",
+    "HDisposition": "PERMANENT_GOVERNED_RETIREMENT_ONLY_AFTER_LIABILITY_CHECKS_TO_FIXED_DEVELOPMENT",
+    "H01": "RESOLVED_BY_OWNER_SCOPE_DECISION_NOT_OLD_POLICY_IMPLEMENTATION"
+  },
+  "boundaries": [
+    "Target selection is confirmed; no transaction approval is inferred.",
+    "No public addresses or nonce were invented.",
+    "No network, SSH, GitHub, signing, broadcast, or real-fund operation was performed."
+  ]
+}

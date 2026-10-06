@@ -1,0 +1,122 @@
+{
+  "status": "APPROVED_FOR_EXACT_TEST_ONLY_INTEGRATION",
+  "reviewedAtUtc": "2026-10-06T02:01:00Z",
+  "productionFilesCompared": 74,
+  "productionFilesUnchanged": true,
+  "patchReplay": "PASS: exact ten after hashes reproduced in independent temporary copy",
+  "patchSHA256": "aeef2081311307daa993238e36bb2f4508a24b0c2bb3d36efc303b57048e3e06",
+  "changedTests": [
+    {
+      "path": "test/binary-buy-allowance.test.mjs",
+      "beforeSHA256": "aacb876e8123d239c01d207e2b33d32e3febbb5c5677545474f25c9c1fbb5530",
+      "afterSHA256": "b9ca6166d272b8bc1371ea767431db521299f5cbecca9ced25dc6cbc5b1b3ec6",
+      "testDefinitionCountBefore": 8,
+      "testDefinitionCountAfter": 8,
+      "assertionCallCountBefore": 35,
+      "assertionCallCountAfter": 36
+    },
+    {
+      "path": "test/core-autobuy.test.mjs",
+      "beforeSHA256": "1fcf5641a5e031bf5bbdf4734acb63e003588821c5eff98ee4ba7dbbba3695e8",
+      "afterSHA256": "4d867170b6cd951db86f19e4e4d08e054dd1fe5dee738eb55f46969c67903af2",
+      "testDefinitionCountBefore": 8,
+      "testDefinitionCountAfter": 8,
+      "assertionCallCountBefore": 20,
+      "assertionCallCountAfter": 25
+    },
+    {
+      "path": "test/independent-rank-boundaries.test.mjs",
+      "beforeSHA256": "182a254686cd855228adf945c265d4a3554caaa36d9eeccb194a498acb1bf649",
+      "afterSHA256": "3e4b3635724619a9b06b9a8012a095a9458992c9f6eb830096e2d297ea87fb49",
+      "testDefinitionCountBefore": 10,
+      "testDefinitionCountAfter": 10,
+      "assertionCallCountBefore": 157,
+      "assertionCallCountAfter": 159
+    },
+    {
+      "path": "test/integrated-binary-funding.test.mjs",
+      "beforeSHA256": "ed9934408dd68289725bbd49d9b5f3afa138210dd366c5a134abbb39cab8dec9",
+      "afterSHA256": "ea0b1279290adde1a68204b1513d76ef20e9892fdccd2b90349f4c5cb796dd55",
+      "testDefinitionCountBefore": 12,
+      "testDefinitionCountAfter": 12,
+      "assertionCallCountBefore": 157,
+      "assertionCallCountAfter": 161
+    },
+    {
+      "path": "test/paid-points-binary.test.mjs",
+      "beforeSHA256": "7051a5aac13607d9e59ba73a289875b4d68dce621593724fc0ef6627534868f8",
+      "afterSHA256": "9984014cfadfb6e7563c652f4e9d28a407a1b53573ee7248449c0793ffbc5d00",
+      "testDefinitionCountBefore": 10,
+      "testDefinitionCountAfter": 10,
+      "assertionCallCountBefore": 154,
+      "assertionCallCountAfter": 161
+    },
+    {
+      "path": "test/protocol.test.mjs",
+      "beforeSHA256": "6db5c0aa6ed63ce9bc4aef1dcb49c0972c44ffcdb41ec14c3055f99a4536b793",
+      "afterSHA256": "5251030a690ee6eac8a236b8e461539a119aaac7e86f6ae09caec86552daf864",
+      "testDefinitionCountBefore": 26,
+      "testDefinitionCountAfter": 26,
+      "assertionCallCountBefore": 69,
+      "assertionCallCountAfter": 87
+    },
+    {
+      "path": "test/retirement-integrations.test.mjs",
+      "beforeSHA256": "bd51d8aaf91cb10bcdac076e7fb7906d873f5239b157bd40267513ff509f5185",
+      "afterSHA256": "2047c943eb2621ca1e29f29308388f39c4055cd372c7ce9b818ad6960d49d5ce",
+      "testDefinitionCountBefore": 18,
+      "testDefinitionCountAfter": 18,
+      "assertionCallCountBefore": 106,
+      "assertionCallCountAfter": 116
+    },
+    {
+      "path": "test/retirement-load.test.mjs",
+      "beforeSHA256": "4bcbad40a4340af03a175bf2a003de6709f6b42f6ce122e8cb0a5bad672624bb",
+      "afterSHA256": "e36bba48a089d39e97cd0cb066a70d081abc57f1982517dca513ad12a2017bdf",
+      "testDefinitionCountBefore": 1,
+      "testDefinitionCountAfter": 1,
+      "assertionCallCountBefore": 58,
+      "assertionCallCountAfter": 67
+    },
+    {
+      "path": "test/retirement-review.test.mjs",
+      "beforeSHA256": "37b186f1c0979c047068d752a887d21821c4958e1121bd891381953ab90dcd0b",
+      "afterSHA256": "726bdfa5c1792d9ab432c0870f993e0c8067de8fbf48535f8259d31b03c57a9e",
+      "testDefinitionCountBefore": 32,
+      "testDefinitionCountAfter": 32,
+      "assertionCallCountBefore": 143,
+      "assertionCallCountAfter": 156
+    },
+    {
+      "path": "test/size-fee-proposal.test.mjs",
+      "beforeSHA256": "5960833242cf6a2e3dda12d9245c39ba6268f39a670e6eae5e6dfa3900385203",
+      "afterSHA256": "53390f36a1e64762e08185a3c1bf423e4ec00ceca0c23da489f4e767b62014db",
+      "testDefinitionCountBefore": 28,
+      "testDefinitionCountAfter": 28,
+      "assertionCallCountBefore": 151,
+      "assertionCallCountAfter": 151
+    }
+  ],
+  "testFileSetsIdentical": true,
+  "topLevelTestFiles": 49,
+  "fullSuiteResult": {
+    "command": "npm test",
+    "tests": 447,
+    "passed": 447,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "todo": 0,
+    "exitCode": 0,
+    "node": "v24.19.0",
+    "durationMs": 4247994.557026,
+    "finalLogSHA256": "614a02a91a43c2c739f62a49f2077906785f6949cce160decdc9eacf43dac89d"
+  },
+  "inputHashCheck": "99/99 independently verified after run",
+  "limits": [
+    "Full 70-minute suite was not independently rerun; independently reviewed logs, source diff, manifests and replayed patch",
+    "Historical/mixed-model and repeated behavioral scenarios are included in the 447 test cases",
+    "Original H funding/automatic active release still unfulfilled",
+    "No rendered-browser/live-wallet/deployment verification"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "frontend/auto-buy-state.mjs": "f075ce8942bbb2e8280be566731f27ee1b7cf2b52ebc600e7594f14b26a2131b",
+  "frontend/controller.js": "af979ec17d1745bab0ae48a7b1144f624a25047800a7cde3cc4c4b09d6bec796",
+  "frontend/exact-price.mjs": "ec73f26dd263c84d6db5d5a31633d4b053a0fc6a2a41e0b12e121f1bf81aecdf",
+  "frontend/main.jsx": "54706ec824c895a2c9844dcab1bfade858ef8ace8c1f45563b3ba02e067e2098",
+  "frontend/surfaces.js": "c1288f0804970634d21ac5c989f685dbdf6ac3f966d7e354b7649448055b4cba",
+  "frontend/workspace-state.mjs": "bcefd13a7e91a673da1d402ca11ba05b1138058136446406dc8f35f6ea9c79e4",
+  "landing/src/main.jsx": "cf0f820ad3583e1bb0257c3abc7e8a8be74097b1800f4d418bb6c606d29aadb0",
+  "landing/src/sections.jsx": "cb3cf7a85d6ce918e789468cc809daef0d853556ee34d30d61fdd60d3e3a59bc",
+  "scripts/server.mjs": "a40477a8ccb40a01a4947dc077be6a3a38e7d98f937e7e8db8435d2a203aa7fe",
+  "test/exact-price.test.mjs": "26ac022744e322a8dc6b1d219e34250a466d495d29e4eea11742e78259db04bb",
+  "test/frontend-trade-quotes.test.mjs": "660a1fb5cba8488b5ec4a27a0a2a884bca44c2d3ca2a30732f8f33f95bd472e8",
+  "test/immediate-auto-ui.test.mjs": "2daed244b4a5cb4b5bfbbc252b74d8ece5f736104b24d4a431dea8eada8ecfce",
+  "test/retirement-server-state.test.mjs": "399204a815cd5069d38ef65f71bfe31ce9bc51d91082e25bb2f956963f513867",
+  "test/workspace-integration.test.mjs": "26f7fdbc231674c255ca3a8d63a4f12c56d53e8ffc446e42a5eedc209b6e0fa8",
+  "test/workspace-markup.test.mjs": "b08be10d3b12e50c71f5ecaa8b5f474c3204b9792769a41051cf7d4d3f983e01",
+  "test/workspace-routing.test.mjs": "5e40d4c8fecfd331afa15804bb2d081b229eff1af07e8a2b84ae56a461cc0a02",
+  "test/workspace-state.test.mjs": "8128a470d29d7e4ccb403cb7017a8e26fcb40d3431673a4d325215b2d1ab363c",
+  "web/style.css": "dfe726b768e4ed4c9a7cd6c32116a97486193a695fa15759a4a50939622ea9e9"
+}

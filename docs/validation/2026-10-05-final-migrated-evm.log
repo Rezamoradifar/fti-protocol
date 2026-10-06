@@ -1,0 +1,116 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ repeated purchases create no time or wallet-count locks (77608.132858ms)
+✔ user minOut replaces vesting as the immediate buy/sell execution guard (1990.766144ms)
+✔ oversized normal redemptions are immediately available with trade-size-only fees and no wallet lock (2022.88108ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ integrated: zero start, $0.10 reference, 3% buy fee and no charity ABI (6225.738191ms)
+✔ integrated: exact size surcharge uses current gross value; indicative bps never sets payout (3678.547729ms)
+✔ integrated: >5% immediate sales and same-hour outflow >15% succeed without capacity or age locks (5149.0407ms)
+✔ integrated: consecutive same-block partial sales price only their own pretrade value (4710.939068ms)
+✔ integrated: elapsed seconds never change live buy or sell quotes (5151.416513ms)
+✔ integrated: buys, binary injections, transfer burns and seller wallets add no history-dependent fees (8930.702575ms)
+✔ integrated: normal full redemption pays exact reserve, freezes quote, preserves quota and keeps restart gated (4864.387657ms)
+✔ integrated: fee-free emergency partial and final exits keep disabled compatibility getters at zero and redeem every live reserve atom (6076.402294ms)
+✔ integrated: quote deadlines/minOut and dust reverts are atomic including disabled compatibility getters and buy quota (4082.421587ms)
+EXPERIMENTAL_SIZE_SPLIT_LIMITATION {"bulkOut":"4566500000000000000000","splitOut":"4682270287498373877975","extraPayout":"115770287498373877975","pressureActive":false}
+✔ integrated: same-time splitting can reduce size surcharge; no anti-splitting claim is made (5487.987764ms)
+✔ integrated: waiting 300 seconds changes neither fee nor immediately executable payout (5233.155069ms)
+✔ integrated: unchanged trades use the same gas across sampled elapsed times (6159.524571ms)
+✔ integrated: one-atom final reserve is fully redeemable without fee dust; failed minOut is atomic (13008.146005ms)
+✔ integrated: recipient-tax collateral reverts partial reserve changes and final lifecycle changes atomically (1212.45174ms)
+✔ integrated: two-holder atom dust blocks normal exit and consolidation; only existing emergency path resolves fixture (1938.095424ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ starts with zero reserve and supply, and a $0.10 bootstrap reference (2175.074487ms)
+✔ binary registration/funding supports reserve but never mints the first FTI (4919.199101ms)
+✔ first $100 buy mints 970 user tokens and retains the entire payment as backing (2827.464573ms)
+✔ tokens are immediately unlocked; transfers burn 3%, credit 97% and never move USD (4580.462122ms)
+✔ normal partial sales have no 5% hard cap and exact trade-size-only fees (4225.192295ms)
+✔ 5-of-7 council vote activates redemption-only emergency mode without an admin liquidity transfer (4366.365341ms)
+✔ a 10x milestone does not multiply base Member binary-owned purchase quota (5329.612422ms)
+FTI_V2_FEE_CHECK {"price":"0.103225806451612903","retainedUSD":"0.123711340206185568"}
+✔ partial sells burn the full sale amount and retain every fee dollar for remaining holders (3717.810698ms)
+✔ normal buys and sells strictly advance displayed price; sub-price-step dust reverts atomically (5329.546005ms)
+✔ normal sales exceed former hourly capacity without pressure or timer fees (6247.797199ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ revised initial reference is $0.10 with zero tokens/reserve and no charity ABI or constructor arguments (2548.207719ms)
+✔ membership grants 5x cumulative same-wallet permission and injects support without minting (3166.270506ms)
+✔ subsequent buy mints net 97% at pre-operation displayed quote and retains all collateral (3802.802007ms)
+✔ sub-$500 partial sells apply only the 3% base and burn exactly sold tokens once (3992.832212ms)
+✔ positive transfer debits 100%, burns 3%, credits 97%, grows real/displayed price and moves no USD (3275.3055ms)
+✔ transferFrom spends gross allowance and has the same single burn and net receipt (3604.652619ms)
+✔ self-transfer requires gross balance and burns once; zero transfer is the explicit no-op exception (3572.00153ms)
+✔ dust transfer and sub-displayed-price-step transfer revert atomically including gross allowance (3102.627567ms)
+✔ final normal redemption pays 100% of live reserve, freezes reference and blocks restart (3724.450909ms)
+✔ retained emergency exception is fee-free, closes final lifecycle and preserves historical reference (4182.3067ms)
+✔ independent revised model matches buys, transfer burn, trade-size sale fees and terminal restart guard (4.635787ms)
+✔ arithmetic keeps post-close support protected and prevents capture without approving restart (3.169925ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ quarantine: empty deployment has a fixed $0.10 anchor and a $1 first milestone (589.012549ms)
+✔ quarantine: membership-only cash stays protected, unowned and outside live reserve (1099.094475ms)
+✔ quarantine: first $100 buyer mints 970 FTI and can redeem only $100, never the prior $500 (2724.368732ms)
+✔ quarantine: positive-supply injection adds redeemable support without minting or allocating prior cash (2856.954733ms)
+✔ quarantine: an authorized first automatic buy also cannot capture protected cash or consume manual quota (2028.968064ms)
+✔ quarantine: post-closure injections remain protected, preserve the historical quote and cannot restart minting (3196.910477ms)
+✔ quarantine: raw USD donations remain unaccounted surplus through first buy, injection and final redemption (2659.487754ms)
+✔ quarantine: emergency partial and full exits remain separately fee-free and leave protected cash intact (4265.660548ms)
+✔ quarantine: trade-size-only partial-sale fees and 3% transfer burn do not touch protected cash (2653.997654ms)
+✔ quarantine: failed buy/sell minOut and deadline checks roll back reserve, quarantine, quota and lifecycle (2663.356292ms)
+✔ quarantine: collateral sender/recipient taxes revert zero-supply injection and never fabricate protected accounting (821.838335ms)
+✔ quarantine: taxed live injection, buys, partial sales and full redemption atomically preserve both buckets (4777.891978ms)
+✔ quarantine: backing checks protect unallocated cash even if actual USD still covers all live reserve (3082.539801ms)
+✔ quarantine: governance cannot rescue or allocate protected USD before or after lifecycle closure (2921.977056ms)
+✔ quarantine: nested reentrant injection is rejected and outer injection accounts for its payment exactly once (1203.521545ms)
+✔ quarantine: propagated callback failure rolls back zero-supply injection and manual-buy authorization (1836.042457ms)
+✔ quarantine: callback transferFrom cannot burn FTI or consume its allowance during a priced buy (2346.148474ms)
+✔ quarantine: fixed $1 and $10 milestones are independent of the first post-fee quote and prior binary cash (4837.311059ms)
+✔ quarantine: zero-supply historical references cannot trigger milestones, even in a TEST ONLY boundary fixture (254.878945ms)
+✔ quarantine: live milestone multiplier latches and remains capped at 1024 (1319.999946ms)
+✔ quarantine: redeemable and unallocated cash share the reserve cap; raw donations are not silently counted (3661.093495ms)
+ℹ tests 61
+ℹ suites 0
+ℹ pass 61
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 311178.865051

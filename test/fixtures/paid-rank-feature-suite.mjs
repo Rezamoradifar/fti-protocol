@@ -48,7 +48,9 @@ export async function deployPaidRankFeatureSuite(signers,{tokenContract='FTIToke
  const addresses=await Promise.all(signers.map(s=>s.getAddress()));
  const usd=await deployOne('MockUSD',[],signers[0]);const council=await deployOne('Council',[addresses.slice(31,38)],signers[0]);
  const timelock=await deployOne('FTITimelock',[council.target],signers[0]);
- const token=await deployOne(tokenContract,[usd.target,timelock.target,council.target],signers[0]);
+ const tokenArgs=[usd.target,timelock.target,council.target];
+ if(tokenContract==='FTIRetirementReviewToken')tokenArgs.push(addresses[35]);
+ const token=await deployOne(tokenContract,tokenArgs,signers[0]);
  const binary=await deployFeatureBinary(binaryContract,[usd.target,token.target,timelock.target,council.target,addresses[35],addresses.slice(0,31)],signers[0]);
  await(await token.bind(binary.target)).wait();return{usd,council,timelock,token,binary,addresses};
 }

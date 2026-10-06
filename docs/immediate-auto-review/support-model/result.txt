@@ -1,0 +1,3 @@
+{'buy': 131339, 'sell': 200000, 'transfer': 200000, 'tiny_buy': 10000, 'unchanged_getter': 20000, 'tiny_transfer': 10000, 'synthetic_helper_reject': 4954, 'synthetic_helper_success': 5046}
+{'positive_fee_not_sufficient': {'fee_atoms': 1, 'D_atoms': 1000000000000000001}}
+normal_support_spend_atoms 0 H_unchanged repeated test verified

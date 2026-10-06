@@ -1,0 +1,48 @@
+✔ description validates five exact artifacts and fixed 5/7 + 72h metadata without claiming readiness (28.343577ms)
+✔ public config is normalized, fixture-labelled, and copied only through an explicit allowlist (61.232749ms)
+✔ five unsigned creations and sixth bind have correct constructor encodings, linking, sender, nonce, and chain (36.963039ms)
+✔ new retirement token pins are frozen and no old token is a deployment target (23.670268ms)
+✔ unsigned preparation is deterministic for the same explicit public inputs (60.26904ms)
+✔ default CLI and --describe remain read-only with missing public configuration (351.993518ms)
+✔ CLI creates exactly one clearly unsigned fixture manifest with restrictive permissions (212.677651ms)
+✔ all chains except explicitly numeric chain 97 fail closed (6.614373ms)
+✔ every required public input must be explicit, with no defaults or inferred addresses/nonces (4.442871ms)
+✔ seven Council owners must be distinct after address normalization (0.989653ms)
+✔ seven nonzero valid Council owners are required (6.574488ms)
+✔ 31 genesis addresses must be distinct after normalization (1.12224ms)
+✔ 31 nonzero valid genesis addresses are required (5.451471ms)
+✔ development and deployer must be valid explicit nonzero addresses (6.434815ms)
+✔ development destination cannot conflict with stablecoin, token, or BinaryPlan predictions (55.746294ms)
+✔ nonce rejects absent, fractional, negative, ambiguous, unsafe, or exhausted account values (16.144384ms)
+✔ explicit decimal nonces beyond Number precision are preserved without guessing (42.864917ms)
+✔ unknown configuration fields, secrets, and attempted governance overrides are rejected without echoing them (4.345737ms)
+✔ CLI does not leak invalid JSON or unsupported secret values (281.438587ms)
+✔ source hash mismatch and missing sources stop preparation before output (5.723517ms)
+✔ artifact hash mismatch or substitution of the old token is rejected (6.443188ms)
+✔ governance changes are rejected rather than reported as fixed 5/7 + 72h (1.0479ms)
+✔ output and every supported related journal/deployment record are preserved without overwrite (156.011752ms)
+✔ dangling output or journal symlinks are treated as existing records (66.704712ms)
+✔ writing requires an explicitly unsigned complete chain-97 manifest and new unsigned filename (22.083461ms)
+✔ broadcast, execute, signer, RPC, legacy and unknown CLI flags fail before config reads or file writes (1409.049994ms)
+✔ incomplete and contradictory CLI modes fail closed (978.83284ms)
+✔ unsigned CLI preparation works with all network calls and credential/environment-file reads actively blocked (216.590858ms)
+✔ frozen artifacts retain identity, compiler, ABI and exact creation-bytecode evidence (10.754305ms)
+✔ combined lifecycle and immediate-auto ABI metadata describe the frozen implementation (10.10537ms)
+✔ actual historical token and Binary source/artifact pins are rejected independently (23.461298ms)
+✔ writer atomically rejects incomplete sequence, modified bytecode, dependencies, bind, or evidence (280.574531ms)
+✔ checked-in descriptor equals the current validated public-input-free description (10.501118ms)
+✔ canonical demo selects retirement review and preserves explicit historical local demos (0.94057ms)
+✔ canonical deploy and prepare entrypoints have no compilation, credential, live-network, or historical deployment hooks (0.234439ms)
+✔ canonical deployment default only describes the current token with unresolved public inputs (160.638615ms)
+✔ default historical browser launcher fails closed before opening a server (59.395083ms)
+✔ canonical deployment rejects historical models and execution requests before public config reads (538.8063ms)
+✔ historical direct deployment scripts are retained unchanged but never invoked by npm scripts (0.728574ms)
+✔ local retirement configuration and generated unsigned manifests are excluded from source publication (0.368878ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5430.563856

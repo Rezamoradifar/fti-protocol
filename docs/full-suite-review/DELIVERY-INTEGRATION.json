@@ -1,0 +1,16 @@
+{
+  "status": "INTEGRATED_AFTER_INDEPENDENT_REVIEW",
+  "productionChanged": false,
+  "testFilesChanged": 10,
+  "patchSHA256": "aeef2081311307daa993238e36bb2f4508a24b0c2bb3d36efc303b57048e3e06",
+  "fullSuitePassed": 447,
+  "fullSuiteTests": 447,
+  "fullSuiteFailures": 0,
+  "fullSuiteSkipped": 0,
+  "fullSuiteCancelled": 0,
+  "priorFocused173": "PRESERVED_CHECKPOINT_NOT_ADDED_TO_FULL_COUNT",
+  "Node": "24.19.0",
+  "allRequirementsImplemented": false,
+  "HSupportPolicy": "OPEN_UNIMPLEMENTED",
+  "deploymentApproved": false
+}

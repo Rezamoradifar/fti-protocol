@@ -1,0 +1,14 @@
+{
+  "frontend/exact-price.mjs": "ec73f26dd263c84d6db5d5a31633d4b053a0fc6a2a41e0b12e121f1bf81aecdf",
+  "frontend/controller.js": "56a0374692644034a64af3ff523e82b2b0fb02d0fa5b97a61103d5b83856b7b5",
+  "frontend/main.jsx": "bc259541a4d5830defa575737b71bbdf504ebb1b556b9fecb08a721cc7216f06",
+  "web/style.css": "c621dfd58f285f97eb09e3978f1986da35b12ec8afb677746572b1d18d80bf64",
+  "test/exact-price.test.mjs": "26ac022744e322a8dc6b1d219e34250a466d495d29e4eea11742e78259db04bb",
+  "test/frontend-trade-quotes.test.mjs": "a38ce135881a0f67b4b80acecbf9e0f81397ffc14e4501a8f21a4dd8357027e8",
+  "test/workspace-integration.test.mjs": "454c3e1b6a7b200c2c5eccac3c9ee3e3d886e4b63c7c533a8af9035faa61ad90",
+  "frontend/workspace-state.mjs": "ee5f290000a0612e1188cd5be123a7e0f7e43b344410aafa745ccfd589c6d00e",
+  "frontend/surfaces.js": "c1288f0804970634d21ac5c989f685dbdf6ac3f966d7e354b7649448055b4cba",
+  "test/workspace-markup.test.mjs": "ef4fae09f04a9085214c3ec81938bf4fd76347b00bbcd3f13aac28ed29d17823",
+  "test/workspace-routing.test.mjs": "5e40d4c8fecfd331afa15804bb2d081b229eff1af07e8a2b84ae56a461cc0a02",
+  "test/workspace-state.test.mjs": "8128a470d29d7e4ccb403cb7017a8e26fcb40d3431673a4d325215b2d1ab363c"
+}

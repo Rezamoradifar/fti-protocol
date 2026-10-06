@@ -1,7 +1,7 @@
 {
   "name": "fti-protocol",
   "version": "0.2.0",
-  "description": "FTI local paid-points/global-pool review candidate \u2014 not audited or approved for deployment",
+  "description": "FTI local paid-points/global-pool review candidate — not audited or approved for deployment",
   "main": "index.js",
   "directories": {
     "doc": "docs",
@@ -11,9 +11,9 @@
     "compile": "node scripts/compile.mjs",
     "test": "npm run compile && node --test --test-concurrency=1 test/*.test.mjs",
     "start": "node scripts/server.mjs",
-    "demo": "npm run compile && node scripts/local.mjs --reserve-token",
+    "demo": "npm run compile && node scripts/local.mjs --retirement-review",
     "keeper": "node scripts/keeper.mjs",
-    "deploy": "npm run compile && node scripts/deploy-reserve.mjs",
+    "deploy": "node scripts/prepare-retirement-deployment.mjs",
     "simulate": "node scripts/simulate.mjs",
     "launch": "node scripts/launch-server.mjs",
     "import:deployment": "node scripts/import-browser-deployment.mjs",
@@ -22,11 +22,14 @@
     "predemo": "npm run build:web",
     "demo:reserve": "npm run build:web && npm run compile && node scripts/local.mjs --reserve-token",
     "test:reserve": "npm run compile && node --test --test-concurrency=1 test/reserve-*.test.mjs",
-    "simulate:reserve": "node scripts/simulate-reserve.mjs 300000 docs/reserve-simulation-300000.json",
+    "simulate:reserve": "node scripts/simulate-reserve.mjs 300000 docs/reserve-sizefee-floor-simulation-300000.json",
     "test:funded": "npm run compile && node --test --test-concurrency=1 test/funded-*.test.mjs",
     "simulate:funded": "node scripts/simulate-funded.mjs 300000 docs/funded-simulation-300000.json",
     "demo:historical-funded": "npm run build:web && npm run compile && node scripts/local.mjs --funded-plan",
-    "launch:historical": "node scripts/launch-server.mjs --historical-launcher"
+    "launch:historical": "node scripts/launch-server.mjs --historical-launcher",
+    "prepare:retirement": "node scripts/prepare-retirement-deployment.mjs",
+    "test:retirement-deployment": "node --test --test-concurrency=1 test/retirement-deployment.test.mjs test/review-entrypoints.test.mjs",
+    "demo:retirement": "npm run build:web && npm run compile && node scripts/local.mjs --retirement-review"
   },
   "keywords": [],
   "author": "",

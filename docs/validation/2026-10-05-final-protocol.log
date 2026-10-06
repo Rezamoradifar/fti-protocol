@@ -1,0 +1,43 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ 31 unique Genesis positions contain no artificial cash, units or tokens (1724.38921ms)
+✔ 100 USDT is exactly split 90/5/4/1 without FTI mint (1808.083972ms)
+✔ automatic left/right placement; third direct, duplicate and invalid sponsor rejected (4268.553783ms)
+✔ bounded ancestor propagation includes every ancestor once (2519.436954ms)
+✔ hourly unit minimum: 3 then 2 in separate hours carry; 5 current-hour units settle all carried cash (11136.14937ms)
+✔ matched points above cap burn, only heavy-side imbalance carries (7567.280482ms)
+✔ raw branch units do not grant rank; successful funded capped points accumulate before any claim (13054.753067ms)
+✔ cap and protection tables reproduce specification (64.322763ms)
+✔ claims are pull payments and cannot be repeated (8233.521477ms)
+✔ batch order/size leaves identical wallet economics (11725.810481ms)
+✔ buy uses actual stablecoin, increases price, respects lifetime allowance (7319.016134ms)
+✔ holding cap and min output revert atomically (3678.509458ms)
+✔ locked tokens cannot sell; fallback deadline unlocks without new registrations (7960.846239ms)
+✔ transfer burns 3%, rejects self-transfer, unregistered recipient, and locked amount (8870.415543ms)
+✔ unauthorized auto buy, reserve injection, rebinding, pause and rescue rejected (46.255484ms)
+✔ TEST ONLY paid-rank fixture: actual hourly rewards fund auto-buy, no fabricated income (21528.878088ms)
+✔ failed auto execution preserves claim and user can release it as USD (13595.867395ms)
+✔ TEST ONLY paid-rank fixture: monthly pool pays only 20% to sole eligible builder, one time (21028.276671ms)
+✔ 5 of 7 council required for emergency pause; timelock starts at 72 hours (980.789958ms)
+✔ full unlock and complete sell-off pay from real reserve without new inflows (38836.186072ms)
+✔ failed USD transfer leaves beneficiary claim intact and does not affect others (8916.840275ms)
+✔ 5-of-7 council can rotate a compromised owner only through a self-governed proposal (882.977802ms)
+✔ 72-hour timelock floor cannot be reduced even by a fully approved self-call (980.070051ms)
+✔ five approvals cannot bypass timelock delay or replay execution (1710.69289ms)
+✔ EVM integer buy quotes match independent BigInt model (4197.233614ms)
+✔ auto-buy settings freeze during matching so batching cannot change economics (8159.235215ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 211632.062819

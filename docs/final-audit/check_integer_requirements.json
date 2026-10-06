@@ -1,0 +1,15 @@
+{
+  "seed": 20261006,
+  "random_states": 100000,
+  "accepted_checks": {
+    "buys": 65703,
+    "partial_sells": 100000,
+    "transfers": 100000,
+    "restarts": 82668,
+    "out_of_range_or_zero_output": 34297
+  },
+  "fee_boundary_cases": 30,
+  "uint256_cross_product_and_fee_bounds": "pass",
+  "status": "pass",
+  "scope": "Independent integer arithmetic model only, not EVM or source-equivalence validation"
+}

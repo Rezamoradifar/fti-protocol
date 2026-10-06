@@ -25,10 +25,10 @@ This binds to localhost for use behind your existing reverse proxy. Do not chang
 
 ## Content boundaries
 
-Parameter values describe the existing source, not live market data. Matching results show points only; no projected earnings are presented. The curve chart is explicitly conceptual. The scheduled exit/support-budget candidate is identified as separate and not active in the current testnet deployment. Known economic limitations and independent-audit status remain visible.
+Parameter values describe the existing source, not live market data. Matching results show points only; no projected earnings are presented. The curve chart is explicitly conceptual. The owner-selected current candidate keeps buy fees in R, routes the full Binary 5% to R at positive supply and H at zero supply, and keeps H protected/inactive without automatic insurance. H can be disposed of only through permanent governed retirement after liability checks to the fixed development recipient. The former automatic-support proposal is superseded, not implemented. See [the owner decision](../docs/OWNER-SUPPORT-DECISION-2026-10-06.md). Known economic limitations and independent-audit status remain visible.
 
 The hero is a generated decorative artwork, not a token product photograph. No user keys, balances, testimonials, performance metrics or income claims have been invented.
 
 ## Extended content
 
-Rank, cap and contract data live in `src/protocol-data.mjs`. Extended sections are in `src/sections.jsx`. Values describe the current legacy contracts, with the experimental candidate explicitly marked. No artificial return projections or claims of audit completion are used. The visual curve is conceptual.
+Rank, cap and contract data live in `src/protocol-data.mjs`. Extended sections are in `src/sections.jsx`. Legacy deployment addresses remain historical and are labeled accordingly; they do not identify a deployment of the selected local candidate. Current allocation copy describes the owner-selected candidate. The owner confirmed chain 97 for a future TEST ONLY MockUSD deployment, but no new public addresses, live network verification, transaction approval or deployment are claimed. No artificial return projections or claims of audit completion are used. The visual curve is conceptual.

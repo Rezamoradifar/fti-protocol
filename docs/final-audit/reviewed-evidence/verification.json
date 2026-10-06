@@ -1,0 +1,42 @@
+{
+  "verifiedAtUtc": "2026-10-06T00:25:23.107671+00:00",
+  "result": "passed",
+  "focusedTests": {
+    "total": 56,
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0,
+    "log": "docs/immediate-auto-ui/ui-api.log"
+  },
+  "builds": {
+    "workspace": "passed",
+    "landing": "passed"
+  },
+  "syntaxChecks": "passed",
+  "baseline": {
+    "contracts/BinaryPlan.sol": "9844e9b6b14553e0eb14352d43ab65e0cefda18d7c07a87101d074959c198271",
+    "contracts/FTIRetirementReviewToken.sol": "89de8c1e8babbb0b5cf8ad20b92d96f176f2d3f89e9319e7328c7c52f0676ccb",
+    "scripts/keeper.mjs": "d53789135e14713e8e1fc6f14d689a42cba0185b86b3c06bbace79c44a7b11d2",
+    "test/immediate-auto.test.mjs": "4be9859238a80ac850cc740f31e46991a810478c3e1b377e8f4531596154576b",
+    "artifacts/BinaryPlan.json": "74c55aff04054d58d9f7ea9c9720032a0d6fe7572b248fa881dca0b9ee1cd4cb",
+    "artifacts/FTIRetirementReviewToken.json": "f7821bc76f101bc010d5c61a34408f821f2867e13f53007308335036e0d8d0dd"
+  },
+  "uiSourceManifest": "docs/immediate-auto-ui/ui-source-hashes.json",
+  "uiBuildManifest": "docs/immediate-auto-ui/ui-build-hashes.json",
+  "initialOverlayFilesVerified": 12,
+  "deploymentMetadataUnchanged": true,
+  "otherProtectedFilesUnchanged": 7,
+  "protectedChangesFromCoordinatedContractRevision": {
+    "contracts/BinaryPlan.sol": "9844e9b6b14553e0eb14352d43ab65e0cefda18d7c07a87101d074959c198271",
+    "contracts/FTIRetirementReviewToken.sol": "89de8c1e8babbb0b5cf8ad20b92d96f176f2d3f89e9319e7328c7c52f0676ccb",
+    "scripts/keeper.mjs": "d53789135e14713e8e1fc6f14d689a42cba0185b86b3c06bbace79c44a7b11d2",
+    "test/immediate-auto.test.mjs": "4be9859238a80ac850cc740f31e46991a810478c3e1b377e8f4531596154576b"
+  },
+  "notRun": [
+    "browser-render/screenshots",
+    "live-wallet checks",
+    "full legacy EVM repository suite"
+  ],
+  "published": false,
+  "deployed": false
+}

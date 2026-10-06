@@ -1,0 +1,3 @@
+c82ab846b978ce4b925fbe6376b6561620530b039ed40146197e7fcd35b1b883  contracts/BinaryPlan.sol
+d53789135e14713e8e1fc6f14d689a42cba0185b86b3c06bbace79c44a7b11d2  scripts/keeper.mjs
+13139a213113fea0c58a189d9ae12d6f97b32a01782fb8f1c298d0a7e7d542a8  test/immediate-auto.test.mjs

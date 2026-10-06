@@ -1,0 +1,53 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> fti-protocol@0.2.0 test:retirement-deployment
+> node --test --test-concurrency=1 test/retirement-deployment.test.mjs test/review-entrypoints.test.mjs
+
+✔ description validates five exact artifacts and fixed 5/7 + 72h metadata without claiming readiness (21.432345ms)
+✔ public config is normalized, fixture-labelled, and copied only through an explicit allowlist (64.285542ms)
+✔ five unsigned creations and sixth bind have correct constructor encodings, linking, sender, nonce, and chain (40.793899ms)
+✔ new retirement token pins are frozen and no old token is a deployment target (22.643154ms)
+✔ unsigned preparation is deterministic for the same explicit public inputs (45.641949ms)
+✔ default CLI and --describe remain read-only with missing public configuration (419.039021ms)
+✔ CLI creates exactly one clearly unsigned fixture manifest with restrictive permissions (213.691528ms)
+✔ all chains except explicitly numeric chain 97 fail closed (6.158351ms)
+✔ every required public input must be explicit, with no defaults or inferred addresses/nonces (4.316319ms)
+✔ seven Council owners must be distinct after address normalization (1.016352ms)
+✔ seven nonzero valid Council owners are required (6.064793ms)
+✔ 31 genesis addresses must be distinct after normalization (1.388132ms)
+✔ 31 nonzero valid genesis addresses are required (5.733344ms)
+✔ development and deployer must be valid explicit nonzero addresses (6.622788ms)
+✔ development destination cannot conflict with stablecoin, token, or BinaryPlan predictions (56.559369ms)
+✔ nonce rejects absent, fractional, negative, ambiguous, unsafe, or exhausted account values (16.406066ms)
+✔ explicit decimal nonces beyond Number precision are preserved without guessing (50.679634ms)
+✔ unknown configuration fields, secrets, and attempted governance overrides are rejected without echoing them (6.178281ms)
+✔ CLI does not leak invalid JSON or unsupported secret values (328.549667ms)
+✔ source hash mismatch and missing sources stop preparation before output (7.92318ms)
+✔ artifact hash mismatch or substitution of the old token is rejected (6.656157ms)
+✔ governance changes are rejected rather than reported as fixed 5/7 + 72h (1.403825ms)
+✔ output and every supported related journal/deployment record are preserved without overwrite (147.783899ms)
+✔ dangling output or journal symlinks are treated as existing records (61.282158ms)
+✔ writing requires an explicitly unsigned complete chain-97 manifest and new unsigned filename (21.843612ms)
+✔ broadcast, execute, signer, RPC, legacy and unknown CLI flags fail before config reads or file writes (1518.334353ms)
+✔ incomplete and contradictory CLI modes fail closed (1070.845246ms)
+✔ unsigned CLI preparation works with all network calls and credential/environment-file reads actively blocked (242.034837ms)
+✔ frozen artifacts retain identity, compiler, ABI and exact creation-bytecode evidence (13.077367ms)
+✔ combined lifecycle and immediate-auto ABI metadata describe the frozen implementation (12.728011ms)
+✔ actual historical token and Binary source/artifact pins are rejected independently (29.448967ms)
+✔ writer atomically rejects incomplete sequence, modified bytecode, dependencies, bind, or evidence (317.569414ms)
+✔ checked-in descriptor equals the current validated public-input-free description (13.8782ms)
+✔ canonical demo selects retirement review and preserves explicit historical local demos (1.36667ms)
+✔ canonical deploy and prepare entrypoints have no compilation, credential, live-network, or historical deployment hooks (0.529713ms)
+✔ canonical deployment default only describes the current token with unresolved public inputs (186.827602ms)
+✔ default historical browser launcher fails closed before opening a server (74.072006ms)
+✔ canonical deployment rejects historical models and execution requests before public config reads (626.654945ms)
+✔ historical direct deployment scripts are retained unchanged but never invoked by npm scripts (0.878789ms)
+✔ local retirement configuration and generated unsigned manifests are excluded from source publication (0.342687ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5971.351682

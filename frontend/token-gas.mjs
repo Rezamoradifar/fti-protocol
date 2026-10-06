@@ -1,4 +1,4 @@
-// Local experimental UI robustness for timestamp-dependent pressure decay.
+// Conservative local UI gas headroom; size-fee quotes have no pressure-decay timer.
 // A later mined timestamp can execute more decay steps than eth_estimateGas saw.
 // This is measured padding, not a proof of an upper bound or a payout guarantee.
 // Unused gas is not consumed; minimum-output and deadline checks remain unchanged.

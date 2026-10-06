@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import ganache from 'ganache';
 import {BrowserProvider,parseEther as E,formatEther as F,MaxUint256} from 'ethers';
 import {deploySuite,checkAccounting} from '../scripts/lib.mjs';
-import {sellQuote,decayPressure} from '../core/reserve-reference.mjs';
+import {sellQuote} from '../core/reserve-reference.mjs';
 
 let engine,p,signers,s,snapshot;
 before(async()=>{
@@ -90,7 +90,7 @@ test('tokens are immediately unlocked; transfers burn 3%, credit 97% and never m
  await checkAccounting(s);
 });
 
-test('normal partial sales have no 5% hard cap and exact bounded quadratic pressure fees',async()=>{
+test('normal partial sales have no 5% hard cap and exact trade-size-only fees',async()=>{
  await seedAndBuy();
  assert.equal(await s.token.MAX_SINGLE_SELL_BPS(),0n);assert.equal(await s.token.MAX_HOURLY_GROSS_SELL_BPS(),0n);
  assert.equal(await s.token.SELL_CAPS_ACTIVE(),false);
@@ -102,10 +102,10 @@ test('normal partial sales have no 5% hard cap and exact bounded quadratic press
   assert(expected.feeBps<=1000n);
  }
  const amount=E('485'),expected=sellQuote(amount,reserve,supply);
- assert.equal(expected.feeBps,475n);
+ assert.equal(expected.feeBps,300n);
  await(await s.token.sell(amount,expected.payout,MaxUint256)).wait();
  assert.equal(await s.token.reserve(),reserve-expected.payout);assert.equal(await s.token.totalSupply(),supply-amount);
- assert.equal(await s.token.pressureWad(),E('0.5'));
+ assert.equal(await s.token.pressureWad(),0n);
  await checkAccounting(s);
 });
 
@@ -145,7 +145,7 @@ test('partial sells burn the full sale amount and retain every fee dollar for re
  const oldR=await s.token.reserve(),oldS=await s.token.totalSupply(),oldPrice=await s.token.price();
  const tokens=E('40'),[out,fee,gross]=await s.token.quoteSell(tokens);
  const expected=sellQuote(tokens,oldR,oldS);
- assert.equal(fee,expected.feeBps);assert.equal(fee,301n);
+ assert.equal(fee,expected.feeBps);assert.equal(fee,300n);
  assert.equal(gross,tokens*oldR/oldS);
  assert.equal(out,expected.payout);
  await(await s.token.sell(tokens,out,MaxUint256)).wait();
@@ -183,33 +183,29 @@ test('normal buys and sells strictly advance displayed price; sub-price-step dus
  await checkAccounting(s);
 });
 
-test('normal sales exceed the former hourly capacity while retained pressure protects remaining backing',async()=>{
+test('normal sales exceed former hourly capacity without pressure or timer fees',async()=>{
  await seedAndBuy();
- const initialReserve=await s.token.reserve();let grossSold=0n,previousFee=0n;
+ const initialReserve=await s.token.reserve();let grossSold=0n;
  for(let i=0;i<6;i++){
-  const reserve=await s.token.reserve(),supply=await s.token.totalSupply(),price=await s.token.price();
-  const pressure=await s.token.pressureWad(),last=await s.token.lastPartialSellAt(),beforeUSD=await s.usd.balanceOf(s.addresses[0]);
-  const receipt=await(await s.token.sell(E('35'),0,MaxUint256,{gasLimit:3000000})).wait();
-  const timestamp=BigInt((await p.getBlock(receipt.blockNumber)).timestamp);
-  const expected=sellQuote(E('35'),reserve,supply,{pressure:decayPressure(pressure,timestamp-last)});
-  assert.equal(await s.token.reserve(),reserve-expected.payout);
-  assert.equal(await s.token.totalSupply(),supply-E('35'));
+  const reserve=await s.token.reserve(),supply=await s.token.totalSupply(),price=await s.token.price(),beforeUSD=await s.usd.balanceOf(s.addresses[0]);
+  const expected=sellQuote(E('35'),reserve,supply);
+  await(await s.token.sell(E('35'),expected.payout,MaxUint256,{gasLimit:3000000})).wait();
+  assert.equal(await s.token.reserve(),reserve-expected.payout);assert.equal(await s.token.totalSupply(),supply-E('35'));
   assert.equal((await s.usd.balanceOf(s.addresses[0]))-beforeUSD,expected.payout);
-  assert.equal(await s.token.pressureWad(),expected.pressure);assert.equal(await s.token.lastPartialSellAt(),timestamp);
-  assert(expected.feeBps>=previousFee);previousFee=expected.feeBps;grossSold+=expected.gross;
+  assert.equal(await s.token.pressureWad(),0n);assert.equal(await s.token.lastPartialSellAt(),0n);
+  assert.equal(expected.feeBps,300n);grossSold+=expected.gross;
   assert((await s.token.price())>price);assert((await s.token.reserve())*supply>reserve*(await s.token.totalSupply()));
  }
- assert(grossSold>initialReserve*1500n/10000n);assert(previousFee>300n);
+ assert(grossSold>initialReserve*1500n/10000n);
  assert.equal(await s.token.sellWindowStart(),0n);assert.equal(await s.token.sellWindowStartReserve(),0n);assert.equal(await s.token.sellWindowGross(),0n);
- const oldPressure=await s.token.pressureWad(),last=await s.token.lastPartialSellAt();
+ const quote=Array.from(await s.token.quoteSell(E('35')));
  await p.send('evm_increaseTime',[3600]);await p.send('evm_mine',[]);
- const now=BigInt((await p.getBlock('latest')).timestamp),decayed=await s.token.currentSellPressure();
- assert.equal(decayed,decayPressure(oldPressure,now-last));assert(decayed<oldPressure/4000n);
+ assert.deepEqual(Array.from(await s.token.quoteSell(E('35'))),quote);assert.equal(await s.token.currentSellPressure(),0n);
  await activateEmergency();
  const balance=await s.token.balanceOf(s.addresses[0]),reserve=await s.token.reserve();
  const[out,fee]=await s.token.quoteSell(balance);assert.equal(fee,0n);assert.equal(out,reserve);
  await(await s.token.sell(balance,out,MaxUint256)).wait();
  assert.equal(await s.token.reserve(),0n);assert.equal(await s.token.totalSupply(),0n);
- assert.equal(await s.token.pressureWad(),oldPressure);assert.equal(await s.token.lastPartialSellAt(),last);
+ assert.equal(await s.token.pressureWad(),0n);assert.equal(await s.token.lastPartialSellAt(),0n);
  await checkAccounting(s);
 });

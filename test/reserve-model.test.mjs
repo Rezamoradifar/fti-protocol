@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ReserveModel,W,INITIAL_PRICE,buyQuote,sellQuote,baseFee,feeBps,pressureAfterSale,decayPressure,sellImpactBps} from '../core/reserve-reference.mjs';
+import {ReserveModel,W,INITIAL_PRICE,buyQuote,sellQuote,baseFee,tradeFee,sellImpactBps} from '../core/reserve-reference.mjs';
 import {simulateReserve} from '../scripts/simulate-reserve.mjs';
 
 test('independent experimental arithmetic keeps backing across 300,000 wallets and unrestricted normal exits',()=>{
  const r=simulateReserve(300000);
- assert.equal(r.model,'real-reserve-v2-integrated-experiment');assert.equal(r.economics,'global-pressure-3-to-10-percent-partials-exact-final-redemption');
+ assert.equal(r.model,'real-reserve-v2-sizefee-floor-review');assert.equal(r.economics,'trade-size-only-500usd-or-5percent-threshold-3percent-base-7percent-provisional-surcharge');
  assert.equal(r.wallets,300000);assert.equal(r.buys,300000);
  assert(r.sells>=300000);assert(r.transfers>50000);assert.equal(r.finalUserCirculatingSupply,'0');
  assert.equal(BigInt(r.finalUnallocatedReserveUSDWei),5n*W);assert.equal(BigInt(r.finalActualUSDWei),5n*W);
@@ -13,6 +13,16 @@ test('independent experimental arithmetic keeps backing across 300,000 wallets a
  assert(BigInt(r.finalPriceWad)>=BigInt(r.priceBeforeFinalExitWad));assert(BigInt(r.finalPriceWad)>0n);
  assert.equal(BigInt(r.cashInUSDWei)-BigInt(r.cashOutUSDWei),BigInt(r.finalReserveUSDWei)+BigInt(r.finalUnallocatedReserveUSDWei));
  assert(BigInt(r.largestBuyUSDWei)>=100000n*W);
+ const observed=r.observedPriceTransitions,counts={buy:299999,sell:399965,transfer:59999};
+ for(const [kind,accepted] of Object.entries(counts)){
+  assert.equal(observed.ordinaryPositiveSupply[kind].accepted,accepted);
+  assert.deepEqual(observed.ordinaryPositiveSupply[kind].displayed,{rise:accepted,equal:0,fall:0});
+  assert.deepEqual(observed.ordinaryPositiveSupply[kind].exactReservePerShare,{rise:accepted,equal:0,fall:0});
+ }
+ assert.equal(observed.attemptedTradingOperations,759965);assert.equal(observed.bootstrapBuys,1);assert.equal(observed.normalTerminalSells,1);
+ assert.equal(observed.emergencyPartialSells,0);assert.equal(observed.emergencyTerminalSells,0);
+ assert.deepEqual(observed.rejectedAttempts,{total:0,byReason:{}});assert.equal(r.negativePriceTransitions,0);
+
  console.log('RESERVE_V2_MODEL_300K',JSON.stringify(r));
 });
 
@@ -29,26 +39,32 @@ test('zero start uses $0.10 reference; buys and transfers conserve cash and mint
  const q=m.sell(0,W,{emergency:true});assert.equal(q.payout,q.gross);assert.equal(q.baseFee,0n);assert.equal(q.impactFee,0n);
 });
 
-test('integer quote formulas cover large magnitudes, global quadratic pressure and one combined fee ceiling',()=>{
- const scale=[1n,10n,100n,10000n,10n**18n,10n**25n];let checked=0;
- for(const r of scale)for(const s of scale)for(const a of [34n,100n,100000n,10n**24n]){
-  const p=r*W/s,u=buyQuote(a,r,s);
-  assert.equal(u,p>0n?(a-baseFee(a))*W/p:0n);
-  for(const t of [s/100n,s/4n,s/2n])for(const pressure of [0n,W/2n,W])if(t){
-   const next=W-(W-pressure)*(s-t)/s,impact=700n*(next*next/W)/W;
-   const normal=sellQuote(t,r,s,{pressure}),emergency=sellQuote(t,r,s,{emergency:true,pressure});
-   assert.equal(normal.gross,t*r/s);assert.equal(normal.impactBps,impact);assert.equal(normal.feeBps,300n+impact);
-   assert.equal(normal.baseFee,baseFee(normal.gross));assert.equal(normal.pressure,next);
-   assert.equal(normal.impactFee,feeBps(normal.gross,300n+impact)-baseFee(normal.gross));
-   assert.equal(normal.payout,normal.gross>feeBps(normal.gross,300n+impact)?normal.gross-feeBps(normal.gross,300n+impact):0n);
+test('integer quotes preserve the exact rational $500/5% threshold and one combined fee ceiling',()=>{
+ const expectedFee=(v,r,s)=>{
+  if(v===0n)return 0n;
+  if(r===0n||s===0n)return baseFee(v);
+  const tn=r>10000n*W?r:10000n*W,bn=20n*v>tn?20n*v-tn:0n;
+  const denominator=40000n*v,numerator=1200n*v*v+7n*bn*bn;
+  return (numerator+denominator-1n)/denominator;
+ };
+ const scale=[1n,100n,10000n,10n**18n,10000n*W+1n,10n**25n];let checked=0;
+ for(const r of scale)for(const s of scale)for(const a of [34n,500n*W,500n*W+1n,10n**24n]){
+  const p=r*W/s,u=buyQuote(a,r,s),f=expectedFee(a,r,s);
+  assert.equal(tradeFee(a,r,s),f);assert.equal(u,p>0n?(a-f)*W/p:0n);
+  for(const t of [s/100n,s/4n,s/2n])if(t){
+   const normal=sellQuote(t,r,s),emergency=sellQuote(t,r,s,{emergency:true}),fee=expectedFee(t*r/s,r,s);
+   assert.equal(normal.gross,t*r/s);assert.equal(normal.baseFee,baseFee(normal.gross));
+   assert.equal(normal.impactBps,sellImpactBps(t,r,s));assert.equal(normal.feeBps,300n+normal.impactBps);
+   assert.equal(normal.impactFee,fee-baseFee(normal.gross));assert.equal(normal.pressure,0n);
+   assert.equal(normal.payout,normal.gross>fee?normal.gross-fee:0n);
    assert.equal(emergency.payout,emergency.gross);assert.equal(emergency.baseFee,0n);assert.equal(emergency.impactFee,0n);
-   assert.equal(emergency.pressure,pressure);
    if(normal.payout){assert((r-normal.payout)*s>r*(s-t));checked++;}
    if(emergency.payout){assert((r-emergency.payout)*s>=r*(s-t));checked++;}
   }
  }
- assert(checked>1000);
- // Rounding combined fees once is observable: separate ceilings would charge two wei.
+ assert(checked>300);
+ const r=10000n*W+19n,v=500n*W+1n;assert.equal(tradeFee(v,r,W),baseFee(v));
+ assert.equal(tradeFee(500000n*W,0n,0n),baseFee(500000n*W),'bootstrap remains base-only');
  const dust=sellQuote(1n,3n,2n);assert.equal(dust.baseFee+dust.impactFee,1n);
 });
 
@@ -64,21 +80,19 @@ test('normal final redemption pays all live reserve, freezes reference and block
  assert.equal(m.cashIn-m.cashOut,m.unallocatedReserve);assert.equal(m.unallocatedReserve,5n*W);
 });
 
-test('global pressure accumulates across wallets, decays in five minutes, and buys or registrations never reset it',()=>{
- const m=new ReserveModel();m.register('a');m.register('b');m.buy('a',100n*W);m.buy('b',100n*W);
- m.advance(10);const first=m.sell('a',m.supply/5n);
- assert.equal(first.pressure,W/5n);assert.equal(first.impactBps,28n);
- const stored=m.pressureWad,last=m.lastPartialSellAt;
- m.register('c');m.buy('b',W);m.transfer('a','c',W);
- assert.equal(m.pressureWad,stored);assert.equal(m.lastPartialSellAt,last);assert.equal(m.currentSellPressure(),stored);
- const supply=m.supply,tokens=m.wallets.get('c').balance,expected=pressureAfterSale(tokens,supply,stored);
- m.sell('c',tokens);assert.equal(m.pressureWad,expected);assert(m.pressureWad>stored);
- const peak=m.pressureWad;m.advance(300);const half=m.currentSellPressure();
- assert(half<=peak/2n);assert(peak/2n-half<1000n);assert.equal(half,decayPressure(peak,300n));
- const snapshot=m.pressureWad,time=m.lastPartialSellAt;m.sell('b',W,{emergency:true});
- assert.equal(m.pressureWad,snapshot);assert.equal(m.lastPartialSellAt,time);
- m.advance(64n*300n);assert.equal(m.currentSellPressure(),0n);
- assert.equal(sellImpactBps(1n,2n,W),700n);
+test('time and wallet history never enter fees; compatibility pressure views stay zero',()=>{
+ const m=new ReserveModel();m.register('a',100n);m.register('b',100n);m.buy('a',10000n*W);m.buy('b',1000n*W);
+ m.advance(10);m.sell('a',m.supply/5n);
+ const q=m.wallets.get('b').balance/2n,before=sellQuote(q,m.reserve,m.supply),buyBefore=buyQuote(1000n*W,m.reserve,m.supply);
+ for(const seconds of [1n,299n,300n,19200n,1000000n]){
+  m.advance(seconds);assert.deepEqual(sellQuote(q,m.reserve,m.supply),before);assert.equal(buyQuote(1000n*W,m.reserve,m.supply),buyBefore);
+  assert.equal(m.pressureWad,0n);assert.equal(m.lastPartialSellAt,0n);assert.equal(m.currentSellPressure(),0n);assert.equal(m.previewSellPressure(q),0n);
+ }
+ m.register('c');m.buy('b',W);m.transfer('a','c',W);m.sell('c',m.wallets.get('c').balance);
+ assert.equal(m.pressureWad,0n);assert.equal(m.lastPartialSellAt,0n);
+ const spent=m.wallets.get('b').spent,amount=100000n*W;
+ m.buy('b',amount,{automatic:true});assert.equal(m.wallets.get('b').spent,spent,'automatic mint leaves manual gross quota unchanged');
+ assert.throws(()=>m.buy('b',amount),/allowance/);
 });
 
 test('model dust rejection is atomic and zero transfer leaves state unchanged',()=>{

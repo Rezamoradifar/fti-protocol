@@ -1,0 +1,23 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures
+  ✔ TEST ONLY prior paid history: threshold 100 advances only after funded allocation under rank 0 (7924.379086ms)
+  ✔ TEST ONLY prior paid history: threshold 200 advances only after funded allocation under rank 1 (7650.938185ms)
+  ✔ TEST ONLY prior paid history: threshold 500 advances only after funded allocation under rank 2 (7227.912431ms)
+  ✔ TEST ONLY prior paid history: threshold 1000 advances only after funded allocation under rank 3 (8004.713493ms)
+✔ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures (43534.947223ms)
+ℹ tests 4
+ℹ suites 1
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 44119.304516

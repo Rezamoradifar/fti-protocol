@@ -1,0 +1,357 @@
+{
+  "nodeVersion": "v24.19.0",
+  "packageNodeRequirement": ">=22",
+  "fileCount": 49,
+  "entries": [
+    {
+      "file": "test/binary-buy-allowance.test.mjs",
+      "scope": "mixed historical token / current BinaryPlan and historical FundedBinaryPlan; branch-specific auto migration",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIReserveToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/core-autobuy.test.mjs",
+      "scope": "historical FTIToken with current BinaryPlan; only Binary auto semantics migrated",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/core-solvency.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/economic-adversary.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIToken"
+      ]
+    },
+    {
+      "file": "test/event-reader.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/event-server.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/exact-price.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/frontend-trade-quotes.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIReserveToken",
+        "FTIRetirementReviewToken",
+        "FTIToken"
+      ]
+    },
+    {
+      "file": "test/funded-collateral.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "FTIReserveToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/funded-economics.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "FTIReserveToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/funded-keeper.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/funded-load.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "FTIReserveToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/funded-locks.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "FTIReserveToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/funded-reference.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "FTIReserveToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/governance-rotation.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/immediate-auto-timing-edge.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIRetirementReviewToken"
+      ]
+    },
+    {
+      "file": "test/immediate-auto-ui.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/immediate-auto.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIRetirementReviewToken"
+      ]
+    },
+    {
+      "file": "test/independent-monthly-audit.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIRetirementReviewToken"
+      ]
+    },
+    {
+      "file": "test/independent-rank-boundaries.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIReserveToken",
+        "FTIRetirementReviewToken"
+      ]
+    },
+    {
+      "file": "test/integrated-binary-funding.test.mjs",
+      "scope": "mixed historical token / current BinaryPlan and historical FundedBinaryPlan; branch-specific auto migration",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIReserveToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/integrated-economics.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "FTIReserveToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/integrated-server-state.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIReserveToken",
+        "FTIToken"
+      ]
+    },
+    {
+      "file": "test/journey-sale.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/math.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/migration.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/paid-points-binary.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIReserveToken"
+      ]
+    },
+    {
+      "file": "test/protocol.test.mjs",
+      "scope": "historical FTIToken with current BinaryPlan; only Binary auto semantics migrated",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/rank-buy-capacity.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIReserveToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/reserve-collateral.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIReserveToken"
+      ]
+    },
+    {
+      "file": "test/reserve-load.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "FTIReserveToken"
+      ]
+    },
+    {
+      "file": "test/reserve-model.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/reserve-token.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "FTIReserveToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/restart-policy.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIRetirementReviewToken"
+      ]
+    },
+    {
+      "file": "test/retirement-deployment.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIReserveToken",
+        "FTIRetirementReviewToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/retirement-integrations.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIRetirementReviewToken"
+      ]
+    },
+    {
+      "file": "test/retirement-load.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIRetirementReviewToken"
+      ]
+    },
+    {
+      "file": "test/retirement-review.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIRetirementReviewToken"
+      ]
+    },
+    {
+      "file": "test/retirement-server-state.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIReserveToken",
+        "FTIRetirementReviewToken",
+        "FTIToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/review-entrypoints.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "FTIRetirementReviewToken"
+      ]
+    },
+    {
+      "file": "test/revised-economics.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "FTIReserveToken",
+        "FundedBinaryPlan"
+      ]
+    },
+    {
+      "file": "test/size-fee-proposal.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIReserveToken"
+      ]
+    },
+    {
+      "file": "test/support-precision.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIRetirementReviewToken"
+      ]
+    },
+    {
+      "file": "test/token-gas.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/workspace-integration.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": [
+        "BinaryPlan",
+        "FTIRetirementReviewToken"
+      ]
+    },
+    {
+      "file": "test/workspace-markup.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/workspace-routing.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/workspace-state.test.mjs",
+      "scope": "current candidate / current UI",
+      "explicitModelNames": []
+    },
+    {
+      "file": "test/zero-supply-quarantine.test.mjs",
+      "scope": "historical or shared regression; explicit token selection preserved",
+      "explicitModelNames": [
+        "FTIReserveToken"
+      ]
+    }
+  ]
+}

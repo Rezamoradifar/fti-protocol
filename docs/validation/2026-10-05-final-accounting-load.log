@@ -1,0 +1,121 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: binary-owned token allowance
+  ✔ unpaid genesis and nonmembers have no allowance; callers cannot forge or consume permission (1962.234386ms)
+  ✔ 100 USD registration grants 500 USD cumulative token purchases without spending quota on support (4569.61133ms)
+  ✔ 200 USD cumulative membership authorizes 1,000 USD of total purchases (4756.233642ms)
+  ✔ 100 USD plus 9,900 USD paid top-ups raises total quota to 50,000 USD without resetting spent (4831.556148ms)
+  ✔ rejected purchases roll back binary quota and all token accounting (3323.2189ms)
+  ✔ selling and receiving token transfers never restore or transfer manual purchase allowance (4189.509784ms)
+  ✔ collateral callbacks cannot forge or double-consume quota; collateral failure rolls back authorization (6011.465139ms)
+  ✔ TEST ONLY paid-rank fixture: builder rank and price milestones expand total capacity without resetting spent; auto-buys consume no manual quota (13210.06455ms)
+✔ BinaryPlan: binary-owned token allowance (44975.504085ms)
+▶ FundedBinaryPlan: binary-owned token allowance
+  ✔ unpaid genesis and nonmembers have no allowance; callers cannot forge or consume permission (2003.896081ms)
+  ✔ 100 USD registration grants 500 USD cumulative token purchases without spending quota on support (5319.626074ms)
+  ✔ 200 USD cumulative membership authorizes 1,000 USD of total purchases (5338.311969ms)
+  ✔ 100 USD plus 9,900 USD paid top-ups raises total quota to 50,000 USD without resetting spent (6344.119324ms)
+  ✔ rejected purchases roll back binary quota and all token accounting (4041.801873ms)
+  ✔ selling and receiving token transfers never restore or transfer manual purchase allowance (4792.0978ms)
+  ✔ collateral callbacks cannot forge or double-consume quota; collateral failure rolls back authorization (5621.588407ms)
+  ✔ TEST ONLY paid-rank fixture: builder rank and price milestones expand total capacity without resetting spent; auto-buys consume no manual quota (17362.174966ms)
+✔ FundedBinaryPlan: binary-owned token allowance (52536.280362ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ membership rejects collateral tax on either sender or recipient without changing balances or credits (10555.379462ms)
+✔ a collateral callback cannot process volume inside a membership funding transaction (2647.808454ms)
+✔ a taxed claim reverts without reducing the beneficiary entitlement (1623.701208ms)
+✔ missing collateral blocks claims and funding; direct donations cannot create payout credits or be rescued (887.635161ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FUNDED_V2_100_USERS {"registered":100,"pointRewardClaimed":"100.0","buys":100,"transfers":20,"sells":100,"exitMode":"normal-pressure-fees-final-full-refund","checks":322,"usdIn":"1785.0","liveSupport":"5.0","usdOut":"1790.0","priceAfterBuys":"0.119251997943372169","finalPrice":"0.13811172195350011","finalSupply":"0.0","reserve":"0.0","protectedUnallocated":"655.0"}
+✔ funded binary and token V2: 100 registrations, buys, transfers and normal full user exits without emergency or waiting caps (604371.794804ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ rotating an approving key cannot turn four current approvals into five (2072.227053ms)
+✔ removing and later restoring an owner never revives their old consent (2214.615951ms)
+✔ repeated rotations preserve one current approval per owner slot (3856.998742ms)
+✔ five unchanged current owners keep their approvals across an unrelated rotation (1692.426027ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: rank-based cumulative capacity (TEST ONLY paid-rank fixtures)
+  ✔ all five rank rates apply to every paid unit; top-ups and rank changes never reset spent (45410.673989ms)
+  ✔ actual $5 support crosses 10x and 100x launch-price milestones for builders only, globally and automatically (29185.422684ms)
+  ✔ TEST ONLY defensive lowered-limit state saturates remaining allowance instead of underflowing or restoring spent (13797.195817ms)
+✔ BinaryPlan: rank-based cumulative capacity (TEST ONLY paid-rank fixtures) (91092.422689ms)
+▶ FundedBinaryPlan: rank-based cumulative capacity (historical raw-volume ranks)
+  ✔ all five rank rates apply to every paid unit; top-ups and rank changes never reset spent (40240.233969ms)
+  ✔ actual $5 support crosses 10x and 100x launch-price milestones for builders only, globally and automatically (28427.153604ms)
+  ✔ TEST ONLY defensive lowered-limit state saturates remaining allowance instead of underflowing or restoring spent (9605.105604ms)
+✔ FundedBinaryPlan: rank-based cumulative capacity (historical raw-volume ranks) (80192.271523ms)
+✔ TEST ONLY milestone arithmetic: exact inclusive boundaries, multi-decade catch-up, falling quote, and existing 1024 cap (2778.122188ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ fees taken from either collateral sender or recipient are rejected on buys and sells (6615.921269ms)
+✔ a collateral callback cannot burn/transfer approved FTI during a priced purchase (1008.852587ms)
+✔ a collateral deficit blocks trades instead of minting or paying against missing assets (497.261251ms)
+✔ pause blocks new buys/transfers but keeps small redemptions open; rescue cannot remove protected assets (1809.520194ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+RESERVE_V2_100_USERS {"registered":100,"buys":100,"transfers":20,"sells":100,"exitMode":"normal-pressure-fees-final-full-refund","checks":322,"usdIn":"1785.0","liveSupport":"5.0","usdOut":"1790.0","priceAfterBuys":"0.119251997943372169","finalPrice":"0.13811172195350011","finalSupply":"0.0","reserve":"0.0","protectedUnallocated":"500.0"}
+✔ token V2: 100 registered users buy, transfer and complete normal user exits without emergency or waiting caps (296643.337274ms)
+✔ canonical demo and deployment select the reserve token/global-pool route (0.876984ms)
+✔ default historical browser launcher fails closed before opening a server (64.348421ms)
+✔ canonical deployment refuses the historical funded variant before reading credentials or sending anything (144.010517ms)
+ℹ tests 40
+ℹ suites 4
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1215597.351266

@@ -1,0 +1,1785 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> fti-protocol@0.2.0 test
+> npm run compile && node --test --test-concurrency=1 test/*.test.mjs
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> fti-protocol@0.2.0 compile
+> node scripts/compile.mjs
+
+BinaryPlan 21277 runtime bytes
+Calendar 57 runtime bytes
+IClosedAutoToken 0 runtime bytes
+IFTI 0 runtime bytes
+FTIReserveToken 14000 runtime bytes
+IReserveMembership 0 runtime bytes
+FTIRetirementReviewToken 20877 runtime bytes
+IRetirementCouncil 0 runtime bytes
+IRetirementMembership 0 runtime bytes
+IRetirementTimelock 0 runtime bytes
+FTIToken 13427 runtime bytes
+IBinary 0 runtime bytes
+FundedBinaryPlan 21341 runtime bytes
+Council 3721 runtime bytes
+FTITimelock 5461 runtime bytes
+MockUSD 1994 runtime bytes
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: binary-owned token allowance
+  ✔ unpaid genesis and nonmembers have no allowance; callers cannot forge or consume permission (2064.141196ms)
+  ✔ 100 USD registration grants 500 USD cumulative token purchases without spending quota on support (4863.650235ms)
+  ✔ 200 USD cumulative membership authorizes 1,000 USD of total purchases (5168.310141ms)
+  ✔ 100 USD plus 9,900 USD paid top-ups raises total quota to 50,000 USD without resetting spent (5369.024457ms)
+  ✔ rejected purchases roll back binary quota and all token accounting (3486.36399ms)
+  ✔ selling and receiving token transfers never restore or transfer manual purchase allowance (4252.250856ms)
+  ✔ collateral callbacks cannot forge or double-consume quota; collateral failure rolls back authorization (5621.086415ms)
+  ✖ TEST ONLY paid-rank fixture: builder rank and price milestones expand total capacity without resetting spent; auto-buys consume no manual quota (8338.184715ms)
+✖ BinaryPlan: binary-owned token allowance (41250.104894ms)
+▶ FundedBinaryPlan: binary-owned token allowance
+  ✔ unpaid genesis and nonmembers have no allowance; callers cannot forge or consume permission (2667.332397ms)
+  ✔ 100 USD registration grants 500 USD cumulative token purchases without spending quota on support (5198.560557ms)
+  ✔ 200 USD cumulative membership authorizes 1,000 USD of total purchases (5860.556963ms)
+  ✔ 100 USD plus 9,900 USD paid top-ups raises total quota to 50,000 USD without resetting spent (5554.10725ms)
+  ✔ rejected purchases roll back binary quota and all token accounting (3938.279959ms)
+  ✔ selling and receiving token transfers never restore or transfer manual purchase allowance (4427.122371ms)
+  ✔ collateral callbacks cannot forge or double-consume quota; collateral failure rolls back authorization (6438.845084ms)
+  ✔ TEST ONLY paid-rank fixture: builder rank and price milestones expand total capacity without resetting spent; auto-buys consume no manual quota (18962.832362ms)
+✔ FundedBinaryPlan: binary-owned token allowance (55154.768701ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✖ a stranger cannot fragment a beneficiary pending reward into dust locks (9283.920749ms)
+✖ the beneficiary may intentionally choose a partial auto purchase (0.630492ms)
+✖ an unrelated keeper can execute the complete pending amount only for its owner (0.210541ms)
+✖ disabling auto-buy revokes keeper execution and preserves cash release (0.049494ms)
+✖ a maximum above spot but below the fee-inclusive execution price rejects atomically (0.237651ms)
+✖ exact integer maximum price boundary rejects one wei below and accepts at the ceiling (0.067019ms)
+✖ a failed collateral transfer restores pending balances and all token state (0.051045ms)
+✖ release cannot be repeated to create cash or leave an executable stale auto balance (0.056564ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+EXACT_EVM_INVARIANT_CHECKS 72 mixed sales 14 transfers 10
+✔ seeded mixed trades, burns and full exit preserve exact integer reserve coverage (209512.468287ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ economic baseline: a self-funded three-wallet tree recovers 450 of 500 USD without outside pool (10802.858708ms)
+CONFIRMED carried-pool capture: group cost=500, payout=9450, group net=8950 test USD before gas; no accounting insolvency
+✔ economic finding: a 500 USD self-controlled subtree captures 9450 USD from an unmatched carried pool (11622.623594ms)
+CONFIRMED sale splitting: {"wholeFeeBps":"870","wholeNet":"354.243999999999888935","splitNet":"376.546718234653758065"}
+✔ HISTORICAL FTIToken curve: splitting the same unlocked balance lowers whale fees and raises proceeds (11948.522362ms)
+✔ event pagination splits rejected ranges and returns ordered actual events (1.265962ms)
+✔ per-block failure and exhausted request budget fail instead of empty success (0.671773ms)
+✔ cache-independent empty logs remain a genuine empty success (0.835075ms)
+FTI testnet: http://127.0.0.1:38971
+FTI testnet: http://127.0.0.1:44649
+✔ separate event RPC validates network and caches successful results (77.297327ms)
+✔ exact 3% fee growth at reserve 1000000 (1.049352ms)
+✔ exact 3% fee growth at reserve 1000000000 (0.180867ms)
+✔ 6e-20 growth is visible without changing a floor-to-18 getter (0.146827ms)
+✔ zero, negative, repeating and extreme deltas do not fabricate increments (0.339392ms)
+✔ pinned snapshots and receipt-isolated delta verify hashes (0.413552ms)
+✔ shared blocks, reorgs, unconfirmed receipts and failed RPC never produce deltas (0.606287ms)
+✔ actual controller renderer uses calculated ratio; stale and terminal states are distinct (1.826441ms)
+✔ one USD buy at P=.1 preserves the exact fee-derived change instead of rounding it to 3e-9 (0.189289ms)
+✔ reserve buy fee and output share one block and exact amounts drive displayed minimum (2.227283ms)
+✔ reserve sale displays sub-bps fee atoms without calling truncated legacy quoteSell (0.37912ms)
+✔ historical full-supply or current emergency sale shows zero exact fee and one-atom outputs remain visible (0.246525ms)
+✔ legacy token buys and sells need no reserve-only fee ABI and preserve quoted output (0.44661ms)
+✔ quote failures remain failures rather than falling back to a guessed fee (0.739248ms)
+✔ buy prerequisites do not block holder sales during pause/emergency or after transfers (0.379601ms)
+✔ reserve policy labels and quote path remain distinct from legacy fee-rate display (0.477526ms)
+✔ retirement ordinary terminal sales preserve exact net quote and slippage instead of assuming a free full exit (0.290569ms)
+✔ rendered current-model policy text never describes an ordinary full exit as fee-free (0.635359ms)
+✔ zero-supply lifecycle labels distinguish historical R=0 from a live quote and permanent retirement (0.395224ms)
+✔ closed or retired token access blocks new funding before approval but does not block beneficiary sales or claims (0.686164ms)
+✔ restart-capable ordinary zero supply permits funding and buys but permanent closure is separate (0.380012ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ membership rejects collateral tax on either sender or recipient without changing balances or credits (9780.195674ms)
+✔ a collateral callback cannot process volume inside a membership funding transaction (3072.221589ms)
+✔ a taxed claim reverts without reducing the beneficiary entitlement (1554.010591ms)
+✔ missing collateral blocks claims and funding; direct donations cannot create payout credits or be rescued (851.987349ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FIXED_CARRY_CAPTURE {"groupCost":"500","legacyReward":"9450","newReward":"40.0","unrelatedCarry":"9000","carryCaptured":"0"}
+✔ fresh subtree receives the same funded 40 USD with or without an unrelated 9,000 USD carried pool (27699.910478ms)
+✔ one branch cannot spend another branch unmatched funded credit (14334.251599ms)
+✔ activating an ancestor after a purchase cannot retroactively earn queued volume or credits (8025.436184ms)
+✔ point cap consumes proportional matched credit, preserves heavy-side credit and caps USD per point (7941.468892ms)
+✔ keeper batch sizes do not change allocation, carry, ranks or credit partitions (20201.83574ms)
+SPARSE_EPOCH_GAS 150097
+✔ hourly close visits only touched active accounts and reuses dirty slots across epochs (13168.914176ms)
+✔ monthly rewards use attributed current-month credits, never an unrelated prior-month carry (22707.476452ms)
+✔ auto-buy queues contain only enabled funded accounts, preserve owner controls and remove completed entries (15997.982571ms)
+✔ blocked cash claims restore the beneficiary liability and do not affect another claim (9469.12525ms)
+✔ deep placement is rejected before funding or consuming a sponsor slot (169068.597211ms)
+✔ funded keeper scans only eligible pending auto accounts (1.379294ms)
+✔ funded keeper uses bounded 25-item batches and waits for receipt (0.268166ms)
+{"time":"2026-10-06T00:50:08.782Z","service":"keeper","result":"epoch batch"}
+{"time":"2026-10-06T00:50:08.789Z","service":"keeper","result":"epoch batch"}
+{"time":"2026-10-06T00:50:08.796Z","service":"keeper","result":"epoch batch"}
+✔ keeper drains work without interval delays, never overlaps writes, and stops scheduling cleanly (52.289248ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FUNDED_V2_100_USERS {"registered":100,"pointRewardClaimed":"100.0","buys":100,"transfers":20,"sells":100,"exitMode":"normal-pressure-fees-final-full-refund","checks":322,"usdIn":"1785.0","liveSupport":"5.0","usdOut":"1790.0","priceAfterBuys":"0.119251997943372169","finalPrice":"0.13811172195350011","finalSupply":"0.0","reserve":"0.0","protectedUnallocated":"655.0"}
+✔ funded binary and token V2: 100 registrations, buys, transfers and normal full user exits without emergency or waiting caps (526726.331221ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ repeated purchases create no time or wallet-count locks (64952.169711ms)
+✔ user minOut replaces vesting as the immediate buy/sell execution guard (1367.705635ms)
+✔ oversized normal redemptions are immediately available with trade-size-only fees and no wallet lock (1360.961673ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ independent attributed ledger agrees with EVM across activation, two epochs and unmatched credit (32464.760805ms)
+✔ funded reference reconciles current-month builder funding and rejects a depth beyond 64 (7.106395ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ rotating an approving key cannot turn four current approvals into five (1974.483906ms)
+✔ removing and later restoring an owner never revives their old consent (2276.84797ms)
+✔ repeated rotations preserve one current approval per owner slot (3570.623494ms)
+✔ five unchanged current owners keep their approvals across an unrelated rotation (1536.599537ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ TEST_ONLY seeded rank: matured and rolled enable cannot create an auto snapshot for older unmatched backlog (9050.3998ms)
+✔ default off and future next-hour intent are distinct from effective permission (1.215466ms)
+✔ enable targets a future wall-clock boundary even during overdue settlement; opt-out stays immediate (0.63627ms)
+✔ disconnected, stale and historical capability states cannot submit unsupported preferences (0.267686ms)
+✔ inactive and scheduled requests cannot execute pending funds, but owner cash release remains (0.197342ms)
+✔ copy explains bounded current-quote retries without a price cap, deadline or wallet re-debit promise (0.748757ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ Immediate auto candidate: real unseeded BinaryPlan and current precision token
+  ✔ organic 20 epochs: default off, next-hour enable, rank threshold still old-rank snapshot (138584.987164ms)
+  ✔ enable at 12:30 buys the next 13:00 settlement in the allocation transaction (7193.263787ms)
+  ✔ failed new allocation preserves funds, other rewards, rank and existing manual quota; keeper retries current price (9909.130444ms)
+  ✔ bounded gas exhaustion in token collateral cannot revert other member allocation (7311.025433ms)
+  ✔ old pending is not silently included in new immediate attempt (15880.810861ms)
+  ✔ disable between matching and allocation stops buying immediately; owner cash release never enables wallet debit (8116.985776ms)
+  ✔ callbacks cannot reenter settlement or isolated helper; successful buy stays single (7415.678215ms)
+  ✔ taxed auto failure is isolated and fully rolls back token mint and earmarked cash (7400.223762ms)
+  ✔ enable during an old backlog excludes old earned hours and schedules the next wall-clock boundary (7183.894607ms)
+  ✔ pause alone cannot convert; true closed-token permissionless bounded release preserves each beneficiary and cash (19447.220365ms)
+  ✔ default gas estimate advances allocation cursor instead of successful zero-progress loops (8634.382576ms)
+  ✔ failed pending auto restarts an ordinary empty cycle at current exact reference, never captures support or development claim (11075.597584ms)
+  ✔ estimated minimum gas survives fully exhausted child and persists progress plus pending liability (9409.955398ms)
+  ✔ keeper preflight does not spend a transaction on disabled pending accounts (7867.646989ms)
+  ✔ 12:59 enable buys at 13; request exactly 13 schedules 14; redundant enables and off/on keep exact boundary (9229.196419ms)
+✔ Immediate auto candidate: real unseeded BinaryPlan and current precision token (281004.531669ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ independent current pair: 1 TEST_ONLY tier-four builders enforce each tier's 20% cap and lifetime one-time award (8207.859785ms)
+✔ independent current pair: 6 TEST_ONLY tier-four builders enforce each tier's 20% cap and lifetime one-time award (18430.567231ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: actual funded paid points and global point-pool allocation
+  ✖ 20 real hourly epochs: raw 10 pays 5 and flushes 5; only allocation 100 promotes Builder 1, with old-rank auto timing (1735.244449ms)
+  ✔ hourly registration-unit gate: four then one in separate hours carry fully; one-wallet five-unit top-up settles (11599.498991ms)
+  ✔ one new wallet registering five units reaches the hourly gate; zero eligible points still carry the full pool (3319.260441ms)
+  ✔ proportional full-pool distribution rounds only exact residual to development and preserves every protected bucket (10057.40097ms)
+PROVISIONAL_GLOBAL_POOL_RISK {"unrelatedCarriedPool":"9000","subtreeCost":"500","subtreeReward":"9450","paidRankPoints":2,"ownershipApproved":false}
+  ✔ no eligible points carries the whole pool provisionally; later self-controlled matches still expose global-pool ownership risk (9326.677505ms)
+✖ BinaryPlan: actual funded paid points and global point-pool allocation (38816.831466ms)
+▶ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures
+  ✔ TEST ONLY prior paid history: threshold 100 advances only after funded allocation under rank 0 (8404.132434ms)
+  ✔ TEST ONLY prior paid history: threshold 200 advances only after funded allocation under rank 1 (7657.464367ms)
+  ✔ TEST ONLY prior paid history: threshold 500 advances only after funded allocation under rank 2 (8199.64641ms)
+  ✔ TEST ONLY prior paid history: threshold 1000 advances only after funded allocation under rank 3 (8258.610681ms)
+  ✔ TEST ONLY dense matches: PV below $20 still settles all funds, changes next protection row, and preserves monthly buckets (16753.259223ms)
+  ✔ funding deficit blocks allocation and rank progress atomically; repairing collateral permits the same allocation (6712.340384ms)
+  ✔ sender and recipient taxed funding/claims revert atomically; collateral callback cannot process pending volume (7587.439446ms)
+  ✔ TEST ONLY six eligible builders retain equal monthly shares and later once-per-pool exclusion (6030.528801ms)
+✔ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures (82402.690497ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: integrated experimental reserve funding
+  ✔ $100 paid registration and each top-up protect $5 actual cash while zero supply, without any mint (4220.136159ms)
+  ✔ unpaid genesis, nonmembers, direct callers and failed registration cannot acquire or consume quota (2967.309435ms)
+  ✔ Member-rank gross buy quota is cumulative 5x funding and stays consumed across transfers, sales and lifecycle closure (9082.793959ms)
+SIZE_FEE_TIME_INDEPENDENCE {"binaryContract":"BinaryPlan","originalEstimate":"99828","successfulGasUsed":"94842","unchangedQuote":true,"elapsedSeconds":300}
+  ✔ time-independent quotes execute after 300 seconds with the original gas estimate (4798.845871ms)
+  ✔ failed purchases and failed final payouts atomically preserve quota, lifecycle and every cash bucket (4737.871654ms)
+  ✔ hostile collateral callbacks cannot forge/double-consume quota and either transfer tax rolls it back (6320.962589ms)
+  ✔ token trading/final redemption never spends binary cash and existing reward/development payouts remain identical (10960.22857ms)
+  ✖ TEST ONLY paid-rank fixture: reward auto-buy transfers only its earmarked cash, leaves manual quota and unrelated reward/builder buckets intact (7322.502901ms)
+  ✖ TEST ONLY paid-rank fixture: canonical >$500 size-fee auto-buy enforces exact fee-inclusive maxPrice without consuming manual quota (2571.416478ms)
+QUARANTINE_PREVENTS_SUPPORT_CAPTURE {"binaryContract":"BinaryPlan","fixture":"10 paid members x $1,000; cash-equivalent to 100 x $100","membershipCash":"10000","preMintSupply":"0","preMintSupport":"500","soleBuyerGrossPurchase":"100","allSupplyPayout":"100.0","capturedSupport":"0","protectedUnallocatedSupport":"500","remainingTokenReserve":"0","remainingTokenSupply":"0","binaryCashIntact":"9500","allocationApproved":false}
+  ✔ QUARANTINE REGRESSION: pre-mint $500 support cannot be captured by a sole $100 buyer (19246.559555ms)
+DONATION_OWNERSHIP_BLOCKER {"binaryContract":"BinaryPlan","liveReserveBeforeFinal":"100","protectedSupport":"5","rawUnaccountedDonation":"17","finalPayout":"100","liveReserveAfterFinal":"0","actualUsdAfterFinal":"22","binaryCashIntact":"95.0","surplusAllocationApproved":false}
+  ✔ DONATION OWNERSHIP BLOCKER: all-supply sale pays live reserve while protected support and raw surplus remain (3471.844634ms)
+LIFECYCLE_REVIEW_BLOCKER {"binaryContract":"BinaryPlan","postClosureFunding":"200","newProtectedSupportInClosedToken":"10","totalProtectedSupport":"15","newBinaryCash":"190","supply":"0","buysBlocked":true,"priorGrossQuotaStillSpent":"100","automaticRestartApproved":false}
+  ✔ LIFECYCLE REVIEW BLOCKER: support funding still enters a closed token while buys stay gated and spent quota never resets (7269.214507ms)
+✖ BinaryPlan: integrated experimental reserve funding (85398.476975ms)
+▶ FundedBinaryPlan: integrated experimental reserve funding
+  ✔ $100 paid registration and each top-up protect $5 actual cash while zero supply, without any mint (4926.357651ms)
+  ✔ unpaid genesis, nonmembers, direct callers and failed registration cannot acquire or consume quota (2994.155538ms)
+  ✔ Member-rank gross buy quota is cumulative 5x funding and stays consumed across transfers, sales and lifecycle closure (7739.233273ms)
+SIZE_FEE_TIME_INDEPENDENCE {"binaryContract":"FundedBinaryPlan","originalEstimate":"99828","successfulGasUsed":"94842","unchangedQuote":true,"elapsedSeconds":300}
+  ✔ time-independent quotes execute after 300 seconds with the original gas estimate (4216.401296ms)
+  ✔ failed purchases and failed final payouts atomically preserve quota, lifecycle and every cash bucket (4655.257013ms)
+  ✔ hostile collateral callbacks cannot forge/double-consume quota and either transfer tax rolls it back (6364.147291ms)
+  ✔ token trading/final redemption never spends binary cash and existing reward/development payouts remain identical (11750.790591ms)
+  ✔ TEST ONLY paid-rank fixture: reward auto-buy transfers only its earmarked cash, leaves manual quota and unrelated reward/builder buckets intact (15294.531266ms)
+QUARANTINE_PREVENTS_SUPPORT_CAPTURE {"binaryContract":"FundedBinaryPlan","fixture":"10 paid members x $1,000; cash-equivalent to 100 x $100","membershipCash":"10000","preMintSupply":"0","preMintSupport":"500","soleBuyerGrossPurchase":"100","allSupplyPayout":"100.0","capturedSupport":"0","protectedUnallocatedSupport":"500","remainingTokenReserve":"0","remainingTokenSupply":"0","binaryCashIntact":"9500","allocationApproved":false}
+  ✔ QUARANTINE REGRESSION: pre-mint $500 support cannot be captured by a sole $100 buyer (23496.193917ms)
+DONATION_OWNERSHIP_BLOCKER {"binaryContract":"FundedBinaryPlan","liveReserveBeforeFinal":"100","protectedSupport":"5","rawUnaccountedDonation":"17","finalPayout":"100","liveReserveAfterFinal":"0","actualUsdAfterFinal":"22","binaryCashIntact":"95.0","surplusAllocationApproved":false}
+  ✔ DONATION OWNERSHIP BLOCKER: all-supply sale pays live reserve while protected support and raw surplus remain (3761.227359ms)
+LIFECYCLE_REVIEW_BLOCKER {"binaryContract":"FundedBinaryPlan","postClosureFunding":"200","newProtectedSupportInClosedToken":"10","totalProtectedSupport":"15","newBinaryCash":"190","supply":"0","buysBlocked":true,"priorGrossQuotaStillSpent":"100","automaticRestartApproved":false}
+  ✔ LIFECYCLE REVIEW BLOCKER: support funding still enters a closed token while buys stay gated and spent quota never resets (8071.599991ms)
+✔ FundedBinaryPlan: integrated experimental reserve funding (95665.551564ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ integrated: zero start, $0.10 reference, 3% buy fee and no charity ABI (5127.092235ms)
+✔ integrated: exact size surcharge uses current gross value; indicative bps never sets payout (2832.655119ms)
+✔ integrated: >5% immediate sales and same-hour outflow >15% succeed without capacity or age locks (4472.398732ms)
+✔ integrated: consecutive same-block partial sales price only their own pretrade value (3856.423153ms)
+✔ integrated: elapsed seconds never change live buy or sell quotes (4159.547621ms)
+✔ integrated: buys, binary injections, transfer burns and seller wallets add no history-dependent fees (6587.962724ms)
+✔ integrated: normal full redemption pays exact reserve, freezes quote, preserves quota and keeps restart gated (4183.630445ms)
+✔ integrated: fee-free emergency partial and final exits keep disabled compatibility getters at zero and redeem every live reserve atom (5199.910611ms)
+✔ integrated: quote deadlines/minOut and dust reverts are atomic including disabled compatibility getters and buy quota (3276.751447ms)
+EXPERIMENTAL_SIZE_SPLIT_LIMITATION {"bulkOut":"4566500000000000000000","splitOut":"4682270287498373877975","extraPayout":"115770287498373877975","pressureActive":false}
+✔ integrated: same-time splitting can reduce size surcharge; no anti-splitting claim is made (4795.019016ms)
+✔ integrated: waiting 300 seconds changes neither fee nor immediately executable payout (3960.459056ms)
+✔ integrated: unchanged trades use the same gas across sampled elapsed times (4611.112177ms)
+✔ integrated: one-atom final reserve is fully redeemable without fee dust; failed minOut is atomic (11903.536597ms)
+✔ integrated: recipient-tax collateral reverts partial reserve changes and final lifecycle changes atomically (1211.929701ms)
+✔ integrated: two-holder atom dust blocks normal exit and consolidation; only existing emergency path resolves fixture (1905.292567ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FTI local: http://127.0.0.1:33173
+(node:299) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ earlier reserve API retains size-fee review, disabled pressure/caps, protected fund and fee-free final payout (7953.172314ms)
+FTI local: http://127.0.0.1:40999
+(node:299) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+✔ historical FTIToken config, state and quote ABI routes remain compatible (2301.370139ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+SALE_FLOW_PASS {
+  status: 'PASS',
+  sold: '96981187474179000000',
+  receivedUSD: '9408999999999824891'
+}
+✔ registered user buys, locked sale waits, unlocked sale pays USD, second sale waits (8512.617858ms)
+✔ document matching example exact (1.306141ms)
+✔ builder equal share, 20% cap and dust for zero through 20 eligible (0.307635ms)
+✔ curve rounding never creates a negative reserve or lowers exact k (15.841317ms)
+✔ historical model: integrated 500 members conserve all cash through settlement, auto-buy, monthly payouts and total exit (18.338138ms)
+✔ private migration retains journals and secrets, excludes dependencies, rejects traversal (164.407208ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: actual funded paid points and global point-pool allocation
+  ✖ 20 real hourly epochs: raw 10 pays 5 and flushes 5; only allocation 100 promotes Builder 1, with old-rank auto timing (1574.767366ms)
+  ✔ hourly registration-unit gate: four then one in separate hours carry fully; one-wallet five-unit top-up settles (11605.020649ms)
+  ✔ one new wallet registering five units reaches the hourly gate; zero eligible points still carry the full pool (2768.97521ms)
+  ✔ proportional full-pool distribution rounds only exact residual to development and preserves every protected bucket (9777.34024ms)
+PROVISIONAL_GLOBAL_POOL_RISK {"unrelatedCarriedPool":"9000","subtreeCost":"500","subtreeReward":"9450","paidRankPoints":2,"ownershipApproved":false}
+  ✔ no eligible points carries the whole pool provisionally; later self-controlled matches still expose global-pool ownership risk (11031.602398ms)
+✖ BinaryPlan: actual funded paid points and global point-pool allocation (39478.517006ms)
+▶ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures
+  ✖ TEST ONLY prior paid history: threshold 100 advances only after funded allocation under rank 0 (1925.863509ms)
+  ✖ TEST ONLY prior paid history: threshold 200 advances only after funded allocation under rank 1 (1567.304108ms)
+  ✖ TEST ONLY prior paid history: threshold 500 advances only after funded allocation under rank 2 (1927.515068ms)
+  ✖ TEST ONLY prior paid history: threshold 1000 advances only after funded allocation under rank 3 (1943.449477ms)
+  ✔ TEST ONLY dense matches: PV below $20 still settles all funds, changes next protection row, and preserves monthly buckets (16350.378653ms)
+  ✔ funding deficit blocks allocation and rank progress atomically; repairing collateral permits the same allocation (6844.429008ms)
+  ✔ sender and recipient taxed funding/claims revert atomically; collateral callback cannot process pending volume (7512.871092ms)
+  ✔ TEST ONLY six eligible builders retain equal monthly shares and later once-per-pool exclusion (6113.094247ms)
+✖ BinaryPlan TEST ONLY boundary and hostile-collateral regression fixtures (56998.616952ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ 31 unique Genesis positions contain no artificial cash, units or tokens (1621.723969ms)
+✔ 100 USDT is exactly split 90/5/4/1 without FTI mint (1741.238643ms)
+✔ automatic left/right placement; third direct, duplicate and invalid sponsor rejected (4299.27985ms)
+✔ bounded ancestor propagation includes every ancestor once (1996.111384ms)
+✔ hourly unit minimum: 3 then 2 in separate hours carry; 5 current-hour units settle all carried cash (8595.740122ms)
+✔ matched points above cap burn, only heavy-side imbalance carries (6169.881013ms)
+✔ raw branch units do not grant rank; successful funded capped points accumulate before any claim (11198.454882ms)
+✔ cap and protection tables reproduce specification (38.046576ms)
+✔ claims are pull payments and cannot be repeated (6677.786954ms)
+✔ batch order/size leaves identical wallet economics (9709.617065ms)
+✔ buy uses actual stablecoin, increases price, respects lifetime allowance (5756.964406ms)
+✔ holding cap and min output revert atomically (3196.340726ms)
+✔ locked tokens cannot sell; fallback deadline unlocks without new registrations (6443.859501ms)
+✔ transfer burns 3%, rejects self-transfer, unregistered recipient, and locked amount (7315.803566ms)
+✔ unauthorized auto buy, reserve injection, rebinding, pause and rescue rejected (44.628583ms)
+✖ TEST ONLY paid-rank fixture: actual hourly rewards fund auto-buy, no fabricated income (5882.372ms)
+✖ failed auto execution preserves claim and user can release it as USD (5756.053069ms)
+✔ TEST ONLY paid-rank fixture: monthly pool pays only 20% to sole eligible builder, one time (18357.295165ms)
+✔ 5 of 7 council required for emergency pause; timelock starts at 72 hours (857.571251ms)
+✔ full unlock and complete sell-off pay from real reserve without new inflows (32505.90497ms)
+✔ failed USD transfer leaves beneficiary claim intact and does not affect others (6687.150276ms)
+✔ 5-of-7 council can rotate a compromised owner only through a self-governed proposal (766.443715ms)
+✔ 72-hour timelock floor cannot be reduced even by a fully approved self-call (678.769859ms)
+✔ five approvals cannot bypass timelock delay or replay execution (1336.391932ms)
+✔ EVM integer buy quotes match independent BigInt model (4034.544368ms)
+✖ auto-buy settings freeze during matching so batching cannot change economics (6479.000561ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: rank-based cumulative capacity (TEST ONLY paid-rank fixtures)
+  ✔ all five rank rates apply to every paid unit; top-ups and rank changes never reset spent (42027.969627ms)
+  ✔ actual $5 support crosses 10x and 100x launch-price milestones for builders only, globally and automatically (27859.472437ms)
+  ✔ TEST ONLY defensive lowered-limit state saturates remaining allowance instead of underflowing or restoring spent (15122.380282ms)
+✔ BinaryPlan: rank-based cumulative capacity (TEST ONLY paid-rank fixtures) (87504.344401ms)
+▶ FundedBinaryPlan: rank-based cumulative capacity (historical raw-volume ranks)
+  ✔ all five rank rates apply to every paid unit; top-ups and rank changes never reset spent (46543.669774ms)
+  ✔ actual $5 support crosses 10x and 100x launch-price milestones for builders only, globally and automatically (32636.162582ms)
+  ✔ TEST ONLY defensive lowered-limit state saturates remaining allowance instead of underflowing or restoring spent (11163.973658ms)
+✔ FundedBinaryPlan: rank-based cumulative capacity (historical raw-volume ranks) (92431.948691ms)
+✔ TEST ONLY milestone arithmetic: exact inclusive boundaries, multi-decade catch-up, falling quote, and existing 1024 cap (2933.486965ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ fees taken from either collateral sender or recipient are rejected on buys and sells (6614.720492ms)
+✔ a collateral callback cannot burn/transfer approved FTI during a priced purchase (1162.493102ms)
+✔ a collateral deficit blocks trades instead of minting or paying against missing assets (557.293858ms)
+✔ pause blocks new buys/transfers but keeps small redemptions open; rescue cannot remove protected assets (1936.614216ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+RESERVE_V2_100_USERS {"registered":100,"buys":100,"transfers":20,"sells":100,"exitMode":"normal-pressure-fees-final-full-refund","checks":322,"usdIn":"1785.0","liveSupport":"5.0","usdOut":"1790.0","priceAfterBuys":"0.119251997943372169","finalPrice":"0.13811172195350011","finalSupply":"0.0","reserve":"0.0","protectedUnallocated":"500.0"}
+✔ token V2: 100 registered users buy, transfer and complete normal user exits without emergency or waiting caps (341832.353539ms)
+RESERVE_V2_MODEL_300K {"model":"real-reserve-v2-sizefee-floor-review","economics":"trade-size-only-500usd-or-5percent-threshold-3percent-base-7percent-provisional-surcharge","wallets":300000,"buys":300000,"sells":399966,"transfers":59999,"checks":1059965,"observedPriceTransitions":{"attemptedTradingOperations":759965,"ordinaryPositiveSupply":{"buy":{"accepted":299999,"displayed":{"rise":299999,"equal":0,"fall":0},"exactReservePerShare":{"rise":299999,"equal":0,"fall":0}},"sell":{"accepted":399965,"displayed":{"rise":399965,"equal":0,"fall":0},"exactReservePerShare":{"rise":399965,"equal":0,"fall":0}},"transfer":{"accepted":59999,"displayed":{"rise":59999,"equal":0,"fall":0},"exactReservePerShare":{"rise":59999,"equal":0,"fall":0}}},"bootstrapBuys":1,"normalTerminalSells":1,"emergencyPartialSells":0,"emergencyTerminalSells":0,"rejectedAttempts":{"total":0,"byReason":{}},"scope":"Accepted normal buys, partial sells and positive transfers with positive supply before and after. Bootstrap and terminal states have no two-sided live R/S and are counted separately. Registration support injections are excluded. Rejections are separate; invariant checks are not the denominator. No probability estimate or exhaustive guarantee."},"largestBuyUSDWei":"500000000000000000000000","largestSaleUSDWei":"576089713160248885659418","priceBeforeFinalExitWad":"202939909049775604","finalPriceWad":"347674962988259693","cashInUSDWei":"92628565000000000000000000","cashOutUSDWei":"92628560000000000000000000","finalReserveUSDWei":"0","finalUnallocatedReserveUSDWei":"5000000000000000000","finalActualUSDWei":"5000000000000000000","finalUserCirculatingSupply":"0","finalTotalSupply":"0","lifecycleClosed":true,"allUserTokensSold":true,"negativePriceTransitions":0,"unfundedPayouts":0,"scope":"BigInt token-accounting simulation only. Live buys and partial sells charge ceil(3% V + 7% B^2/(B+T)), T=max($500,5% pretrade live reserve), B=max(V-T,0), with exact fractional-atom threshold and one combined ceiling. The 7% coefficient remains provisional. Bootstrap buys retain the base-only exception. No global pressure, time decay or wallet history. Final normal and all emergency sales are fee-free. Protected price-protection-fund cash stays outside live reserve, and restart remains review-gated. This model does not establish binary settlement equivalence, EVM/RPC throughput, gas, identity/Sybil safety or legal conclusions."}
+✔ independent experimental arithmetic keeps backing across 300,000 wallets and unrestricted normal exits (2914.134142ms)
+✔ zero start uses $0.10 reference; buys and transfers conserve cash and mint only user shares (0.359792ms)
+✔ integer quotes preserve the exact rational $500/5% threshold and one combined fee ceiling (1.985423ms)
+✔ normal final redemption pays all live reserve, freezes reference and blocks restart (0.508812ms)
+✔ time and wallet history never enter fees; compatibility pressure views stay zero (0.600507ms)
+✔ model dust rejection is atomic and zero transfer leaves state unchanged (0.362346ms)
+✔ independent model: $500 pre-mint support stays protected after a sole buyer redeems only their $100 (0.388644ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ starts with zero reserve and supply, and a $0.10 bootstrap reference (2093.216979ms)
+✔ binary registration/funding supports reserve but never mints the first FTI (3982.791938ms)
+✔ first $100 buy mints 970 user tokens and retains the entire payment as backing (2300.116716ms)
+✔ tokens are immediately unlocked; transfers burn 3%, credit 97% and never move USD (3365.407867ms)
+✔ normal partial sales have no 5% hard cap and exact trade-size-only fees (3087.455509ms)
+✔ 5-of-7 council vote activates redemption-only emergency mode without an admin liquidity transfer (3607.463145ms)
+✔ a 10x milestone does not multiply base Member binary-owned purchase quota (4405.313786ms)
+FTI_V2_FEE_CHECK {"price":"0.103225806451612903","retainedUSD":"0.123711340206185568"}
+✔ partial sells burn the full sale amount and retain every fee dollar for remaining holders (2833.269849ms)
+✔ normal buys and sells strictly advance displayed price; sub-price-step dust reverts atomically (4662.396739ms)
+✔ normal sales exceed former hourly capacity without pressure or timer fees (4694.066179ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ different first buyer restarts at exact last ratio; prior support, claims and donation are never allocated (22832.938366ms)
+✔ fractional historical anchor below display precision is preserved across restart (1663.161902ms)
+✔ repeated micro restart round trips cannot extract old support or terminal claims (36998.231457ms)
+✔ automatic buy restarts through the same exact quote without consuming manual authorization (2749.762464ms)
+✔ pending retirement cannot sweep a restarted balance; closure needs separate approval and rechecks state (7095.089489ms)
+✔ 5/7 plus 72h permanent closure permits pending claims but blocks manual/auto/funding and reopening (4675.20603ms)
+✔ closure authorization uses five council votes, delay, revocation, and cannot be reused (4948.348803ms)
+✔ permanent closure breaks pending-auto circularity; retirement still waits for all claims and quiescence (5821.891106ms)
+✔ unexecuted Council proposal from an earlier lifecycle cannot create fresh authorization (5453.709466ms)
+✔ description validates five exact artifacts and fixed 5/7 + 72h metadata without claiming readiness (25.094226ms)
+✔ public config is normalized, fixture-labelled, and copied only through an explicit allowlist (58.88146ms)
+✔ five unsigned creations and sixth bind have correct constructor encodings, linking, sender, nonce, and chain (35.729099ms)
+✔ new retirement token pins are frozen and no old token is a deployment target (25.731477ms)
+✔ unsigned preparation is deterministic for the same explicit public inputs (51.252302ms)
+✔ default CLI and --describe remain read-only with missing public configuration (373.600229ms)
+✔ CLI creates exactly one clearly unsigned fixture manifest with restrictive permissions (224.483116ms)
+✔ all chains except explicitly numeric chain 97 fail closed (5.623136ms)
+✔ every required public input must be explicit, with no defaults or inferred addresses/nonces (4.851426ms)
+✔ seven Council owners must be distinct after address normalization (0.922422ms)
+✔ seven nonzero valid Council owners are required (6.12107ms)
+✔ 31 genesis addresses must be distinct after normalization (1.194294ms)
+✔ 31 nonzero valid genesis addresses are required (5.378825ms)
+✔ development and deployer must be valid explicit nonzero addresses (6.528342ms)
+✔ development destination cannot conflict with stablecoin, token, or BinaryPlan predictions (54.088569ms)
+✔ nonce rejects absent, fractional, negative, ambiguous, unsafe, or exhausted account values (15.393817ms)
+✔ explicit decimal nonces beyond Number precision are preserved without guessing (44.71947ms)
+✔ unknown configuration fields, secrets, and attempted governance overrides are rejected without echoing them (4.877684ms)
+✔ CLI does not leak invalid JSON or unsupported secret values (280.847109ms)
+✔ source hash mismatch and missing sources stop preparation before output (5.858373ms)
+✔ artifact hash mismatch or substitution of the old token is rejected (7.193705ms)
+✔ governance changes are rejected rather than reported as fixed 5/7 + 72h (1.155617ms)
+✔ output and every supported related journal/deployment record are preserved without overwrite (183.804297ms)
+✔ dangling output or journal symlinks are treated as existing records (72.178117ms)
+✔ writing requires an explicitly unsigned complete chain-97 manifest and new unsigned filename (26.907041ms)
+✔ broadcast, execute, signer, RPC, legacy and unknown CLI flags fail before config reads or file writes (1515.418333ms)
+✔ incomplete and contradictory CLI modes fail closed (1141.022809ms)
+✔ unsigned CLI preparation works with all network calls and credential/environment-file reads actively blocked (219.28647ms)
+✔ frozen artifacts retain identity, compiler, ABI and exact creation-bytecode evidence (11.250897ms)
+✔ combined lifecycle and immediate-auto ABI metadata describe the frozen implementation (10.011458ms)
+✔ actual historical token and Binary source/artifact pins are rejected independently (30.394508ms)
+✔ writer atomically rejects incomplete sequence, modified bytecode, dependencies, bind, or evidence (309.281518ms)
+✔ checked-in descriptor equals the current validated public-input-free description (11.369032ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ Retirement current-token integrations with canonical BinaryPlan
+  ✔ shared helper binds the current token and matching immutable development fund to real governance (139.940751ms)
+  ✔ current-token fee floor and 5% threshold quote boundaries at live R=100 (2823.402686ms)
+  ✔ current-token fee floor and 5% threshold quote boundaries at live R=1000 (3759.945147ms)
+  ✔ current-token fee floor and 5% threshold quote boundaries at live R=20000 (2972.568286ms)
+  ✔ current-token actual large buys retain gross cash, mint net assets at pretrade price and consume gross manual quota (3454.153966ms)
+  ✔ current-token partial sales retain exact fee, transfers burn 3%, and neither restores manual quota (3832.243859ms)
+  ✔ current-token real registration grants cumulative gross quota and paid top-ups do not reset spent (7184.889232ms)
+  ✔ current-token minOut, deadline, dust, allowance and collateral failures roll back real Binary authorization (5609.165151ms)
+  ✖ unranked Members cannot create auto allocations merely by enabling auto on the new token (2375.518429ms)
+  ✔ current-token hourly gate: four units then one in another hour carry fully; one-wallet five-unit top-up settles (11115.665725ms)
+  ✔ current-token five-unit registration with no eligible points carries the entire pool and protects all buckets (3080.240503ms)
+  ✔ current-token proportional rewards assign only exact rounding residual to development (10238.135596ms)
+✖ Retirement current-token integrations with canonical BinaryPlan (59303.266854ms)
+▶ Retirement current-token hostile collateral with canonical BinaryPlan
+  ✔ current-token taxed buys, partial sells, terminal sells and membership funding fail atomically in both tax modes (3786.744268ms)
+  ✔ current-token collateral callbacks cannot forge quota, reenter buy or transfer approved FTI (3994.861427ms)
+  ✔ current-token deficits block buys, sells and transfers without modifying claims or quota (1121.490849ms)
+  ✔ current-token terminal claim is part of collateral liability and rejects taxed or underbacked payment (2485.683852ms)
+✔ Retirement current-token hostile collateral with canonical BinaryPlan (18934.645467ms)
+▶ Retirement current-token TEST_ONLY paid-rank feature isolation, not organic qualification
+  ✔ TEST_ONLY rank features: all five rates cover full paid-unit history and top-ups retain gross spent (14795.410921ms)
+  ✔ TEST_ONLY builder eligibility with real $5 support latches 10x and 100x price milestones, Members stay unmultiplied (14275.381889ms)
+  ✖ TEST_ONLY builder auto: all-in max price and blocked collateral failure roll back; exact allowed execution stays outside manual quota (3619.205792ms)
+  ✖ TEST_ONLY builder auto: disabling and keeper partial execution reject; owner release remains cash owned by that wallet (2569.938117ms)
+✖ Retirement current-token TEST_ONLY paid-rank feature isolation, not organic qualification (37532.254311ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✖ Retirement current lifecycle: 100 users mixed buys/transfers and complete normal exits, fee claim, then real delayed retirement (370337.893827ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+RETIREMENT_REVIEW_HASHES {"contracts/FTIRetirementReviewToken.sol":"89de8c1e8babbb0b5cf8ad20b92d96f176f2d3f89e9319e7328c7c52f0676ccb","contracts/BinaryPlan.sol":"9844e9b6b14553e0eb14352d43ab65e0cefda18d7c07a87101d074959c198271","contracts/Governance.sol":"ca1e638e4c4f9184c03dabdd23e6fc444c1b1fb4c5c3822898dda1f6263c7540","artifacts/FTIRetirementReviewToken.json":"f7821bc76f101bc010d5c61a34408f821f2867e13f53007308335036e0d8d0dd","artifacts/BinaryPlan.json":"74c55aff04054d58d9f7ea9c9720032a0d6fe7572b248fa881dca0b9ee1cd4cb","test/retirement-review.test.mjs":"37b186f1c0979c047068d752a887d21821c4958e1121bd891381953ab90dcd0b"}
+▶ Permanent-retirement review: isolated EVM lifecycle and failure guards
+  ✔ fixture binds the exact token, collateral, council, timelock and immutable development fund (77.697743ms)
+  ✔ constructor rejects an EOA governor/guardian and zero or collateral-token development destination (325.496023ms)
+  ✔ fixed recipient rejects the token itself and the future bound binary, while a separate contract fund is allowed (427.702054ms)
+  ✔ bind rejects each mismatched dependency individually and never replaces a valid binding (1103.853707ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=100000000000000000000 atoms (1995.442321ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=500000000000000000000 atoms (1776.796053ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=500000000000000000001 atoms (1724.085585ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=1000000000000000000000 atoms (1855.018147ms)
+  ✔ normal terminal q=S quotes and reserves the exact current-trade fee at V=12345678901234567890123 atoms (1726.181113ms)
+  ✔ permissionless fee claim pays only the immutable fund and preserves protected support (2210.463363ms)
+  ✔ emergency partial and terminal redemption stay fee-free and separate from normal terminal claims (2805.438457ms)
+  ✖ closed lifecycle cannot restart through manual or automatic buys before permanent retirement (2120.405106ms)
+  ✖ four council votes cannot authorize retirement; fifth vote can and unauthorized callers cannot (840.46343ms)
+  ✖ each retirement action requires its own council approval and at least 72 hours after that approval (1504.126998ms)
+  ✖ Council revocation clears a mature approval and a replacement approval must mature again (147.495769ms)
+  ✖ Council approval cannot authorize arbitrary selectors or silently preserve an older approval time (2.69294ms)
+  ✖ the timelock itself rejects execution before its 72-hour operation delay (89.161822ms)
+  ✖ active supply/backing and an owed terminal fee independently prohibit retirement and any backing sweep (1435.223081ms)
+  ✖ retirement guard separately rejects pending auto liability in clearly marked TEST_ONLY membership (492.594363ms)
+  ✖ retirement guard separately rejects unpaused binary in clearly marked TEST_ONLY membership (626.239138ms)
+  ✖ retirement guard separately rejects matching phase in clearly marked TEST_ONLY membership (530.951238ms)
+  ✖ retirement guard separately rejects allocation phase in clearly marked TEST_ONLY membership (491.48934ms)
+  ✖ retirement guard separately rejects builder-month matching in clearly marked TEST_ONLY membership (492.325738ms)
+  ✖ retirement guard separately rejects builder-month allocation in clearly marked TEST_ONLY membership (424.852372ms)
+  ✖ retirement guard separately rejects unsettled current-hour units in clearly marked TEST_ONLY membership (342.823694ms)
+  ✖ retirement guard separately rejects undrained volume jobs in clearly marked TEST_ONLY membership (404.315331ms)
+  ✖ missing binary binding blocks retirement even with real approval and delay (121.205632ms)
+  ✔ blocked seller or taxed collateral atomically rolls back the complete normal terminal transition (2958.89723ms)
+  ✔ blocked or taxed development-fee transfer restores the owed claim and all cash accounting (2932.620302ms)
+  ✖ blocked or taxed retirement transfer preserves support, closure flags, approval and the pending timelock operation (610.758778ms)
+  ✔ terminal seller payout rejects a nested fee claim while preserving the newly credited development claim (1932.539733ms)
+  ✔ development-fee payout rejects nested entry and pays the fixed fund exactly once (2445.744292ms)
+  ✖ permanent-retirement payout rejects nested entry without duplicating or losing protected cash (530.131244ms)
+  ✖ delayed-donation payout rejects nested recovery and leaves retirement permanent (76.121215ms)
+  ✖ propagated callback failures atomically restore terminal sale, fee claim, retirement and donation recovery (3058.209978ms)
+  ✖ retirement routes only tracked support; raw donations require a fresh distinct council vote and delay (2349.452521ms)
+  ✖ blocked or taxed delayed-donation recovery preserves approval, retirement flags and exact surplus (91.107755ms)
+  ✖ a later expanded timelock proposer role cannot bypass the independent Council approval (1155.264833ms)
+  ✖ partial-sale fee remains live backing and terminal routing conserves all tracked and donated cash (3537.811161ms)
+  ✖ retirement never permits rescue of collateral or governance to reopen any token funding path (533.125766ms)
+  ✖ a collateral deficit cannot be hidden by fee-claim payment or permanent retirement (2482.218307ms)
+UNRESOLVED_TERMINAL_DUST Gross <= rounded fee remains rejected; no approved fee waiver, dust write-off, or alternate terminal payout has been inferred.
+  ✔ ordinary precision dust is explicitly rejected rather than promising that every terminal dust state can close (1456.170232ms)
+✖ Permanent-retirement review: isolated EVM lifecycle and failure guards (55944.121916ms)
+▶ Permanent-retirement review: real BinaryPlan integration, no seeded ranks or liabilities
+  ✖ organic pending-auto ownership, cash release, retirement and post-retirement funding rollback (1890.38843ms)
+✖ Permanent-retirement review: real BinaryPlan integration, no seeded ranks or liabilities (3843.968905ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FTI local: http://127.0.0.1:34663
+(node:674) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ current retirement API with fresh fixture ABI/config
+  ✔ current model serves the exact new ABI and fresh initial state while retaining legacy ABI routes (557.148103ms)
+  ✔ ordinary terminal payout, fixed fee claim, permanent retirement and separate binary cash claims stay truthful through the API (15129.302653ms)
+  ✔ current emergency terminal redemption is fee-free and creates no development fee claim (4073.681119ms)
+✔ current retirement API with fresh fixture ABI/config (22325.124839ms)
+✔ canonical demo selects retirement review and preserves explicit historical local demos (0.966127ms)
+✔ canonical deploy and prepare entrypoints have no compilation, credential, live-network, or historical deployment hooks (0.23691ms)
+✔ canonical deployment default only describes the current token with unresolved public inputs (164.123928ms)
+✔ default historical browser launcher fails closed before opening a server (56.023019ms)
+✔ canonical deployment rejects historical models and execution requests before public config reads (557.719208ms)
+✔ historical direct deployment scripts are retained unchanged but never invoked by npm scripts (0.788566ms)
+✔ local retirement configuration and generated unsigned manifests are excluded from source publication (0.322146ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ revised initial reference is $0.10 with zero tokens/reserve and no charity ABI or constructor arguments (1590.05415ms)
+✔ membership grants 5x cumulative same-wallet permission and injects support without minting (2451.136545ms)
+✔ subsequent buy mints net 97% at pre-operation displayed quote and retains all collateral (2945.842281ms)
+✔ sub-$500 partial sells apply only the 3% base and burn exactly sold tokens once (2782.703577ms)
+✔ positive transfer debits 100%, burns 3%, credits 97%, grows real/displayed price and moves no USD (2274.946632ms)
+✔ transferFrom spends gross allowance and has the same single burn and net receipt (2367.909924ms)
+✔ self-transfer requires gross balance and burns once; zero transfer is the explicit no-op exception (2688.536783ms)
+✔ dust transfer and sub-displayed-price-step transfer revert atomically including gross allowance (2503.588127ms)
+✔ final normal redemption pays 100% of live reserve, freezes reference and blocks restart (3266.58445ms)
+✔ retained emergency exception is fee-free, closes final lifecycle and preserves historical reference (3668.805279ms)
+✔ independent revised model matches buys, transfer burn, trade-size sale fees and terminal restart guard (4.480199ms)
+✔ arithmetic keeps post-close support protected and prevents capture without approving restart (1.951754ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ proposal settings and fixed launch/milestone anchors; no production state setter (649.254206ms)
+✔ R=10000: buys and partial sells at or below 500 have only the 3% base fee (269.173655ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=100 (198.515368ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=1000 (244.694521ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=9999.999999999999999999 (255.322349ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=10000.000000000000000001 (287.994304ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=20000 (292.596403ms)
+✔ $500 floor: buy and valid partial sell quotes stay 3% for R=1000000 (279.361543ms)
+✔ extra fee needs both conditions: above $500 and above 5% of live reserve (304.39763ms)
+✔ small live reserve $500 boundary is smooth, and larger trades use only the excess (307.231249ms)
+✔ actual $500 buy against small reserve keeps all cash, mints at exactly the base fee and enforces minOut (1050.141225ms)
+✔ actual $500 partial sale from $1000 reserve burns q, retains $15 and enforces minOut (1105.610367ms)
+✔ USD floor uses 18-decimal dollars; unsupported six-decimal collateral is rejected (73.434586ms)
+✔ bootstrap retains the existing 3% review exception below and above $500, excluding protected cash (1032.033131ms)
+✔ R=10000 T=500: both directions quote total fees 47.5 on 1000 and 433.5 on 5000 (171.171902ms)
+✔ curve has no threshold jump; ideal marginal fee is below 10%, with atom-level rounding disclosed (216.313255ms)
+✔ large buy leaves a different wallet’s next small buy and sell at exactly base 3% (2301.759539ms)
+✔ large sell leaves small later transactions at base 3%, independent of elapsed time (2367.609362ms)
+✔ actual buy retains all gross cash and mints only net fee value at pretrade price (803.767782ms)
+✔ actual partial sell burns gross tokens, pays V-F and retains F; transfer still burns 3% (990.174579ms)
+✔ bootstrap uses only 3% with protected fund excluded; final sale returns full live reserve and closes lifecycle (2224.213361ms)
+✔ large fund is excluded from threshold, reserve, minting price and final redemptions (2308.900187ms)
+✔ one combined ceiling avoids charging a second atom for separately rounded base and surcharge (81.893433ms)
+✔ fractional-atom reserve threshold above the dollar floor stays exact (6004.728031ms)
+✔ quote and execution dust, minOut and deadline failures atomically preserve quota and every cash bucket (2189.825863ms)
+✔ failed collateral movement rolls back manual authorization and auto-buy/sell accounting (1432.312693ms)
+✔ MAX_RESERVE quote bounds and deterministic reference samples are overflow-safe (1050.766685ms)
+✔ splitting buys below their live threshold bypasses the extra fee: explicit limitation evidence (1512.617237ms)
+✔ splitting sales can bypass the surcharge; retained base fees and changing prices still affect proceeds (2962.208407ms)
+✔ auto-buy pays the same amount-based fee while only gross manual buys consume quota (2464.176452ms)
+✔ emergency partial and terminal exits retain their existing fee-free exception and protect the fund (1697.07536ms)
+✔ indicative legacy bps never replace exact fee amounts; sub-bps surcharge is still charged (133.535198ms)
+✖ real BinaryPlan integration: gross manual quota and Member auto eligibility remain unchanged (3516.638059ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ old overmint is removed; positive exact growth below one display atom executes with zero support (19393.178537ms)
+✔ one dollar at large reserve grows exact ratio below getter precision without support (706.984627ms)
+✔ zero exact growth still rejects and rolls back the actual transaction (242.262522ms)
+✔ normal and large actual buys use exact mint, fee and manual quota (2381.995783ms)
+✔ auto buy uses identical quote and does not consume manual quota (685.434573ms)
+✔ split purchases each use fresh exact ratio, preserve strict growth and total quota (17583.950093ms)
+✔ partial sell and transfer maintain cash backing and exact/display growth (831.614306ms)
+✔ bootstrap and support routing remain unchanged, final redemption still closes (2267.776058ms)
+✔ tiny transfer and positive-payout sell both grow real ratio below display resolution (937.087474ms)
+✔ token sell gas padding adds a rounded-up quarter plus 30k without Number precision loss (0.737519ms)
+✔ token sell gas padding rejects malformed, zero and negative estimates (0.481922ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+FTI local: http://127.0.0.1:46337
+(node:790) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ workspace readiness against current retirement contracts and API
+  ✔ all workspace assets, config and current ABI resolve without granting a wallet role (591.755938ms)
+  ✔ same-hour five-unit registration, queue readiness and funded rank remain separate facts (3554.100261ms)
+  ✔ auto API reflects next wall-clock boundary and permits changes during overdue settlement (6452.666654ms)
+  ✔ hourly boundary blocks funding and exposes real settlement phases to any public caller (5163.164893ms)
+  ✔ current token has immediately available purchased tokens and exact terminal fee accounting (4844.437179ms)
+  ✔ confirmed real buy and terminal sale snapshots separate exact growth from reference prices (4694.218798ms)
+  ✔ proposal gates match actual council ownership, existing approval and five-of-seven execution (1526.732703ms)
+  ✔ timelock readiness remains false until the fixed 72-hour delay expires, then public execution works (1200.662697ms)
+FTI local: http://127.0.0.1:40795
+  ✔ API rejects reorg snapshots, verifies deployed getters and preserves RPC failures (5734.973048ms)
+✔ workspace readiness against current retirement contracts and API (36455.186447ms)
+✔ all three entry points server-render a distinct labeled workspace and one initially visible page (67.070784ms)
+✔ all controller literal DOM IDs exist and React markup contains no duplicate IDs (16.385785ms)
+✔ form controls retain stable IDs, meaningful labels and current safety disclosures (15.211054ms)
+✔ workspace paths use exact segments and each surface has a distinct navigation contract (1.803484ms)
+✔ navigation uses history entries; repeated clicks do not duplicate entries (0.853241ms)
+✔ deep links and unknown hashes render a valid local page without history loops (0.396716ms)
+✔ cross-panel links preserve their target and activity remains in the current panel (0.194257ms)
+✔ initial, failed and aged data are stale; successful recent data is actionable (1.321723ms)
+✔ disconnected and stale states disable every write capability (0.464486ms)
+✔ public callers are not council owners and membership does not grant governance (0.266193ms)
+✔ funding waits for an open phase and unexpired epoch while cash claims remain accessible (0.26413ms)
+✔ retired and paused lifecycle gating separates holder sales, transfers and new funding (0.286232ms)
+✔ volume, hourly matching and allocation readiness reflect all exposed contract prerequisites (0.447301ms)
+✔ monthly readiness requires calendar boundary and completed boundary-hour settlement (0.285282ms)
+✔ proposal readiness prevents repeat approval and keeps execution permissionless at threshold (0.971185ms)
+✔ timelock and wallet error states never infer a successful execution (1.020798ms)
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ quarantine: empty deployment has a fixed $0.10 anchor and a $1 first milestone (447.694154ms)
+✔ quarantine: membership-only cash stays protected, unowned and outside live reserve (742.141535ms)
+✔ quarantine: first $100 buyer mints 970 FTI and can redeem only $100, never the prior $500 (2004.541162ms)
+✔ quarantine: positive-supply injection adds redeemable support without minting or allocating prior cash (2117.812805ms)
+✔ quarantine: an authorized first automatic buy also cannot capture protected cash or consume manual quota (1514.171058ms)
+✔ quarantine: post-closure injections remain protected, preserve the historical quote and cannot restart minting (2402.513031ms)
+✔ quarantine: raw USD donations remain unaccounted surplus through first buy, injection and final redemption (1713.93173ms)
+✔ quarantine: emergency partial and full exits remain separately fee-free and leave protected cash intact (3308.685695ms)
+✔ quarantine: trade-size-only partial-sale fees and 3% transfer burn do not touch protected cash (1938.206119ms)
+✔ quarantine: failed buy/sell minOut and deadline checks roll back reserve, quarantine, quota and lifecycle (2158.682309ms)
+✔ quarantine: collateral sender/recipient taxes revert zero-supply injection and never fabricate protected accounting (641.451931ms)
+✔ quarantine: taxed live injection, buys, partial sales and full redemption atomically preserve both buckets (3463.82952ms)
+✔ quarantine: backing checks protect unallocated cash even if actual USD still covers all live reserve (2369.061792ms)
+✔ quarantine: governance cannot rescue or allocate protected USD before or after lifecycle closure (2308.537068ms)
+✔ quarantine: nested reentrant injection is rejected and outer injection accounts for its payment exactly once (896.224458ms)
+✔ quarantine: propagated callback failure rolls back zero-supply injection and manual-buy authorization (1418.763722ms)
+✔ quarantine: callback transferFrom cannot burn FTI or consume its allowance during a priced buy (2314.248811ms)
+✔ quarantine: fixed $1 and $10 milestones are independent of the first post-fee quote and prior binary cash (4091.137128ms)
+✔ quarantine: zero-supply historical references cannot trigger milestones, even in a TEST ONLY boundary fixture (269.943741ms)
+✔ quarantine: live milestone multiplier latches and remains capped at 1024 (1525.378338ms)
+✔ quarantine: redeemable and unallocated cash share the reserve cap; raw donations are not silently counted (3388.845114ms)
+ℹ tests 447
+ℹ suites 18
+ℹ pass 395
+ℹ fail 52
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3745807.400964
+
+✖ failing tests:
+
+test at test/binary-buy-allowance.test.mjs:175:2
+✖ TEST ONLY paid-rank fixture: builder rank and price milestones expand total capacity without resetting spent; auto-buys consume no manual quota (8338.184715ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/binary-buy-allowance.test.mjs:183:24)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/core-autobuy.test.mjs:23:1
+✖ a stranger cannot fragment a beneficiary pending reward into dust locks (9283.920749ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/core-autobuy.test.mjs:16:23)
+      at async TestHook.run (node:internal/test_runner/test:1389:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/core-autobuy.test.mjs:29:1
+✖ the beneficiary may intentionally choose a partial auto purchase (0.630492ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/core-autobuy.test.mjs:16:23)
+      at async TestHook.run (node:internal/test_runner/test:1389:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/core-autobuy.test.mjs:32:1
+✖ an unrelated keeper can execute the complete pending amount only for its owner (0.210541ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/core-autobuy.test.mjs:16:23)
+      at async TestHook.run (node:internal/test_runner/test:1389:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/core-autobuy.test.mjs:36:1
+✖ disabling auto-buy revokes keeper execution and preserves cash release (0.049494ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/core-autobuy.test.mjs:16:23)
+      at async TestHook.run (node:internal/test_runner/test:1389:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/core-autobuy.test.mjs:40:1
+✖ a maximum above spot but below the fee-inclusive execution price rejects atomically (0.237651ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/core-autobuy.test.mjs:16:23)
+      at async TestHook.run (node:internal/test_runner/test:1389:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/core-autobuy.test.mjs:44:1
+✖ exact integer maximum price boundary rejects one wei below and accepts at the ceiling (0.067019ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/core-autobuy.test.mjs:16:23)
+      at async TestHook.run (node:internal/test_runner/test:1389:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/core-autobuy.test.mjs:49:1
+✖ a failed collateral transfer restores pending balances and all token state (0.051045ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/core-autobuy.test.mjs:16:23)
+      at async TestHook.run (node:internal/test_runner/test:1389:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/core-autobuy.test.mjs:53:1
+✖ release cannot be repeated to create cash or leave an executable stale auto balance (0.056564ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/core-autobuy.test.mjs:16:23)
+      at async TestHook.run (node:internal/test_runner/test:1389:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/independent-rank-boundaries.test.mjs:46:2
+✖ 20 real hourly epochs: raw 10 pays 5 and flushes 5; only allocation 100 promotes Builder 1, with old-rank auto timing (1735.244449ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/independent-rank-boundaries.test.mjs:48:24)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1869:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/integrated-binary-funding.test.mjs:262:2
+✖ TEST ONLY paid-rank fixture: reward auto-buy transfers only its earmarked cash, leaves manual quota and unrelated reward/builder buckets intact (7322.502901ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/integrated-binary-funding.test.mjs:270:24)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/integrated-binary-funding.test.mjs:288:13
+✖ TEST ONLY paid-rank fixture: canonical >$500 size-fee auto-buy enforces exact fee-inclusive maxPrice without consuming manual quota (2571.416478ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/integrated-binary-funding.test.mjs:293:24)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/paid-points-binary.test.mjs:44:2
+✖ 20 real hourly epochs: raw 10 pays 5 and flushes 5; only allocation 100 promotes Builder 1, with old-rank auto timing (1574.767366ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/paid-points-binary.test.mjs:46:24)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1869:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/paid-points-binary.test.mjs:228:63
+✖ TEST ONLY prior paid history: threshold 100 advances only after funded allocation under rank 0 (1925.863509ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/paid-points-binary.test.mjs:231:24)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1869:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/paid-points-binary.test.mjs:228:63
+✖ TEST ONLY prior paid history: threshold 200 advances only after funded allocation under rank 1 (1567.304108ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/paid-points-binary.test.mjs:231:24)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/paid-points-binary.test.mjs:228:63
+✖ TEST ONLY prior paid history: threshold 500 advances only after funded allocation under rank 2 (1927.515068ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/paid-points-binary.test.mjs:231:24)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/paid-points-binary.test.mjs:228:63
+✖ TEST ONLY prior paid history: threshold 1000 advances only after funded allocation under rank 3 (1943.449477ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/paid-points-binary.test.mjs:231:24)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/protocol.test.mjs:43:1
+✖ TEST ONLY paid-rank fixture: actual hourly rewards fund auto-buy, no fabricated income (5882.372ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 100000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/protocol.test.mjs:43:147)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 100000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/protocol.test.mjs:44:1
+✖ failed auto execution preserves claim and user can release it as USD (5756.053069ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/protocol.test.mjs:44:129)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1 ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/protocol.test.mjs:53:1
+✖ auto-buy settings freeze during matching so batching cannot change economics (6479.000561ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 100000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/protocol.test.mjs:53:492)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 100000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/retirement-integrations.test.mjs:138:2
+✖ unranked Members cannot create auto allocations merely by enabling auto on the new token (2375.518429ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-integrations.test.mjs:139:64)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/retirement-integrations.test.mjs:251:2
+✖ TEST_ONLY builder auto: all-in max price and blocked collateral failure roll back; exact allowed execution stays outside manual quota (3619.205792ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-integrations.test.mjs:253:84)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/retirement-integrations.test.mjs:268:2
+✖ TEST_ONLY builder auto: disabling and keeper partial execution reject; owner release remains cash owned by that wallet (2569.938117ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-integrations.test.mjs:270:21)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/retirement-load.test.mjs:17:1
+✖ Retirement current lifecycle: 100 users mixed buys/transfers and complete normal exits, fee claim, then real delayed retirement (370337.893827ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-load.test.mjs:98:64)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:255:2
+✖ closed lifecycle cannot restart through manual or automatic buys before permanent retirement (2120.405106ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async unchanged (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:145:12)
+      at async TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:256:35)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { reason: 'restart policy pending' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/retirement-review.test.mjs:261:2
+✖ four council votes cannot authorize retirement; fifth vote can and unauthorized callers cannot (840.46343ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:264:75)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:274:2
+✖ each retirement action requires its own council approval and at least 72 hours after that approval (1504.126998ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:278:76)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:286:2
+✖ Council revocation clears a mature approval and a replacement approval must mature again (147.495769ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:287:33)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:295:2
+✖ Council approval cannot authorize arbitrary selectors or silently preserve an older approval time (2.69294ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:296:74)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:304:2
+✖ the timelock itself rejects execution before its 72-hour operation delay (89.161822ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:305:24)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:310:2
+✖ active supply/backing and an owed terminal fee independently prohibit retirement and any backing sweep (1435.223081ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:311:47)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:326:4
+✖ retirement guard separately rejects pending auto liability in clearly marked TEST_ONLY membership (492.594363ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:327:60)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:326:4
+✖ retirement guard separately rejects unpaused binary in clearly marked TEST_ONLY membership (626.239138ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:327:60)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:326:4
+✖ retirement guard separately rejects matching phase in clearly marked TEST_ONLY membership (530.951238ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:327:60)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:326:4
+✖ retirement guard separately rejects allocation phase in clearly marked TEST_ONLY membership (491.48934ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:327:60)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:326:4
+✖ retirement guard separately rejects builder-month matching in clearly marked TEST_ONLY membership (492.325738ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:327:60)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:326:4
+✖ retirement guard separately rejects builder-month allocation in clearly marked TEST_ONLY membership (424.852372ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:327:60)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:326:4
+✖ retirement guard separately rejects unsettled current-hour units in clearly marked TEST_ONLY membership (342.823694ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:327:60)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:326:4
+✖ retirement guard separately rejects undrained volume jobs in clearly marked TEST_ONLY membership (404.315331ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:327:60)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:331:2
+✖ missing binary binding blocks retirement even with real approval and delay (121.205632ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:333:22)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:350:2
+✖ blocked or taxed retirement transfer preserves support, closure flags, approval and the pending timelock operation (610.758778ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:351:75)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:376:2
+✖ permanent-retirement payout rejects nested entry without duplicating or losing protected cash (530.131244ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at retire (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:131:56)
+      at async TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:379:3) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:385:2
+✖ delayed-donation payout rejects nested recovery and leaves retirement permanent (76.121215ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at retire (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:131:56)
+      at async TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:386:3) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:395:2
+✖ propagated callback failures atomically restore terminal sale, fee claim, retirement and donation recovery (3058.209978ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:402:134)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:411:2
+✖ retirement routes only tracked support; raw donations require a fresh distinct council vote and delay (2349.452521ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at retire (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:131:56)
+      at async TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:414:60) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:431:2
+✖ blocked or taxed delayed-donation recovery preserves approval, retirement flags and exact surplus (91.107755ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at retire (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:131:56)
+      at async TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:432:3) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:439:2
+✖ a later expanded timelock proposer role cannot bypass the independent Council approval (1155.264833ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:447:9)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:450:2
+✖ partial-sale fee remains live backing and terminal routing conserves all tracked and donated cash (3537.811161ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at retire (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:131:56)
+      at async TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:456:95) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:459:2
+✖ retirement never permits rescue of collateral or governance to reopen any token funding path (533.125766ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at retire (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:131:56)
+      at async TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:460:45) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:470:2
+✖ a collateral deficit cannot be hidden by fee-claim payment or permanent retirement (2482.218307ms)
+  Error: missing argument: types/values length mismatch (count=1, expectedCount=2, code=MISSING_ARGUMENT, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at assertArgumentCount (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:171:5)
+      at AbiCoder.encode (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/abi-coder.js:163:9)
+      at Interface._encodeParams (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:667:31)
+      at Interface.encodeFunctionData (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/abi/interface.js:743:18)
+      at authorize (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:127:55)
+      at queueRetirement (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:130:41)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:472:113)
+      at async Test.run (node:internal/test_runner/test:1389:7) {
+    code: 'MISSING_ARGUMENT',
+    count: 1,
+    expectedCount: 2,
+    shortMessage: 'missing argument: types/values length mismatch'
+  }
+
+test at test/retirement-review.test.mjs:504:2
+✖ organic pending-auto ownership, cash release, retirement and post-retirement funding rollback (1890.38843ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/retirement-review.test.mjs:505:52)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1869:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+
+test at test/size-fee-proposal.test.mjs:389:1
+✖ real BinaryPlan integration: gross manual quota and Member auto eligibility remain unchanged (3516.638059ms)
+  Error: no matching fragment (operation="fragment", info={ "args": [ true, 1000000000000000000000000 ], "key": "setAutoBuy" }, code=UNSUPPORTED_OPERATION, version=6.17.0)
+      at makeError (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:132:21)
+      at assert (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/utils/errors.js:151:15)
+      at getFragment (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:188:9)
+      at Proxy.setAutoBuy (file:///workspace/shared/fti-validation-fix/node_modules/ethers/lib.esm/contract/contract.js:252:26)
+      at TestContext.<anonymous> (file:///workspace/shared/fti-full-suite-baseline/test/size-fee-proposal.test.mjs:401:58)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'UNSUPPORTED_OPERATION',
+    operation: 'fragment',
+    info: { key: 'setAutoBuy', args: [ true, 1000000000000000000000000n ] },
+    shortMessage: 'no matching fragment'
+  }
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

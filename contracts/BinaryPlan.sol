@@ -13,6 +13,7 @@ interface IFTI {
     function priceMultiplier() external view returns(uint256);
     function quoteBuy(uint256) external view returns(uint256);
 }
+interface IClosedAutoToken {function buysPermanentlyClosed() external view returns(bool);}
 library Calendar {
     function leap(uint256 y) internal pure returns(bool){return y%4==0&&(y%100!=0||y%400==0);}
     function month(uint256 timestamp) internal pure returns(uint256 key,uint256 end){
@@ -31,6 +32,10 @@ contract BinaryPlan is ReentrancyGuard,Pausable {
     using SafeERC20 for IERC20;
     uint256 public constant UNIT=100e18;
     uint256 public constant MAX_BATCH=100;
+    // Local review: bounded optional buy subcall plus enough outer gas to persist progress.
+    uint256 public constant AUTO_ATTEMPT_GAS=600000;
+    uint256 public constant MIN_ALLOCATION_GAS=900000;
+    uint256 public constant AUTO_FINALIZATION_GAS=300000;
     IERC20 public immutable usd;
     IFTI public immutable token;
     address public immutable governance;
@@ -54,6 +59,11 @@ contract BinaryPlan is ReentrancyGuard,Pausable {
     uint256 public cursor;uint256 public frozenMembers;uint256 public totalPaidPoints;uint256 public pointValue;uint256 public frozenPool;uint256 public allocated;
     mapping(uint256=>mapping(address=>uint256)) public paidPoints;
     mapping(uint256=>mapping(address=>bool)) public autoSnapshot;
+    struct AutoSetting {bool enabled;uint256 effectiveAt;}
+    mapping(address=>AutoSetting) public nextAutoSetting;
+    mapping(address=>uint256) public autoEnabledFrom;
+    address[] public pendingAutoAccounts;
+    mapping(address=>uint256) private pendingAutoIndex;
     mapping(uint256=>mapping(address=>bool)) public settled;
     mapping(address=>uint256) public pendingReward;
     mapping(address=>uint256) public pendingAuto;
@@ -73,6 +83,9 @@ contract BinaryPlan is ReentrancyGuard,Pausable {
     event Claimed(address indexed wallet,uint256 amount);
     event BuilderMonthClosed(uint256 indexed month);
     event AutoExecuted(address indexed wallet,uint256 usdIn,uint256 tokens);
+    event AutoSettingScheduled(address indexed wallet,bool enabled,uint256 effectiveAt);
+    event ImmediateAutoDeferred(uint256 indexed epoch,address indexed wallet,uint256 amount);
+    event ClosedAutoReleased(address indexed wallet,uint256 amount);
     event TokenBuyAuthorized(address indexed wallet,uint256 usdIn,uint256 cumulativeSpent);
     constructor(address stable,address fti,address gov,address emergency,address dev,address[31] memory genesis){
         require(IERC20Metadata(stable).decimals()==18,'requires 18 decimal USD');
@@ -146,7 +159,8 @@ contract BinaryPlan is ReentrancyGuard,Pausable {
     function cap(uint8 rank,uint8 level) public pure returns(uint256){require(rank<5&&level<4,'cap');uint8[5][4] memory c=[[5,10,15,20,25],[5,10,12,16,20],[5,10,10,12,15],[5,10,10,10,10]];return c[level][rank];}
     function beginEpochClose() external nonReentrant {
         require(phase==0&&block.timestamp>=epochEnd&&jobCursor==jobs.length,'not ready');_backed();
-        if(unitsSinceSettlement<5){_nextEpoch();return;}
+        // Gate on this hour's paid registration units; old cash carries, old units do not qualify.
+        if(epochUnits<5){_nextEpoch();return;}
         frozenMembers=memberList.length;frozenLevel=protectionLevel;cursor=0;totalPaidPoints=0;allocated=0;frozenPool=pointPool;pointValue=0;phase=1;
     }
     function processEpoch(uint256 batch) external nonReentrant {
@@ -155,7 +169,11 @@ contract BinaryPlan is ReentrancyGuard,Pausable {
         if(phase==1){
             for(;cursor<end;cursor++){
                 address who=memberList[cursor];Member storage m=members[who];uint256 raw=m.carryL<m.carryR?m.carryL:m.carryR;
-                if(m.units>0){uint256 c=cap(m.rank,frozenLevel);uint256 paid=raw<c?raw:c;paidPoints[epoch][who]=paid;totalPaidPoints+=paid;autoSnapshot[epoch][who]=m.autoEnabled&&m.rank>0;}
+                if(m.units>0){
+                    _rollAutoSetting(who,epochEnd);
+                    uint256 c=cap(m.rank,frozenLevel);uint256 paid=raw<c?raw:c;paidPoints[epoch][who]=paid;totalPaidPoints+=paid;
+                    autoSnapshot[epoch][who]=m.autoEnabled&&m.rank>0&&autoEnabledFrom[who]<=epochEnd;
+                }
                 // Inactive Genesis positions retain volume; no unfunded reward privileges.
                 if(m.units>0){m.carryL-=raw;m.carryR-=raw;}
             }
@@ -166,13 +184,30 @@ contract BinaryPlan is ReentrancyGuard,Pausable {
                 pointValue=frozenPool/totalPaidPoints;phase=2;cursor=0;
             }
         }else{
+            require(gasleft()>=MIN_ALLOCATION_GAS,'allocation gas');
+            uint256 startCursor=cursor;
             for(;cursor<end;cursor++){
+                // Finish this bounded batch before optional subcalls can starve later work.
+                if(cursor>startCursor&&gasleft()<MIN_ALLOCATION_GAS)break;
                 address who=memberList[cursor];require(!settled[epoch][who],'settled');settled[epoch][who]=true;
                 // $20 is a protection target for the NEXT epoch, never a payout ceiling or gate.
                 uint256 points=paidPoints[epoch][who];uint256 reward=Math.mulDiv(frozenPool,points,totalPaidPoints);
                 uint256 automatic=autoSnapshot[epoch][who]?reward*5/100:0;
                 pendingReward[who]+=reward-automatic;totalPending+=reward-automatic;pendingAuto[who]+=automatic;totalAuto+=automatic;allocated+=reward;pointPool-=reward;
                 emit RewardAllocated(epoch,who,reward-automatic,automatic);
+                if(automatic>0){
+                    _trackPendingAuto(who);
+                    // Only this newly allocated amount is attempted. Older pending funds
+                    // retain their existing owner/keeper controls and are never swept here.
+                    bytes memory input=abi.encodeCall(this.executeImmediateAuto,(who,automatic));
+                    bool ok;uint256 available=gasleft();
+                    uint256 allowanceGas=available>AUTO_FINALIZATION_GAS?available-AUTO_FINALIZATION_GAS:0;
+                    if(allowanceGas>AUTO_ATTEMPT_GAS)allowanceGas=AUTO_ATTEMPT_GAS;
+                    // Reserve outer finalization gas AFTER accounting/queue writes.
+                    // Do not copy unbounded revert data from collateral callbacks.
+                    if(allowanceGas>0){assembly ("memory-safe") {ok := call(allowanceGas,address(),0,add(input,32),mload(input),0,0)}}
+                    if(!ok)emit ImmediateAutoDeferred(epoch,who,automatic);
+                }
                 // The current reward and auto split were fixed under the OLD rank.
                 // Only a successfully funded allocation can advance permanent rank.
                 if(reward>0){
@@ -196,26 +231,83 @@ contract BinaryPlan is ReentrancyGuard,Pausable {
         _backed();
     }
     function _nextEpoch() private {lastClosedAt=(block.timestamp/1 hours)*1 hours;epoch++;epochEnd=(block.timestamp/1 hours+1)*1 hours;epochUnits=0;phase=0;cursor=0;}
-    function setAutoBuy(bool enabled,uint256 maxPrice) external nonReentrant {require(phase==0,'settings frozen');require(members[msg.sender].exists,'member');require(!enabled||maxPrice>0,'price limit');members[msg.sender].autoEnabled=enabled;members[msg.sender].maxAutoPrice=maxPrice;}
+    /// @notice Enable at 12:30 first applies to the 13:00 settlement boundary.
+    ///         Wall-clock scheduling and active-from guards exclude older backlogs.
+    ///         Repeated enable does not postpone an already active request.
+    function setAutoBuy(bool enabled) external nonReentrant {
+        require(members[msg.sender].exists,'member');
+        if(!enabled){
+            // Opt-out stops retries immediately. Existing money remains claimable by its owner.
+            members[msg.sender].autoEnabled=false;members[msg.sender].maxAutoPrice=0;autoEnabledFrom[msg.sender]=0;
+            delete nextAutoSetting[msg.sender];emit AutoSettingScheduled(msg.sender,false,block.timestamp);return;
+        }
+        _rollAutoSetting(msg.sender,block.timestamp);
+        if(members[msg.sender].autoEnabled){emit AutoSettingScheduled(msg.sender,true,autoEnabledFrom[msg.sender]);return;}
+        uint256 effectiveAt=(block.timestamp/1 hours+1)*1 hours;
+        nextAutoSetting[msg.sender]=AutoSetting(true,effectiveAt);
+        emit AutoSettingScheduled(msg.sender,true,effectiveAt);
+    }
+    function _rollAutoSetting(address who,uint256 at) private {
+        AutoSetting memory next=nextAutoSetting[who];
+        if(next.effectiveAt>0&&next.effectiveAt<=at){
+            if(!members[who].autoEnabled)autoEnabledFrom[who]=next.effectiveAt;
+            members[who].autoEnabled=next.enabled;members[who].maxAutoPrice=0;
+            delete nextAutoSetting[who];
+        }
+    }
+    /// @notice Effective wall-clock setting; allocation snapshots its own earned hour.
+    function effectiveAutoEnabled(address who) public view returns(bool){
+        AutoSetting memory next=nextAutoSetting[who];
+        if(next.effectiveAt>0&&next.effectiveAt<=block.timestamp)return next.enabled;
+        return members[who].autoEnabled;
+    }
     function executeAuto(address who,uint256 amount) external nonReentrant {
-        _backed();
-        require(amount>0&&amount<=pendingAuto[who],'amount');
-        require(members[who].autoEnabled,'auto disabled');
-        // A keeper may not split someone else's reward into dust-sized lock tranches.
-        // The beneficiary can still request a deliberate partial purchase.
+        require(effectiveAutoEnabled(who),'auto disabled');
         require(msg.sender==who||amount==pendingAuto[who],'partial auto owner only');
-        uint256 maxPrice=members[who].maxAutoPrice;
-        require(maxPrice>0&&token.price()<=maxPrice,'auto price limit');
+        _performAuto(who,amount);
+    }
+    /// @dev Isolated child frame under processEpoch's outer reentrancy guard.
+    ///      Only the outer allocator can select this newly allocated amount.
+    function executeImmediateAuto(address who,uint256 amount) external {
+        require(msg.sender==address(this)&&_reentrancyGuardEntered(),'self only');
+        require(effectiveAutoEnabled(who),'auto disabled');
+        _performAuto(who,amount);
+    }
+    function _performAuto(address who,uint256 amount) private {
+        _backed();require(amount>0&&amount<=pendingAuto[who],'amount');
+        // No user price cap. Quote and execution share this atomic transaction;
+        // the full-precision token quote fixes the minimum actual output.
         uint256 minimum=token.quoteBuy(amount);require(minimum>0,'dust');
-        // Max price is the total USD paid per FTI received, including fees/curve impact.
-        require(minimum>=Math.mulDiv(amount,1e18,maxPrice,Math.Rounding.Ceil),'auto execution price');
-        pendingAuto[who]-=amount;totalAuto-=amount;
+        pendingAuto[who]-=amount;totalAuto-=amount;if(pendingAuto[who]==0)_removePendingAuto(who);
         uint256 beforeBal=usd.balanceOf(address(this));uint256 beforeToken=usd.balanceOf(address(token));
         uint256 minted=token.autoBuy(who,amount,minimum,block.timestamp);
         require(beforeBal-usd.balanceOf(address(this))==amount&&usd.balanceOf(address(token))-beforeToken==amount,'unsupported USD');
         _backed();emit AutoExecuted(who,amount,minted);
     }
-    function releaseAutoToCash() external nonReentrant {uint256 amount=pendingAuto[msg.sender];pendingAuto[msg.sender]=0;totalAuto-=amount;pendingReward[msg.sender]+=amount;totalPending+=amount;}
+    function pendingAutoAccountCount() external view returns(uint256){return pendingAutoAccounts.length;}
+    function _trackPendingAuto(address who) private {
+        if(pendingAutoIndex[who]==0){pendingAutoAccounts.push(who);pendingAutoIndex[who]=pendingAutoAccounts.length;}
+    }
+    function _removePendingAuto(address who) private {
+        uint256 at=pendingAutoIndex[who];if(at==0)return;
+        address last=pendingAutoAccounts[pendingAutoAccounts.length-1];pendingAutoAccounts[at-1]=last;pendingAutoIndex[last]=at;
+        pendingAutoAccounts.pop();delete pendingAutoIndex[who];
+    }
+    function _releaseAuto(address who) private returns(uint256 amount){
+        amount=pendingAuto[who];pendingAuto[who]=0;totalAuto-=amount;pendingReward[who]+=amount;totalPending+=amount;_removePendingAuto(who);
+    }
+    function releaseAutoToCash() external nonReentrant {_releaseAuto(msg.sender);}
+    /// @notice Only the independently governed irreversible buy-shutdown marker
+    ///         permits conversion; an ordinary empty/restartable cycle does not.
+    ///         No cash leaves Binary and no beneficiary can be substituted.
+    function releaseClosedTokenAutoToCash(uint256 start,uint256 limit) external nonReentrant {
+        require(paused()&&phase==0,'binary not quiescent');
+        require(IClosedAutoToken(address(token)).buysPermanentlyClosed(),'token buys not closed');
+        require(limit>0&&limit<=MAX_BATCH&&start<=memberList.length,'batch');_backed();
+        uint256 end=start+limit;if(end>memberList.length)end=memberList.length;
+        for(uint256 i=start;i<end;i++){address who=memberList[i];uint256 amount=_releaseAuto(who);if(amount>0)emit ClosedAutoReleased(who,amount);}
+        _backed();
+    }
     function claim() external nonReentrant {_backed();uint256 amount=pendingReward[msg.sender];require(amount>0,'no reward');pendingReward[msg.sender]=0;totalPending-=amount;uint256 beforeBal=usd.balanceOf(address(this));uint256 beforeUser=usd.balanceOf(msg.sender);usd.safeTransfer(msg.sender,amount);require(beforeBal-usd.balanceOf(address(this))==amount&&usd.balanceOf(msg.sender)-beforeUser==amount,'unsupported USD');_backed();emit Claimed(msg.sender,amount);}
     function beginBuilderMonth() external nonReentrant {
         uint256 end=Calendar.endOf(nextBuilderMonth);require(monthPhase==0&&block.timestamp>=end&&lastClosedAt>=end,'month not ready');

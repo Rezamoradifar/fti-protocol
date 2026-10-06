@@ -1,0 +1,661 @@
+--- a/test/binary-buy-allowance.test.mjs
++++ b/test/binary-buy-allowance.test.mjs
+@@ -180,9 +180,14 @@
+   assert((await s.binary.rankOf(s.addresses[0]))>0n);
+   assert((await s.token.priceMultiplier())>=2n);
+   await checkAllowance(s.addresses[0],E('600')*(await s.token.priceMultiplier()),E('100'));
+-  await(await s.binary.setAutoBuy(true,E('1000000'))).wait();
++  await(await s.binary.setAutoBuy(...(binaryContract==='FundedBinaryPlan'?[true,E('1000000')]:[true]))).wait();
+   for(const i of [1,2])await(await s.binary.connect(signers[i]).addUnits(5)).wait();
++  // Current BinaryPlan retries only genuinely failed allocation purchases; the historical plan queues normally.
++  if(binaryContract==='BinaryPlan')await(await s.usd.setBlocked(s.token.target,true)).wait();
++  const balanceBefore=await s.token.balanceOf(s.addresses[0]);
+   await settle(s,provider);
++  assert.equal(await s.token.balanceOf(s.addresses[0]),balanceBefore,'failed or queued auto does not mint');
++  if(binaryContract==='BinaryPlan')await(await s.usd.setBlocked(s.token.target,false)).wait();
+   const amount=await s.binary.pendingAuto(s.addresses[0]);
+   assert(amount>0n);
+   const previousTokens=await s.token.balanceOf(s.addresses[0]);
+--- a/test/core-autobuy.test.mjs
++++ b/test/core-autobuy.test.mjs
+@@ -1,3 +1,5 @@
++// Historical FTIToken regression paired with current BinaryPlan. Token locks/curve
++// remain historical; auto setting, timing, immediate mint and retry use current policy.
+ import {deployPaidRankFeatureSuite,seedPaidRank} from './fixtures/paid-rank-feature-suite.mjs';
+ import {test,before,beforeEach,after} from 'node:test';
+ import assert from 'node:assert/strict';
+@@ -13,7 +15,9 @@
+  for(const[i,n]of [[0,1],[1,100],[2,100]])await(await s.binary.connect(signers[i]).addUnits(n)).wait();await settle(s,p);
+  // TEST ONLY paid-rank fixture for authorization/price/queue feature coverage.
+  await seedPaidRank(s.binary,s.addresses[0],1);
+- await(await s.binary.setAutoBuy(true,E('1'))).wait();for(const i of [1,2])await(await s.binary.connect(signers[i]).addUnits(5)).wait();await settle(s,p);
++ await(await s.binary.setAutoBuy(true)).wait();for(const i of [1,2])await(await s.binary.connect(signers[i]).addUnits(5)).wait();
++ // Exercise pending retry through an actual failed immediate collateral transfer.
++ await(await s.usd.setBlocked(s.token.target,true)).wait();await settle(s,p);await(await s.usd.setBlocked(s.token.target,false)).wait();
+  assert.equal(await s.binary.pendingAuto(s.addresses[0]),E('45'));snapshot=await p.send('evm_snapshot',[]);
+ });
+ beforeEach(async()=>{await p.send('evm_revert',[snapshot]);snapshot=await p.send('evm_snapshot',[]);});
+@@ -34,17 +38,26 @@
+  assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);assert.equal(await s.token.balanceOf(s.addresses[44]),0n);assert.equal(await s.usd.balanceOf(s.addresses[44]),attackerUSD);assert((await s.token.balanceOf(s.addresses[0]))>0n);await checkAccounting(s);
+ });
+ test('disabling auto-buy revokes keeper execution and preserves cash release',async()=>{
+- await(await s.binary.setAutoBuy(false,E('1'))).wait();await unchangedAuto(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],E('45')));
++ await(await s.binary.setAutoBuy(false)).wait();await unchangedAuto(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],E('45')));
+  const cash=await s.binary.pendingReward(s.addresses[0]);await(await s.binary.releaseAutoToCash()).wait();assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);assert.equal(await s.binary.pendingReward(s.addresses[0]),cash+E('45'));await checkAccounting(s);
+ });
+-test('a maximum above spot but below the fee-inclusive execution price rejects atomically',async()=>{
+- const spot=await s.token.price(),max=spot*101n/100n,quote=await s.token.quoteBuy(E('45'));assert(E('45')*E('1')>quote*max);
+- await(await s.binary.setAutoBuy(true,max)).wait();await unchangedAuto(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],E('45')));
++test('current Binary has no user maximum-price ABI and retries the full current quote',async()=>{
++ assert.equal(s.binary.interface.hasFunction('setAutoBuy(bool,uint256)'),false);
++ assert.equal(s.binary.interface.hasFunction('setAutoBuy(bool)'),true);
++ const quote=await s.token.quoteBuy(E('45')),before=await s.token.balanceOf(s.addresses[0]);
++ await(await s.binary.connect(signers[44]).executeAuto(s.addresses[0],E('45'))).wait();
++ assert.equal(await s.token.balanceOf(s.addresses[0])-before,quote);
++ assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);await checkAccounting(s);
+ });
+-test('exact integer maximum price boundary rejects one wei below and accepts at the ceiling',async()=>{
+- const amount=E('45'),quote=await s.token.quoteBuy(amount),cost=amount*E('1');const ceiling=cost/quote+(cost%quote?1n:0n);
+- await(await s.binary.setAutoBuy(true,ceiling-1n)).wait();await unchangedAuto(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],amount));
+- await(await s.binary.setAutoBuy(true,ceiling)).wait();await(await s.binary.connect(signers[44]).executeAuto(s.addresses[0],amount)).wait();const minted=await s.token.balanceOf(s.addresses[0]);assert.equal(minted,quote);assert(minted*ceiling>=cost);await checkAccounting(s);
++test('a pending retry reprices after intervening manual trading without a user price ceiling',async()=>{
++ const amount=E('45'),oldQuote=await s.token.quoteBuy(amount);
++ await(await s.token.connect(signers[1]).buy(E('100'),0,MaxUint256)).wait();
++ const quote=await s.token.quoteBuy(amount);assert(quote<oldQuote);
++ const before=await s.token.balanceOf(s.addresses[0]),spent=await s.token.lifetimeManualBuys(s.addresses[0]);
++ await(await s.binary.connect(signers[44]).executeAuto(s.addresses[0],amount)).wait();
++ assert.equal(await s.token.balanceOf(s.addresses[0])-before,quote);
++ assert.equal(await s.token.lifetimeManualBuys(s.addresses[0]),spent);
++ assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);await checkAccounting(s);
+ });
+ test('a failed collateral transfer restores pending balances and all token state',async()=>{
+  await(await s.usd.setBlocked(s.token.target,true)).wait();await unchangedAuto(()=>s.binary.connect(signers[44]).executeAuto(s.addresses[0],E('45')));
+--- a/test/independent-rank-boundaries.test.mjs
++++ b/test/independent-rank-boundaries.test.mjs
+@@ -1,5 +1,6 @@
+-// Independent audit adaptation: only prior-history rank boundary cases execute.
+-// Final unmodified retirement token and Binary-derived TEST_ONLY history fixture; auto stays off.
++// Independent audit adaptation: the prior-history boundary cases use the final
++// unmodified retirement token with auto off. Full runs also cover the inherited
++// real paid-point suite against the historical reserve token.
+ import {describe,test,before,beforeEach,after} from 'node:test';
+ import assert from 'node:assert/strict';
+ import fs from 'node:fs';
+@@ -45,7 +46,7 @@
+ 
+  test('20 real hourly epochs: raw 10 pays 5 and flushes 5; only allocation 100 promotes Builder 1, with old-rank auto timing',async()=>{
+   const root=s.addresses[0],dev=s.addresses[35];await units(0,1);
+-  await(await s.binary.setAutoBuy(true,E('1000000'))).wait();
++  await(await s.binary.setAutoBuy(true)).wait();
+   let expectedReward=0n;
+   for(let hour=1;hour<=20;hour++){
+    await units(1,10);await units(2,10);
+@@ -80,7 +81,13 @@
+   await fails(()=>s.binary.claim());assert.equal(await s.binary.cumulativePaidRankPoints(root),100n);
+   await(await s.token.buy(E('100'),0,MaxUint256)).wait();
+   const spent=await s.binary.tokenBuySpent(root);assert.equal(spent,E('100'));
+-  await units(1,12);await units(2,12);const current=await s.binary.epoch();await settle(s,p);
++  await units(1,12);await units(2,12);const current=await s.binary.epoch();
++  // Create a real pending liability by failing the new immediate allocation attempt.
++  await(await s.usd.setBlocked(s.token.target,true)).wait();
++  const tokensBefore=await s.token.balanceOf(root),reserveBefore=await s.token.reserve();
++  await settle(s,p);
++  assert.equal(await s.token.balanceOf(root),tokensBefore);assert.equal(await s.token.reserve(),reserveBefore);
++  await(await s.usd.setBlocked(s.token.target,false)).wait();
+   assert.equal(await s.binary.paidPoints(current,root),10n,'next epoch uses the new Builder 1 cap');
+   assert.equal(await s.binary.cumulativePaidRankPoints(root),110n);
+   assert.equal(await s.binary.autoSnapshot(current,root),true);
+--- a/test/integrated-binary-funding.test.mjs
++++ b/test/integrated-binary-funding.test.mjs
+@@ -267,8 +267,14 @@
+   // an ordinary Member receives $500 per unit even after that same price milestone.
+   await allowance(s.addresses[0],E('1200'),E('100'));
+   await allowance(s.addresses[1],E('50000'),0n);
+-  await(await s.binary.setAutoBuy(true,E('1000000'))).wait();
+-  await units(1,5);await units(2,5);await settle(s,provider);
++  await(await s.binary.setAutoBuy(...(funded?[true,E('1000000')]:[true]))).wait();
++  await units(1,5);await units(2,5);
++  // Preserve the pending-liability/retry assertions using a real failed immediate transfer.
++  if(!funded)await(await s.usd.setBlocked(s.token.target,true)).wait();
++  const tokensBefore=await s.token.balanceOf(s.addresses[0]);
++  await settle(s,provider);
++  assert.equal(await s.token.balanceOf(s.addresses[0]),tokensBefore);
++  if(!funded)await(await s.usd.setBlocked(s.token.target,false)).wait();
+   const amount=funded?E('5'):E('45');assert.equal(await s.binary.pendingAuto(s.addresses[0]),amount);
+   const before=await binaryCash(),reserve=await s.token.reserve(),supply=await s.token.totalSupply();
+   await(await s.binary.connect(signers[41]).executeAuto(s.addresses[0],amount)).wait();
+@@ -285,25 +291,32 @@
+   await checks();
+  });
+ 
+- if(!funded)test('TEST ONLY paid-rank fixture: canonical >$500 size-fee auto-buy enforces exact fee-inclusive maxPrice without consuming manual quota',async()=>{
++ if(!funded)test('TEST ONLY paid-rank fixture: canonical >$500 size-fee auto-buy retries the exact current quote without a user price cap or manual quota',async()=>{
+   await units(0,1);await buy('100');
+   // Only rank qualification is synthetic. The pending reward, collateral funding,
+   // hourly settlement, permission check and token purchase use the real paths.
+   await seedPaidRank(s.binary,s.addresses[0],1);
+-  await(await s.binary.setAutoBuy(true,E('1000000'))).wait();
+-  await units(1,60);await units(2,60);await settle(s,provider);
++  await(await s.binary.setAutoBuy(true)).wait();
++  await units(1,60);await units(2,60);
++  await(await s.usd.setBlocked(s.token.target,true)).wait();
++  const beforeAllocation=await tradeState();
++  await settle(s,provider);
++  assert.equal(await s.token.reserve(),beforeAllocation.reserve);
++  assert.equal(await s.token.totalSupply(),beforeAllocation.supply);
++  assert.equal(await s.token.balanceOf(s.addresses[0]),beforeAllocation.userTokens);
++  assert.equal(await s.binary.tokenBuySpent(s.addresses[0]),beforeAllocation.spent);
+   const amount=await s.binary.pendingAuto(s.addresses[0]);assert(amount>E('500'));
+   const reserve=await s.token.reserve(),supply=await s.token.totalSupply(),fund=await s.token.priceProtectionFund();
+   assert(amount*20n>reserve,'auto-buy also exceeds 5% of the pretrade live reserve');
+   const quote=await s.token.quoteBuy(amount),[fee,net]=await s.token.buyFeeQuote(amount),price=await s.token.price();
+   assert(fee>(amount*300n+9999n)/10000n,'this exercises a positive size surcharge');assert.equal(quote,net*E('1')/price);
+-  const cost=amount*E('1'),ceiling=(cost+quote-1n)/quote;
+   const limit=await s.token.buyLimit(s.addresses[0]),spent=await s.binary.tokenBuySpent(s.addresses[0]);
+-  await(await s.binary.setAutoBuy(true,ceiling-1n)).wait();const before=await tradeState();
+-  await assert.rejects(s.binary.connect(signers[41]).executeAuto.staticCall(s.addresses[0],amount),{reason:'auto execution price'});
++  assert.deepEqual(s.binary.interface.getFunction('setAutoBuy').inputs.map(x=>x.type),['bool']);
++  const before=await tradeState();
++  await assert.rejects(s.binary.connect(signers[41]).executeAuto.staticCall(s.addresses[0],amount),{reason:'mock recipient blocked'});
+   await fails(()=>s.binary.connect(signers[41]).executeAuto(s.addresses[0],amount,{gasLimit:3000000}));
+   assert.deepEqual(await tradeState(),before,'rejection restores reward cash, token balances, fund and quota');
+-  await(await s.binary.setAutoBuy(true,ceiling)).wait();
++  await(await s.usd.setBlocked(s.token.target,false)).wait();
+   const receipt=await(await s.binary.connect(signers[41]).executeAuto(s.addresses[0],amount)).wait();
+   const executed=receipt.logs.filter(log=>log.address.toLowerCase()===s.binary.target.toLowerCase()).map(log=>s.binary.interface.parseLog(log)).find(log=>log?.name==='AutoExecuted');
+   assert.equal(executed.args[2],quote);assert.equal(await s.token.totalSupply(),supply+quote);assert.equal(await s.token.balanceOf(s.addresses[0]),before.userTokens+quote);
+@@ -311,9 +324,8 @@
+   assert.equal(await s.usd.balanceOf(s.token.target),before.actual+amount);
+   const after=await binaryCash();assert.equal(after.actual,before.binary.actual-amount);assert.equal(after.totalAuto,before.binary.totalAuto-amount);assert.equal(after.auto0,0n);
+   for(const field of ['pointPool','builderAccounted','totalPending','reward0','reward35'])assert.equal(after[field],before.binary[field],field);
+-  assert(quote*ceiling>=cost);assert(quote*(ceiling-1n)<cost);
+   await allowance(s.addresses[0],limit,spent);await checks();
+-  console.log('SIZE_FEE_CANONICAL_AUTOBUY_BOUNDARY',JSON.stringify({grossUSD:F(amount),feeUSD:F(fee),quote:quote.toString(),maxPrice:ceiling.toString(),protectedFund:F(fund),manualQuotaUnchanged:true,syntheticRankQualification:true}));
++  console.log('SIZE_FEE_CANONICAL_AUTOBUY_CURRENT_QUOTE',JSON.stringify({grossUSD:F(amount),feeUSD:F(fee),quote:quote.toString(),userPriceCap:false,protectedFund:F(fund),manualQuotaUnchanged:true,syntheticRankQualification:true}));
+  });
+ 
+  test('QUARANTINE REGRESSION: pre-mint $500 support cannot be captured by a sole $100 buyer',async()=>{
+--- a/test/paid-points-binary.test.mjs
++++ b/test/paid-points-binary.test.mjs
+@@ -43,7 +43,7 @@
+ 
+  test('20 real hourly epochs: raw 10 pays 5 and flushes 5; only allocation 100 promotes Builder 1, with old-rank auto timing',async()=>{
+   const root=s.addresses[0],dev=s.addresses[35];await units(0,1);
+-  await(await s.binary.setAutoBuy(true,E('1000000'))).wait();
++  await(await s.binary.setAutoBuy(true)).wait();
+   let expectedReward=0n;
+   for(let hour=1;hour<=20;hour++){
+    await units(1,10);await units(2,10);
+@@ -78,7 +78,13 @@
+   await fails(()=>s.binary.claim());assert.equal(await s.binary.cumulativePaidRankPoints(root),100n);
+   await(await s.token.buy(E('100'),0,MaxUint256)).wait();
+   const spent=await s.binary.tokenBuySpent(root);assert.equal(spent,E('100'));
+-  await units(1,12);await units(2,12);const current=await s.binary.epoch();await settle(s,p);
++  await units(1,12);await units(2,12);const current=await s.binary.epoch();
++  // Create a real pending liability by failing the new immediate allocation attempt.
++  await(await s.usd.setBlocked(s.token.target,true)).wait();
++  const tokensBefore=await s.token.balanceOf(root),reserveBefore=await s.token.reserve();
++  await settle(s,p);
++  assert.equal(await s.token.balanceOf(root),tokensBefore);assert.equal(await s.token.reserve(),reserveBefore);
++  await(await s.usd.setBlocked(s.token.target,false)).wait();
+   assert.equal(await s.binary.paidPoints(current,root),10n,'next epoch uses the new Builder 1 cap');
+   assert.equal(await s.binary.cumulativePaidRankPoints(root),110n);
+   assert.equal(await s.binary.autoSnapshot(current,root),true);
+@@ -228,15 +234,22 @@
+  for(const[rank,threshold]of [100n,200n,500n,1000n].entries())test(`TEST ONLY prior paid history: threshold ${threshold} advances only after funded allocation under rank ${rank}`,async()=>{
+   const root=s.addresses[0],oldCap=capRows[0][rank];await units(0,1);
+   await(await s.binary.TEST_ONLY_seedHistory(root,threshold-oldCap,rank)).wait();
+-  await(await s.binary.setAutoBuy(true,E('1000000'))).wait();await units(1,30);await units(2,30);
++  await(await s.binary.setAutoBuy(true)).wait();await units(1,30);await units(2,30);
+   const oldLimit=E(String(rankRates[rank]))*await s.token.priceMultiplier();assert.equal(await s.binary.tokenBuyLimit(root),oldLimit);
+   await(await s.token.buy(E('100'),0,MaxUint256)).wait();const spent=await s.binary.tokenBuySpent(root);
+   await advanceToClose(s,p);await(await s.binary.processEpoch(100,{gasLimit:12000000})).wait();
+   assert.equal(await s.binary.paidPoints(1,root),oldCap);assert.equal(await s.binary.rankOf(root),BigInt(rank));
+   assert.equal(await s.binary.cumulativePaidRankPoints(root),threshold-oldCap);
+-  const pool=await s.binary.frozenPool();await(await s.binary.processEpoch(1,{gasLimit:12000000})).wait();
+-  assert.equal(await s.binary.pendingReward(root),rank===0?pool:pool*95n/100n);
+-  assert.equal(await s.binary.pendingAuto(root),rank===0?0n:pool*5n/100n);
++  const pool=await s.binary.frozenPool(),auto=rank===0?0n:pool*5n/100n;
++  const reserveBefore=await s.token.reserve(),supplyBefore=await s.token.totalSupply(),tokensBefore=await s.token.balanceOf(root),cashBefore=await s.usd.balanceOf(s.binary.target);
++  const quote=auto===0n?0n:await s.token.quoteBuy(auto);
++  assert.equal(await s.binary.autoSnapshot(1,root),rank>0,'old rank controls the allocation even when it promotes');
++  await(await s.binary.processEpoch(1,{gasLimit:12000000})).wait();
++  assert.equal(await s.binary.pendingReward(root),pool-auto);
++  assert.equal(await s.binary.pendingAuto(root),0n,'eligible auto purchases in the allocation transaction');
++  assert.equal(await s.token.balanceOf(root),tokensBefore+quote);
++  assert.equal(await s.token.totalSupply(),supplyBefore+quote);assert.equal(await s.token.reserve(),reserveBefore+auto);
++  assert.equal(await s.usd.balanceOf(s.binary.target),cashBefore-auto);
+   assert.equal(await s.binary.rankOf(root),BigInt(rank+1));assert.equal(await s.binary.cumulativePaidRankPoints(root),threshold);
+   assert.equal(await s.binary.tokenBuyLimit(root),E(String(rankRates[rank+1]))*await s.token.priceMultiplier());
+   assert.equal(await s.binary.tokenBuySpent(root),spent,'permanent gross spent survives rank upgrade');
+--- a/test/protocol.test.mjs
++++ b/test/protocol.test.mjs
+@@ -1,3 +1,5 @@
++// Historical FTIToken regression paired with current BinaryPlan. Token locks/curve
++// remain historical; auto setting, timing, immediate mint and retry use current policy.
+ import {deployPaidRankFeatureSuite,seedPaidRank} from './fixtures/paid-rank-feature-suite.mjs';
+ import {test,before,beforeEach,after} from 'node:test';
+ import assert from 'node:assert/strict';
+@@ -40,8 +42,35 @@
+ test('locked tokens cannot sell; fallback deadline unlocks without new registrations',async()=>{await units(15,1);await buy(15,'100');const balance=await s.token.balanceOf(s.addresses[15]);assert.equal(await s.token.unlocked(s.addresses[15]),0n);await fails(()=>s.token.connect(signers[15]).sell(balance,0,2n**64n-1n));await advance(31*86400);assert.equal(await s.token.unlocked(s.addresses[15]),balance);await(await s.token.connect(signers[15]).sell(balance,0,2n**64n-1n)).wait();assert.equal(await s.token.totalSupply(),0n);await checkAccounting(s);});
+ test('transfer burns 3%, rejects self-transfer, unregistered recipient, and locked amount',async()=>{await units(15,1);await units(16,1);await buy(15,'100');await fails(()=>s.token.connect(signers[15]).transfer(s.addresses[16],E('1')));await advance(31*86400);const supply=await s.token.totalSupply();await(await s.token.connect(signers[15]).transfer(s.addresses[16],E('100'))).wait();assert.equal(await s.token.totalSupply(),supply-E('3'));assert.equal(await s.token.balanceOf(s.addresses[16]),E('97'));await fails(()=>s.token.connect(signers[15]).transfer(s.addresses[15],E('1')));await fails(()=>s.token.connect(signers[15]).transfer(s.addresses[36],E('1')));await checkAccounting(s);});
+ test('unauthorized auto buy, reserve injection, rebinding, pause and rescue rejected',async()=>{await fails(()=>s.token.autoBuy(s.addresses[0],E('1'),0,2n**64n-1n));await fails(()=>s.token.inject(E('5'),true));await fails(()=>s.token.bind(s.binary.target));await fails(()=>s.binary.pause());await fails(()=>s.binary.rescue(s.usd.target,s.addresses[0],1));await fails(()=>s.token.advancePriceMilestone());});
+-test('TEST ONLY paid-rank fixture: actual hourly rewards fund auto-buy, no fabricated income',async()=>{await eligibleRoot();await(await s.binary.setAutoBuy(true,E('100'))).wait();await units(1,5);await units(2,5);await settle(s,p);const amount=await s.binary.pendingAuto(s.addresses[0]);assert.equal(amount,E('45'));const manual=await s.token.lifetimeManualBuys(s.addresses[0]);await(await s.binary.executeAuto(s.addresses[0],amount)).wait();assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);assert((await s.token.balanceOf(s.addresses[0]))>0n);assert.equal(await s.token.lifetimeManualBuys(s.addresses[0]),manual);await checkAccounting(s);});
+-test('failed auto execution preserves claim and user can release it as USD',async()=>{await eligibleRoot();await(await s.binary.setAutoBuy(true,1)).wait();await units(1,5);await units(2,5);await settle(s,p);const amount=await s.binary.pendingAuto(s.addresses[0]);await fails(()=>s.binary.executeAuto(s.addresses[0],amount));assert.equal(await s.binary.pendingAuto(s.addresses[0]),amount);const cash=await s.binary.pendingReward(s.addresses[0]);await(await s.binary.releaseAutoToCash()).wait();assert.equal(await s.binary.pendingReward(s.addresses[0]),cash+amount);await checkAccounting(s);});
++test('TEST ONLY legacy token fixture: bounded immediate attempt preserves actual rewards for a full retry',async()=>{
++ await eligibleRoot();await(await s.binary.setAutoBuy(true)).wait();
++ const manual=await s.token.lifetimeManualBuys(s.addresses[0]),before=await s.token.balanceOf(s.addresses[0]);
++ await units(1,5);await units(2,5);await settle(s,p);
++ // FTIToken's historical bisection/lock path exceeds the bounded immediate frame.
++ // Preserve that historical model and prove deferral retains the exact liability.
++ assert.equal(await s.binary.pendingAuto(s.addresses[0]),E('45'));assert.equal(await s.binary.totalAuto(),E('45'));
++ assert.equal(await s.token.balanceOf(s.addresses[0]),before);
++ const deferrals=await s.binary.queryFilter(s.binary.filters.ImmediateAutoDeferred());
++ assert.equal(deferrals.at(-1).args[2],E('45'));
++ const estimate=await s.binary.executeAuto.estimateGas(s.addresses[0],E('45'));
++ assert(estimate>await s.binary.AUTO_ATTEMPT_GAS(),'historical curve requires more than bounded immediate gas');
++ await(await s.binary.executeAuto(s.addresses[0],E('45'))).wait();
++ assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);assert.equal(await s.binary.totalAuto(),0n);
++ assert((await s.token.balanceOf(s.addresses[0]))>before);
++ const executions=await s.binary.queryFilter(s.binary.filters.AutoExecuted());
++ assert.equal(executions.at(-1).args[1],E('45'));
++ assert.equal(await s.token.lifetimeManualBuys(s.addresses[0]),manual);await checkAccounting(s);
++});
++test('failed immediate auto and retry preserve claim and user can release it as USD',async()=>{
++ await eligibleRoot();await(await s.binary.setAutoBuy(true)).wait();await units(1,5);await units(2,5);
++ await(await s.usd.setBlocked(s.token.target,true)).wait();await settle(s,p);
++ const amount=await s.binary.pendingAuto(s.addresses[0]);assert.equal(amount,E('45'));
++ await fails(()=>s.binary.executeAuto(s.addresses[0],amount));assert.equal(await s.binary.pendingAuto(s.addresses[0]),amount);
++ assert.equal(await s.token.balanceOf(s.addresses[0]),0n);
++ const cash=await s.binary.pendingReward(s.addresses[0]);await(await s.binary.releaseAutoToCash()).wait();
++ assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);assert.equal(await s.binary.totalAuto(),0n);
++ assert.equal(await s.binary.pendingReward(s.addresses[0]),cash+amount);await checkAccounting(s);
++});
+ test('TEST ONLY paid-rank fixture: monthly pool pays only 20% to sole eligible builder, one time',async()=>{await eligibleRoot();const d=new Date((await p.getBlock('latest')).timestamp*1000);const next=Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,1)/1000;await advance(next-(await p.getBlock('latest')).timestamp+3601);await settle(s,p);const before=await s.binary.pendingReward(s.addresses[0]);await(await s.binary.beginBuilderMonth()).wait();while(await s.binary.monthPhase()>0n)await(await s.binary.processBuilderMonth(9)).wait();assert.equal(await s.binary.pendingReward(s.addresses[0])-before,E('64.32'));assert.equal(await s.binary.builderClaimed(s.addresses[0],0),true);assert.equal(await s.binary.builderCarry(0),E('257.28'));await checkAccounting(s);});
+ test('5 of 7 council required for emergency pause; timelock starts at 72 hours',async()=>{assert.equal(await s.timelock.getMinDelay(),259200n);const data=s.binary.interface.encodeFunctionData('pause');await(await s.council.connect(signers[31]).propose(s.binary.target,data)).wait();for(const i of [32,33,34]){await(await s.council.connect(signers[i]).approve(0)).wait();await fails(()=>s.council.execute(0));}await(await s.council.connect(signers[35]).approve(0)).wait();await(await s.council.execute(0)).wait();assert.equal(await s.binary.paused(),true);await money(15);await fails(()=>s.binary.connect(signers[15]).addUnits(1));});
+ test('full unlock and complete sell-off pay from real reserve without new inflows',async()=>{for(const i of [15,16,17,18,19]){await units(i,5);await buy(i,'400');}await advance(91*86400);for(const i of [15,16,17,18,19]){const bal=await s.token.balanceOf(s.addresses[i]);await(await s.token.connect(signers[i]).sell(bal,0,2n**64n-1n)).wait();await checkAccounting(s);}assert.equal(await s.token.totalSupply(),0n);});
+@@ -50,4 +79,18 @@
+ test('72-hour timelock floor cannot be reduced even by a fully approved self-call',async()=>{const inner=s.timelock.interface.encodeFunctionData('updateDelay',[0]);const schedule=s.timelock.interface.encodeFunctionData('schedule',[s.timelock.target,0,inner,ZeroHash,ZeroHash,259200]);await(await s.council.connect(signers[31]).propose(s.timelock.target,schedule)).wait();for(const i of [32,33,34,35])await(await s.council.connect(signers[i]).approve(0)).wait();await(await s.council.execute(0)).wait();await advance(259201);await fails(()=>s.timelock.execute(s.timelock.target,0,inner,ZeroHash,ZeroHash));assert.equal(await s.timelock.getMinDelay(),259200n);});
+ test('five approvals cannot bypass timelock delay or replay execution',async()=>{const pause=s.binary.interface.encodeFunctionData('pause');await(await s.council.connect(signers[31]).propose(s.binary.target,pause)).wait();for(const i of [32,33,34,35])await(await s.council.connect(signers[i]).approve(0)).wait();await(await s.council.execute(0)).wait();const unpause=s.binary.interface.encodeFunctionData('unpause');const schedule=s.timelock.interface.encodeFunctionData('schedule',[s.binary.target,0,unpause,ZeroHash,ZeroHash,259200]);await(await s.council.connect(signers[31]).propose(s.timelock.target,schedule)).wait();for(const i of [32,33,34,35])await(await s.council.connect(signers[i]).approve(1)).wait();await(await s.council.execute(1)).wait();await fails(()=>s.timelock.execute(s.binary.target,0,unpause,ZeroHash,ZeroHash));await advance(259201);await(await s.timelock.execute(s.binary.target,0,unpause,ZeroHash,ZeroHash)).wait();assert.equal(await s.binary.paused(),false);await fails(()=>s.timelock.execute(s.binary.target,0,unpause,ZeroHash,ZeroHash));await fails(()=>s.council.execute(1));});
+ test('EVM integer buy quotes match independent BigInt model',async()=>{const {Curve}=await import('../core/reference.mjs');const model=new Curve();for(const amount of ['0.000001','1','100','500','1000000'])assert.equal(await s.token.quoteBuy(E(amount)),model.quoteBuy(E(amount)).minted);});
+-test('auto-buy settings freeze during matching so batching cannot change economics',async()=>{await units(0,1);await units(1,2);await units(2,2);await drainVolume(s);const block=await p.getBlock('latest');await advance(Number(await s.binary.epochEnd())-block.timestamp+1);await(await s.binary.beginEpochClose()).wait();await fails(()=>s.binary.setAutoBuy(true,E('100')));while(await s.binary.phase()>0n)await(await s.binary.processEpoch(100,{gasLimit:12000000})).wait();await(await s.binary.setAutoBuy(true,E('100'))).wait();});
++test('enabling during matching schedules the next hour without rewriting old settlement economics',async()=>{
++ await eligibleRoot();await units(1,5);await units(2,5);await drainVolume(s);
++ const oldEnd=await s.binary.epochEnd(),oldEpoch=await s.binary.epoch(),block=await p.getBlock('latest');
++ await advance(Number(oldEnd)-block.timestamp+1);await(await s.binary.beginEpochClose()).wait();
++ await(await s.binary.setAutoBuy(true)).wait();
++ const pending=await s.binary.nextAutoSetting(s.addresses[0]);assert(pending.effectiveAt>oldEnd);
++ while(await s.binary.phase()>0n)await(await s.binary.processEpoch(100,{gasLimit:12000000})).wait();
++ assert.equal(await s.binary.autoSnapshot(oldEpoch,s.addresses[0]),false);
++ assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);assert.equal(await s.token.balanceOf(s.addresses[0]),0n);
++ await units(1,5);await units(2,5);await settle(s,p);
++ assert.equal(await s.binary.autoSnapshot(await s.binary.epoch()-1n,s.addresses[0]),true);
++ assert.equal(await s.binary.pendingAuto(s.addresses[0]),E('45'));
++ await(await s.binary.executeAuto(s.addresses[0],E('45'))).wait();
++ assert((await s.token.balanceOf(s.addresses[0]))>0n);assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);await checkAccounting(s);
++});
+--- a/test/retirement-integrations.test.mjs
++++ b/test/retirement-integrations.test.mjs
+@@ -102,7 +102,8 @@
+   const fee=tradeFee(amount,r),minted=(amount-fee)*supply/r;assert.equal(fee,E('47.5'));
+   await tx(s.token.buy(amount,minted,MaxUint256));
+   assert.equal(await s.token.reserve(),r+amount);assert.equal(await s.token.totalSupply(),supply+minted);
+-  assert((await s.token.price())>price);await allowance(s,0,E('5000'),E('2000'));
++  assert((await s.token.reserve())*supply>r*(await s.token.totalSupply()),'exact live reserve/share ratio grows');
++  assert((await s.token.price())>=price);await allowance(s,0,E('5000'),E('2000'));
+   assert.equal((await s.token.buyFeeQuote(E('400')))[0],E('12'),'a large trade does not penalize the next small trade');
+   await backed(s);
+  });
+@@ -136,7 +137,7 @@
+   await tx(s.usd.setBlocked(s.token.target,false));await buy(s,0,E('400'));await allowance(s,0,E('500'),E('500'));await backed(s);
+  });
+  test('unranked Members cannot create auto allocations merely by enabling auto on the new token',async()=>{
+-  await units(s,0,1);await buy(s,0,E('100'));await tx(s.binary.setAutoBuy(true,E('1000000')));
++  await units(s,0,1);await buy(s,0,E('100'));await tx(s.binary.setAutoBuy(true));
+   await units(s,1,2);await units(s,2,2);await settle(s,s.p);
+   assert.equal(await s.binary.rankOf(s.addresses[0]),0n);assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);
+   assert.equal(await s.binary.pendingReward(s.addresses[0]),E('450'));assert.equal(await s.binary.cumulativePaidRankPoints(s.addresses[0]),2n);
+@@ -248,29 +249,36 @@
+   await tx(s.token.sell(E('1'),0,MaxUint256));await tx(s.token.transfer(s.addresses[30],E('1')));await tx(s.token.syncPriceMilestone());
+   assert.equal(await s.token.priceMultiplier(),4n);await allowance(s,0,E('2400'),E('100'));await backed(s);
+  });
+- test('TEST_ONLY builder auto: all-in max price and blocked collateral failure roll back; exact allowed execution stays outside manual quota',async()=>{
+-  await units(s,0,1);await buy(s,0,E('600')-E('100'));await seedPaidRank(s.binary,s.addresses[0],1);
+-  await buy(s,0,E('100'));await allowance(s,0,E('600'),E('600'));await tx(s.binary.setAutoBuy(true,E('1000000')));
+-  await units(s,1,5);await units(s,2,5);await settle(s,s.p);
++ test('TEST_ONLY builder auto: failed immediate allocation retries at current price without a cap or manual quota consumption',async()=>{
++  await units(s,0,1);await buy(s,0,E('500'));await seedPaidRank(s.binary,s.addresses[0],1);
++  await buy(s,0,E('100'));await allowance(s,0,E('600'),E('600'));await tx(s.binary.setAutoBuy(true));
++  assert.equal(await s.binary.effectiveAutoEnabled(s.addresses[0]),false);
++  assert.equal((await s.binary.nextAutoSetting(s.addresses[0])).effectiveAt,await s.binary.epochEnd());
++  await units(s,1,5);await units(s,2,5);
++  const supply=await s.token.totalSupply(),beforeReserve=await s.token.reserve();
++  await tx(s.usd.setBlocked(s.token.target,true));await settle(s,s.p);
+   const root=s.addresses[0],amount=await s.binary.pendingAuto(root);assert.equal(amount,E('49.5'));
+-  const spot=await s.token.price();await tx(s.binary.setAutoBuy(true,spot-1n));await rejected(s,s.binary.executeAuto,[root,amount],'auto price limit');
+-  await tx(s.binary.setAutoBuy(true,spot));await rejected(s,s.binary.executeAuto,[root,amount],'auto execution price');
+-  const quote=await s.token.quoteBuy(amount),limit=ceil(amount*W,quote);await tx(s.binary.setAutoBuy(true,limit));
+-  await tx(s.usd.setBlocked(s.token.target,true));await rejected(s,s.binary.executeAuto,[root,amount],'mock recipient blocked');await tx(s.usd.setBlocked(s.token.target,false));
++  assert.equal(await s.token.totalSupply(),supply);assert.equal(await s.token.reserve(),beforeReserve);
++  assert.equal(await s.binary.effectiveAutoEnabled(root),true);assert.equal((await s.binary.members(root)).maxAutoPrice,0n);
++  await rejected(s,s.binary.executeAuto,[root,amount],'mock recipient blocked');
++  await tx(s.usd.setBlocked(s.token.target,false));
++  const originalQuote=await s.token.quoteBuy(amount);await buy(s,1,E('100'));
++  const quote=await s.token.quoteBuy(amount);assert(quote<originalQuote,'retry quotes the higher current exact price');
+   const beforeTokens=await s.token.balanceOf(root),r=await s.token.reserve(),fund=await s.token.priceProtectionFund();
+   const protectedBuckets=await Promise.all([s.binary.totalPending(),s.binary.builderAccounted(),s.binary.pointPool()]);
+   await tx(s.binary.connect(s.signers[41]).executeAuto(root,amount));
+   assert.equal(await s.token.balanceOf(root)-beforeTokens,quote);assert.equal(await s.token.reserve(),r+amount);
+-  assert.equal(await s.binary.pendingAuto(root),0n);assert.equal(await s.token.priceProtectionFund(),fund);
++  assert.equal(await s.binary.pendingAuto(root),0n);assert.equal(await s.binary.totalAuto(),0n);assert.equal(await s.token.priceProtectionFund(),fund);
+   assert.deepEqual(await Promise.all([s.binary.totalPending(),s.binary.builderAccounted(),s.binary.pointPool()]),protectedBuckets);
+   await allowance(s,0,E('600'),E('600'));assert.equal(await s.token.developmentFeeClaim(),0n);await backed(s);
+  });
+  test('TEST_ONLY builder auto: disabling and keeper partial execution reject; owner release remains cash owned by that wallet',async()=>{
+   await units(s,0,1);await buy(s,0,E('100'));await seedPaidRank(s.binary,s.addresses[0],1);
+-  await tx(s.binary.setAutoBuy(true,E('1000000')));await units(s,1,5);await units(s,2,5);await settle(s,s.p);
+-  const root=s.addresses[0],amount=await s.binary.pendingAuto(root),cash=await s.binary.pendingReward(root);
++  await tx(s.binary.setAutoBuy(true));await units(s,1,5);await units(s,2,5);
++  await tx(s.usd.setBlocked(s.token.target,true));await settle(s,s.p);await tx(s.usd.setBlocked(s.token.target,false));
++  const root=s.addresses[0],amount=await s.binary.pendingAuto(root),cash=await s.binary.pendingReward(root);assert.equal(amount,E('49.5'));
+   await rejected(s,s.binary.connect(s.signers[41]).executeAuto,[root,amount/2n],'partial auto owner only');
+-  await tx(s.binary.setAutoBuy(false,0));await rejected(s,s.binary.executeAuto,[root,amount],'auto disabled');
++  await tx(s.binary.setAutoBuy(false));await rejected(s,s.binary.executeAuto,[root,amount],'auto disabled');
+   await tx(s.binary.connect(s.signers[41]).releaseAutoToCash());assert.equal(await s.binary.pendingAuto(root),amount,'outsider can only release its own balance');
+   await tx(s.binary.releaseAutoToCash());assert.equal(await s.binary.pendingAuto(root),0n);assert.equal(await s.binary.pendingReward(root),cash+amount);
+   const before=await s.usd.balanceOf(root);await tx(s.binary.claim());assert.equal(await s.usd.balanceOf(root)-before,cash+amount);
+--- a/test/retirement-load.test.mjs
++++ b/test/retirement-load.test.mjs
+@@ -14,7 +14,7 @@
+  await tx(s.council.connect(signers[39]).execute(proposal));
+ }
+ 
+-test('Retirement current lifecycle: 100 users mixed buys/transfers and complete normal exits, fee claim, then real delayed retirement',{timeout:600000},async()=>{
++test('Retirement current lifecycle: 100 users mixed buys/transfers and complete normal exits, fee claim, then separately governed permanent closure and retirement',{timeout:600000},async()=>{
+  const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:140,deterministic:true},chain:{chainId:31337,time:new Date('2026-10-05T00:00:00Z')},miner:{blockGasLimit:30000000,timestampIncrement:0}});
+  try{
+   const p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
+@@ -29,7 +29,7 @@
+   let usdIn=0n,usdOut=0n,liveSupport=0n,totalFeesPaid=0n,buys=0,sells=0;
+   async function check(strictGrowth=false){
+    const r=await s.token.reserve(),supply=await s.token.totalSupply(),price=await s.token.price();
+-   if(strictGrowth&&previousS>0n){assert(r*previousS>previousR*supply);assert(price>previousPrice);}
++   if(strictGrowth&&previousS>0n)assert(r*previousS>previousR*supply,'exact live reserve/share ratio strictly increases');
+    assert(price>=previousPrice);await checkAccounting(s);
+    const protectedFund=await s.token.priceProtectionFund(),devClaim=await s.token.developmentFeeClaim();
+    assert.equal(await s.usd.balanceOf(s.token.target),r+protectedFund+devClaim,'live R + protected support + owed development claim exhaust tracked collateral');
+@@ -94,18 +94,32 @@
+   assert.equal(await s.binary.jobCursor(),await s.binary.jobCount());await check();
+   const binaryBuckets=async()=>Promise.all([s.usd.balanceOf(s.binary.target),s.binary.totalPending(),s.binary.pointPool(),s.binary.builderAccounted(),s.binary.totalAuto()]);
+   const cashBeforeRetirement=await binaryBuckets();assert(cashBeforeRetirement[0]>0n,'binary beneficiaries still own their separate cash');
+-  const selector=s.token.interface.getFunction('retirePermanently').selector;
+-  await councilCall(s,signers,s.token.target,s.token.interface.encodeFunctionData('approveRetirementAction',[selector]));
+-  const data=s.token.interface.encodeFunctionData('retirePermanently'),salt=id('current-retirement-100-user-load');
+-  await councilCall(s,signers,s.timelock.target,s.timelock.interface.encodeFunctionData('schedule',[s.token.target,0,data,ZeroHash,salt,DELAY]));
+-  await p.send('evm_increaseTime',[DELAY]);await p.send('evm_mine',[]);
+-  await tx(s.timelock.connect(signers[39]).execute(s.token.target,0,data,ZeroHash,salt,{gasLimit:2000000}));
++  assert.equal(await s.token.buysPermanentlyClosed(),false);
++  assert((await s.token.quoteBuy(E('1')))>0n,'ordinary fully redeemed lifecycle remains restartable before permanent closure');
++  // Shutdown and retirement are distinct nonce-bound Council votes and delayed
++  // timelock operations. Closing buys alone cannot sweep any protected support.
++  for(const action of ['closeBuysPermanently','retirePermanently']){
++   const selector=s.token.interface.getFunction(action).selector;
++   await councilCall(s,signers,s.token.target,s.token.interface.encodeFunctionData('approveRetirementAction',[selector,await s.token.lifecycleNonce()]));
++   const data=s.token.interface.encodeFunctionData(action),salt=id(`current-retirement-100-user-load-${action}`);
++   await councilCall(s,signers,s.timelock.target,s.timelock.interface.encodeFunctionData('schedule',[s.token.target,0,data,ZeroHash,salt,DELAY]));
++   await assert.rejects(s.timelock.connect(signers[39]).execute.staticCall(s.token.target,0,data,ZeroHash,salt));
++   await p.send('evm_increaseTime',[DELAY]);await p.send('evm_mine',[]);
++   await tx(s.timelock.connect(signers[39]).execute(s.token.target,0,data,ZeroHash,salt,{gasLimit:2000000}));
++   assert.equal(await s.token.councilApprovalAt(selector),0n,'each action consumes only its own mature approval');
++   assert.deepEqual(await binaryBuckets(),cashBeforeRetirement,'lifecycle governance preserves Binary cash buckets');
++   if(action==='closeBuysPermanently'){
++    assert.equal(await s.token.buysPermanentlyClosed(),true);assert.equal(await s.token.permanentlyRetired(),false);
++    assert.equal(await s.token.priceProtectionFund(),E('500'));assert.equal(await s.usd.balanceOf(dev)-devBefore,terminalFee);
++    await assert.rejects(s.token.quoteBuy(E('1')),{reason:'buys permanently closed'});await check();
++   }
++  }
+   assert.equal(await s.token.permanentlyRetired(),true);assert.equal(await s.token.paused(),true);
+   assert.equal(await s.token.priceProtectionFund(),0n);assert.equal(await s.usd.balanceOf(s.token.target),0n);
+   assert.equal(await s.usd.balanceOf(dev)-devBefore,terminalFee+E('500'));assert.deepEqual(await binaryBuckets(),cashBeforeRetirement,'retirement never sweeps Binary beneficiary cash');
+   assert.equal(usdOut+totalFeesPaid+E('500'),usdIn+liveSupport+E('500'),'every token-side dollar ends at holders or fixed development');await check();
+   const owed=await s.binary.pendingReward(dev),beforeClaim=await s.usd.balanceOf(dev);assert(owed>0n);
+   await tx(s.binary.connect(signers[35]).claim());assert.equal(await s.usd.balanceOf(dev)-beforeClaim,owed);await check();
+-  console.log('RETIREMENT_100_USER_CURRENT_LIFECYCLE',JSON.stringify({token:'FTIRetirementReviewToken',binary:'BinaryPlan',registered:100,buys,liveSupportTopups:4,transfers:20,sells,checks,exitMode:'normal-current-fee-then-paid-development-claim',usdIn:F(usdIn),liveSupport:F(liveSupport),holderProceeds:F(usdOut),terminalReserve:F(terminalR),terminalHolderPayout:F(terminalOut),terminalDevelopmentFee:F(terminalFee),retiredProtectedSupport:'500',permanentlyRetired:true,finalSupply:F(await s.token.totalSupply()),finalTokenCash:F(await s.usd.balanceOf(s.token.target)),binaryCashBeforeRetirement:F(cashBeforeRetirement[0]),binaryClaimAfterRetirement:F(owed)}));
++  console.log('RETIREMENT_100_USER_CURRENT_LIFECYCLE',JSON.stringify({token:'FTIRetirementReviewToken',binary:'BinaryPlan',registered:100,buys,liveSupportTopups:4,transfers:20,sells,checks,exitMode:'normal-current-fee-then-paid-development-claim',usdIn:F(usdIn),liveSupport:F(liveSupport),holderProceeds:F(usdOut),terminalReserve:F(terminalR),terminalHolderPayout:F(terminalOut),terminalDevelopmentFee:F(terminalFee),retiredProtectedSupport:'500',separatelyGovernedPermanentClosure:true,permanentlyRetired:true,finalSupply:F(await s.token.totalSupply()),finalTokenCash:F(await s.usd.balanceOf(s.token.target)),binaryCashBeforeRetirement:F(cashBeforeRetirement[0]),binaryClaimAfterRetirement:F(owed)}));
+  }finally{await engine.disconnect();}
+ });
+--- a/test/retirement-review.test.mjs
++++ b/test/retirement-review.test.mjs
+@@ -124,11 +124,12 @@
+ async function governance(s,target,data){const op=await schedule(s,target,data);await advance(s,DELAY);await tx(execute(s,op));return op;}
+ function selector(s,name){return s.token.interface.getFunction(name).selector;}
+ async function authorize(s,name='retirePermanently'){
+- await councilCall(s,s.token.target,s.token.interface.encodeFunctionData('approveRetirementAction',[selector(s,name)]));
++ await councilCall(s,s.token.target,s.token.interface.encodeFunctionData('approveRetirementAction',[selector(s,name),await s.token.lifecycleNonce()]));
+ }
+ async function ready(s){await tx(s.binary.TEST_ONLY_readiness(0,true,0,0,0,0,0));}
+ async function queueRetirement(s){await authorize(s);const op=await schedule(s,s.token.target,s.token.interface.encodeFunctionData('retirePermanently'));await advance(s,DELAY);return op;}
+-async function retire(s){await ready(s);const op=await queueRetirement(s);return tx(execute(s,op));}
++async function closeBuys(s){await authorize(s,'closeBuysPermanently');return governance(s,s.token.target,s.token.interface.encodeFunctionData('closeBuysPermanently'));}
++async function retire(s){await ready(s);await closeBuys(s);const op=await queueRetirement(s);return tx(execute(s,op));}
+ async function seed(s,amount=E('100'),support=E('500')){
+  if(support)await tx(s.binary.inject(support,true));await tx(s.token.buy(amount,0,MaxUint256));
+ }
+@@ -136,7 +137,8 @@
+ async function state(s){return Promise.all([
+  s.token.reserve(),s.token.priceProtectionFund(),s.token.developmentFeeClaim(),s.token.totalSupply(),
+  s.token.price(),s.token.referencePrice(),s.token.balanceOf(s.addresses[0]),s.token.cumulativeBuy(),s.token.cumulativeSell(),
+- s.token.lifecycleClosed(),s.token.permanentlyRetired(),s.token.paused(),s.token.emergencyExit(),s.token.walletClock(),
++ s.token.lifecycleClosed(),s.token.buysPermanentlyClosed(),s.token.permanentlyRetired(),s.token.paused(),s.token.emergencyExit(),s.token.walletClock(),
++ s.token.lifecycleNonce(),s.token.referenceReserve(),s.token.referenceSupply(),s.token.councilApprovalAt(selector(s,'closeBuysPermanently')),
+  s.usd.balanceOf(s.token.target),s.usd.balanceOf(s.binary.target),s.usd.balanceOf(s.addresses[0]),s.usd.balanceOf(s.addresses[40]),
+  s.binary.tokenBuySpent(s.addresses[0]),s.token.councilApprovalAt(selector(s,'retirePermanently')),s.token.councilApprovalAt(selector(s,'recoverRetiredDonations')),
+ ]);}
+@@ -180,7 +182,7 @@
+   assert.equal(await s.token.developmentFund(),s.addresses[40]);assert.equal(await s.timelock.getMinDelay(),BigInt(DELAY));
+   assert.equal(await s.council.OWNER_COUNT(),7n);assert.equal(await s.council.THRESHOLD(),5n);
+   assert.equal(await s.timelock.hasRole(await s.timelock.PROPOSER_ROLE(),s.council.target),true);
+-  for(const name of ['retirePermanently','recoverRetiredDonations','claimDevelopmentFees'])assert.equal(s.token.interface.getFunction(name).inputs.length,0,'fixed destination only');
++  for(const name of ['closeBuysPermanently','retirePermanently','recoverRetiredDonations','claimDevelopmentFees'])assert.equal(s.token.interface.getFunction(name).inputs.length,0,'fixed destination only');
+   await assert.rejects(s.token.bind.staticCall(s.binary.target));
+  });
+ 
+@@ -252,16 +254,28 @@
+   assert.equal(await s.token.lifecycleClosed(),true);assert.equal(await s.token.emergencyExit(),true);
+  });
+ 
+- test('closed lifecycle cannot restart through manual or automatic buys before permanent retirement',async()=>{
+-  await seed(s);await terminal(s);await unchanged(s,s.token.buy,[E('1'),0,MaxUint256],'restart policy pending');
+-  await unchanged(s,s.binary.autoBuy,[s.addresses[0],E('1'),0],'restart policy pending');
+-  await tx(s.binary.inject(E('17'),false));await accounting(s,0n,E('517'),E('3'));
++ test('ordinary zero-supply lifecycles restart manually and automatically without consuming protected support or owed fees',async()=>{
++  await seed(s);await terminal(s);await tx(s.binary.inject(E('17'),false));
++  await accounting(s,0n,E('517'),E('3'));
++  for(const automatic of [false,true]){
++   const oldNonce=await s.token.lifecycleNonce(),claim=await s.token.developmentFeeClaim();
++   const referenceR=await s.token.referenceReserve(),referenceS=await s.token.referenceSupply();
++   const spent=await s.binary.tokenBuySpent(s.addresses[0]),quote=await s.token.quoteBuy(E('1'));
++   assert.equal(quote,(E('1')-E('0.03'))*referenceS/referenceR);
++   if(automatic)await tx(s.binary.autoBuy(s.addresses[0],E('1'),quote));else await tx(s.token.buy(E('1'),quote,MaxUint256));
++   assert.equal(await s.token.lifecycleClosed(),false);assert.equal(await s.token.buysPermanentlyClosed(),false);
++   assert.equal(await s.token.lifecycleNonce(),oldNonce+1n);assert.equal(await s.token.totalSupply(),quote);
++   assert((await s.token.reserve())*referenceS>referenceR*quote,'exact restart ratio strictly grows');
++   assert.equal(await s.binary.tokenBuySpent(s.addresses[0]),spent+(automatic?0n:E('1')));
++   await accounting(s,E('1'),E('517'),claim);await terminal(s);
++   await accounting(s,0n,E('517'),claim+E('0.03'));
++  }
+  });
+ 
+  test('four council votes cannot authorize retirement; fifth vote can and unauthorized callers cannot',async()=>{
+   const selected=selector(s,'retirePermanently');
+-  await unchanged(s,s.token.approveRetirementAction,[selected]);await unchanged(s,s.token.retirePermanently);await unchanged(s,s.token.recoverRetiredDonations);
+-  const proposal=await councilProposal(s,s.token.target,s.token.interface.encodeFunctionData('approveRetirementAction',[selected]),4);
++  await unchanged(s,s.token.approveRetirementAction,[selected,await s.token.lifecycleNonce()]);await unchanged(s,s.token.retirePermanently);await unchanged(s,s.token.recoverRetiredDonations);
++  const proposal=await councilProposal(s,s.token.target,s.token.interface.encodeFunctionData('approveRetirementAction',[selected,await s.token.lifecycleNonce()]),4);
+   await assert.rejects(async()=>tx(s.council.execute(proposal,{gasLimit:1000000})));
+   assert.equal(await s.token.councilApprovalAt(selected),0n);assert.equal((await s.council.proposal(proposal))[3],false);
+   await tx(s.council.connect(s.signers[35]).approve(proposal));await tx(s.council.execute(proposal));
+@@ -272,10 +286,10 @@
+  });
+ 
+  test('each retirement action requires its own council approval and at least 72 hours after that approval',async()=>{
+-  await ready(s);await tx(s.binary.inject(E('500'),false));
++  await ready(s);await tx(s.binary.inject(E('500'),false));await closeBuys(s);
+   const op=await schedule(s,s.token.target,s.token.interface.encodeFunctionData('retirePermanently'));
+   await advance(s,DELAY);await failedOperation(s,op);
+-  const premature=await councilProposal(s,s.token.target,s.token.interface.encodeFunctionData('approveRetirementAction',[selector(s,'recoverRetiredDonations')]));
++  const premature=await councilProposal(s,s.token.target,s.token.interface.encodeFunctionData('approveRetirementAction',[selector(s,'recoverRetiredDonations'),await s.token.lifecycleNonce()]));
+   await assert.rejects(async()=>tx(s.council.execute(premature,{gasLimit:1000000})));await failedOperation(s,op);
+   await authorize(s);await failedOperation(s,op);await advance(s,DELAY-1);await failedOperation(s,op);
+   await advance(s,1);const before=await s.usd.balanceOf(s.addresses[40]);await tx(execute(s,op));
+@@ -284,7 +298,7 @@
+  });
+ 
+  test('Council revocation clears a mature approval and a replacement approval must mature again',async()=>{
+-  await ready(s);const op=await queueRetirement(s),action=selector(s,'retirePermanently');
++  await ready(s);await closeBuys(s);const op=await queueRetirement(s),action=selector(s,'retirePermanently');
+   await unchanged(s,s.token.revokeRetirementAction,[action]);
+   await councilCall(s,s.token.target,s.token.interface.encodeFunctionData('revokeRetirementAction',[action]));
+   assert.equal(await s.token.councilApprovalAt(action),0n);await failedOperation(s,op);
+@@ -293,23 +307,27 @@
+  });
+ 
+  test('Council approval cannot authorize arbitrary selectors or silently preserve an older approval time',async()=>{
+-  const invalid=await councilProposal(s,s.token.target,s.token.interface.encodeFunctionData('approveRetirementAction',[selector(s,'unpause')]));
++  const invalid=await councilProposal(s,s.token.target,s.token.interface.encodeFunctionData('approveRetirementAction',[selector(s,'unpause'),await s.token.lifecycleNonce()]));
+   await assert.rejects(async()=>tx(s.council.execute(invalid,{gasLimit:1000000})));
+-  await ready(s);await authorize(s);const first=await s.token.councilApprovalAt(selector(s,'retirePermanently'));
++  await ready(s);await closeBuys(s);await authorize(s);const first=await s.token.councilApprovalAt(selector(s,'retirePermanently'));
+   const op=await schedule(s,s.token.target,s.token.interface.encodeFunctionData('retirePermanently'));await advance(s,DELAY);
+   await authorize(s);assert((await s.token.councilApprovalAt(selector(s,'retirePermanently')))>first);await failedOperation(s,op);
+   await advance(s,DELAY);await tx(execute(s,op));
+  });
+ 
+  test('the timelock itself rejects execution before its 72-hour operation delay',async()=>{
+-  await ready(s);await authorize(s);const op=await schedule(s,s.token.target,s.token.interface.encodeFunctionData('retirePermanently'));
++  await ready(s);await closeBuys(s);await authorize(s);const op=await schedule(s,s.token.target,s.token.interface.encodeFunctionData('retirePermanently'));
+   await failedOperation(s,op);await advance(s,DELAY-1);await failedOperation(s,op);await advance(s,1);await tx(execute(s,op));
+   assert.equal(await s.timelock.isOperationDone(op.operation),true);
+  });
+ 
+- test('active supply/backing and an owed terminal fee independently prohibit retirement and any backing sweep',async()=>{
+-  await seed(s);await ready(s);const op=await queueRetirement(s);await failedOperation(s,op);
++ test('active backing blocks permanent buy closure and owed terminal fees independently prohibit retirement',async()=>{
++  await seed(s);await ready(s);await authorize(s,'closeBuysPermanently');
++  const closure=await schedule(s,s.token.target,s.token.interface.encodeFunctionData('closeBuysPermanently'));
++  const op=await queueRetirement(s);await failedOperation(s,closure);await failedOperation(s,op);
++  assert.equal(await s.token.buysPermanentlyClosed(),false);
+   await terminal(s);assert.equal(await s.token.developmentFeeClaim(),E('3'));await failedOperation(s,op);
++  await tx(execute(s,closure));assert.equal(await s.token.buysPermanentlyClosed(),true);await failedOperation(s,op);
+   await tx(s.token.claimDevelopmentFees());const before=await s.usd.balanceOf(s.addresses[40]);await tx(execute(s,op));
+   assert.equal(await s.usd.balanceOf(s.addresses[40])-before,E('500'));await accounting(s,0n,0n,0n);
+  });
+@@ -324,13 +342,13 @@
+   ['unsettled current-hour units',[0,true,0,0,1,0,0]],
+   ['undrained volume jobs',[0,true,0,0,0,0,1]],
+  ])test(`retirement guard separately rejects ${name} in clearly marked TEST_ONLY membership`,async()=>{
+-  await tx(s.binary.inject(E('500'),false));const op=await queueRetirement(s);await tx(s.binary.TEST_ONLY_readiness(...values));
++  await tx(s.binary.inject(E('500'),false));await ready(s);await closeBuys(s);const op=await queueRetirement(s);await tx(s.binary.TEST_ONLY_readiness(...values));
+   await failedOperation(s,op);await ready(s);await tx(execute(s,op));assert.equal(await s.token.permanentlyRetired(),true);
+  });
+ 
+- test('missing binary binding blocks retirement even with real approval and delay',async()=>{
++ test('missing binary binding blocks permanent closure and retirement even with real approval and delay',async()=>{
+   const old=s.token;s.token=await deploy(s,'FTIRetirementReviewToken',[s.usd.target,s.timelock.target,s.council.target,s.addresses[40]]);
+-  try{const op=await queueRetirement(s);await failedOperation(s,op);}finally{s.token=old;}
++  try{await authorize(s,'closeBuysPermanently');const closure=await schedule(s,s.token.target,s.token.interface.encodeFunctionData('closeBuysPermanently'));const op=await queueRetirement(s);await failedOperation(s,closure);await failedOperation(s,op);}finally{s.token=old;}
+  });
+ 
+  test('blocked seller or taxed collateral atomically rolls back the complete normal terminal transition',async()=>{
+@@ -348,7 +366,7 @@
+  });
+ 
+  test('blocked or taxed retirement transfer preserves support, closure flags, approval and the pending timelock operation',async()=>{
+-  await tx(s.binary.inject(E('500'),false));await ready(s);const op=await queueRetirement(s);
++  await tx(s.binary.inject(E('500'),false));await ready(s);await closeBuys(s);const op=await queueRetirement(s);
+   await tx(s.usd.setBlocked(s.addresses[40],true));await failedOperation(s,op);await tx(s.usd.setBlocked(s.addresses[40],false));
+   // Recipient tax fails the exact-delta check; sender tax may instead fail
+   // its own balance check. Either failure must roll the whole action back.
+@@ -399,7 +417,7 @@
+   await tx(s.usd.setCallback(ZeroAddress,'0x',false));await terminal(s);
+   await tx(s.usd.setCallback(s.token.target,payload,true));await unchanged(s,s.token.claimDevelopmentFees,[],'TEST_ONLY callback rejected');
+   assert.equal(await s.usd.attempted(),false);assert.equal(await s.usd.callbackResult(),'0x');
+-  await tx(s.usd.setCallback(ZeroAddress,'0x',false));await tx(s.token.claimDevelopmentFees());await ready(s);const retirement=await queueRetirement(s);
++  await tx(s.usd.setCallback(ZeroAddress,'0x',false));await tx(s.token.claimDevelopmentFees());await ready(s);await closeBuys(s);const retirement=await queueRetirement(s);
+   await tx(s.usd.setCallback(s.token.target,payload,true));await failedOperation(s,retirement);assert.equal(await s.usd.attempted(),false);
+   await tx(s.usd.setCallback(ZeroAddress,'0x',false));await tx(execute(s,retirement));
+   await tx(s.usd.mint(s.token.target,E('18')));await authorize(s,'recoverRetiredDonations');
+@@ -437,7 +455,7 @@
+  });
+ 
+  test('a later expanded timelock proposer role cannot bypass the independent Council approval',async()=>{
+-  await ready(s);const role=await s.timelock.PROPOSER_ROLE();
++  await ready(s);await closeBuys(s);const role=await s.timelock.PROPOSER_ROLE();
+   await governance(s,s.timelock.target,s.timelock.interface.encodeFunctionData('grantRole',[role,s.addresses[8]]));
+   assert.equal(await s.timelock.hasRole(role,s.addresses[8]),true);
+   const target=s.token.target,data=s.token.interface.encodeFunctionData('retirePermanently'),salt=id('untrusted-new-proposer');
+@@ -469,7 +487,7 @@
+ 
+  test('a collateral deficit cannot be hidden by fee-claim payment or permanent retirement',async()=>{
+   await seed(s);await terminal(s);await tx(s.usd.burn(s.token.target,1));await unchanged(s,s.token.claimDevelopmentFees,[],'reserve deficit');
+-  await tx(s.usd.mint(s.token.target,1));await tx(s.token.claimDevelopmentFees());await ready(s);const op=await queueRetirement(s);
++  await tx(s.usd.mint(s.token.target,1));await tx(s.token.claimDevelopmentFees());await ready(s);await closeBuys(s);const op=await queueRetirement(s);
+   await tx(s.usd.burn(s.token.target,1));await failedOperation(s,op);await tx(s.usd.mint(s.token.target,1));await tx(execute(s,op));
+  });
+ 
+@@ -502,7 +520,7 @@
+  let s;
+  before(async()=>{s=await setup(true);});after(async()=>{await s?.engine.disconnect();});
+  test('organic pending-auto ownership, cash release, retirement and post-retirement funding rollback',async()=>{
+-  await tx(s.binary.addUnits(1));await tx(s.binary.setAutoBuy(true,E('1000000')));
++  await tx(s.binary.addUnits(1));await tx(s.binary.setAutoBuy(true));
+   // Twenty actual hourly allocations attain Builder 1. No production state
+   // setter, impersonation, evm_setStorageAt, or synthetic pendingAuto is used.
+   for(let epoch=0;epoch<20;epoch++){
+@@ -511,17 +529,24 @@
+   assert.equal(await s.binary.rankOf(s.addresses[0]),1n);assert.equal(await s.binary.cumulativePaidRankPoints(s.addresses[0]),100n);
+   assert.equal(await s.binary.totalAuto(),0n);
+   await tx(s.token.buy(E('100'),0,MaxUint256));
+-  await tx(s.binary.connect(s.signers[1]).addUnits(12));await tx(s.binary.connect(s.signers[2]).addUnits(12));await settle(s);
++  await tx(s.binary.connect(s.signers[1]).addUnits(12));await tx(s.binary.connect(s.signers[2]).addUnits(12));
++  // Immediate allocation attempts the buy; rejected collateral leaves an owned retry liability.
++  await tx(s.usd.setBlocked(s.token.target,true));await settle(s);await tx(s.usd.setBlocked(s.token.target,false));
+   const automatic=await s.binary.pendingAuto(s.addresses[0]);assert.equal(automatic,E('108'));assert.equal(await s.binary.totalAuto(),automatic);
+   await terminal(s);await tx(s.token.claimDevelopmentFees());
+   await councilCall(s,s.binary.target,s.binary.interface.encodeFunctionData('pause'));
++  await assert.rejects(s.binary.releaseClosedTokenAutoToCash.staticCall(0,100),{reason:'token buys not closed'});
++  assert((await s.token.quoteBuy(E('1')))>0n,'ordinary empty cycle is restartable');
++  await closeBuys(s);assert.equal(await s.token.buysPermanentlyClosed(),true);
+   const op=await queueRetirement(s);await failedOperation(s,op);
+   const ownerBefore=await s.binary.pendingReward(s.addresses[0]),totalBefore=await s.binary.totalPending(),binaryCash=await s.usd.balanceOf(s.binary.target);
+-  // Existing owner-only cash release is always claimable while paused/closed.
++  // The owner-only API cannot release another wallet's balance; the permanent
++  // marker enables a bounded permissionless conversion to that same beneficiary.
+   await tx(s.binary.connect(s.signers[41]).releaseAutoToCash());assert.equal(await s.binary.pendingAuto(s.addresses[0]),automatic);
+   const pendingState=await state(s);await assert.rejects(async()=>tx(s.binary.executeAuto(s.addresses[0],automatic,{gasLimit:4000000})));
+   assert.deepEqual(await state(s),pendingState);assert.equal(await s.binary.pendingAuto(s.addresses[0]),automatic);
+-  await tx(s.binary.releaseAutoToCash());assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);assert.equal(await s.binary.totalAuto(),0n);
++  await tx(s.binary.connect(s.signers[41]).releaseClosedTokenAutoToCash(0,1));assert.equal(await s.binary.pendingAuto(s.addresses[0]),0n);assert.equal(await s.binary.totalAuto(),0n);
++  await tx(s.binary.connect(s.signers[41]).releaseClosedTokenAutoToCash(0,1));assert.equal(await s.binary.pendingAutoAccountCount(),0n);
+   assert.equal(await s.binary.pendingReward(s.addresses[0]),ownerBefore+automatic);assert.equal(await s.binary.totalPending(),totalBefore+automatic);
+   assert.equal(await s.usd.balanceOf(s.binary.target),binaryCash);
+   const ownerCash=await s.usd.balanceOf(s.addresses[0]);await tx(s.binary.claim());
+@@ -542,6 +567,6 @@
+    assert.deepEqual(await state(s),t);assert.deepEqual(await binaryState(s),b);
+   }
+   assert.equal(await s.token.totalSupply(),0n);assert.equal(await s.token.reserve(),0n);assert.equal(await s.token.lifecycleClosed(),true);
+-  console.log('REAL_BINARY_RETIREMENT_PATH',JSON.stringify({fundedEpochs:21,organicRank:1,pendingAutoUSD:'108',release:'owner-only existing releaseAutoToCash',cashClaimsPreserved:true,fundingRollback:true}));
++  console.log('REAL_BINARY_RETIREMENT_PATH',JSON.stringify({fundedEpochs:21,organicRank:1,pendingAutoUSD:'108',release:'permanent-marker-gated permissionless same-beneficiary conversion',cashClaimsPreserved:true,fundingRollback:true}));
+  });
+ });
+--- a/test/size-fee-proposal.test.mjs
++++ b/test/size-fee-proposal.test.mjs
+@@ -398,7 +398,7 @@
+  }
+  await tx(plan.addUnits(1));assert.equal(await live.priceProtectionFund(),E('5'));
+  assert.equal(await plan.tokenBuyLimit(addresses[0]),E('500'));
+- await tx(live.buy(E('100'),0,MaxUint256));await tx(plan.setAutoBuy(true,E('1000000')));
++ await tx(live.buy(E('100'),0,MaxUint256));await tx(plan.setAutoBuy(true));
+  for(const signer of signers.slice(1,3))await tx(plan.connect(signer).addUnits(2));
+  while(await plan.jobCursor()<await plan.jobCount())await tx(plan.processVolume(100,{gasLimit:12000000}));
+  const block=await p.getBlock('latest'),end=Number(await plan.epochEnd());

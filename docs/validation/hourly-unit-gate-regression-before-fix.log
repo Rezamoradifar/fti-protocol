@@ -1,0 +1,44 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/shared/fti-validation-fix/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/shared/fti-validation-fix/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+▶ BinaryPlan: actual funded paid points and global point-pool allocation
+  ✖ hourly registration-unit gate: four then one in separate hours carry fully; one-wallet five-unit top-up settles (7336.412009ms)
+  ✔ one new wallet registering five units reaches the hourly gate; zero eligible points still carry the full pool (2870.89814ms)
+✖ BinaryPlan: actual funded paid points and global point-pool allocation (12486.972832ms)
+ℹ tests 2
+ℹ suites 1
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13009.059414
+
+✖ failing tests:
+
+test at test/paid-points-binary.test.mjs:107:2
+✖ hourly registration-unit gate: four then one in separate hours carry fully; one-wallet five-unit top-up settles (7336.412009ms)
+  AssertionError [ERR_ASSERTION]: four previous-hour units plus one current-hour unit remain full carry
+  + actual - expected
+  
+  + 0n
+  - 450000000000000000000n
+  
+      at TestContext.<anonymous> (file:///workspace/shared/fti-sizefee-experiment/test/paid-points-binary.test.mjs:121:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Promise.all (index 1)
+      at async Suite.run (node:internal/test_runner/test:1869:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0n,
+    expected: 450000000000000000000n,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
