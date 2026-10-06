@@ -23,6 +23,7 @@ jobs:
       - run: node --test --test-concurrency=1 test/v3-*.test.mjs
       - run: node scripts/v3-http-smoke.mjs
       - run: node scripts/build-launcher-v3.mjs
+      - run: node scripts/verify-v3.mjs --prepare
       - name: Validate V3 launcher content
         run: |
           test -s launcher/artifacts/FTIReserveTokenV3.json
