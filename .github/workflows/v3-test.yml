@@ -19,4 +19,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run compile
-      - run: node --test --test-concurrency=1 test/v3-candidate.test.mjs
+      - run: node --test --test-concurrency=1 test/v3-*.test.mjs
