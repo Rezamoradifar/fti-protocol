@@ -104,7 +104,7 @@ test('there are no token time/wallet locks and standard ERC20 transfers carry no
 });
 
 test('anti-whale guard rejects a single sale above 5% of reserve while an allowed sale executes with slippage',async()=>{
-  await seedMembership();
+  await (await binary.addUnits(3)).wait();
   await (await token.buy(E('1000'),0,MaxUint256)).wait();
 
   const bal=await token.balanceOf(addresses[0]);
