@@ -4,7 +4,7 @@ import ganache from 'ganache';
 import {BrowserProvider,parseEther as E,MaxUint256,ZeroHash} from 'ethers';
 import {deploySuite,drainVolume,settle,checkAccounting} from '../scripts/lib.mjs';
 let engine,p,signers,s,snapshot;
-before(async()=>{engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:45},chain:{chainId:31337},miner:{blockGasLimit:30000000}});p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;signers=await Promise.all(Array.from({length:45},(_,i)=>p.getSigner(i)));s=await deploySuite(signers);snapshot=await p.send('evm_snapshot',[]);});
+before(async()=>{engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:45},chain:{chainId:31337,time:new Date('2026-09-15T12:00:00Z')},miner:{blockGasLimit:30000000}});p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;signers=await Promise.all(Array.from({length:45},(_,i)=>p.getSigner(i)));s=await deploySuite(signers);snapshot=await p.send('evm_snapshot',[]);});
 beforeEach(async()=>{await p.send('evm_revert',[snapshot]);snapshot=await p.send('evm_snapshot',[]);});
 after(async()=>{await engine.disconnect();});
 async function money(i){await(await s.usd.connect(signers[i]).faucet()).wait();await(await s.usd.connect(signers[i]).approve(s.binary.target,MaxUint256)).wait();await(await s.usd.connect(signers[i]).approve(s.token.target,MaxUint256)).wait();}
