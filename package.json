@@ -26,7 +26,11 @@
     "demo:funded": "npm run build:web && npm run compile && node scripts/local.mjs --funded-plan",
     "test:funded": "npm run compile && node --test --test-concurrency=1 test/funded-*.test.mjs",
     "simulate:funded": "node scripts/simulate-funded.mjs 300000 docs/funded-simulation-300000.json",
-    "deploy:v3:testnet": "npm run compile && node scripts/deploy-v3-testnet.mjs"
+    "deploy:v3:testnet": "npm run compile && node scripts/deploy-v3-testnet.mjs",
+    "start:v3": "npm run build:web && node scripts/server-v3.mjs",
+    "build:launcher:v3": "npm run compile && node scripts/build-launcher-v3.mjs",
+    "launch:v3": "npm run build:launcher:v3 && node scripts/launch-server.mjs",
+    "smoke:v3": "npm run compile && npm run build:web && node scripts/v3-http-smoke.mjs"
   },
   "keywords": [],
   "author": "",
