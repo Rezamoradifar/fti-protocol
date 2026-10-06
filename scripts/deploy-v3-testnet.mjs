@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   JsonRpcProvider,
   Wallet,
+  NonceManager,
   formatEther,
   isAddress
 } from 'ethers';
@@ -25,7 +26,8 @@ if (chainId !== 97 && chainId !== 31337) {
   );
 }
 
-const signer = new Wallet(privateKey, provider);
+const baseSigner = new Wallet(privateKey, provider);
+const signer = new NonceManager(baseSigner);
 const deployer = await signer.getAddress();
 const nativeBalance = await provider.getBalance(deployer);
 
