@@ -39,7 +39,7 @@
       <article>
         <span class="step">01</span>
         <h2>Test helper accounts</h2>
-        <p>Generate 30 Genesis helper wallets plus two test-only animal-welfare wallets. The connected deployer becomes Genesis root, testnet governance and development wallet.</p>
+        <p>Generate 30 Genesis helper wallets plus two inactive compatibility addresses used by the current V3 constructor. Charity allocation is disabled at 0%. The connected deployer becomes Genesis root, testnet governance and development wallet.</p>
         <label>Backup password, at least 12 characters
           <input id="password" type="password" minlength="12" autocomplete="new-password">
         </label>
@@ -98,7 +98,7 @@
       <div class="actions">
         <button id="fund-gas">Send 0.01 tBNB to helper</button>
         <button id="faucet">Get test USD</button>
-        <button id="claim">Claim rewards</button>
+        <button id="claim">Fallback manual claim</button>
       </div>
     </article>
 
@@ -130,6 +130,7 @@
         <button id="process">Process 50 members</button>
         <button id="month">Begin monthly settlement</button>
         <button id="month-process">Process monthly rewards</button>
+        <button id="reward">Reward · pay eligible wallets</button>
       </div>
     </article>
 
