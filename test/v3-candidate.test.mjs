@@ -151,9 +151,10 @@ test('a blocked reward wallet is deferred without blocking payouts to other elig
   assert.equal(await binary.pendingReward(addresses[0]),rootPending);
   assert.equal(await binary.pendingReward(addresses[38]),0n);
   assert.equal((await usd.balanceOf(addresses[38]))-devBefore,devPending);
-  assert((await binary.rewardQueueRemaining())>0n);
+  assert.equal(await binary.rewardQueueRemaining(),0n);
 
   await (await usd.setBlocked(addresses[0],false)).wait();
+  await (await binary.connect(signers[42]).queueReward(addresses[0])).wait();
   const rootBefore=await usd.balanceOf(addresses[0]);
   await (await binary.connect(signers[42]).processRewards(100)).wait();
   assert.equal(await binary.pendingReward(addresses[0]),0n);
