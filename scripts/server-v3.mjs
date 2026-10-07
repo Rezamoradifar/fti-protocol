@@ -143,7 +143,7 @@ export async function startV3Web(configPath=process.env.DEPLOYMENT_FILE||'deploy
           tokenPaused,tokenAccounting,animalWalletA,animalWalletB,
           count,epoch,epochEnd,phase,level,pointPool,pending,auto,
           jobCursor,jobCount,cursor,monthPhase,nextMonth,binaryPaused,binaryAccounting,
-          pointRetained,builderRetained,assignedPointCredit,dirtyMembers
+          pointRetained,builderRetained,assignedPointCredit,dirtyMembers,rewardQueueRemaining
         ]=await Promise.all([
           token.price(),token.totalSupply(),token.reserve(),token.supportReserve(),
           token.launchPrice(),token.builderMultiplier(),token.emergencyUnwind(),
@@ -154,7 +154,7 @@ export async function startV3Web(configPath=process.env.DEPLOYMENT_FILE||'deploy
           binary.jobCursor(),binary.jobCount(),binary.cursor(),binary.monthPhase(),
           binary.nextBuilderMonth(),binary.paused(),binary.accounting(),
           binary.retainedPointReserve(),binary.retainedBuilderReserve(),
-          binary.assignedPointCredit(),binary.dirtyCount()
+          binary.assignedPointCredit(),binary.dirtyCount(),binary.rewardQueueRemaining()
         ]);
 
         const maxSingleSellBps=await token.MAX_SINGLE_SELL_BPS();
@@ -174,7 +174,7 @@ export async function startV3Web(configPath=process.env.DEPLOYMENT_FILE||'deploy
           count,epoch,epochEnd,phase,level,pointPool,pending,auto,
           jobCursor,jobCount,cursor,monthPhase,nextMonth,
           account1:binaryAccounting,account2:tokenAccounting,
-          pointRetained,builderRetained,assignedPointCredit,dirtyMembers,
+          pointRetained,builderRetained,assignedPointCredit,dirtyMembers,rewardQueueRemaining,
           block:block.number,timestamp:block.timestamp
         };
 
