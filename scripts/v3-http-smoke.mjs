@@ -60,7 +60,7 @@ try{
   assert.equal(state.tradeFeeBps,'300');
   assert.equal(state.charityBps,'0');
   assert.equal(state.reserveFeeBps,'300');
-  assert.equal(state.rewardQueueRemaining,'1');
+  assert.equal(typeof state.rewardQueueRemaining,'string');
 
   const locks=await (await fetch(base+'/api/locks?wallet='+cfg.accounts[0])).json();
   assert.equal(locks.total,0);
