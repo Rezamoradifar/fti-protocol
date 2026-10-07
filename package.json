@@ -46,5 +46,10 @@
   "private": true,
   "engines": {
     "node": ">=22"
+  },
+  "overrides": {
+    "solc": {
+      "tmp": "0.2.7"
+    }
   }
 }
