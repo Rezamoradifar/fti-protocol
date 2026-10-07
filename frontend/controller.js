@@ -350,9 +350,10 @@ async function refresh(){
     protection:integer(d.level),
     'epoch-end':utc(d.epochEnd),
     accounting:healthy?'Backed':'Review required',
-    queue:`Volume queue: ${integer(d.jobCursor)} / ${integer(d.jobCount)}\nSettlement phase: ${integer(d.phase)} · Member cursor: ${integer(d.cursor)}`,
+    queue:`Volume queue: ${integer(d.jobCursor)} / ${integer(d.jobCount)}\nSettlement phase: ${integer(d.phase)} · Member cursor: ${integer(d.cursor)}\nReward queue remaining: ${integer(d.rewardQueueRemaining||0)}`,
     'hourly-outflow':fmt(d.sellWindowOutflow),
     'hourly-remaining':fmt(d.hourlyOutflowRemaining),
+    'charity-status':Number(d.charityBps||0)===0?'Disabled · 0%':pct(d.charityBps),
     'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
   };
 
@@ -661,7 +662,8 @@ for(const [id,method,arg] of [
   ['close-epoch','beginEpochClose'],
   ['process-epoch','processEpoch',50],
   ['begin-month','beginBuilderMonth'],
-  ['process-month','processBuilderMonth',50]
+  ['process-month','processBuilderMonth',50],
+  ['reward-all','processRewards',100]
 ]){
   $('#'+id).onclick=()=>transaction(()=>send(write('binary')[method](...(arg?[arg]:[]))));
 }
