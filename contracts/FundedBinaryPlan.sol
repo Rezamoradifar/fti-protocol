@@ -209,6 +209,7 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
     }
     function releaseAutoToCash() external nonReentrant {uint256 amount=pendingAuto[msg.sender];pendingAuto[msg.sender]=0;totalAuto-=amount;_creditReward(msg.sender,amount);_removeAuto(msg.sender);}
     function _queueReward(address who) private {if(!rewardQueued[who]){rewardQueued[who]=true;rewardAccounts.push(who);}}
+    function queueReward(address who) external {require(pendingReward[who]>0,'no reward');_queueReward(who);}
     function _creditReward(address who,uint256 amount) private {if(amount==0)return;pendingReward[who]+=amount;totalPending+=amount;_queueReward(who);emit RewardQueued(who,amount);}
     function payQueuedReward(address who) external returns(uint256 amount){
         require(msg.sender==address(this),'self only');_backed();amount=pendingReward[who];if(amount==0)return 0;
@@ -219,7 +220,7 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
         require(batch>0&&batch<=MAX_BATCH,'batch');uint256 end=rewardCursor+batch;if(end>rewardAccounts.length)end=rewardAccounts.length;
         for(;rewardCursor<end;rewardCursor++){
             address who=rewardAccounts[rewardCursor];rewardQueued[who]=false;uint256 amount=pendingReward[who];if(amount==0)continue;
-            try this.payQueuedReward(who) returns(uint256){}catch{_queueReward(who);emit RewardDeferred(who,amount);}
+            try this.payQueuedReward(who) returns(uint256){}catch{emit RewardDeferred(who,amount);}
         }
     }
     function claim() external nonReentrant {_backed();uint256 amount=pendingReward[msg.sender];require(amount>0,'no reward');pendingReward[msg.sender]=0;totalPending-=amount;uint256 beforeBal=usd.balanceOf(address(this));uint256 beforeUser=usd.balanceOf(msg.sender);usd.safeTransfer(msg.sender,amount);require(beforeBal-usd.balanceOf(address(this))==amount&&usd.balanceOf(msg.sender)-beforeUser==amount,'unsupported USD');_backed();emit Claimed(msg.sender,amount);}
