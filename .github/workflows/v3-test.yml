@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/zero-start-charity-protection
+      - feat/v3-auto-rewards-no-charity
   pull_request:
     branches:
       - fix/funded-binary
