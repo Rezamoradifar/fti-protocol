@@ -14,23 +14,26 @@ import {AbiCoder,JsonRpcProvider,Contract,isAddress} from 'ethers';
  *   FundedBinaryPlan to the Etherscan V2 verification API for chain 97.
  */
 
+const prepareOnly=process.argv.includes('--prepare');
 const deploymentPath=process.env.DEPLOYMENT_FILE||'deployments/v3-testnet.json';
-if(!fs.existsSync(deploymentPath))throw Error('Missing V3 deployment file: '+deploymentPath);
+let d=null;
+if(fs.existsSync(deploymentPath))d=JSON.parse(fs.readFileSync(deploymentPath,'utf8'));
+else if(!prepareOnly)throw Error('Missing V3 deployment file: '+deploymentPath);
 
-const d=JSON.parse(fs.readFileSync(deploymentPath,'utf8'));
+if(d){
+  if(d.release!=='FTI_V3_ZERO_START')throw Error('FTI V3 deployment required');
+  if(Number(d.chainId)!==97)throw Error('Only BNB Testnet chain 97 is supported');
+  if(d.tokenContract!=='FTIReserveTokenV3')throw Error('FTIReserveTokenV3 deployment required');
+  if(d.binaryContract!=='FundedBinaryPlan')throw Error('FundedBinaryPlan deployment required');
+  if(d.councilContract!=='SevenGuardianCouncil')throw Error('SevenGuardianCouncil deployment required');
+  if(Number(d.daoThreshold)!==5)throw Error('Expected 5-of-7 Partner DAO');
 
-if(d.release!=='FTI_V3_ZERO_START')throw Error('FTI V3 deployment required');
-if(Number(d.chainId)!==97)throw Error('Only BNB Testnet chain 97 is supported');
-if(d.tokenContract!=='FTIReserveTokenV3')throw Error('FTIReserveTokenV3 deployment required');
-if(d.binaryContract!=='FundedBinaryPlan')throw Error('FundedBinaryPlan deployment required');
-if(d.councilContract!=='SevenGuardianCouncil')throw Error('SevenGuardianCouncil deployment required');
-if(Number(d.daoThreshold)!==5)throw Error('Expected 5-of-7 Partner DAO');
-
-for(const key of ['usd','council','token','binary','governance','development','charityWalletA','charityWalletB']){
-  if(!isAddress(d[key]))throw Error('Invalid deployment address: '+key);
+  for(const key of ['usd','council','token','binary','governance','development','charityWalletA','charityWalletB']){
+    if(!isAddress(d[key]))throw Error('Invalid deployment address: '+key);
+  }
+  if(!Array.isArray(d.daoPartners)||d.daoPartners.length!==7)throw Error('Expected seven Partner DAO addresses');
+  if(!Array.isArray(d.genesis)||d.genesis.length!==31)throw Error('Expected 31 Genesis addresses');
 }
-if(!Array.isArray(d.daoPartners)||d.daoPartners.length!==7)throw Error('Expected seven Partner DAO addresses');
-if(!Array.isArray(d.genesis)||d.genesis.length!==31)throw Error('Expected 31 Genesis addresses');
 
 const contractFiles=fs.readdirSync('contracts').filter(file=>file.endsWith('.sol'));
 const sources=Object.fromEntries(
@@ -101,6 +104,28 @@ const outDir='artifacts/verification-v3';
 fs.mkdirSync(outDir,{recursive:true});
 fs.writeFileSync(path.join(outDir,'standard-input.json'),JSON.stringify(input,null,2));
 
+if(prepareOnly&&!d){
+  const compilerVersion='v'+solc.version().split('.Emscripten')[0];
+  fs.writeFileSync(
+    path.join(outDir,'manifest.json'),
+    JSON.stringify({
+      release:'FTI_V3_ZERO_START',
+      chainId:97,
+      compilerVersion,
+      optimizer:{enabled:true,runs:200},
+      viaIR:true,
+      evmVersion:'shanghai',
+      mode:'compile-only',
+      contracts:targets.map(({name})=>({
+        name,
+        source:artifacts[name].source
+      }))
+    },null,2)+'\n'
+  );
+  console.log('PREPARE ONLY: exact V3 sources and creation bytecodes validated; deployment-specific constructor arguments require a deployment JSON.');
+  process.exit(0);
+}
+
 const coder=AbiCoder.defaultAbiCoder();
 
 const constructorJobs=[
@@ -160,7 +185,7 @@ fs.writeFileSync(
 
 console.log('Prepared exact V3 verification bundle in',outDir);
 
-if(process.argv.includes('--prepare')){
+if(prepareOnly){
   console.log('PREPARE ONLY: no explorer request sent.');
   process.exit(0);
 }
