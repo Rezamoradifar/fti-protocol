@@ -2,7 +2,7 @@ import {test,before,beforeEach,after} from 'node:test';
 import assert from 'node:assert/strict';
 import ganache from 'ganache';
 import {BrowserProvider,ContractFactory,parseEther as E,MaxUint256} from 'ethers';
-import {artifact,deployOne} from '../scripts/lib.mjs';
+import {artifact,deployOne,settle} from '../scripts/lib.mjs';
 
 let engine,p,signers,addresses,usd,council,token,binary,snapshot;
 
@@ -75,8 +75,11 @@ test('membership support starts from zero and mints no FTI',async()=>{
   assert.equal(await token.price(),0n);
 });
 
-test('first real buy launches supply; 1% fee value becomes backed charity FTI split across two wallets',async()=>{
+test('first real buy launches supply with charity disabled and the full 3% fee retained in reserve',async()=>{
   await seedMembership();
+
+  assert.equal(await token.CHARITY_BPS(),0n);
+  assert.equal(await token.RESERVE_FEE_BPS(),300n);
 
   const q=await token.quoteBuy(E('100'));
   assert.equal(q,E('97'));
@@ -84,12 +87,77 @@ test('first real buy launches supply; 1% fee value becomes backed charity FTI sp
   await (await token.buy(E('100'),q,MaxUint256)).wait();
 
   assert.equal(await token.balanceOf(addresses[0]),E('97'));
-  assert.equal(await token.balanceOf(addresses[40]),E('0.5'));
-  assert.equal(await token.balanceOf(addresses[41]),E('0.5'));
-  assert.equal(await token.totalSupply(),E('98'));
+  assert.equal(await token.balanceOf(addresses[40]),0n);
+  assert.equal(await token.balanceOf(addresses[41]),0n);
+  assert.equal(await token.totalSupply(),E('97'));
   assert.equal(await token.reserve(),E('100'));
   assert.equal(await token.supportReserve(),E('5'));
   assert((await token.launchPrice())>0n);
+});
+
+
+
+test('one membership position can buy FTI repeatedly until its cumulative rank allowance is exhausted',async()=>{
+  await seedMembership();
+  assert.equal(await token.remainingAllowance(addresses[0]),E('500'));
+
+  await (await token.buy(E('100'),0,MaxUint256)).wait();
+  await (await token.buy(E('150'),0,MaxUint256)).wait();
+  await (await token.buy(E('250'),0,MaxUint256)).wait();
+
+  assert.equal(await token.lifetimeManualBuys(addresses[0]),E('500'));
+  assert.equal(await token.remainingAllowance(addresses[0]),0n);
+  await fails(()=>token.buy(E('1'),0,MaxUint256));
+});
+
+test('Reward processing pays all queued cash commissions directly to eligible wallets',async()=>{
+  await (await binary.addUnits(1)).wait();
+  await (await binary.connect(signers[1]).addUnits(100)).wait();
+  await (await binary.connect(signers[2]).addUnits(100)).wait();
+  await settle({binary,token,usd},p);
+
+  const rootPending=await binary.pendingReward(addresses[0]);
+  const devPending=await binary.pendingReward(addresses[38]);
+  assert(rootPending>0n);
+  assert(devPending>0n);
+  assert((await binary.rewardQueueRemaining())>0n);
+
+  const rootBefore=await usd.balanceOf(addresses[0]);
+  const devBefore=await usd.balanceOf(addresses[38]);
+
+  await (await binary.connect(signers[42]).processRewards(100)).wait();
+
+  assert.equal(await binary.pendingReward(addresses[0]),0n);
+  assert.equal(await binary.pendingReward(addresses[38]),0n);
+  assert.equal((await usd.balanceOf(addresses[0]))-rootBefore,rootPending);
+  assert.equal((await usd.balanceOf(addresses[38]))-devBefore,devPending);
+  assert.equal(await binary.rewardQueueRemaining(),0n);
+});
+
+test('a blocked reward wallet is deferred without blocking payouts to other eligible wallets',async()=>{
+  await (await binary.addUnits(1)).wait();
+  await (await binary.connect(signers[1]).addUnits(100)).wait();
+  await (await binary.connect(signers[2]).addUnits(100)).wait();
+  await settle({binary,token,usd},p);
+
+  const rootPending=await binary.pendingReward(addresses[0]);
+  const devPending=await binary.pendingReward(addresses[38]);
+  const devBefore=await usd.balanceOf(addresses[38]);
+  assert(rootPending>0n&&devPending>0n);
+
+  await (await usd.setBlocked(addresses[0],true)).wait();
+  await (await binary.connect(signers[42]).processRewards(100)).wait();
+
+  assert.equal(await binary.pendingReward(addresses[0]),rootPending);
+  assert.equal(await binary.pendingReward(addresses[38]),0n);
+  assert.equal((await usd.balanceOf(addresses[38]))-devBefore,devPending);
+  assert((await binary.rewardQueueRemaining())>0n);
+
+  await (await usd.setBlocked(addresses[0],false)).wait();
+  const rootBefore=await usd.balanceOf(addresses[0]);
+  await (await binary.connect(signers[42]).processRewards(100)).wait();
+  assert.equal(await binary.pendingReward(addresses[0]),0n);
+  assert.equal((await usd.balanceOf(addresses[0]))-rootBefore,rootPending);
 });
 
 test('there are no token time/wallet locks and standard ERC20 transfers carry no transfer tax',async()=>{
