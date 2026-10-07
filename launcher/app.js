@@ -463,17 +463,17 @@ async function refresh(){
   const token=contract(2);
   const binary=contract(3);
 
-  const [m,usdBalance,fti,claimable,price,reserve,support,epoch,end,phase,jobCursor,jobs,remaining]=await Promise.all([
+  const [m,usdBalance,fti,claimable,price,reserve,support,epoch,end,phase,jobCursor,jobs,remaining,rewardRemaining]=await Promise.all([
     binary.members(who),usd.balanceOf(who),token.balanceOf(who),binary.pendingReward(who),
     token.price(),token.reserve(),token.supportReserve(),binary.epoch(),binary.epochEnd(),
-    binary.phase(),binary.jobCursor(),binary.jobCount(),token.remainingAllowance(who)
+    binary.phase(),binary.jobCursor(),binary.jobCount(),token.remainingAllowance(who),binary.rewardQueueRemaining()
   ]);
 
   $('price').textContent=fmt(price);
   $('reserve').textContent=fmt(reserve);
   $('support').textContent=fmt(support);
   $('account-info').textContent=`${who} | Gas ${fmt(await provider.getBalance(who))} tBNB | USD ${fmt(usdBalance)} | FTI ${fmt(fti)} | Units ${m.units} | Rank ${m.rank} | Claimable ${fmt(claimable)} | Buy allowance ${fmt(remaining)}`;
-  $('settlement').textContent=`Epoch ${epoch} · Phase ${phase} · Volume queue ${jobCursor}/${jobs} · Epoch end ${new Date(Number(end)*1000).toLocaleString('en-US')}`;
+  $('settlement').textContent=`Epoch ${epoch} · Phase ${phase} · Volume queue ${jobCursor}/${jobs} · Reward queue ${rewardRemaining} · Epoch end ${new Date(Number(end)*1000).toLocaleString('en-US')}`;
 
   const council=contract(1);
   const count=await council.proposalCount();
@@ -626,7 +626,8 @@ for(const [id,method,args] of [
   ['close','beginEpochClose',[]],
   ['process','processEpoch',[50]],
   ['month','beginBuilderMonth',[]],
-  ['month-process','processBuilderMonth',[50]]
+  ['month-process','processBuilderMonth',[50]],
+  ['reward','processRewards',[100]]
 ]){
   $(id).onclick=()=>action(async()=>send(contract(3,mainSigner)[method](...args)));
 }
