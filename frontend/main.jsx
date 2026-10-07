@@ -205,9 +205,9 @@ function Trading(){
 
 function Rewards(){
   return <section id="rewards" className="page" hidden>
-    <div className="page-intro"><span className="eyebrow">FUNDED REWARDS</span><h2>Attributed funding.<br/><em>Pull-based claims.</em></h2><p>Rewards depend on funded branch credits and contract rules; membership does not guarantee income.</p></div>
+    <div className="page-intro"><span className="eyebrow">FUNDED REWARDS</span><h2>Attributed funding.<br/><em>Automatic wallet payouts.</em></h2><p>After rewards are allocated, the permissionless reward queue pays eligible wallets automatically in bounded batches. Membership does not guarantee income.</p></div>
     <div className="split">
-      <article className="panel reward-hero"><span className="eyebrow">READY TO CLAIM · TEST USD</span><strong id="reward-claimable">—</strong><p>Allocated cash available to your connected wallet.</p><button id="claim-rewards" data-write data-requires="reward">Claim to wallet <Icon/></button></article>
+      <article className="panel reward-hero"><span className="eyebrow">PENDING AUTO PAYOUT · TEST USD</span><strong id="reward-claimable">—</strong><p>Allocated cash waits in the reward queue until the next automatic payout batch. Manual claim remains available as a fallback.</p><button id="claim-rewards" data-write data-requires="reward">Fallback manual claim <Icon/></button></article>
       <article className="panel"><div className="panel-head"><h2>Settlement status</h2><span id="epoch" className="badge">—</span></div><dl><div><dt>Binary point pool</dt><dd id="point-pool">—</dd></div><div><dt>Processing phase</dt><dd id="phase">—</dd></div><div><dt>Protection level</dt><dd id="protection">—</dd></div><div><dt>Epoch boundary</dt><dd id="epoch-end">—</dd></div></dl></article>
     </div>
 
@@ -257,7 +257,7 @@ function TokenHome(){
     </div>
 
     <div className="token-principles">
-      <article className="panel"><span className="eyebrow">01 / FEE</span><h2>3% buy & sell.</h2><p>1 percentage point supports fully-backed charity FTI; 2 percentage points remain in reserve.</p></article>
+      <article className="panel"><span className="eyebrow">01 / FEE</span><h2>3% buy & sell.</h2><p>The charity allocation is disabled in this revision. The full 3% trading fee remains in the recorded reserve.</p></article>
       <article className="panel"><span className="eyebrow">02 / TRANSFER</span><h2>Standard ERC-20.</h2><p>No transfer tax, no transfer burn, and no time/wallet-count token lock in V3.</p></article>
       <article className="panel"><span className="eyebrow">03 / SELL</span><h2>Rate-limited exits.</h2><p>Single-sale and hourly reserve-outflow limits replace the old lock model.</p></article>
     </div>
@@ -270,8 +270,7 @@ function TokenHome(){
           <div><dt>Builder multiplier</dt><dd id="token-builder-multiplier">—</dd></div>
           <div><dt>Max single sell</dt><dd id="token-max-single">—</dd></div>
           <div><dt>Hourly outflow limit</dt><dd id="token-hourly-limit">—</dd></div>
-          <div><dt>Animal wallet A</dt><dd id="animal-a" className="address">—</dd></div>
-          <div><dt>Animal wallet B</dt><dd id="animal-b" className="address">—</dd></div>
+          <div><dt>Charity allocation</dt><dd id="charity-status">Disabled · 0%</dd></div>
         </dl>
       </article>
       <article className="panel">
@@ -304,7 +303,7 @@ function Governance(){
     <div className="split">
       <article className="panel">
         <h2>Permissionless settlement</h2>
-        <p>Any wallet can pay gas to progress bounded settlement batches.</p>
+        <p>Any wallet can pay gas to progress bounded settlement batches. The Reward action drains queued commissions directly to eligible wallets; the keeper also runs this automatically.</p>
         <div id="queue" className="quote">—</div>
         <div className="actions">
           {[
@@ -312,7 +311,8 @@ function Governance(){
             ['close-epoch','Close epoch'],
             ['process-epoch','Process settlement'],
             ['begin-month','Close month'],
-            ['process-month','Process monthly rewards']
+            ['process-month','Process monthly rewards'],
+            ['reward-all','Reward · pay eligible wallets']
           ].map(([id,label])=><button key={id} id={id} className="secondary" data-write data-requires="wallet">{label}</button>)}
         </div>
         <div id="dev-controls" hidden><hr/><h3>Local chain time</h3><div className="actions"><button data-time="3601" className="secondary" data-write>Advance one hour</button><button data-time="2678400" className="secondary" data-write>Advance 31 days</button></div></div>
