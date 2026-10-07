@@ -20,9 +20,8 @@ interface IFTIMembership {
  * Goals:
  * - zero premint / zero anchor / zero artificial initial price
  * - membership reserve support never mints FTI and pays no trading fee
- * - 3% buy/sell fee:
- *      1% -> fully-backed FTI minted to two animal-welfare wallets
- *      2% -> retained inside reserve, increasing backing/share
+ * - 3% buy/sell fee retained entirely inside reserve
+ * - charity allocation disabled in this revision (0 bps)
  * - no time/wallet locks
  * - slippage via minOut + deadline
  * - anti-whale sell limits + hourly circuit breaker
@@ -38,8 +37,8 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
     uint256 public constant WAD = 1e18;
 
     uint256 public constant TRADE_FEE_BPS = 300;
-    uint256 public constant CHARITY_BPS = 100;
-    uint256 public constant RESERVE_FEE_BPS = 200;
+    uint256 public constant CHARITY_BPS = 0;
+    uint256 public constant RESERVE_FEE_BPS = 300;
 
     uint256 public constant MAX_SINGLE_SELL_BPS = 500;
     uint256 public constant MAX_HOURLY_OUTFLOW_BPS = 2000;
@@ -200,20 +199,15 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         uint256 oldSupply = totalSupply();
 
         uint256 totalFee = _ceilFee(amount, TRADE_FEE_BPS);
-        uint256 charityAssets = _ceilFee(amount, CHARITY_BPS);
         uint256 userAssets = amount - totalFee;
 
         minted = oldSupply == 0
             ? userAssets
             : Math.mulDiv(userAssets, oldSupply, oldReserve);
 
-        uint256 charityMint = oldSupply == 0
-            ? charityAssets
-            : Math.mulDiv(charityAssets, oldSupply, oldReserve);
-
         require(minted >= MIN_MINT, "dust");
         require(minted >= minTokens, "slippage");
-        require(oldSupply + minted + charityMint <= MAX_SUPPLY, "supply cap");
+        require(oldSupply + minted <= MAX_SUPPLY, "supply cap");
         require(reserve + supportReserve + amount <= MAX_RESERVE, "reserve cap");
 
         _receiveExact(payer, amount);
@@ -225,7 +219,6 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         }
 
         _mint(beneficiary, minted);
-        _mintCharity(charityMint);
 
         if (oldSupply == 0) {
             launchPrice = price();
@@ -234,7 +227,7 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
             _requirePriceGrowth(oldReserve, oldSupply);
         }
 
-        emit Bought(beneficiary, amount, minted, charityMint, automatic);
+        emit Bought(beneficiary, amount, minted, 0, automatic);
     }
 
     function sell(uint256 tokens, uint256 minUSD, uint256 deadline)
@@ -257,12 +250,8 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
 
         _checkSellProtection(gross, payout, oldReserve);
 
-        uint256 charityAssets = _ceilFee(gross, CHARITY_BPS);
-        uint256 charityMint = Math.mulDiv(charityAssets, oldSupply, oldReserve);
-
         _burn(msg.sender, tokens);
         reserve -= payout;
-        _mintCharity(charityMint);
 
         _requirePriceGrowth(oldReserve, oldSupply);
 
@@ -274,7 +263,7 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         require(beforePool - usd.balanceOf(address(this)) == payout, "pool delta");
         require(usd.balanceOf(msg.sender) - beforeUser == payout, "user delta");
 
-        emit Sold(msg.sender, tokens, payout, charityMint);
+        emit Sold(msg.sender, tokens, payout, 0);
     }
 
     function _checkSellProtection(uint256 gross, uint256 payout, uint256 currentReserve) internal {
