@@ -16,7 +16,7 @@ test('new V3 deployment is readable by the panel API without legacy locks or tim
  const provider=new JsonRpcProvider(rpc,undefined,{cacheTimeout:-1});provider.pollingInterval=10;
  const signers=await Promise.all(Array.from({length:40},(_,i)=>provider.getSigner(i)));const addresses=await Promise.all(signers.map(s=>s.getAddress()));
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'fti-v3-api-'));let server;
- const saved={PORT:process.env.PORT,HOST:process.env.HOST,RPC_URL:process.env.RPC_URL};
+ const saved={PORT:process.env.PORT,HOST:process.env.HOST,RPC_URL:process.env.RPC_URL,WALLETCONNECT_PROJECT_ID:process.env.WALLETCONNECT_PROJECT_ID};
  try{
   const usd=await deployOne('MockUSD',[],signers[0]);
   const council=await deployOne('SevenGuardianCouncil',[addresses.slice(31,38)],signers[0]);
@@ -38,7 +38,7 @@ test('new V3 deployment is readable by the panel API without legacy locks or tim
   const codeHashes={};
   for(const [key,contract] of Object.entries({usd,council,timelock,token,binary}))codeHashes[key]=keccak256(await provider.getCode(contract.target));
   fs.writeFileSync(file,JSON.stringify({...cfg,release:RELEASE,...releaseManifest(),timelock:timelock.target,development:addresses[38],daoPartners:addresses.slice(31,38),transferFeeBps:300,transferFeeMode:'burn',codeHashes}));
-  process.env.PORT='0';process.env.HOST='127.0.0.1';delete process.env.RPC_URL;
+  process.env.WALLETCONNECT_PROJECT_ID='f'.repeat(32);process.env.PORT='0';process.env.HOST='127.0.0.1';delete process.env.RPC_URL;
   server=await startWeb(file);const origin='http://127.0.0.1:'+server.address().port;
   for(const route of ['/app/','/token/','/admin/']){
     const html=await fetch(origin+route);assert.equal(html.status,200);assert.match(await html.text(),/src="\.\/app.js"/);
@@ -68,7 +68,8 @@ test('new V3 deployment is readable by the panel API without legacy locks or tim
   assert.equal(recipient.supply,E('969.7').toString());
   assert.equal(recipient.reserve,E('100').toString());
   const locks=await(await fetch(origin+'/api/locks?wallet='+addresses[0])).json();assert.deepEqual(locks.locks,[]);
-  const cfgPublic=await(await fetch(origin+'/api/config')).json();assert.equal('rpcUrl' in cfgPublic,false);
+  const cfgPublic=await(await fetch(origin+'/api/config')).json();assert.equal('rpcUrl' in cfgPublic,false);assert.equal(cfgPublic.walletConnectProjectId,'f'.repeat(32));
+  const sdk=await fetch(origin+'/vendor/walletconnect.js');assert.equal(sdk.status,200);assert.match(sdk.headers.get('content-security-policy'),/wss:\/\/\*\.walletconnect\.com/);assert.deepEqual(Buffer.from(await sdk.arrayBuffer()),fs.readFileSync('web/vendor/walletconnect.js'));
  }finally{
   if(server)await new Promise(r=>server.close(r));provider.destroy();await chain.close();fs.rmSync(dir,{recursive:true,force:true});
   for(const [key,value] of Object.entries(saved))if(value===undefined)delete process.env[key];else process.env[key]=value;

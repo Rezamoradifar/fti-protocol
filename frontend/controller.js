@@ -1,4 +1,5 @@
 import {t,language} from './locale.js';
+import {chooseWallet,requestWalletAccounts} from './wallet-selector.js';
 import {JsonRpcProvider,BrowserProvider,Contract,parseEther,formatEther,ZeroAddress,ZeroHash,randomBytes,hexlify,isAddress} from '/vendor/ethers.js';
 import {surface,surfacePages,defaultPage,pagePath} from './surfaces.js';
 const $=s=>document.querySelector(s);
@@ -77,24 +78,34 @@ async function approve(spender,amount){
  const current=await read.usd.allowance(address,spender);
  if(current<amount){status('Approve test USD spending in your wallet.');if(current>0n)await send(write('usd').approve(spender,0));await send(write('usd').approve(spender,amount));}
 }
+let walletProvider,providerListeners;
+function clearWallet(){signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
+function detachWallet(){if(providerListeners){walletProvider?.removeListener?.('accountsChanged',providerListeners.accounts);walletProvider?.removeListener?.('chainChanged',providerListeners.chain);walletProvider?.removeListener?.('disconnect',providerListeners.disconnect);}providerListeners=null;walletProvider=null;}
+function observeWallet(provider){
+ detachWallet();walletProvider=provider;
+ const reset=()=>{try{sessionStorage.removeItem('fti-wallet-connected');}catch{}clearWallet();status('Wallet account changed. Connect to continue.');refresh().catch(e=>status(reason(e),true));};
+ providerListeners={accounts:reset,chain:()=>location.reload(),disconnect:reset};
+ provider.on?.('accountsChanged',providerListeners.accounts);provider.on?.('chainChanged',providerListeners.chain);provider.on?.('disconnect',providerListeners.disconnect);
+}
 async function connect({silent=false}={}){
  if(connecting||busy)return;connecting=true;syncActions();
  try{
   let nextSigner;
   if(cfg.mode==='local')nextSigner=await rpc.getSigner($('#local-accounts').value);
   else{
-   if(!window.ethereum)throw Error('Open this site in your wallet’s browser or use a browser with a wallet extension.');
-   const accounts=await window.ethereum.request({method:silent?'eth_accounts':'eth_requestAccounts'});if(!accounts.length)return;
-   const chain=Number(await window.ethereum.request({method:'eth_chainId'}));
-   if(chain!==cfg.chainId){if(silent)throw Error('Switch your wallet to BNB Testnet and connect again.');try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]});}catch{throw Error('Switch your wallet to BNB Smart Chain Testnet (chain ID 97), then connect again.');}}
-   const provider=new BrowserProvider(window.ethereum);if(Number((await provider.getNetwork()).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');nextSigner=await provider.getSigner();
+   const selected=await chooseWallet({silent,projectId:cfg.walletConnectProjectId,chainId:cfg.chainId});if(!selected)return;
+   detachWallet();clearWallet();const injected=selected.provider;
+   const accounts=await requestWalletAccounts(selected,silent);if(!accounts.length)return;
+   const chain=Number(await injected.request({method:'eth_chainId'}));
+   if(chain!==cfg.chainId){if(silent)throw Error('Switch your wallet to BNB Testnet and connect again.');try{await injected.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]});}catch{throw Error('Switch your wallet to BNB Smart Chain Testnet (chain ID 97), then connect again.');}}
+   const provider=new BrowserProvider(injected);if(Number((await provider.getNetwork()).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');nextSigner=await provider.getSigner();observeWallet(injected);
   }
   const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}await refresh();status('Wallet connected. Contract data loaded.');
  }catch(error){status(reason(error),true);}finally{connecting=false;syncActions();}
 }
 $('#connect').onclick=()=>connect();
 $('#language-toggle').onclick=()=>{try{localStorage.setItem('fti-language',language==='fa'?'en':'fa');location.reload();}catch{status('Language preference could not be saved.',true);}};
-if(window.ethereum){window.ethereum.on?.('accountsChanged',()=>{try{sessionStorage.removeItem('fti-wallet-connected');}catch{}signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');status('Wallet account changed. Connect to continue.');refresh().catch(e=>status(reason(e),true));});window.ethereum.on?.('chainChanged',()=>location.reload());}
+
 if(cfg.mode==='local'){
  $('#local-accounts').hidden=false;$('#dev-controls').hidden=false;
  cfg.accounts.forEach((a,i)=>{const option=document.createElement('option');option.value=a;option.textContent=`${i+1}. ${i<31?'Genesis':i<36?'Council':'New member'} ${short(a)}`;$('#local-accounts').append(option);});

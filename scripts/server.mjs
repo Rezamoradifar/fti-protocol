@@ -19,14 +19,14 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  const binaryContract=cfg.binaryContract||'BinaryPlan';if(!['BinaryPlan','FundedBinaryPlan'].includes(binaryContract))throw Error('Unknown reward model');
  const fundedModel=binaryContract==='FundedBinaryPlan';
  const contracts=Object.fromEntries(['binary','token','usd','council','timelock'].filter(k=>cfg[k]).map(k=>[k,new Contract(cfg[k],artifact({binary:binaryContract,token:tokenContract,usd:'MockUSD',council:v3Model?'SevenGuardianCouncil':'Council',timelock:'FTITimelock'}[k]).abi,provider)]));
- const host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||3000);const publicConfig={...cfg};delete publicConfig.rpcUrl;
+ const host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||3000);const publicConfig={...cfg};delete publicConfig.rpcUrl;const walletConnectProjectId=process.env.WALLETCONNECT_PROJECT_ID||'';if(walletConnectProjectId&&!/^[a-f0-9]{32}$/i.test(walletConnectProjectId))throw Error('Invalid WalletConnect project ID');publicConfig.walletConnectProjectId=walletConnectProjectId;
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data,(_,v)=>typeof v==='bigint'?v.toString():v));};
  const readMethods=new Set(['eth_chainId','eth_blockNumber','eth_call','eth_getBalance','eth_getCode','eth_getLogs','eth_getTransactionReceipt','eth_getTransactionByHash','eth_getBlockByNumber','eth_estimateGas','eth_gasPrice','eth_maxPriorityFeePerGas','eth_feeHistory','eth_getTransactionCount']);
  async function body(req){let raw='';for await(const c of req){raw+=c;if(raw.length>65536)throw Error('Request too large');}return JSON.parse(raw);}
  let eventCache,eventFlight;
  const server=http.createServer(async(req,res)=>{try{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');
-  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'");
+  res.setHeader('Content-Security-Policy',`default-src 'self'; script-src 'self'; style-src 'self' ${walletConnectProjectId?"'unsafe-inline'":''}; connect-src 'self' ${walletConnectProjectId?"https://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.com wss://*.walletconnect.org https://*.reown.com https://api.web3modal.org":''}; img-src 'self' data: ${walletConnectProjectId?"https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com https://api.web3modal.org":''}; font-src 'self' ${walletConnectProjectId?'https://fonts.reown.com':''}; frame-src 'self' ${walletConnectProjectId?'https://verify.walletconnect.com https://verify.walletconnect.org':''}; frame-ancestors 'none'; base-uri 'none'`);
   const url=new URL(req.url,'http://localhost');
   if(req.method==='POST'){
    const origin=req.headers.origin;if(origin&&new URL(origin).host!==req.headers.host)return json(res,403,{error:'Cross-origin denied'});
