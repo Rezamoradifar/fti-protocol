@@ -18,11 +18,11 @@ if(v3Model){
  text('token-price-label','Reserve / FTI');text('token-model-ratio-label','Pricing model');text('token-model-ratio','Zero-start reserve / supply');
  text('token-model-description','No premint or time locks. All 3% buy/sell fees stay in reserve; no charity tokens are minted. Support reserve is separate from normal pricing.');
  text('token-sale-description','Sales use reserve/share quotes: 3% fee, 5% gross single-sale and 20% net hourly outflow limits. Transfers are tax-free.');
- text('governance-title','5-of-7 emergency governance');text('governance-description','Five fixed guardians must approve council execution. Ordinary V3 testnet governance uses the deployer account; no production timelock is configured.');
- $('#timelock-form').hidden=true;$('#timelock-heading').hidden=true;
- const select=$('#proposal-form').elements.action;for(const option of [...select.options])if(!['pauseBinary','pauseToken'].includes(option.value))option.remove();
+ text('governance-title','5-of-7 governance');text('governance-description',cfg.timelock?'Five guardians approve proposals. Ordinary operations pass through a 72-hour timelock; emergency pause and redemption require five approvals.':'Legacy V3 configuration: ordinary governance is not timelocked. A new integrated deployment is required.');
+ $('#timelock-form').hidden=!cfg.timelock;$('#timelock-heading').hidden=!cfg.timelock;
+ const select=$('#proposal-form').elements.action;for(const option of [...select.options])if(option.value==='milestone'||(!cfg.timelock&&!['pauseBinary','pauseToken'].includes(option.value)))option.remove();
  const option=document.createElement('option');option.value='emergencyUnwind';option.textContent='Permanent emergency pro-rata redemption';select.append(option);
- $('#token-source').href='https://github.com/Rezamoradifar/fti-protocol/blob/fix/v3-no-charity-batched-rewards-20261008/contracts/FTIReserveTokenV3.sol';
+ $('#token-source').href='https://github.com/Rezamoradifar/fti-protocol/blob/'+(cfg.sourceRevision||'fix/v3-no-charity-batched-rewards-20261008')+'/contracts/FTIReserveTokenV3.sol';
 }
 
 const rpc=new JsonRpcProvider(location.origin+'/rpc',undefined,{cacheTimeout:-1});rpc.pollingInterval=1000;

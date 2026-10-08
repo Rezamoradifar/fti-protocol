@@ -5,9 +5,11 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {JsonRpcProvider,Contract,isAddress,FetchRequest} from 'ethers';
 import {artifact} from './lib.mjs';
+import {RELEASE, verifyV3Deployment} from './v3-release.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployments/local.json'){
  const cfg=JSON.parse(fs.readFileSync(configPath));const rpc=process.env.RPC_URL||cfg.rpcUrl;const transport=new FetchRequest(rpc);transport.timeout=15000;const provider=new JsonRpcProvider(transport,undefined,{cacheTimeout:-1,batchMaxCount:1});
+ if(cfg.release===RELEASE){try{await verifyV3Deployment(cfg,provider);}catch(e){provider.destroy();throw e;}}
  const eventTransport=new FetchRequest(process.env.EVENT_RPC_URL||rpc);eventTransport.timeout=15000;
  const eventProvider=process.env.EVENT_RPC_URL?new JsonRpcProvider(eventTransport,undefined,{cacheTimeout:-1,batchMaxCount:1}):provider;
  const tokenContract=cfg.tokenContract||'FTIToken';if(!['FTIToken','FTIReserveToken','FTIReserveTokenV3'].includes(tokenContract))throw Error('Unknown token model');

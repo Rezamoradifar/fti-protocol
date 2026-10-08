@@ -5,7 +5,7 @@ import {BrowserProvider,parseEther as E,formatEther as F,MaxUint256} from 'ether
 import {deploySuite,settle,checkAccounting} from '../scripts/lib.mjs';
 
 test('100 registered users buy, transfer and exit with exact price growth and funded payouts',async()=>{
- const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:136},chain:{chainId:31337,time:new Date('2026-09-15T12:00:00Z')},miner:{blockGasLimit:30000000,timestampIncrement:0}});
+ const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:136},chain:{chainId:31337,time:new Date('2026-09-15T12:00:00Z')},miner:{blockGasLimit:30000000,timestampIncrement:1}});
  try{
   const p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
   const signers=await Promise.all(Array.from({length:136},(_,i)=>p.getSigner(i))),s=await deploySuite(signers,{tokenContract:'FTIReserveToken'});

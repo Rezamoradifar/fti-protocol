@@ -40,3 +40,8 @@ test('keeper restart resumes a durable payout queue without paying twice or over
  b.payRewards=async batch=>{const tx=await original(batch);return{wait:async()=>{const receipt=await tx.wait();if(!queue){stop();finish();}return receipt;}};};
  stop=startKeeper(b,provider,100);await done;assert.equal(paid,205);assert.equal(queue,0);
 });
+
+ test('legacy deployment disables reward ABI calls while retaining keeper settlement',async()=>{
+ const b=stub();b.interface.hasFunction=()=>true;b.rewardAccountCount=async()=>{throw Error('Old bytecode has no reward queue');};
+ assert.equal(await keeperStep(b,provider,{batchedRewards:false}),'idle');
+ });
