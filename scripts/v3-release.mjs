@@ -43,6 +43,6 @@ export async function verifyV3Deployment(cfg,provider){
  if(await timelock.getMinDelay()!==259200n||await council.THRESHOLD()!==5n||await usd.decimals()!==18n)throw Error('Governance or collateral configuration mismatch');
  if(!await timelock.hasRole(await timelock.PROPOSER_ROLE(),cfg.council))throw Error('Council is not timelock proposer');
  for(let i=0;i<7;i++)if(!same(await council.guardians(i),cfg.daoPartners[i]))throw Error('Guardian mismatch');
- if(await token.TRADE_FEE_BPS()!==300n||await token.RESERVE_FEE_BPS()!==300n)throw Error('Fee configuration mismatch');
+ if(await token.TRADE_FEE_BPS()!==300n||await token.RESERVE_FEE_BPS()!==300n||await token.TRANSFER_FEE_BPS()!==300n||cfg.transferFeeBps!==300||cfg.transferFeeMode!=='burn')throw Error('Fee configuration mismatch');
  return contracts;
 }

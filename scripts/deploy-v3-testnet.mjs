@@ -197,6 +197,8 @@ const result = {
   daoThreshold: 5,
   tradeFeeBps: 300,
   reserveFeeBps: 300,
+  transferFeeBps: 300,
+  transferFeeMode: 'burn',
   charityEnabled: false,
   daoPartners: daoConfig.partners,
   genesis,

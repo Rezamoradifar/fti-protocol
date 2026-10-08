@@ -1,7 +1,7 @@
 import {test,before,beforeEach,after} from 'node:test';
 import assert from 'node:assert/strict';
 import ganache from 'ganache';
-import {BrowserProvider,ContractFactory,parseEther as E,MaxUint256} from 'ethers';
+import {BrowserProvider,ContractFactory,parseEther as E,MaxUint256,ZeroAddress} from 'ethers';
 import {artifact,deployOne} from '../scripts/lib.mjs';
 
 let engine,p,signers,addresses,usd,council,token,binary,snapshot;
@@ -92,15 +92,111 @@ test('first real buy retains the full 3% fee in reserve and mints only buyer tok
   assert((await token.launchPrice())>0n);
 });
 
-test('there are no token time/wallet locks and standard ERC20 transfers carry no transfer tax',async()=>{
+test('immediate transfers to non-members debit the gross amount, burn 3% and preserve USD reserves',async()=>{
   await seedMembership();
   await (await token.buy(E('100'),0,MaxUint256)).wait();
 
-  const supply=await token.totalSupply();
-  await (await token.transfer(addresses[42],E('10'))).wait();
+  const supply=await token.totalSupply(),balance=await token.balanceOf(addresses[0]);
+  const reserve=await token.reserve(),support=await token.supportReserve(),price=await token.price();
+  const actual=await usd.balanceOf(token.target),allowance=await token.remainingAllowance(addresses[0]);
+  assert.equal(await binary.unitsOf(addresses[42]),0n);
+  assert.deepEqual(Array.from(await token.quoteTransfer(E('10'))),[E('9.7'),E('0.3')]);
+  const receipt=await (await token.transfer(addresses[42],E('10'))).wait();
 
-  assert.equal(await token.balanceOf(addresses[42]),E('10'));
-  assert.equal(await token.totalSupply(),supply);
+  assert.equal(await token.balanceOf(addresses[0]),balance-E('10'));
+  assert.equal(await token.balanceOf(addresses[42]),E('9.7'));
+  assert.equal(await token.totalSupply(),supply-E('0.3'));
+  assert.equal(await token.reserve(),reserve);assert.equal(await token.supportReserve(),support);
+  assert.equal(await usd.balanceOf(token.target),actual);
+  assert.equal(await token.remainingAllowance(addresses[0]),allowance);
+  assert((await token.price())>price);
+  const transfers=receipt.logs.map(log=>token.interface.parseLog(log)).filter(log=>log?.name==='Transfer');
+  assert.deepEqual(transfers.map(log=>Array.from(log.args)),[[addresses[0],ZeroAddress,E('0.3')],[addresses[0],addresses[42],E('9.7')]]);
+});
+
+test('transferFrom burns the same 3% and consumes the gross allowance without a bypass',async()=>{
+  await seedMembership();await (await token.buy(E('100'),0,MaxUint256)).wait();
+  await (await token.approve(addresses[41],E('10'))).wait();
+  await (await token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('10'))).wait();
+  assert.equal(await token.balanceOf(addresses[0]),E('87'));
+  assert.equal(await token.balanceOf(addresses[42]),E('9.7'));
+  assert.equal(await token.totalSupply(),E('96.7'));
+  assert.equal(await token.allowance(addresses[0],addresses[41]),0n);
+  await fails(()=>token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('1')));
+  await (await token.approve(addresses[41],MaxUint256)).wait();
+  await (await token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('10'))).wait();
+  assert.equal(await token.allowance(addresses[0],addresses[41]),MaxUint256);
+  assert.equal(await token.totalSupply(),E('96.4'));
+});
+
+test('transfer rounding cannot bypass the burn, zero is valid and zero-net dust reverts',async()=>{
+  await seedMembership();await (await token.buy(E('100'),0,MaxUint256)).wait();
+  assert.deepEqual(Array.from(await token.quoteTransfer(0n)),[0n,0n]);
+  await (await token.transfer(addresses[42],0n)).wait();
+  await fails(()=>token.transfer(addresses[42],1n));
+  assert.equal(await token.totalSupply(),E('97'));
+  assert.deepEqual(Array.from(await token.quoteTransfer(101n)),[97n,4n]);
+  await (await token.transfer(addresses[42],101n)).wait();
+  assert.equal(await token.balanceOf(addresses[42]),97n);
+  assert.equal(await token.totalSupply(),E('97')-4n);
+  await (await token.transfer(addresses[42],2n)).wait();
+  assert.equal(await token.balanceOf(addresses[42]),98n);
+  assert.equal(await token.totalSupply(),E('97')-5n);
+});
+
+test('self transfers pay the burn and insufficient balance rolls back both burn and allowance',async()=>{
+  await seedMembership();await (await token.buy(E('100'),0,MaxUint256)).wait();
+  await (await token.transfer(addresses[0],E('10'))).wait();
+  assert.equal(await token.balanceOf(addresses[0]),E('96.7'));
+  assert.equal(await token.totalSupply(),E('96.7'));
+  await (await token.approve(addresses[41],E('100'))).wait();
+  await fails(()=>token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('100')));
+  assert.equal(await token.totalSupply(),E('96.7'));
+  assert.equal(await token.balanceOf(addresses[42]),0n);
+  assert.equal(await token.allowance(addresses[0],addresses[41]),E('100'));
+  await fails(()=>token.transfer(ZeroAddress,E('1')));
+  assert.equal(await token.totalSupply(),E('96.7'));
+});
+
+test('pause and emergency block both transfer paths without burning funds',async()=>{
+  await seedMembership();await (await token.buy(E('100'),0,MaxUint256)).wait();
+  await (await token.approve(addresses[41],E('10'))).wait();
+  await (await token.connect(signers[39]).pause()).wait();
+  await fails(()=>token.transfer(addresses[42],E('10')));
+  await fails(()=>token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('10')));
+  await (await token.connect(signers[39]).unpause()).wait();
+  const data=token.interface.encodeFunctionData('activateEmergencyUnwind');
+  await (await council.connect(signers[31]).propose(token.target,data)).wait();
+  for(const i of [32,33,34,35])await (await council.connect(signers[i]).approve(0)).wait();
+  await (await council.connect(signers[42]).execute(0)).wait();
+  await fails(()=>token.transfer(addresses[42],E('10')));
+  await fails(()=>token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('10')));
+  assert.equal(await token.totalSupply(),E('97'));
+  assert.equal(await token.allowance(addresses[0],addresses[41]),E('10'));
+});
+
+test('sale and emergency burns after a taxed transfer are not taxed again',async()=>{
+  await seedMembership();await (await token.buy(E('100'),0,MaxUint256)).wait();
+  await (await token.transfer(addresses[42],E('10'))).wait();
+  const before=await token.totalSupply(),[payout]=await token.quoteSell(E('1'));
+  const cash=await usd.balanceOf(addresses[42]);
+  await (await token.connect(signers[42]).sell(E('1'),payout,MaxUint256)).wait();
+  assert.equal(await token.totalSupply(),before-E('1'));
+  assert.equal(await token.balanceOf(addresses[42]),E('8.7'));
+  assert.equal(await usd.balanceOf(addresses[42]),cash+payout);
+  const data=token.interface.encodeFunctionData('activateEmergencyUnwind');
+  await (await council.connect(signers[31]).propose(token.target,data)).wait();
+  for(const i of [32,33,34,35])await (await council.connect(signers[i]).approve(0)).wait();
+  await (await council.connect(signers[42]).execute(0)).wait();
+  for(const i of [0,42]){
+    const amount=await token.balanceOf(addresses[i]);
+    const expected=amount*(await token.emergencyRemainingPool())/(await token.emergencyRemainingSupply());
+    const userCash=await usd.balanceOf(addresses[i]);
+    await (await token.connect(signers[i]).emergencyRedeem(amount,expected)).wait();
+    assert.equal(await usd.balanceOf(addresses[i]),userCash+expected);
+    assert.equal(await token.balanceOf(addresses[i]),0n);
+  }
+  assert.equal(await token.totalSupply(),0n);assert.equal(await usd.balanceOf(token.target),0n);
 });
 
 test('anti-whale guard rejects a single sale above 5% of reserve while an allowed sale executes with slippage',async()=>{

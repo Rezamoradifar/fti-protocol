@@ -32,6 +32,16 @@ test('new V3 deployment is readable by the panel API without legacy locks or tim
   const abi=await(await fetch(origin+'/abi/FTIReserveTokenV3')).json();
   assert.equal(abi.find(x=>x.type==='constructor').inputs.length,3);
   assert.equal(abi.some(x=>x.name==='CharityMinted'||x.name==='animalWalletA'||x.name==='CHARITY_BPS'),false);
+  assert(abi.some(x=>x.name==='quoteTransfer'));
+  assert(abi.some(x=>x.name==='TRANSFER_FEE_BPS'));
+  await(await usd.approve(token.target,MaxUint256)).wait();
+  await(await token.buy(E('100'),0,MaxUint256)).wait();
+  await(await token.transfer(addresses[39],E('10'))).wait();
+  const recipient=await(await fetch(origin+'/api/state?wallet='+addresses[39])).json();
+  assert.equal(recipient.wallet.ftiBalance,E('9.7').toString());
+  assert.equal(recipient.wallet.unlocked,E('9.7').toString());
+  assert.equal(recipient.supply,E('96.7').toString());
+  assert.equal(recipient.reserve,E('100').toString());
   const locks=await(await fetch(origin+'/api/locks?wallet='+addresses[0])).json();assert.deepEqual(locks.locks,[]);
   const cfgPublic=await(await fetch(origin+'/api/config')).json();assert.equal('rpcUrl' in cfgPublic,false);
  }finally{

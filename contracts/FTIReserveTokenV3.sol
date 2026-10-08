@@ -21,6 +21,7 @@ interface IFTIMembership {
  * - zero premint / zero anchor / zero artificial initial price
  * - membership reserve support never mints FTI and pays no trading fee
  * - 3% buy/sell fee retained entirely inside reserve
+ * - 3% of each ordinary ERC20 transfer is burned, including transferFrom
  * - no charity allocation, charity wallets or fee-token minting
  * - no time/wallet locks
  * - slippage via minOut + deadline
@@ -38,6 +39,7 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
 
     uint256 public constant TRADE_FEE_BPS = 300;
     uint256 public constant RESERVE_FEE_BPS = 300;
+    uint256 public constant TRANSFER_FEE_BPS = 300;
 
     uint256 public constant MAX_SINGLE_SELL_BPS = 500;
     uint256 public constant MAX_HOURLY_OUTFLOW_BPS = 2000;
@@ -146,6 +148,13 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         gross = Math.mulDiv(tokens, reserve, totalSupply());
         uint256 fee = _ceilFee(gross, TRADE_FEE_BPS);
         payout = gross - fee;
+    }
+
+    /// @notice Amount is the sender's total debit. The burn rounds up to one token base unit.
+    function quoteTransfer(uint256 amount) public pure returns (uint256 received, uint256 burned) {
+        burned = _ceilFee(amount, TRANSFER_FEE_BPS);
+        received = amount - burned;
+        require(amount == 0 || received > 0, "transfer dust");
     }
 
     function buy(uint256 amount, uint256 minTokens, uint256 deadline)
@@ -379,6 +388,12 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         if (from != address(0) && to != address(0)) {
             require(!paused(), "paused");
             require(!emergencyUnwind, "emergency");
+            (uint256 received, uint256 burned) = quoteTransfer(value);
+            // Use the parent implementation so neither leg is taxed again.
+            // Minting, sale burns and emergency redemption never enter this branch.
+            if (burned > 0) super._update(from, address(0), burned);
+            super._update(from, to, received);
+            return;
         }
 
         super._update(from, to, value);

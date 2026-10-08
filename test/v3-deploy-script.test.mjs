@@ -93,6 +93,8 @@ test('dedicated V3 deployment script deploys only the new stack and verifies zer
     assert.equal(s.genesisHelpers.length, 30);
     assert.equal(d.tradeFeeBps,300);
     assert.equal(d.reserveFeeBps,300);
+    assert.equal(d.transferFeeBps,300);
+    assert.equal(d.transferFeeMode,'burn');
     assert.equal(d.charityEnabled,false);
     assert.equal('charityWalletA' in d,false);
     assert.equal('charityWalletB' in d,false);
@@ -102,6 +104,9 @@ test('dedicated V3 deployment script deploys only the new stack and verifies zer
     const provider=new JsonRpcProvider(`http://127.0.0.1:${port}`,undefined,{cacheTimeout:-1});provider.pollingInterval=10;
     try{
       const stack=await verifyV3Deployment(d,provider);
+      assert.equal(await stack.token.TRANSFER_FEE_BPS(),300n);
+      await assert.rejects(()=>verifyV3Deployment({...d,transferFeeBps:0},provider),/Fee configuration mismatch/);
+      await assert.rejects(()=>verifyV3Deployment({...d,transferFeeMode:'reserve'},provider),/Fee configuration mismatch/);
       assert.equal(d.governance,d.timelock);assert.equal(d.governanceDelay,259200);
       assert.equal(await stack.timelock.getMinDelay(),259200n);
       await assert.rejects(()=>verifyV3Deployment({...d,chainId:97},provider),/Wrong deployment network/);

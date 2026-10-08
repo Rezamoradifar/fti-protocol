@@ -17,7 +17,9 @@ if(reserveModel){
 if(v3Model){
  text('token-price-label','Reserve / FTI');text('token-model-ratio-label','Pricing model');text('token-model-ratio','Zero-start reserve / supply');
  text('token-model-description','No premint or time locks. All 3% buy/sell fees stay in reserve; no charity tokens are minted. Support reserve is separate from normal pricing.');
- text('token-sale-description','Sales use reserve/share quotes: 3% fee, 5% gross single-sale and 20% net hourly outflow limits. Transfers are tax-free.');
+ text('token-sale-description','Sales use reserve/share quotes: 3% fee, 5% gross single-sale and 20% net hourly outflow limits. Transfers burn 3% of the amount sent.');
+ text('transfer-title','Transfer FTI');text('transfer-description','The amount entered is your total debit: the recipient receives 97% and 3% is burned. The burn rounds up to the smallest FTI unit. Recipients do not need membership.');
+ $('#transfer-quote').hidden=false;
  text('governance-title','5-of-7 governance');text('governance-description',cfg.timelock?'Five guardians approve proposals. Ordinary operations pass through a 72-hour timelock; emergency pause and redemption require five approvals.':'Legacy V3 configuration: ordinary governance is not timelocked. A new integrated deployment is required.');
  $('#timelock-form').hidden=!cfg.timelock;$('#timelock-heading').hidden=!cfg.timelock;
  const select=$('#proposal-form').elements.action;for(const option of [...select.options])if(option.value==='milestone'||(!cfg.timelock&&!['pauseBinary','pauseToken'].includes(option.value)))option.remove();
@@ -164,6 +166,13 @@ for(const kind of ['buy','sell']){
  });};
 }
 $('#max-sell').onclick=()=>{const form=$('#sell-form');form.elements.amount.value=formatEther(wallet().unlocked);form.elements.amount.dispatchEvent(new Event('input',{bubbles:true}));};
+if(v3Model){
+ const form=$('#transfer-form');let timer,sequence=0;
+ form.elements.amount.oninput=()=>{clearTimeout(timer);const current=++sequence;text('transfer-quote','Updating transfer quote…');timer=setTimeout(async()=>{
+  try{const amount=parseEther(form.elements.amount.value);if(amount<=0n)throw Error('Enter a positive amount.');const[received,burned]=await read.token.quoteTransfer(amount);if(current!==sequence)return;text('transfer-quote','Recipient receives: '+formatEther(received)+' FTI · Burned: '+formatEther(burned)+' FTI');}
+  catch{if(current===sequence)text('transfer-quote',form.elements.amount.value?'Transfer quote unavailable. Check the amount and contract connection.':'Enter an amount to see the recipient amount and burn.');}
+ },250);};
+}
 $('#transfer-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const to=e.target.elements.to.value.trim(),amount=parseEther(e.target.elements.amount.value);if(!isAddress(to)||to===ZeroAddress)throw Error('Enter a valid recipient address.');if(amount<=0n||amount>BigInt(wallet().unlocked))throw Error('Enter an amount within your unlocked token balance.');if(to.toLowerCase()===address.toLowerCase())throw Error('Choose a different recipient wallet.');if(!v3Model&&await read.binary.unitsOf(to)===0n)throw Error('The recipient must own at least one membership unit.');await send(write('token').transfer(to,amount));});};
 for(const[id,method,arg]of [['volume','processVolume',50],['close-epoch','beginEpochClose'],['process-epoch','processEpoch',50],['begin-month','beginBuilderMonth'],['process-month','processBuilderMonth',50]])$('#'+id).onclick=()=>transaction(()=>send(write('binary')[method](...(arg?[arg]:[]))));
 document.querySelectorAll('[data-time]').forEach(button=>button.onclick=()=>transaction(async()=>{const response=await fetch('/api/dev/time',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seconds:Number(button.dataset.time)})});if(!response.ok)throw Error((await response.json()).error);}));
