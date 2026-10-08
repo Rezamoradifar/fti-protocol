@@ -3,6 +3,7 @@ import {fileURLToPath} from 'node:url';
 import {JsonRpcProvider,Wallet,Contract} from 'ethers';
 import {artifact} from './lib.mjs';
 const autoCursor=new Map();
+const rewardRetryAt=new Map();
 export async function keeperStep(binary,provider){
  const funded=!!binary.interface?.hasFunction('autoAccountCount');const batch=funded?25:50;
  const phase=await binary.phase();
@@ -13,7 +14,12 @@ export async function keeperStep(binary,provider){
  if(await binary.monthPhase()>0n){await(await binary.processBuilderMonth(batch)).wait();return 'builder batch';}
  const key=Number(await binary.nextBuilderMonth());const monthEnd=Date.UTC(Math.floor(key/12),key%12+1,1)/1000;
  if(now>=monthEnd&&Number(await binary.lastClosedAt())>=monthEnd){await(await binary.beginBuilderMonth()).wait();return 'builder close';}
- if(binary.interface?.hasFunction('rewardAccountCount')&&await binary.rewardAccountCount()>0n){await(await binary.payRewards(100)).wait();return 'reward payout batch';}
+ if(binary.interface?.hasFunction('rewardAccountCount')&&Date.now()>=(rewardRetryAt.get(binary.target)||0)&&await binary.rewardAccountCount()>0n){
+  const receipt=await(await binary.payRewards(100)).wait();
+  const paid=receipt?.logs?.map(log=>{try{return binary.interface.parseLog(log);}catch{return null;}}).find(log=>log?.name==='RewardBatchPaid');
+  if(paid&&paid.args.accounts===0n)rewardRetryAt.set(binary.target,Date.now()+60000);
+  else return 'reward payout batch';
+ }
  const count=Number(await (funded?binary.autoAccountCount():binary.memberCount()));let cursor=autoCursor.get(binary.target)||0;
  for(let i=0;i<Math.min(5,count);i++){const who=await (funded?binary.autoAccounts(cursor%count):binary.memberList(cursor%count));cursor++;autoCursor.set(binary.target,cursor%count);const amount=await binary.pendingAuto(who);if(amount>0n){try{await(await binary.executeAuto(who,amount)).wait();return 'auto-buy executed';}catch{/* A failed auto-buy remains owned by the beneficiary and never blocks settlement. */}}}
  return 'idle';

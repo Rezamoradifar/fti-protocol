@@ -54,6 +54,9 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
     uint256 public totalPending;uint256 public totalAuto;
     address[] public rewardAccounts;
     mapping(address=>uint256) private rewardIndex;
+    uint256 public rewardCursor;
+    uint256 public constant REWARD_CALL_GAS=150000;
+    event RewardPaymentDeferred(address indexed wallet);
     event RewardBatchPaid(uint256 accounts,uint256 amount);
     uint256 public builderAccounted;
     mapping(uint256=>uint256[4]) public monthFunding;
@@ -220,14 +223,27 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
         require(beforeBal-usd.balanceOf(address(this))==amount&&usd.balanceOf(who)-beforeUser==amount,'unsupported USD');
         emit Claimed(who,amount);
     }
+    // Self-call isolates an unsupported/blocked recipient transfer and its ledger
+    // writes. Only the guarded batch entry point can invoke this helper.
+    function payRewardIsolated(address who) external returns(uint256) {
+        require(msg.sender==address(this),'self only');return _payReward(who);
+    }
     /// @notice Permissionless bounded payout; caller cannot choose a recipient or amount.
     /// Remaining queue entries persist for the next transaction/keeper iteration.
     function payRewards(uint256 batch) external nonReentrant returns(uint256 accounts,uint256 amount) {
         require(batch>0&&batch<=MAX_BATCH,'batch');
         require(phase==0&&monthPhase==0,'settlement incomplete');_backed();
-        while(accounts<batch&&rewardAccounts.length>0){
-            amount+=_payReward(rewardAccounts[rewardAccounts.length-1]);accounts++;
+        uint256 attempts=rewardAccounts.length<batch?rewardAccounts.length:batch;
+        for(uint256 i;i<attempts&&rewardAccounts.length>0;i++){
+            rewardCursor%=rewardAccounts.length;
+            address who=rewardAccounts[rewardCursor];
+            // Do not misclassify caller-supplied insufficient gas as a bad recipient.
+            require(gasleft()>REWARD_CALL_GAS+40000,'reward gas');
+            try this.payRewardIsolated{gas:REWARD_CALL_GAS}(who) returns(uint256 paid){
+                amount+=paid;accounts++;
+            }catch{emit RewardPaymentDeferred(who);rewardCursor++;}
         }
+        if(rewardAccounts.length==0)rewardCursor=0;
         _backed();emit RewardBatchPaid(accounts,amount);
     }
     function claim() external nonReentrant {_backed();_payReward(msg.sender);_backed();}
