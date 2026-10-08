@@ -26,7 +26,9 @@ export function startKeeper(binary,provider,interval=5000,options={}){
  timer=setTimeout(step,0);return()=>{stopped=true;clearTimeout(timer);};
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
- const cfg=JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_FILE||'deployments/local.json'));const p=new JsonRpcProvider(process.env.RPC_URL||cfg.rpcUrl,undefined,{cacheTimeout:-1});
+ const cfg=JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_FILE||'deployments/local.json'));
+ if(cfg.tokenContract==='FTIReserveTokenV3'&&cfg.release&&cfg.release!==RELEASE)throw Error('V3 release mismatch; deploy the new contracts instead of reusing old addresses');
+ const p=new JsonRpcProvider(process.env.RPC_URL||cfg.rpcUrl,undefined,{cacheTimeout:-1});
  if(!process.env.KEEPER_PRIVATE_KEY)throw Error('KEEPER_PRIVATE_KEY is required; it needs gas only and has no admin authority');
  if(cfg.release===RELEASE)await verifyV3Deployment(cfg,p);
  if((await p.getNetwork()).chainId!==BigInt(cfg.chainId))throw Error('Wrong keeper network');

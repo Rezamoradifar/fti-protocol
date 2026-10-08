@@ -16,11 +16,12 @@ if(reserveModel){
 
 if(v3Model){
  text('buy-policy','Membership and rank purchase limits apply. V3 has no time or wallet-count locks.');
- text('sell-policy','V3 has no time locks. Sales remain subject to the 3% fee, single-sale and hourly outflow limits.');
+ text('sell-policy','3% fee. Gross sales up to $500 and final full-supply exits are exempt from ordinary sale limits. Minimum output and deadline always apply.');
  text('availability-policy','V3 tokens have no time or wallet-count locks. Pauses, emergency state and sale limits still apply.');
- text('token-price-label','Reserve / FTI');text('token-model-ratio-label','Pricing model');text('token-model-ratio','Zero-start reserve / supply');
- text('token-model-description','No premint or time locks. All 3% buy/sell fees stay in reserve; no charity tokens are minted. Support reserve is separate from normal pricing.');
- text('token-sale-description','Sales use reserve/share quotes: 3% fee, 5% gross single-sale and 20% net hourly outflow limits. Transfers burn 3% of the amount sent.');
+ text('token-price-label','Reserve / FTI');text('token-model-ratio-label','Pricing model');text('token-model-ratio','Reserve / supply · $0.10 first cycle, $0.20 restarts');
+ text('token-model-description','No premint or time locks. Ordinary trade fees stay in reserve. Support is used only on a price drop, with the minimum available injection. Final-exit fees and remaining support go to development. Each new cycle starts with a $0.20 bootstrap quote.');
+ text('token-sale-description','Reserve/share quotes, 3% fee. Sales above $500 retain 5% single-sale and 20% hourly limits; final full-supply exit is exempt. Transfers burn 3%. Support may be exhausted and does not guarantee a price floor.');
+ text('point-policy','Rewards use funded credits from your own branches. $20 per point is the protection target, not a reward ceiling or an unfunded guarantee. Protection adjusts hourly point caps when funding falls below that target.');
  text('transfer-title','Transfer FTI');text('transfer-description','The amount entered is your total debit: the recipient receives 97% and 3% is burned. The burn rounds up to the smallest FTI unit. Recipients do not need membership.');
  $('#transfer-quote').hidden=false;
  text('governance-title','5-of-7 governance');text('governance-description',cfg.timelock?'Five guardians approve proposals. Ordinary operations pass through a 72-hour timelock; emergency pause and redemption require five approvals.':'Legacy V3 configuration: ordinary governance is not timelocked. A new integrated deployment is required.');

@@ -12,25 +12,18 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 interface IFTIMembership {
     function unitsOf(address who) external view returns (uint256);
     function rankOf(address who) external view returns (uint8);
+    function development() external view returns (address);
+    function usd() external view returns (address);
+    function token() external view returns (address);
 }
 
 /**
- * FTI Reserve Token V3
- *
- * Goals:
- * - zero premint / zero anchor / zero artificial initial price
- * - membership reserve support never mints FTI and pays no trading fee
- * - 3% buy/sell fee retained entirely inside reserve
- * - 3% of each ordinary ERC20 transfer is burned, including transferFrom
- * - no charity allocation, charity wallets or fee-token minting
- * - no time/wallet locks
- * - slippage via minOut + deadline
- * - anti-whale sell limits + hourly circuit breaker
- * - Builder purchase allowance doubles on each 10x launch-price milestone
- * - 5-of-7 emergency council can trigger irreversible pro-rata unwind
- *
- * This is a release candidate and still requires fuzz/invariant tests,
- * public-testnet validation and independent audit before mainnet use.
+ * Owner-authorized V3 candidate, 2026-10-08.
+ * Zero premint; first cycle bootstrap quote $0.10, every subsequent cycle $0.20.
+ * Separate support, bounded minimum ATH repair, 3% ordinary trade fees retained.
+ * Final exit pays its 3% fee and remaining support to the bound development wallet.
+ * Support exhaustion never adds a sale veto. No market-price or funded-floor guarantee.
+ * New deployment required; not audited or approved for mainnet.
  */
 contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
@@ -44,6 +37,10 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
     uint256 public constant MAX_SINGLE_SELL_BPS = 500;
     uint256 public constant MAX_HOURLY_OUTFLOW_BPS = 2000;
     uint256 public constant SELL_WINDOW = 1 hours;
+    uint256 public constant SMALL_SELL_EXEMPTION = 500e18;
+    uint256 public constant INITIAL_PRICE = 1e17;
+    uint256 public constant RESTART_PRICE = 2e17;
+    uint256 public constant POINT_VALUE_TARGET = 20e18;
 
     uint256 public constant MAX_BUILDER_MULTIPLIER = 16;
 
@@ -63,6 +60,12 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
     uint256 public reserve;
     uint256 public supportReserve;
     uint256 public launchPrice;
+    uint256 public ath;
+    uint256 public cycle = 1;
+    uint256 public cycleStartPrice = INITIAL_PRICE;
+    address public development;
+    mapping(address => uint256) public purchaseCycle;
+    mapping(address => uint256) public cyclePurchases;
 
     mapping(address => uint256) public lifetimeManualBuys;
 
@@ -78,6 +81,8 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
     event SupportInjected(uint256 assets, bool indexed newWallet);
     event Bought(address indexed buyer, uint256 usdIn, uint256 userTokens, bool automatic);
     event Sold(address indexed seller, uint256 tokensIn, uint256 usdOut);
+    event PriceSupported(uint256 assets, uint256 targetPrice, uint256 actualPrice, bool exhausted);
+    event CycleClosed(uint256 indexed cycle, address indexed seller, uint256 payout, uint256 fee, uint256 supportToDevelopment);
     event EmergencyUnwindActivated(uint256 collateral, uint256 supply);
     event EmergencyRedeemed(address indexed user, uint256 burnedTokens, uint256 usdOut);
 
@@ -105,7 +110,12 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         require(msg.sender == deployer, "deployer");
         require(address(binary) == address(0), "already bound");
         require(binaryPlan.code.length > 0, "binary code");
-        binary = IFTIMembership(binaryPlan);
+        IFTIMembership plan = IFTIMembership(binaryPlan);
+        require(plan.usd() == address(usd) && plan.token() == address(this), "binding assets");
+        address dev = plan.development();
+        require(dev != address(0) && dev != address(this), "development");
+        binary = plan;
+        development = dev;
         emit Bound(binaryPlan);
     }
 
@@ -126,6 +136,8 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         _receiveExact(msg.sender, amount);
         supportReserve += amount;
 
+        _supportPrice();
+        _backed();
         emit SupportInjected(amount, newWallet);
     }
 
@@ -136,7 +148,7 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         uint256 userAssets = amount - totalFee;
 
         if (totalSupply() == 0) {
-            return userAssets;
+            return Math.mulDiv(userAssets, WAD, cycleStartPrice);
         }
 
         userTokens = Math.mulDiv(userAssets, totalSupply(), reserve);
@@ -189,19 +201,16 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         require(amount > 0, "amount");
         require(binary.unitsOf(beneficiary) > 0, "member");
 
-        if (!automatic) {
-            require(amount <= remainingAllowance(beneficiary), "allowance");
-        }
+        require(amount <= remainingAllowance(beneficiary), "allowance");
 
-        uint256 oldReserve = reserve;
         uint256 oldSupply = totalSupply();
 
         uint256 totalFee = _ceilFee(amount, TRADE_FEE_BPS);
         uint256 userAssets = amount - totalFee;
 
         minted = oldSupply == 0
-            ? userAssets
-            : Math.mulDiv(userAssets, oldSupply, oldReserve);
+            ? Math.mulDiv(userAssets, WAD, cycleStartPrice)
+            : Math.mulDiv(userAssets, oldSupply, reserve);
 
         require(minted >= MIN_MINT, "dust");
         require(minted >= minTokens, "slippage");
@@ -212,18 +221,20 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
 
         reserve += amount;
 
-        if (!automatic) {
-            lifetimeManualBuys[beneficiary] += amount;
+        if (purchaseCycle[beneficiary] != cycle) {
+            purchaseCycle[beneficiary] = cycle;
+            cyclePurchases[beneficiary] = 0;
         }
+        cyclePurchases[beneficiary] += amount;
+        if (!automatic) lifetimeManualBuys[beneficiary] += amount;
 
         _mint(beneficiary, minted);
 
         if (oldSupply == 0) {
-            launchPrice = price();
-            require(launchPrice > 0, "launch");
-        } else {
-            _requirePriceGrowth(oldReserve, oldSupply);
+            launchPrice = cycleStartPrice;
         }
+        _supportPrice();
+        _backed();
 
         emit Bought(beneficiary, amount, minted, automatic);
     }
@@ -246,12 +257,23 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
 
         require(payout > 0 && payout >= minUSD, "slippage/dust");
 
-        _checkSellProtection(gross, payout, oldReserve);
-
+        bool finalExit = tokens == oldSupply;
+        uint256 closingFee;
+        uint256 closingSupport;
+        uint256 closedCycle = cycle;
+        if (finalExit) {
+            // With R/S pricing, redeeming all supply quotes exactly all R.
+            // Never apply ordinary-sale limits or ordinary price repair to zero supply.
+            closingFee = gross - payout;
+            closingSupport = supportReserve;
+            reserve = 0;
+            supportReserve = 0;
+        } else {
+            _checkSellProtection(gross, payout, oldReserve);
+            reserve -= payout;
+        }
         _burn(msg.sender, tokens);
-        reserve -= payout;
-
-        _requirePriceGrowth(oldReserve, oldSupply);
+        if (!finalExit) _supportPrice();
 
         uint256 beforePool = usd.balanceOf(address(this));
         uint256 beforeUser = usd.balanceOf(msg.sender);
@@ -261,10 +283,26 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         require(beforePool - usd.balanceOf(address(this)) == payout, "pool delta");
         require(usd.balanceOf(msg.sender) - beforeUser == payout, "user delta");
 
+        if (finalExit) {
+            uint256 devBefore = usd.balanceOf(development);
+            usd.safeTransfer(development, closingFee + closingSupport);
+            require(usd.balanceOf(development) - devBefore == closingFee + closingSupport, "development delta");
+            cycle++;
+            cycleStartPrice = RESTART_PRICE;
+            launchPrice = 0;
+            ath = 0;
+            sellWindowStart = 0;
+            sellWindowOpeningReserve = 0;
+            sellWindowOutflow = 0;
+            emit CycleClosed(closedCycle, msg.sender, payout, closingFee, closingSupport);
+        }
+        _backed();
         emit Sold(msg.sender, tokens, payout);
     }
 
     function _checkSellProtection(uint256 gross, uint256 payout, uint256 currentReserve) internal {
+        // Inclusive USD gross threshold. minUSD/deadline still protect every sale.
+        if (gross <= SMALL_SELL_EXEMPTION) return;
         uint256 maxSingle = Math.mulDiv(currentReserve, MAX_SINGLE_SELL_BPS, 10000);
         require(gross <= maxSingle, "single sell protection");
 
@@ -331,7 +369,7 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
 
     function remainingAllowance(address who) public view returns (uint256) {
         uint256 limit = buyLimit(who);
-        uint256 used = lifetimeManualBuys[who];
+        uint256 used = purchaseCycle[who] == cycle ? cyclePurchases[who] : 0;
 
         return limit > used ? limit - used : 0;
     }
@@ -340,15 +378,24 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         return Math.mulDiv(amount, bps, 10000, Math.Rounding.Ceil);
     }
 
-    function _requirePriceGrowth(uint256 oldReserve, uint256 oldSupply) internal view {
-        require(oldSupply > 0, "old supply");
-
-        require(
-            reserve * oldSupply > oldReserve * totalSupply(),
-            "price must increase"
-        );
-
-        _backed();
+    /// @dev A reserve reclassification, not a wallet payout or mint.
+    /// One price base unit above the previous ATH is the smallest displayed increment.
+    /// Saturate at available support; never spend another contract's liabilities.
+    function _supportPrice() internal {
+        uint256 supply = totalSupply();
+        if (supply == 0) return;
+        uint256 current = price();
+        if (current < ath && supportReserve > 0) {
+            uint256 target = ath + 1;
+            uint256 requiredReserve = Math.mulDiv(target, supply, WAD, Math.Rounding.Ceil);
+            uint256 needed = requiredReserve - reserve;
+            uint256 assets = needed < supportReserve ? needed : supportReserve;
+            supportReserve -= assets;
+            reserve += assets;
+            current = price();
+            emit PriceSupported(assets, target, current, current < target);
+        }
+        if (current > ath) ath = current;
     }
 
     function _receiveExact(address payer, uint256 amount) internal {
@@ -393,6 +440,7 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
             // Minting, sale burns and emergency redemption never enter this branch.
             if (burned > 0) super._update(from, address(0), burned);
             super._update(from, to, received);
+            _supportPrice();
             return;
         }
 

@@ -200,6 +200,12 @@ const result = {
   transferFeeBps: 300,
   transferFeeMode: 'burn',
   charityEnabled: false,
+  initialQuotePrice: '100000000000000000',
+  restartQuotePrice: '200000000000000000',
+  smallSellExemptionUSD: '500000000000000000000',
+  pointValuePolicy: 'protection-target-20',
+  finalExitFeeDestination: 'development',
+  supportPolicy: 'minimum-ath-repair-no-sale-veto',
   daoPartners: daoConfig.partners,
   genesis,
   initialState: {

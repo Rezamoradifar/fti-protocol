@@ -14,9 +14,9 @@ export const LEGACY_CONTRACTS=[
  {name:'Timelock',role:'Governance execution delay, initially configured to 72 hours.',address:'0x7e28976e53AF9A66824F08169ac0a17AB3C00685',source:'contracts/Governance.sol'}
 ];
 export const DOC_BASE='https://github.com/Rezamoradifar/fti-protocol';
-export const REVISION='fix/v3-no-charity-batched-rewards-20261008';
+export const REVISION='fix/v3-owner-decisions-20261008';
 export const SOURCE_BASE=DOC_BASE+'/blob/'+REVISION+'/';
-export const MAX_POINT_VALUE=20;
+export const TARGET_POINT_VALUE=20;
 export const V3_CONTRACTS=[
  {name:'MockUSD',role:'Test collateral; no real dollar value.',source:'contracts/MockUSD.sol',tx:'0xbdda07eed7266580a7e91bed62c9e635e03e1741f9d0e5d9c2a23146b6301b88'},
  {name:'SevenGuardianCouncil',role:'Seven fixed emergency guardians; five approvals required.',source:'contracts/SevenGuardianCouncil.sol',tx:'0xaeb02b0e8b45d7aa2a672d721cb2f562512391457a26f0ca1fbf008383b1507e'},
@@ -26,4 +26,4 @@ export const V3_CONTRACTS=[
 ];
 export function builderMultiplier(ratio){let multiplier=1,threshold=10;while(ratio>=threshold&&multiplier<16){multiplier*=2;threshold*=10;}return multiplier;}
 export function purchaseAllowance(rank,units,ratio,spent){const multiplier=rank===0?1:builderMultiplier(ratio);const limit=RANKS[rank].buyLimit*units*multiplier;return {multiplier,limit,remaining:Math.max(0,limit-spent)};}
-export function rewardExample(left,right,rank,level,matchedCredit){const raw=Math.min(left,right),paid=Math.min(raw,CAPS[level][rank]);const budget=raw?matchedCredit*paid/raw:0;return {raw,paid,flushed:raw-paid,carry:Math.abs(left-right),budget,reward:Math.min(budget,paid*MAX_POINT_VALUE)};}
+export function rewardExample(left,right,rank,level,matchedCredit){const raw=Math.min(left,right),paid=Math.min(raw,CAPS[level][rank]);const budget=raw?matchedCredit*paid/raw:0;return {raw,paid,flushed:raw-paid,carry:Math.abs(left-right),budget,reward:budget};}

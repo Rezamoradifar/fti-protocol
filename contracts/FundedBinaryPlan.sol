@@ -13,7 +13,10 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
     uint256 public constant UNIT=100e18;
     uint256 public constant MAX_BATCH=100;
     uint256 public constant MAX_DEPTH=64;
+    // Historical legacy cap; V3 uses the same amount as a protection target.
     uint256 public constant MAX_POINT_VALUE=20e18;
+    uint256 public constant TARGET_POINT_VALUE=20e18;
+    bool public immutable pointValueIsTarget;
     bytes32 public constant rewardModel='ATTRIBUTED_CREDIT_V1';
     IERC20 public immutable usd;
     IFTI public immutable token;
@@ -77,6 +80,8 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
     constructor(address stable,address fti,address gov,address emergency,address dev,address[31] memory genesis){
         require(IERC20Metadata(stable).decimals()==18,'requires 18 decimal USD');
         require(fti.code.length>0&&gov!=address(0)&&emergency!=address(0)&&dev!=address(0),'addresses');
+        (bool targetOk,bytes memory targetData)=fti.staticcall(abi.encodeWithSignature("POINT_VALUE_TARGET()"));
+        pointValueIsTarget=targetOk&&targetData.length==32&&abi.decode(targetData,(uint256))==TARGET_POINT_VALUE;
         usd=IERC20(stable);token=IFTI(fti);governance=gov;guardian=emergency;development=dev;
         epochEnd=(block.timestamp/1 hours+1)*1 hours;(nextBuilderMonth,)=Calendar.month(block.timestamp);
         for(uint256 i;i<31;i++){
@@ -159,7 +164,8 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
                 uint256 takenL=raw==0?0:Math.mulDiv(creditL[who],raw,m.carryL);
                 uint256 takenR=raw==0?0:Math.mulDiv(creditR[who],raw,m.carryR);
                 uint256 taken=takenL+takenR;uint256 budget=raw==0?0:Math.mulDiv(taken,paid,raw);
-                uint256 reward=budget<paid*MAX_POINT_VALUE?budget:paid*MAX_POINT_VALUE;
+                // No unfunded promise: allocate only this beneficiary's attributable budget.
+                uint256 reward=pointValueIsTarget?budget:(budget<paid*MAX_POINT_VALUE?budget:paid*MAX_POINT_VALUE);
                 creditL[who]-=takenL;creditR[who]-=takenR;assignedPointCredit-=taken;retainedPointReserve+=taken-reward;
                 m.carryL-=raw;m.carryR-=raw;paidPoints[epoch][who]=paid;totalPaidPoints+=paid;matchedFunding+=budget;
                 autoSnapshot[epoch][who]=m.autoEnabled&&m.rank>0;
@@ -175,8 +181,8 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
     function _finishEpoch() private {
         pointValue=totalPaidPoints==0?0:allocated/totalPaidPoints;
         if(totalPaidPoints>0){
-            if(matchedFunding<MAX_POINT_VALUE*totalPaidPoints&&protectionLevel<3)protectionLevel++;
-            else if(matchedFunding>MAX_POINT_VALUE*totalPaidPoints&&protectionLevel>0)protectionLevel--;
+            if(matchedFunding<TARGET_POINT_VALUE*totalPaidPoints&&protectionLevel<3)protectionLevel++;
+            else if(matchedFunding>TARGET_POINT_VALUE*totalPaidPoints&&protectionLevel>0)protectionLevel--;
             unitsSinceSettlement=0;
         }
         // Reuse indexed slots: deleting an unbounded storage array would itself be an O(N) close.

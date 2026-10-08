@@ -79,14 +79,14 @@ test('first real buy retains the full 3% fee in reserve and mints only buyer tok
   await seedMembership();
 
   const q=await token.quoteBuy(E('100'));
-  assert.equal(q,E('97'));
+  assert.equal(q,E('970'));
 
   await (await token.buy(E('100'),q,MaxUint256)).wait();
 
-  assert.equal(await token.balanceOf(addresses[0]),E('97'));
+  assert.equal(await token.balanceOf(addresses[0]),E('970'));
   assert.equal(await token.balanceOf(addresses[40]),0n);
   assert.equal(await token.balanceOf(addresses[41]),0n);
-  assert.equal(await token.totalSupply(),E('97'));
+  assert.equal(await token.totalSupply(),E('970'));
   assert.equal(await token.reserve(),E('100'));
   assert.equal(await token.supportReserve(),E('5'));
   assert((await token.launchPrice())>0n);
@@ -118,15 +118,15 @@ test('transferFrom burns the same 3% and consumes the gross allowance without a 
   await seedMembership();await (await token.buy(E('100'),0,MaxUint256)).wait();
   await (await token.approve(addresses[41],E('10'))).wait();
   await (await token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('10'))).wait();
-  assert.equal(await token.balanceOf(addresses[0]),E('87'));
+  assert.equal(await token.balanceOf(addresses[0]),E('960'));
   assert.equal(await token.balanceOf(addresses[42]),E('9.7'));
-  assert.equal(await token.totalSupply(),E('96.7'));
+  assert.equal(await token.totalSupply(),E('969.7'));
   assert.equal(await token.allowance(addresses[0],addresses[41]),0n);
   await fails(()=>token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('1')));
   await (await token.approve(addresses[41],MaxUint256)).wait();
   await (await token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('10'))).wait();
   assert.equal(await token.allowance(addresses[0],addresses[41]),MaxUint256);
-  assert.equal(await token.totalSupply(),E('96.4'));
+  assert.equal(await token.totalSupply(),E('969.4'));
 });
 
 test('transfer rounding cannot bypass the burn, zero is valid and zero-net dust reverts',async()=>{
@@ -134,28 +134,28 @@ test('transfer rounding cannot bypass the burn, zero is valid and zero-net dust 
   assert.deepEqual(Array.from(await token.quoteTransfer(0n)),[0n,0n]);
   await (await token.transfer(addresses[42],0n)).wait();
   await fails(()=>token.transfer(addresses[42],1n));
-  assert.equal(await token.totalSupply(),E('97'));
+  assert.equal(await token.totalSupply(),E('970'));
   assert.deepEqual(Array.from(await token.quoteTransfer(101n)),[97n,4n]);
   await (await token.transfer(addresses[42],101n)).wait();
   assert.equal(await token.balanceOf(addresses[42]),97n);
-  assert.equal(await token.totalSupply(),E('97')-4n);
+  assert.equal(await token.totalSupply(),E('970')-4n);
   await (await token.transfer(addresses[42],2n)).wait();
   assert.equal(await token.balanceOf(addresses[42]),98n);
-  assert.equal(await token.totalSupply(),E('97')-5n);
+  assert.equal(await token.totalSupply(),E('970')-5n);
 });
 
 test('self transfers pay the burn and insufficient balance rolls back both burn and allowance',async()=>{
   await seedMembership();await (await token.buy(E('100'),0,MaxUint256)).wait();
   await (await token.transfer(addresses[0],E('10'))).wait();
-  assert.equal(await token.balanceOf(addresses[0]),E('96.7'));
-  assert.equal(await token.totalSupply(),E('96.7'));
-  await (await token.approve(addresses[41],E('100'))).wait();
-  await fails(()=>token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('100')));
-  assert.equal(await token.totalSupply(),E('96.7'));
+  assert.equal(await token.balanceOf(addresses[0]),E('969.7'));
+  assert.equal(await token.totalSupply(),E('969.7'));
+  await (await token.approve(addresses[41],E('1000'))).wait();
+  await fails(()=>token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('1000')));
+  assert.equal(await token.totalSupply(),E('969.7'));
   assert.equal(await token.balanceOf(addresses[42]),0n);
-  assert.equal(await token.allowance(addresses[0],addresses[41]),E('100'));
+  assert.equal(await token.allowance(addresses[0],addresses[41]),E('1000'));
   await fails(()=>token.transfer(ZeroAddress,E('1')));
-  assert.equal(await token.totalSupply(),E('96.7'));
+  assert.equal(await token.totalSupply(),E('969.7'));
 });
 
 test('pause and emergency block both transfer paths without burning funds',async()=>{
@@ -171,7 +171,7 @@ test('pause and emergency block both transfer paths without burning funds',async
   await (await council.connect(signers[42]).execute(0)).wait();
   await fails(()=>token.transfer(addresses[42],E('10')));
   await fails(()=>token.connect(signers[41]).transferFrom(addresses[0],addresses[42],E('10')));
-  assert.equal(await token.totalSupply(),E('97'));
+  assert.equal(await token.totalSupply(),E('970'));
   assert.equal(await token.allowance(addresses[0],addresses[41]),E('10'));
 });
 
@@ -199,9 +199,9 @@ test('sale and emergency burns after a taxed transfer are not taxed again',async
   assert.equal(await token.totalSupply(),0n);assert.equal(await usd.balanceOf(token.target),0n);
 });
 
-test('anti-whale guard rejects a single sale above 5% of reserve while an allowed sale executes with slippage',async()=>{
-  await (await binary.addUnits(3)).wait();
-  await (await token.buy(E('1000'),0,MaxUint256)).wait();
+test('anti-whale guard exempts small sales but rejects larger exits above 5% of reserve',async()=>{
+  await (await binary.addUnits(30)).wait();
+  await (await token.buy(E('12000'),0,MaxUint256)).wait();
 
   const bal=await token.balanceOf(addresses[0]);
   await fails(()=>token.sell(bal/10n,0,MaxUint256));

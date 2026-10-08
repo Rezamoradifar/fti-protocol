@@ -118,8 +118,8 @@ test('sequential accepted buys and sells strictly increase reserve/share value',
 });
 
 test('hourly outflow circuit breaker blocks aggregate exits above 20% and resets after one hour',async()=>{
-  await (await binary.addUnits(20)).wait();
-  await (await token.buy(E('5000'),0,MaxUint256)).wait();
+  await (await binary.addUnits(100)).wait();
+  await (await token.buy(E('50000'),0,MaxUint256)).wait();
 
   const openingReserve=await token.reserve();
   const chunk=(await token.totalSupply())*3n/100n;
@@ -151,8 +151,8 @@ test('hourly outflow circuit breaker blocks aggregate exits above 20% and resets
 });
 
 test('single-sale guard independently rejects a gross exit above 5% of current reserve',async()=>{
-  await (await binary.addUnits(20)).wait();
-  await (await token.buy(E('5000'),0,MaxUint256)).wait();
+  await (await binary.addUnits(100)).wait();
+  await (await token.buy(E('50000'),0,MaxUint256)).wait();
 
   const tooLarge=(await token.totalSupply())*6n/100n;
   await fails(()=>token.sell(tooLarge,0,MaxUint256));

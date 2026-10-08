@@ -69,7 +69,7 @@ test('dedicated V3 deployment script deploys only the new stack and verifies zer
       }
     );
 
-    assert.match(stdout, /FTI_V3_INTEGRATED_20261008/);
+    assert.match(stdout, /FTI_V3_OWNER_DECISIONS_20261008/);
     assert(fs.existsSync(deploymentFile));
     assert(fs.existsSync(secretsFile));
 

@@ -23,10 +23,14 @@ test('new V3 deployment is readable by the panel API without legacy locks or tim
   await(await token.bind(binary.target)).wait();await(await usd.faucet()).wait();
   await(await usd.approve(binary.target,MaxUint256)).wait();await(await binary.addUnits(1)).wait();
   const cfg={mode:'local',chainId:31337,rpcUrl:rpc,usd:usd.target,council:council.target,token:token.target,binary:binary.target,tokenContract:'FTIReserveTokenV3',binaryContract:'FundedBinaryPlan',councilContract:'SevenGuardianCouncil',batchedRewards:true};
-  const file=path.join(dir,'config.json');fs.writeFileSync(file,JSON.stringify(cfg));
+  const file=path.join(dir,'config.json');
+  fs.writeFileSync(file,JSON.stringify({...cfg,release:'FTI_V3_INTEGRATED_20261008'}));
+  await assert.rejects(()=>startWeb(file),/V3 release mismatch/);
+  fs.writeFileSync(file,JSON.stringify(cfg));
   process.env.PORT='0';process.env.HOST='127.0.0.1';delete process.env.RPC_URL;
   server=await startWeb(file);const origin='http://127.0.0.1:'+server.address().port;
   const stateResponse=await fetch(origin+'/api/state?wallet='+addresses[0]);assert.equal(stateResponse.status,200);const state=await stateResponse.json();
+  assert.equal(state.cycle,'1');assert.equal(state.cycleStartPrice,E('0.1').toString());assert.equal(state.development,addresses[38]);assert.equal(state.rewardModel,'attributed-credit-target-v2');
   assert.equal(state.pricingModel,'zero-start-reserve-v3');assert.equal(state.rewardQueue,'1');
   assert.equal(state.bb,E('5').toString());assert.equal(state.wallet.unlocked,'0');assert.deepEqual(state.wallet.locks,[]);
   const abi=await(await fetch(origin+'/abi/FTIReserveTokenV3')).json();
@@ -40,7 +44,7 @@ test('new V3 deployment is readable by the panel API without legacy locks or tim
   const recipient=await(await fetch(origin+'/api/state?wallet='+addresses[39])).json();
   assert.equal(recipient.wallet.ftiBalance,E('9.7').toString());
   assert.equal(recipient.wallet.unlocked,E('9.7').toString());
-  assert.equal(recipient.supply,E('96.7').toString());
+  assert.equal(recipient.supply,E('969.7').toString());
   assert.equal(recipient.reserve,E('100').toString());
   const locks=await(await fetch(origin+'/api/locks?wallet='+addresses[0])).json();assert.deepEqual(locks.locks,[]);
   const cfgPublic=await(await fetch(origin+'/api/config')).json();assert.equal('rpcUrl' in cfgPublic,false);

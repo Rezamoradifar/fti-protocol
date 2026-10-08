@@ -1,44 +1,30 @@
-# FTI V3 No-Charity Contract Candidate
+# FTI V3 Owner Decisions Candidate — 2026-10-08
 
-This candidate removes the charity allocation from FTIReserveTokenV3.
-Buy and sell fees remain 3%, retained entirely in the pricing reserve.
-No charity wallets, fee-token minting or CharityMinted event remain.
-Normal purchases mint only the beneficiary tokens; normal sales only burn
-sold tokens. Membership support stays separate and never mints FTI.
+Release: FTI_V3_OWNER_DECISIONS_20261008. New immutable deployment required.
 
-Owner-authorized update on 2026-10-08: ordinary transfers and transferFrom
-burn 3% of the gross amount, rounding up to a token base unit. A 100 FTI
-transfer debits 100, credits 97 and burns 3. Positive zero-net transfers are
-rejected; zero transfers remain valid. Self-transfers also burn the fee.
-Minting, sale burns and emergency redemption are not taxed a second time.
-The frontend shows the on-chain net/burn quote before confirmation.
+- Zero premint and zero initial reserve. Bootstrap issuance quote $0.10 in cycle 1,
+  $0.20 in every subsequent normal cycle. Trading fees raise the actual R/S price.
+- Ordinary 3% buy/sell fees stay in reserve; transfers burn 3%.
+- Membership support stays separate until a price decline below the recorded ATH.
+  Minimum available top-up targets one price base unit above ATH, without minting.
+  Exhaustion never adds a sale veto or an unfunded price guarantee.
+- Gross ordinary sales <= $500 bypass ordinary sale caps. Complete full-supply
+  exit also bypasses caps, pays its fee and remaining support to the fixed
+  binary development wallet, clears pricing/support reserve and resets the cycle.
+- Above $500 ordinary sales retain previous 5% single-sale and 20% hourly caps,
+  plus minOut/deadline. The prior agreed slippage formula needs owner reconciliation;
+  no new punitive fee curve is inferred.
+- Optional ranked auto-buy uses 5% of hourly point reward, not monthly Builder
+  awards. Failed attempts preserve funds; the keeper retries. Ordinary membership,
+  fee, price and cycle purchase allowance rules apply to auto-buy too.
+- V3 point rewards use attributable funding without the old $20 maximum.
+  $20 is the protection threshold, not an unfunded guaranteed minimum.
+  Historical legacy deployments keep their existing cap semantics.
+- 5-of-7 council, 72-hour ordinary governance and irreversible emergency unwind
+  remain unchanged. Normal cycle restarts do not reverse emergency unwind.
+- Direct Reward payouts are bounded to 100 ledger beneficiaries with no replay.
 
-Unchanged: zero premint/initial price, no time or wallet-count locks,
-minOut/deadline protection, 5% gross single-sale
-limit, 20% hourly net-outflow limit, B1–B4 allowance multiplier (up to 16x),
-5-of-7 council and irreversible pro-rata emergency redemption.
-FundedBinaryPlan now records a unique queue of finalized cash beneficiaries.
-payRewards(batch) pays up to 100 queued accounts directly, with amounts and
-recipients fixed by pendingReward. It is permissionless, disallows partially
-processed hourly/monthly settlement, and leaves remaining entries durable.
-The keeper automatically drains the queue after settlement; claim() remains
-a fallback and removes the beneficiary from the queue to prevent double pay.
-Optional auto-buy funds remain reserved until execution or release to cash.
-
-## Deployment compatibility
-
-The constructor now accepts (stable, governance, council), without animal
-wallet parameters. Bought/Sold event signatures remove charityTokens.
-The deployment script creates only 30 Genesis helper wallets and emits
-release FTI_V3_INTEGRATED_20261008 with explicit 300 bps reserve and transfer-burn fee metadata.
-Startup verification checks the on-chain transfer fee and deployment metadata.
-Consumers must use freshly compiled V3 ABI/artifacts for this release.
-
-This is source for a NEW testnet deployment. Existing immutable contracts,
-recorded addresses and published services are not upgraded in place.
-No public-chain transaction or mainnet deployment is authorized or performed
-by this code change. Independent audit and production governance remain open.
-
-## Integrated release
-
-Deployment now assigns normal governance to FTITimelock (72 hours), with SevenGuardianCouncil as its only initial proposer (5 of 7 approvals). Emergency authority stays with the council. Server and keeper verify the shared source/artifact fingerprint, network, deployed code hashes and roles before starting. See [Persian integration specification](FTI_INTEGRATED_TESTNET_FA.md) for exact implemented economics, unresolved specification conflicts and reproducible owner-run instructions. The 3% transfer burn is explicitly authorized by the owner; sale limits are unchanged.
+See [owner decisions and exact limits](FTI_OWNER_DECISIONS_20261008_FA.md).
+Server/keeper verify release fingerprint, artifacts, economic constants and roles.
+No public deployment or mainnet transaction was performed by this source change.
+Independent audit and existing dependency-security findings remain open.
