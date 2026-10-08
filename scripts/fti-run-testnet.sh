@@ -3,7 +3,7 @@
 set +x
 set -euo pipefail
 umask 077
-FTI_SHA=9dac27d3893571be5812a61aa92aa6fac20e4bf5
+FTI_SHA=d452728ac95441cfde6b1d288d669d5d22753212
 FTI_DIR=/opt/fti/releases/$FTI_SHA
 FTI_STATE=/var/lib/fti-v3/$FTI_SHA
 FTI_CONFIG=/etc/fti-v3
@@ -11,7 +11,6 @@ FTI_DEPLOYMENT=$FTI_STATE/deployment.json
 FTI_PORT=3108
 fail(){ printf '%s\n' "$*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || fail 'Run this script as root.'
-[[ -d "$FTI_DIR/.git" ]] || fail 'The previous FTI installation has not completed. Run the installation command first.'
 case "$(uname -m)" in
  x86_64) FTI_ARCH=x64 ;;
  aarch64) FTI_ARCH=arm64 ;;
@@ -20,6 +19,13 @@ esac
 FTI_NODE_DIR=/opt/fti/runtime/node-v22.23.3-$FTI_ARCH
 [[ -x "$FTI_NODE_DIR/bin/node" ]] || fail 'The isolated Node 22 installation is missing.'
 export PATH="$FTI_NODE_DIR/bin:$PATH"
+command -v git >/dev/null || fail 'git is required.'
+if [[ ! -e "$FTI_DIR" ]]; then
+ install -d -m 755 /opt/fti/releases
+ git clone --no-checkout https://github.com/Rezamoradifar/fti-protocol.git "$FTI_DIR"
+ git -C "$FTI_DIR" checkout --detach "$FTI_SHA"
+fi
+[[ -d "$FTI_DIR/.git" ]] || fail "Release path exists but is not a git checkout: $FTI_DIR"
 cd "$FTI_DIR"
 [[ "$(git rev-parse HEAD)" == "$FTI_SHA" ]] || fail 'Wrong checkout revision.'
 git diff --quiet || fail 'Tracked source has local changes. Preserve and review them before deployment.'
@@ -35,6 +41,12 @@ export DEPLOYMENT_FILE="$FTI_DEPLOYMENT"
 export V3_DEPLOYMENT_FILE="$FTI_DEPLOYMENT"
 export V3_TESTNET_SECRETS="$FTI_STATE/genesis-secrets.json"
 export DAO_CONFIG="$FTI_STATE/dao.json"
+
+# Prepare the new immutable checkout; never reuse the earlier zero-transfer-fee build.
+if [[ ! -f "$FTI_STATE/dependencies-installed" ]]; then
+ npm ci
+ date -u +%FT%TZ > "$FTI_STATE/dependencies-installed"
+fi
 
 if [[ -e "$FTI_STATE/deployment-started" && ! -f "$FTI_DEPLOYMENT" ]]; then
  fail "A previous deployment attempt is incomplete. Do not redeploy blindly. Its private log is $FTI_STATE/deploy-private.log"
@@ -105,6 +117,7 @@ try{
  if(d.chainId!==97||d.sourceRevision!==process.env.FTI_SHA)throw Error('Wrong deployment network or revision.');
  await verifyV3Deployment(d,p);
  console.log('Verified token:',d.token);
+ console.log('Verified transfer burn: 3%.');
  console.log('Verified binary:',d.binary);
 }catch{console.error('Deployment verification failed. Services were not changed.');process.exitCode=1;}
 finally{p.destroy();}
@@ -177,10 +190,11 @@ const expected=JSON.parse(fs.readFileSync(process.env.FTI_DEPLOYMENT));
 const response=await fetch('http://127.0.0.1:3108/api/config',{signal:AbortSignal.timeout(10000)});
 if(!response.ok)throw Error('Web configuration request failed.');
 const actual=await response.json();
-for(const key of ['chainId','sourceRevision','sourceFingerprint','token','binary','council','timelock']){
+for(const key of ['chainId','sourceRevision','sourceFingerprint','token','binary','council','timelock','transferFeeBps','transferFeeMode']){
  if(actual[key]!==expected[key])throw Error('The web service is serving a different deployment: '+key);
 }
 console.log('Web deployment configuration verified.');
 JS
 printf '\nFTI testnet deployed and services started.\nLocal panel: http://127.0.0.1:%s/app/\n' "$FTI_PORT"
 printf 'Token panel: /token/ | Governance: /admin/\nDeployment record: %s\n' "$FTI_DEPLOYMENT"
+
