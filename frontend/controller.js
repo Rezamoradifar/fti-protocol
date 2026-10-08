@@ -15,6 +15,9 @@ if(reserveModel){
 }
 
 if(v3Model){
+ text('buy-policy','Membership and rank purchase limits apply. V3 has no time or wallet-count locks.');
+ text('sell-policy','V3 has no time locks. Sales remain subject to the 3% fee, single-sale and hourly outflow limits.');
+ text('availability-policy','V3 tokens have no time or wallet-count locks. Pauses, emergency state and sale limits still apply.');
  text('token-price-label','Reserve / FTI');text('token-model-ratio-label','Pricing model');text('token-model-ratio','Zero-start reserve / supply');
  text('token-model-description','No premint or time locks. All 3% buy/sell fees stay in reserve; no charity tokens are minted. Support reserve is separate from normal pricing.');
  text('token-sale-description','Sales use reserve/share quotes: 3% fee, 5% gross single-sale and 20% net hourly outflow limits. Transfers burn 3% of the amount sent.');
@@ -113,7 +116,7 @@ async function refresh(){
  if(sequence!==refreshSequence||requestedAddress!==address)return;
  state=d;councilOwner=isOwner;if(cfg.batchedRewards)text('reward-queue',integer(d.rewardQueue||0)+' wallets awaiting cash payout');if(reserveModel)text('token-anchor',fmt(d.anchorSupply,6));
  if(fundedModel){text('point-retained',fmt(d.pointRetained));text('builder-retained',fmt(d.builderRetained));}
- for(const[id,value]of Object.entries({'token-spot':fmt(d.price,6),'token-reserve':fmt(d.reserve),'token-supply':fmt(d.supply),'token-bb':fmt(d.bb),'token-floor':fmt(d.floor),'token-status':d.tokenPaused?'Paused':'Active',price:fmt(d.price,6),reserve:fmt(d.reserve),reserve2:fmt(d.reserve),members:integer(d.count),'point-pool':fmt(d.pointPool),buyback:fmt(d.bb),floor:fmt(d.floor),supply:fmt(d.supply),epoch:'Epoch '+integer(d.epoch),phase:['Accepting deposits','Matching points','Allocating rewards'][d.phase]||'Processing',protection:integer(d.level),'epoch-end':utc(d.epochEnd),accounting:d.account1[0]===d.account1[1]&&d.account2[0]===d.account2[1]?'Balanced':'Review required',queue:`Volume queue: ${d.jobCursor} / ${d.jobCount}\nSettlement phase: ${d.phase} · Member cursor: ${d.cursor}`,'lock-clock':'Wallet counter '+integer(d.clock),'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))text(id,value);
+ for(const[id,value]of Object.entries({'token-spot':fmt(d.price,6),'token-reserve':fmt(d.reserve),'token-supply':fmt(d.supply),'token-bb':fmt(d.bb),'token-floor':fmt(d.floor),'token-status':d.tokenPaused?'Paused':'Active',price:fmt(d.price,6),reserve:fmt(d.reserve),reserve2:fmt(d.reserve),members:integer(d.count),'point-pool':fmt(d.pointPool),buyback:fmt(d.bb),floor:fmt(d.floor),supply:fmt(d.supply),epoch:'Epoch '+integer(d.epoch),phase:['Accepting deposits','Matching points','Allocating rewards'][d.phase]||'Processing',protection:integer(d.level),'epoch-end':utc(d.epochEnd),accounting:d.account1[0]===d.account1[1]&&d.account2[0]===d.account2[1]?'Balanced':'Review required',queue:`Volume queue: ${d.jobCursor} / ${d.jobCount}\nSettlement phase: ${d.phase} · Member cursor: ${d.cursor}`,'lock-clock':v3Model?'No time locks':'Wallet counter '+integer(d.clock),'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))text(id,value);
  renderWallet();syncActions();
 }
 function renderWallet(){
@@ -137,7 +140,7 @@ function renderWallet(){
  $('#tree').replaceChildren();for(const[label,key]of [['Sponsor','parent'],['Left branch','left'],['Right branch','right']]){const node=document.createElement('div');node.textContent=label;const value=document.createElement('small');value.textContent=w&&w[key]!==ZeroAddress?w[key]:w?'Empty position':'Connect to view';node.append(value);$('#tree').append(node);}
  $('#locks').replaceChildren();
  if(w?.locks.length){for(const l of w.locks){const tr=document.createElement('tr');for(const value of [fmt(l.amount,6),integer(l.clock),utc(l.deadline),BigInt(state.clock)>=BigInt(l.clock)||state.timestamp>=Number(l.deadline)?'Unlocked':'Locked']){const td=document.createElement('td');td.textContent=value;tr.append(td);}$('#locks').append(tr);}}
- else{const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.textContent=address?'No token lock tranches recorded.':'Connect a wallet to see its unlock schedule.';tr.append(td);$('#locks').append(tr);}
+ else{const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.textContent=v3Model?'V3 does not create time or wallet-count lock tranches.':address?'No token lock tranches recorded.':'Connect a wallet to see its unlock schedule.';tr.append(td);$('#locks').append(tr);}
  if(w&&!autoDirty){$('#auto-form').elements.enabled.checked=w.autoEnabled;if(BigInt(w.maxAutoPrice)>0n)$('#auto-form').elements.price.value=formatEther(w.maxAutoPrice);}
 }
 $('#reward-all-panel').hidden=!cfg.batchedRewards;
