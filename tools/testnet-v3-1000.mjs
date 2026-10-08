@@ -19,7 +19,7 @@ export function sellAmount(target,held,supply,reserve){
  return tokens<held?tokens:held;
 }
 const json=x=>JSON.stringify(x,(_,v)=>typeof v==='bigint'?v.toString():v,2);
-const envFile=file=>Object.fromEntries(fs.readFileSync(file,'utf8').split(/\r?\n/).filter(l=>/^[A-Z_]+=/.test(l)).map(l=>{const at=l.indexOf('=');return [l.slice(0,at),JSON.parse(l.slice(at+1))];}));
+const envFile=file=>Object.fromEntries(fs.readFileSync(file,'utf8').split(/\r?\n/).filter(l=>/^(RPC_URL|DEPLOYMENT_FILE|KEEPER_PRIVATE_KEY)=/.test(l)).map(l=>{const at=l.indexOf('=');let value=l.slice(at+1).trim();try{value=JSON.parse(value);}catch{}return [l.slice(0,at),value];}));
 
 export async function run(){
  const server=process.env.V3_SERVER_CONFIG?envFile(process.env.V3_SERVER_CONFIG):{};
@@ -93,6 +93,7 @@ export async function run(){
   assert(funderKey,'Enter a dedicated funded TESTNET gas wallet key on the server. Do not use the active keeper wallet.');
   owner=new Wallet(funderKey,p);delete process.env.TEST_PRIVATE_KEY;delete server.KEEPER_PRIVATE_KEY;
   if(process.env.TEST_KEEPER_CONFIG){const keeper=envFile(process.env.TEST_KEEPER_CONFIG);if(keeper.KEEPER_PRIVATE_KEY)assert.notEqual(owner.address,new Wallet(keeper.KEEPER_PRIVATE_KEY).address,'Use a separate test gas wallet to avoid keeper nonce conflicts');}
+  console.log('Test gas funder:',owner.address,'balance:',F(await p.getBalance(owner.address)),'tBNB; budget cap:',F(budget));
   const dir=process.env.TEST_STATE_DIR||path.join(os.homedir(),'.fti-v3-testnet-1000');fs.mkdirSync(dir,{recursive:true,mode:0o700});file=path.join(dir,d.binary.toLowerCase()+'.json');lock=file+'.lock';lockFd=fs.openSync(lock,'wx',0o600);fs.writeSync(lockFd,String(process.pid));
   for(const signal of ['SIGINT','SIGTERM','SIGHUP'])process.once(signal,onSignal);
   if(fs.existsSync(file))j=JSON.parse(fs.readFileSync(file));else{j={version:1,owner:owner.address,contracts:{usd:d.usd,token:d.token,binary:d.binary},keys:Array.from({length:N},()=>Wallet.createRandom().privateKey),done:{},probes:{},failures:[],reserved:'0',spent:'0',startBlock:await p.getBlockNumber(),startEpoch:String(await binary.epoch()),start:await state()};save();}
