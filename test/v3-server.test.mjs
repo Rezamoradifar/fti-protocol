@@ -1,12 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {spawnSync} from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import ganache from 'ganache';
-import {JsonRpcProvider,Wallet,MaxUint256,parseEther as E} from 'ethers';
+import {JsonRpcProvider,Wallet,MaxUint256,parseEther as E,keccak256} from 'ethers';
 import {deployOne} from '../scripts/lib.mjs';
 import {startWeb} from '../scripts/server.mjs';
+import {RELEASE,releaseManifest} from '../scripts/v3-release.mjs';
 
 test('new V3 deployment is readable by the panel API without legacy locks or timelock',async()=>{
  const chain=ganache.server({logging:{quiet:true},wallet:{totalAccounts:40},chain:{chainId:31337},miner:{blockGasLimit:30000000}});
@@ -18,15 +20,24 @@ test('new V3 deployment is readable by the panel API without legacy locks or tim
  try{
   const usd=await deployOne('MockUSD',[],signers[0]);
   const council=await deployOne('SevenGuardianCouncil',[addresses.slice(31,38)],signers[0]);
-  const token=await deployOne('FTIReserveTokenV3',[usd.target,addresses[39],council.target],signers[0]);
-  const binary=await deployOne('FundedBinaryPlan',[usd.target,token.target,addresses[39],council.target,addresses[38],addresses.slice(0,31)],signers[0]);
+  const timelock=await deployOne('FTITimelock',[council.target],signers[0]);
+  const token=await deployOne('FTIReserveTokenV3',[usd.target,timelock.target,council.target],signers[0]);
+  const binary=await deployOne('FundedBinaryPlan',[usd.target,token.target,timelock.target,council.target,addresses[38],addresses.slice(0,31)],signers[0]);
   await(await token.bind(binary.target)).wait();await(await usd.faucet()).wait();
   await(await usd.approve(binary.target,MaxUint256)).wait();await(await binary.addUnits(1)).wait();
   const cfg={mode:'local',chainId:31337,rpcUrl:rpc,usd:usd.target,council:council.target,token:token.target,binary:binary.target,tokenContract:'FTIReserveTokenV3',binaryContract:'FundedBinaryPlan',councilContract:'SevenGuardianCouncil',batchedRewards:true};
   const file=path.join(dir,'config.json');
   fs.writeFileSync(file,JSON.stringify({...cfg,release:'FTI_V3_INTEGRATED_20261008'}));
   await assert.rejects(()=>startWeb(file),/V3 release mismatch/);
+  const keeperCheck=spawnSync(process.execPath,['scripts/keeper.mjs'],{env:{...process.env,DEPLOYMENT_FILE:file},encoding:'utf8',timeout:15000});
+  assert.notEqual(keeperCheck.status,0);assert.match(keeperCheck.stderr,/V3 release mismatch/);
   fs.writeFileSync(file,JSON.stringify(cfg));
+  await assert.rejects(()=>startWeb(file),/V3 release mismatch/);
+  const missingKeeper=spawnSync(process.execPath,['scripts/keeper.mjs'],{env:{...process.env,DEPLOYMENT_FILE:file},encoding:'utf8',timeout:15000});
+  assert.notEqual(missingKeeper.status,0);assert.match(missingKeeper.stderr,/V3 release mismatch/);
+  const codeHashes={};
+  for(const [key,contract] of Object.entries({usd,council,timelock,token,binary}))codeHashes[key]=keccak256(await provider.getCode(contract.target));
+  fs.writeFileSync(file,JSON.stringify({...cfg,release:RELEASE,...releaseManifest(),timelock:timelock.target,development:addresses[38],daoPartners:addresses.slice(31,38),transferFeeBps:300,transferFeeMode:'burn',codeHashes}));
   process.env.PORT='0';process.env.HOST='127.0.0.1';delete process.env.RPC_URL;
   server=await startWeb(file);const origin='http://127.0.0.1:'+server.address().port;
   const stateResponse=await fetch(origin+'/api/state?wallet='+addresses[0]);assert.equal(stateResponse.status,200);const state=await stateResponse.json();

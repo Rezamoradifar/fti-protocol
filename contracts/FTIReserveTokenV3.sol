@@ -61,6 +61,7 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
     uint256 public supportReserve;
     uint256 public launchPrice;
     uint256 public ath;
+    uint256 public pendingSupportTarget;
     uint256 public cycle = 1;
     uint256 public cycleStartPrice = INITIAL_PRICE;
     address public development;
@@ -291,6 +292,7 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
             cycleStartPrice = RESTART_PRICE;
             launchPrice = 0;
             ath = 0;
+            pendingSupportTarget = 0;
             sellWindowStart = 0;
             sellWindowOpeningReserve = 0;
             sellWindowOutflow = 0;
@@ -385,14 +387,17 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         uint256 supply = totalSupply();
         if (supply == 0) return;
         uint256 current = price();
-        if (current < ath && supportReserve > 0) {
-            uint256 target = ath + 1;
+        if (current < ath && pendingSupportTarget == 0) pendingSupportTarget = ath + 1;
+        if (pendingSupportTarget > 0 && current >= pendingSupportTarget) pendingSupportTarget = 0;
+        if (pendingSupportTarget > 0 && supportReserve > 0) {
+            uint256 target = pendingSupportTarget;
             uint256 requiredReserve = Math.mulDiv(target, supply, WAD, Math.Rounding.Ceil);
             uint256 needed = requiredReserve - reserve;
             uint256 assets = needed < supportReserve ? needed : supportReserve;
             supportReserve -= assets;
             reserve += assets;
             current = price();
+            if (current >= target) pendingSupportTarget = 0;
             emit PriceSupported(assets, target, current, current < target);
         }
         if (current > ath) ath = current;
@@ -433,6 +438,7 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
 
     function _update(address from, address to, uint256 value) internal override {
         if (from != address(0) && to != address(0)) {
+            require(to != address(this), "self recipient");
             require(!paused(), "paused");
             require(!emergencyUnwind, "emergency");
             (uint256 received, uint256 burned) = quoteTransfer(value);

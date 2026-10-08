@@ -9,7 +9,7 @@ import {RELEASE, verifyV3Deployment} from './v3-release.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployments/local.json'){
  const cfg=JSON.parse(fs.readFileSync(configPath));
- if(cfg.tokenContract==='FTIReserveTokenV3'&&cfg.release&&cfg.release!==RELEASE)throw Error('V3 release mismatch; deploy the new contracts instead of reusing old addresses');
+ if(cfg.tokenContract==='FTIReserveTokenV3'&&cfg.release!==RELEASE)throw Error('V3 release mismatch; deploy the new contracts instead of reusing old addresses');
  const rpc=process.env.RPC_URL||cfg.rpcUrl;const transport=new FetchRequest(rpc);transport.timeout=15000;const provider=new JsonRpcProvider(transport,undefined,{cacheTimeout:-1,batchMaxCount:1});
  if(cfg.release===RELEASE){try{await verifyV3Deployment(cfg,provider);}catch(e){provider.destroy();throw e;}}
  const eventTransport=new FetchRequest(process.env.EVENT_RPC_URL||rpc);eventTransport.timeout=15000;

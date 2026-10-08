@@ -176,3 +176,28 @@ test('two independent holders exit in order with conserved cash, unchanged binar
   assert.equal(await token.cycle(),2n);assert.equal(await token.cycleStartPrice(),E('0.2'));
   await checkAccounting(suite());
 });
+
+test('self-held dust is rejected for transfer and transferFrom without blocking full exit',async()=>{
+  await seed();const supply=await token.totalSupply(),support=await token.supportReserve();
+  await fails(()=>token.transfer(token.target,2n));
+  await(await token.approve(addresses[1],2n)).wait();
+  await fails(()=>token.connect(signers[1]).transferFrom(addresses[0],token.target,2n));
+  assert.equal(await token.balanceOf(token.target),0n);assert.equal(await token.totalSupply(),supply);
+  assert.equal(await token.supportReserve(),support);
+  await(await token.sell(supply,0,MaxUint256)).wait();assert.equal(await token.cycle(),2n);
+  assert.equal(await token.pendingSupportTarget(),0n);await checkAccounting(suite());
+});
+test('exhausted repair at exactly ATH resumes on new support and stops at minimum target',async()=>{
+  await seed();const ath=await token.ath(),supply=await token.totalSupply();
+  const exactReserve=ceil(ath*supply,E('1'));
+  await(await token.stressReserve((await token.reserve())-exactReserve+(await token.supportReserve()))).wait();
+  await(await token.repair()).wait();
+  assert.equal(await token.price(),ath);assert.equal(await token.supportReserve(),0n);
+  assert.equal(await token.pendingSupportTarget(),ath+1n);
+  const needed=ceil((ath+1n)*supply,E('1'))-exactReserve;
+  await(await binary.addUnits(1)).wait();
+  assert.equal(await token.price(),ath+1n);assert.equal(await token.pendingSupportTarget(),0n);
+  assert.equal(await token.supportReserve(),E('5')-needed);
+  const remaining=await token.supportReserve();await(await token.repair()).wait();
+  assert.equal(await token.supportReserve(),remaining);await checkAccounting(suite());
+});
