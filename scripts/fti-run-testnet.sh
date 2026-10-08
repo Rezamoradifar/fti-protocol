@@ -3,7 +3,7 @@
 set +x
 set -euo pipefail
 umask 077
-FTI_SHA=192c52c39301ebc806d16d1a3f1f72a97f7a2aab
+FTI_SHA=587d888f7245412e1adff999c8529505977e8ae1
 FTI_DIR=/opt/fti/releases/$FTI_SHA
 FTI_STATE=/var/lib/fti-v3/$FTI_SHA
 FTI_CONFIG=/etc/fti-v3
@@ -42,7 +42,7 @@ export V3_DEPLOYMENT_FILE="$FTI_DEPLOYMENT"
 export V3_TESTNET_SECRETS="$FTI_STATE/genesis-secrets.json"
 export DAO_CONFIG="$FTI_STATE/dao.json"
 
-# Prepare the new immutable checkout; never reuse the earlier zero-transfer-fee build.
+# Prepare the new immutable checkout; never reuse contracts from the earlier economic release.
 if [[ ! -f "$FTI_STATE/dependencies-installed" ]]; then
  npm ci
  date -u +%FT%TZ > "$FTI_STATE/dependencies-installed"
