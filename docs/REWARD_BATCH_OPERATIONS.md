@@ -49,7 +49,9 @@ FTI_SCALE_REPORT_DIR=qa node --test test/funded-reward-scale.test.mjs
 
 The scale tests create independently calculated 1,000- and 10,000-position
 network fixtures using compiler-derived storage slots in a local Ganache chain.
-They deploy **unmodified production bytecode**, run actual hourly/monthly
+They deploy **unmodified production bytecode**. A local-only temporary storage
+writer batches fixture creation; its code is removed and the exact original
+runtime (including immutables) is verified before validation. They run hourly/monthly
 settlement and payout transactions, and reconcile allocated sums against an
 independent BigInt ledger. They exercise a blocked recipient, continuation by
 another keeper/caller, fixed destinations, duplicate prevention, and bounded

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import solc from 'solc';
 import ganache from 'ganache';
-import {BrowserProvider,AbiCoder,keccak256,toBeHex,getAddress,parseEther as E} from 'ethers';
+import {BrowserProvider,Interface,AbiCoder,keccak256,toBeHex,getAddress,parseEther as E} from 'ethers';
 import {deployOne} from '../scripts/lib.mjs';
 import {FundedLedger,WAD} from '../core/funded-reference.mjs';
 import {keeperStep} from '../scripts/keeper.mjs';
@@ -14,6 +14,18 @@ import {keeperStep} from '../scripts/keeper.mjs';
 const sources=Object.fromEntries(fs.readdirSync('contracts').filter(f=>f.endsWith('.sol')).map(f=>[f,{content:fs.readFileSync('contracts/'+f,'utf8')}]));
 const out=JSON.parse(solc.compile(JSON.stringify({language:'Solidity',sources,settings:{outputSelection:{'*':{'*':['storageLayout']}}}}),{import:p=>({contents:fs.readFileSync('node_modules/'+p,'utf8')})}));
 assert(!out.errors?.some(e=>e.severity==='error'));
+// Batch storage writes only during fixture creation, then restore exact runtime.
+// Avoid 145k state-root commits from one RPC call per word.
+const fixtureOutput=JSON.parse(solc.compile(JSON.stringify({language:'Solidity',sources:{'Fixture.sol':{content:`pragma solidity 0.8.30;
+contract Fixture {
+ function seed(uint256[] calldata slots,uint256[] calldata values) external {
+  require(block.chainid==31337 && slots.length==values.length);
+  for(uint256 i;i<slots.length;i++){uint256 slot=slots[i];uint256 value=values[i];assembly {sstore(slot,value)}}
+ }
+}`}},settings:{evmVersion:'shanghai',outputSelection:{'*':{'*':['abi','evm.deployedBytecode.object']}}}})));
+assert(!fixtureOutput.errors?.some(e=>e.severity==='error'));
+const fixture=fixtureOutput.contracts['Fixture.sol'].Fixture;
+const fixtureInterface=new Interface(fixture.abi);
 const layout=out.contracts['FundedBinaryPlan.sol'].FundedBinaryPlan.storageLayout;
 const abi=AbiCoder.defaultAbiCoder();
 const map=(type,key,slot)=>BigInt(keccak256(abi.encode([type,'uint256'],[key,slot])));
@@ -59,8 +71,13 @@ for(const positions of [1000,10000])test(`production EVM settles and pays ${posi
   ledger.monthFunds.forEach((v,i)=>set(mf+BigInt(i),v));
   arr(null,month.map(id=>BigInt(addressFor(id))),map('uint256',monthKey,BigInt(fields.builderAccounts.slot)));
   for(const id of month){const bc=map('address',addressFor(id),map('uint256',monthKey,BigInt(fields.builderCredit.slot)));ledger.users[id].builder.forEach((v,i)=>set(bc+BigInt(i),v));}
-  // Bound concurrency to avoid overwhelming the local state database.
-  const writes=[...rows];for(let i=0;i<writes.length;i+=100)await Promise.all(writes.slice(i,i+100).map(([slot,value])=>engine.request({method:'evm_setAccountStorageAt',params:[binary.target,toBeHex(slot,32),toBeHex(value,32)]})));
+  const writes=[...rows],productionCode=await p.getCode(binary.target);
+  await engine.request({method:'evm_setAccountCode',params:[binary.target,'0x'+fixture.evm.deployedBytecode.object]});
+  for(let i=0;i<writes.length;i+=1000){const chunk=writes.slice(i,i+1000);
+   await(await signers[0].sendTransaction({to:binary.target,data:fixtureInterface.encodeFunctionData('seed',[chunk.map(x=>x[0]),chunk.map(x=>x[1])]),gasLimit:25000000})).wait();
+  }
+  await engine.request({method:'evm_setAccountCode',params:[binary.target,productionCode]});
+  assert.equal(await p.getCode(binary.target),productionCode,'exact production runtime must be restored before validation');
   const collateral=ledger.pointBook+ledger.builderBook+ledger.development;for(let i=0n;i<collateral;i+=E('1000000'))await(await usd.faucet()).wait();await(await usd.transfer(binary.target,collateral)).wait();
   ledger.closeEpoch();ledger.closeMonth();ledger.check(true);
   const gas={epoch:[],month:[],payout:[]};
