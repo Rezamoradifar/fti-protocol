@@ -26,7 +26,9 @@ check both sender and recipient balance deltas. Unsupported fee tokens are
 rejected without losing the beneficiary balance.
 
 The keeper waits for each receipt and uses 25-entry settlement/volume/monthly
-batches and 100-attempt cash batches. A receipt with zero successful payments
+batches and 100-attempt cash batches. The shared local/test helper also clamps
+funded volume/epoch work to 25 entries under its 12-million-gas cap; 100-entry
+funded epoch batches measured up to 17,236,264 gas in the 10k fixture. A receipt with zero successful payments
 backs cash retries off for 60 seconds and continues considering optional
 auto-buys. That retry clock is process-local; the queue and balances are on-chain.
 A restart may make one immediate retry. Gas funding and a running keeper remain

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import solc from 'solc';
 import ganache from 'ganache';
 import {BrowserProvider,Interface,AbiCoder,keccak256,toBeHex,getAddress,parseEther as E} from 'ethers';
-import {deployOne} from '../scripts/lib.mjs';
+import {deployOne,settle} from '../scripts/lib.mjs';
 import {FundedLedger,WAD} from '../core/funded-reference.mjs';
 import {keeperStep} from '../scripts/keeper.mjs';
 
@@ -82,10 +82,18 @@ for(const positions of [1000,10000])test(`production EVM settles and pays ${posi
   ledger.closeEpoch();ledger.closeMonth();ledger.check(true);
   const gas={epoch:[],month:[],payout:[]};
   const check=async()=>{const[a,b]=await binary.accounting();assert.equal(a,b);const[c,d,e,f]=await binary.fundingAccounting();assert.equal(c,d);assert.equal(e,f);};
-  await check();await p.send('evm_increaseTime',[3601]);await p.send('evm_mine',[]);
-  await(await binary.beginEpochClose()).wait();
-  await assert.rejects(()=>binary.payRewards.staticCall(100));
-  while(await binary.phase()>0n){const r=await(await binary.processEpoch(100,{gasLimit:25000000})).wait();gas.epoch.push(r.gasUsed);assert(r.gasUsed<25000000n);}
+  await check();
+  const epochBinary=new Proxy(binary,{get(target,key){
+   if(key==='processEpoch')return async(batch,overrides)=>{
+    assert(batch<=25);assert.equal(overrides.gasLimit,12000000);
+    await assert.rejects(()=>binary.payRewards.staticCall(100));
+    const tx=await binary.processEpoch(batch,overrides);
+    return{wait:async()=>{const r=await tx.wait();gas.epoch.push(r.gasUsed);assert(r.gasUsed<12000000n);return r;}};
+   };return Reflect.get(target,key);
+  }});
+  // The shared helper used to send 100-item funded batches with a 12M cap,
+  // while the benchmark measured up to 17.24M. Exercise its bounded fix.
+  await settle({binary:epochBinary,token,usd},p);
   await check();assert.equal(await binary.pointPool(),ledger.pointBook);
   // Close the actual UTC month, then process attributed monthly rewards.
   const now=(await p.getBlock('latest')).timestamp,end=Date.UTC(2026,10,1)/1000;
