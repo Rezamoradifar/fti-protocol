@@ -1,7 +1,8 @@
+import {t,language} from './locale.js';
 import {JsonRpcProvider,BrowserProvider,Contract,parseEther,formatEther,ZeroAddress,ZeroHash,randomBytes,hexlify,isAddress} from '/vendor/ethers.js';
 import {surface,surfacePages,defaultPage,pagePath} from './surfaces.js';
 const $=s=>document.querySelector(s);
-const text=(id,value)=>{document.getElementById(id).textContent=value;};
+const text=(id,value)=>{document.getElementById(id).textContent=t(value);};
 async function json(url){const response=await fetch(url,{signal:AbortSignal.timeout(25000),cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to read contract data.');return data;}
 const cfg=await json('/api/config');
 const reserveModel=cfg.tokenContract==='FTIReserveToken';const v3Model=cfg.tokenContract==='FTIReserveTokenV3';
@@ -15,6 +16,7 @@ if(reserveModel){
 }
 
 if(v3Model){
+ for(const id of ['legacy-locks','locked-ftis','legacy-floor-fund','legacy-token-floor'])$('#'+id).hidden=true;
  text('buy-policy','Membership and rank purchase limits apply. V3 has no time or wallet-count locks.');
  text('sell-policy','3% fee. Gross sales up to $500 and final full-supply exits are exempt from ordinary sale limits. Minimum output and deadline always apply.');
  text('availability-policy','V3 tokens have no time or wallet-count locks. Pauses, emergency state and sale limits still apply.');
@@ -27,7 +29,7 @@ if(v3Model){
  text('governance-title','5-of-7 governance');text('governance-description',cfg.timelock?'Five guardians approve proposals. Ordinary operations pass through a 72-hour timelock; emergency pause and redemption require five approvals.':'Legacy V3 configuration: ordinary governance is not timelocked. A new integrated deployment is required.');
  $('#timelock-form').hidden=!cfg.timelock;$('#timelock-heading').hidden=!cfg.timelock;
  const select=$('#proposal-form').elements.action;for(const option of [...select.options])if(option.value==='milestone'||(!cfg.timelock&&!['pauseBinary','pauseToken'].includes(option.value)))option.remove();
- const option=document.createElement('option');option.value='emergencyUnwind';option.textContent='Permanent emergency pro-rata redemption';select.append(option);
+ const option=document.createElement('option');option.value='emergencyUnwind';option.textContent=t('Permanent emergency pro-rata redemption');select.append(option);
  $('#token-source').href='https://github.com/Rezamoradifar/fti-protocol/blob/'+(cfg.sourceRevision||'fix/v3-no-charity-batched-rewards-20261008')+'/contracts/FTIReserveTokenV3.sol';
 }
 
@@ -36,20 +38,23 @@ const names={binary:cfg.binaryContract||'BinaryPlan',token:cfg.tokenContract||'F
 await Promise.all(Object.entries(names).map(async([key,name])=>{read[key]=new Contract(cfg[key],await json('/abi/'+name),rpc);}));
 let signer,address,state,busy=false,connecting=false,transactionAddress,refreshSequence=0,autoDirty=false,councilOwner=false;
 let lockOffset=0;
-const ranks=['Member','Builder 1','Builder 2','Builder 3','Builder 4'];
+const ranks=['Member','Builder 1','Builder 2','Builder 3','Builder 4'].map(x=>t(x));
 const thresholds=[100n,200n,500n,1000n];
 const explorer=cfg.chainId===97?'https://testnet.bscscan.com':null;
 const fmt=(value,digits=2)=>value===undefined?'—':Number(formatEther(value)).toLocaleString('en-US',{maximumFractionDigits:digits});
 const integer=value=>BigInt(value).toLocaleString('en-US');
 const utc=value=>new Date(Number(value)*1000).toISOString().replace('T',' ').replace('.000Z',' UTC');
 const short=value=>value.slice(0,6)+'…'+value.slice(-4);
-function status(message,error=false){text('status',message);$('#status').classList.toggle('error',error);}
+function status(message,error=false){text('status',message);$('#status').dataset.state=error?'error':'ready';$('#status').classList.toggle('error',error);}
 function reason(error){if(error.code===4001||error.code==='ACTION_REJECTED')return 'Request cancelled in your wallet.';return error.reason||error.shortMessage||error.message||'The request could not be completed.';}
 function wallet(){return address&&state?.wallet?.address?.toLowerCase()===address.toLowerCase()?state.wallet:null;}
 function syncActions(){
- const w=wallet();const enabled={council:!!signer&&councilOwner,wallet:!!signer,member:!!signer&&!!w?.exists,buyer:!!signer&&BigInt(w?.units||0)>0n,reward:!!signer&&BigInt(w?.claimable||0)>0n,unlocked:!!signer&&BigInt(w?.unlocked||0)>0n,auto:!!signer&&BigInt(w?.autoPending||0)>0n};
+ const w=wallet();const enabled={holder:!!signer&&BigInt(w?.ftiBalance||0)>0n,council:!!signer&&councilOwner,wallet:!!signer,member:!!signer&&!!w?.exists,buyer:!!signer&&BigInt(w?.units||0)>0n,reward:!!signer&&BigInt(w?.claimable||0)>0n,unlocked:!!signer&&BigInt(w?.unlocked||0)>0n,auto:!!signer&&BigInt(w?.autoPending||0)>0n};
  document.querySelectorAll('[data-write]').forEach(button=>{button.disabled=busy||button.dataset.executed==='true'||(button.dataset.requires&&!enabled[button.dataset.requires]);});
  if(cfg.batchedRewards)$('#reward-all').disabled=busy||!signer||!state||BigInt(state.rewardQueue||0)===0n||Number(state.phase)!==0||Number(state.monthPhase)!==0;
+ const normal=!state?.tokenPaused&&!state?.emergencyUnwind;
+ for(const id of ['buy-form','sell-form','transfer-form'])for(const button of $('#'+id).querySelectorAll('[data-write]'))button.disabled=button.disabled||!normal;
+ if(state?.paused||Number(state?.phase)!==0||Number(state?.monthPhase)!==0)$('#register-button').disabled=true;
  $('#connect').disabled=busy||connecting;$('#local-accounts').disabled=busy||connecting;
  $('#copy-address').disabled=!address;$('#copy-referral').disabled=!w?.exists;
  $('#max-sell').disabled=busy||!enabled.unlocked;
@@ -87,7 +92,8 @@ async function connect({silent=false}={}){
   const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}await refresh();status('Wallet connected. Contract data loaded.');
  }catch(error){status(reason(error),true);}finally{connecting=false;syncActions();}
 }
-$('#connect').onclick=connect;
+$('#connect').onclick=()=>connect();
+$('#language-toggle').onclick=()=>{try{localStorage.setItem('fti-language',language==='fa'?'en':'fa');location.reload();}catch{status('Language preference could not be saved.',true);}};
 if(window.ethereum){window.ethereum.on?.('accountsChanged',()=>{try{sessionStorage.removeItem('fti-wallet-connected');}catch{}signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');status('Wallet account changed. Connect to continue.');refresh().catch(e=>status(reason(e),true));});window.ethereum.on?.('chainChanged',()=>location.reload());}
 if(cfg.mode==='local'){
  $('#local-accounts').hidden=false;$('#dev-controls').hidden=false;
@@ -95,13 +101,13 @@ if(cfg.mode==='local'){
  try{const saved=sessionStorage.getItem('fti-local-account');if(cfg.accounts.includes(saved))$('#local-accounts').value=saved;}catch{}
  $('#local-accounts').onchange=connect;
 }
-const network=cfg.mode==='local'?'Local chain · 31337':'BNB Testnet · 97';text('network-name',network);text('account-network',network);text('token-network',network);
+const network=cfg.mode==='local'?t('Local chain · 31337','شبکه محلی · 31337'):'BNB Testnet · 97';text('global-network',network);text('network-name',network);text('account-network',network);text('token-network',network);
 const titles={'token-home':'FTI token',overview:'Overview',network:'Membership & network',trade:'Buy & sell FTI',rewards:'Your rewards',activity:'Protocol activity',admin:'Governance & settlement'};
 function navigate(page,focus=false){
  if(!titles[page])page=defaultPage;
  if(!surfacePages.some(([id])=>id===page)){location.assign(pagePath(page));return;}document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==page);
  document.querySelectorAll('[data-page]').forEach(button=>{const active=button.dataset.page===page;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');});
- text('page-title',titles[page]);document.title=titles[page]+' · FTI Protocol';
+ text('page-title',t(titles[page]));document.title=t(titles[page])+' · FTI Protocol';
  if(location.hash!=='#'+page)history.replaceState(null,'','#'+page);
  if(focus){$('#page-title').focus({preventScroll:true});$('#main').scrollIntoView({behavior:'instant'});}
  if(page==='activity')loadEvents();if(page==='admin')loadProposals();
@@ -117,7 +123,9 @@ async function refresh(){
  if(sequence!==refreshSequence||requestedAddress!==address)return;
  state=d;councilOwner=isOwner;if(cfg.batchedRewards)text('reward-queue',integer(d.rewardQueue||0)+' wallets awaiting cash payout');if(reserveModel)text('token-anchor',fmt(d.anchorSupply,6));
  if(fundedModel){text('point-retained',fmt(d.pointRetained));text('builder-retained',fmt(d.builderRetained));}
- for(const[id,value]of Object.entries({'token-spot':fmt(d.price,6),'token-reserve':fmt(d.reserve),'token-supply':fmt(d.supply),'token-bb':fmt(d.bb),'token-floor':fmt(d.floor),'token-status':d.tokenPaused?'Paused':'Active',price:fmt(d.price,6),reserve:fmt(d.reserve),reserve2:fmt(d.reserve),members:integer(d.count),'point-pool':fmt(d.pointPool),buyback:fmt(d.bb),floor:fmt(d.floor),supply:fmt(d.supply),epoch:'Epoch '+integer(d.epoch),phase:['Accepting deposits','Matching points','Allocating rewards'][d.phase]||'Processing',protection:integer(d.level),'epoch-end':utc(d.epochEnd),accounting:d.account1[0]===d.account1[1]&&d.account2[0]===d.account2[1]?'Balanced':'Review required',queue:`Volume queue: ${d.jobCursor} / ${d.jobCount}\nSettlement phase: ${d.phase} · Member cursor: ${d.cursor}`,'lock-clock':v3Model?'No time locks':'Wallet counter '+integer(d.clock),'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))text(id,value);
+ for(const[id,value]of Object.entries({'token-spot':fmt(d.price,6),'token-reserve':fmt(d.reserve),'token-supply':fmt(d.supply),'token-bb':fmt(d.bb),'token-floor':fmt(d.floor),'token-status':d.emergencyUnwind?'Emergency redemption':d.tokenPaused?'Paused':'Active',price:fmt(d.price,6),reserve:fmt(d.reserve),reserve2:fmt(d.reserve),members:integer(d.count),'point-pool':fmt(d.pointPool),buyback:fmt(d.bb),floor:fmt(d.floor),supply:fmt(d.supply),epoch:'Epoch '+integer(d.epoch),phase:['Accepting deposits','Matching points','Allocating rewards'][d.phase]||'Processing',protection:integer(d.level),'epoch-end':utc(d.epochEnd),accounting:d.account1[0]===d.account1[1]&&d.account2[0]===d.account2[1]?'Balanced':'Review required',queue:`Volume queue: ${d.jobCursor} / ${d.jobCount}\nSettlement phase: ${d.phase} · Member cursor: ${d.cursor}`,'lock-clock':v3Model?'No time locks':'Wallet counter '+integer(d.clock),'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))text(id,value);
+ if(v3Model){text('cycle-display',integer(d.cycle));text('ath-display',fmt(d.ath,6)+' USD');text('bootstrap-display',fmt(d.cycleStartPrice,2)+' USD');text('builder-multiplier',integer(d.builderMultiplier)+'×');}
+ $('#emergency-panel').hidden=!v3Model||!d.emergencyUnwind||!['member','token'].includes(surface);
  renderWallet();syncActions();
 }
 function renderWallet(){
@@ -138,7 +146,7 @@ function renderWallet(){
  text('sponsor-help',registered?'Your sponsor and position stay unchanged when you add units.':'New positions fill the sponsor’s left slot first, then the right. Both slots must not be full.');
  for(const[id,done]of [['step-wallet',!!signer],['step-funds',BigInt(w?.usdBalance||0)>0n],['step-member',registered]])$('#'+id).classList.toggle('done',done);
  $('#referral-link').value=registered?location.origin+'/app/?sponsor='+address+'#network':'';
- $('#tree').replaceChildren();for(const[label,key]of [['Sponsor','parent'],['Left branch','left'],['Right branch','right']]){const node=document.createElement('div');node.textContent=label;const value=document.createElement('small');value.textContent=w&&w[key]!==ZeroAddress?w[key]:w?'Empty position':'Connect to view';node.append(value);$('#tree').append(node);}
+ $('#tree').replaceChildren();for(const[label,key]of [['Sponsor','parent'],['Left branch','left'],['Right branch','right']]){const node=document.createElement('div');node.textContent=t(label);const value=document.createElement('small');value.textContent=t(w&&w[key]!==ZeroAddress?w[key]:w?'Empty position':'Connect to view');node.append(value);$('#tree').append(node);}
  $('#locks').replaceChildren();
  if(w?.locks.length){for(const l of w.locks){const tr=document.createElement('tr');for(const value of [fmt(l.amount,6),integer(l.clock),utc(l.deadline),BigInt(state.clock)>=BigInt(l.clock)||state.timestamp>=Number(l.deadline)?'Unlocked':'Locked']){const td=document.createElement('td');td.textContent=value;tr.append(td);}$('#locks').append(tr);}}
  else{const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.textContent=v3Model?'V3 does not create time or wallet-count lock tranches.':address?'No token lock tranches recorded.':'Connect a wallet to see its unlock schedule.';tr.append(td);$('#locks').append(tr);}
@@ -164,11 +172,12 @@ for(const kind of ['buy','sell']){
  const form=$('#'+kind+'-form');let debounce,quoteSequence=0;
  const showQuote=()=>{clearTimeout(debounce);const sequence=++quoteSequence;text(kind+'-quote','Updating quote…');debounce=setTimeout(async()=>{try{const[a,slip]=amountInput(form);let output,fee;if(kind==='buy')output=await read.token.quoteBuy(a);else[output,fee]=await read.token.quoteSell(a);if(sequence!==quoteSequence)return;const minimum=output*(10000n-slip)/10000n;text(kind+'-quote',(kind==='buy'?'Estimated output: ':'Net proceeds: ')+fmt(output,6)+(kind==='buy'?' FTI':' test USD')+'\nMinimum accepted: '+fmt(minimum,6)+(kind==='buy'?' FTI':' test USD')+(fee!==undefined?(v3Model?' · Fee 3%':' · Fee '+Number(fee)/100+'%'):''));$('#'+kind+'-quote').classList.remove('invalid');}catch(error){if(sequence!==quoteSequence)return;text(kind+'-quote',form.elements.amount.value?'Quote unavailable. Check the amount or refresh contract data.':'Enter an amount for a live quote.');$('#'+kind+'-quote').classList.add('invalid');}},250);};
  form.elements.amount.oninput=showQuote;form.elements.slippage.oninput=showQuote;
- form.onsubmit=e=>{e.preventDefault();transaction(async()=>{const[a,slip]=amountInput(form),w=wallet();if(!w?.exists||BigInt(w.units)===0n)throw Error('Register or add membership units before trading.');if(state.tokenPaused)throw Error('Token trading is paused by the contract.');const deadline=BigInt(state.timestamp)+1200n;
+ form.onsubmit=e=>{e.preventDefault();transaction(async()=>{const[a,slip]=amountInput(form),w=wallet();if(kind==='buy'&&(!w?.exists||BigInt(w.units)===0n))throw Error('Register or add membership units before trading.');if(state.tokenPaused||state.emergencyUnwind)throw Error('Token trading is paused by the contract.');const deadline=BigInt(state.timestamp)+1200n;
   if(kind==='buy'){if(a>BigInt(w.usdBalance))throw Error('Not enough test USD in your wallet.');if(a>BigInt(w.remaining))throw Error('Amount exceeds your remaining manual purchase allowance.');const quote=await read.token.quoteBuy(a);await approve(cfg.token,a);await send(write('token').buy(a,quote*(10000n-slip)/10000n,deadline));}
   else{if(a>BigInt(w.unlocked))throw Error('Amount exceeds your unlocked balance. Check the unlock schedule.');const[q]=await read.token.quoteSell(a);await send(write('token').sell(a,q*(10000n-slip)/10000n,deadline));}
  });};
 }
+$('#emergency-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{if(!v3Model||!state?.emergencyUnwind)throw Error('Emergency redemption is not active.');const amount=parseEther(e.target.elements.amount.value),minimum=parseEther(e.target.elements.minimum.value);if(amount<=0n||amount>BigInt(wallet()?.ftiBalance||0)||minimum<0n)throw Error('Enter an amount within your token balance.');await send(write('token').emergencyRedeem(amount,minimum));});};
 $('#max-sell').onclick=()=>{const form=$('#sell-form');form.elements.amount.value=formatEther(wallet().unlocked);form.elements.amount.dispatchEvent(new Event('input',{bubbles:true}));};
 if(v3Model){
  const form=$('#transfer-form');let timer,sequence=0;
@@ -190,7 +199,7 @@ async function loadEvents(){
 }
 $('#refresh-events').onclick=loadEvents;
 for(const[key,name]of Object.entries(names)){const el=document.createElement('div');el.textContent=name;const code=document.createElement('code');code.textContent=cfg[key];if(explorer){const a=document.createElement('a');a.href=explorer+'/address/'+cfg[key];a.target='_blank';a.rel='noreferrer';a.append(code);el.append(a);}else el.append(code);$('#contracts').append(el);}
-async function loadProposals(){try{const count=Number(await (v3Model?read.council.proposalCount():read.council.count()));$('#proposals').replaceChildren();if(!count)text('proposals','No governance proposals yet.');for(let i=count-1;i>=Math.max(0,count-20);i--){const p=await read.council.proposal(i),box=document.createElement('div');box.className='proposal';const title=document.createElement('p');title.textContent=`Proposal ${i} · ${p[2]} of ${v3Model?5:3} approvals · ${p[3]?'Executed':'Pending'}`;box.append(title);for(const[label,fn]of [['Approve',()=>write('council').approve(i)],['Execute proposal',()=>write('council').execute(i)]]){const button=document.createElement('button');button.className='secondary';button.textContent=label;button.dataset.write='';button.dataset.requires=label==='Approve'?'council':'wallet';button.dataset.executed=String(p[3]);button.onclick=()=>transaction(async()=>{await send(fn());await loadProposals();});box.append(button);}$('#proposals').append(box);}syncActions();}catch(error){text('proposals','Proposals could not be loaded. Reopen this section to retry.');status(reason(error),true);}}
+async function loadProposals(){try{const count=Number(await (v3Model?read.council.proposalCount():read.council.count()));$('#proposals').replaceChildren();if(!count)text('proposals','No governance proposals yet.');for(let i=count-1;i>=Math.max(0,count-20);i--){const p=await read.council.proposal(i),box=document.createElement('div');box.className='proposal';const title=document.createElement('p');title.textContent=language==='fa'?`پیشنهاد ${i} · ${p[2]} از ${v3Model?5:3} تأیید · ${p[3]?'اجراشده':'در انتظار'}`:`Proposal ${i} · ${p[2]} of ${v3Model?5:3} approvals · ${p[3]?'Executed':'Pending'}`;box.append(title);for(const[label,fn]of [['Approve',()=>write('council').approve(i)],['Execute proposal',()=>write('council').execute(i)]]){const button=document.createElement('button');button.className='secondary';button.textContent=t(label);button.dataset.write='';button.dataset.requires=label==='Approve'?'council':'wallet';button.dataset.executed=String(p[3]);button.onclick=()=>transaction(async()=>{await send(fn());await loadProposals();});box.append(button);}$('#proposals').append(box);}syncActions();}catch(error){text('proposals','Proposals could not be loaded. Reopen this section to retry.');status(reason(error),true);}}
 $('#proposal-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const action=e.target.elements.action.value;let target,data;
  if(action==='emergencyUnwind'){target=cfg.token;data=read.token.interface.encodeFunctionData('activateEmergencyUnwind');}
  else if(action==='pauseBinary'||action==='pauseToken'){const key=action==='pauseBinary'?'binary':'token';target=cfg[key];data=read[key].interface.encodeFunctionData('pause');}
