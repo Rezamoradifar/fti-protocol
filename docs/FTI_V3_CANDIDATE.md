@@ -12,8 +12,8 @@ Release: FTI_V3_OWNER_DECISIONS_20261008. New immutable deployment required.
   exit also bypasses caps, pays its fee and remaining support to the fixed
   binary development wallet, clears pricing/support reserve and resets the cycle.
 - Above $500 ordinary sales retain previous 5% single-sale and 20% hourly caps,
-  plus minOut/deadline. The prior agreed slippage formula needs owner reconciliation;
-  no new punitive fee curve is inferred.
+  plus minOut/deadline. The owner explicitly confirmed these limits on October 8 at 20:14 Tehran;
+  no additional punitive fee curve is introduced.
 - Optional ranked auto-buy uses 5% of hourly point reward, not monthly Builder
   awards. Failed attempts preserve funds; the keeper retries. Ordinary membership,
   fee, price and cycle purchase allowance rules apply to auto-buy too.
