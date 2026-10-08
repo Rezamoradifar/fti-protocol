@@ -3,7 +3,7 @@
 set +x
 set -euo pipefail
 umask 077
-FTI_SHA=d452728ac95441cfde6b1d288d669d5d22753212
+FTI_SHA=192c52c39301ebc806d16d1a3f1f72a97f7a2aab
 FTI_DIR=/opt/fti/releases/$FTI_SHA
 FTI_STATE=/var/lib/fti-v3/$FTI_SHA
 FTI_CONFIG=/etc/fti-v3
