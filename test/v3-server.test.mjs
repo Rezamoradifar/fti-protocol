@@ -40,6 +40,16 @@ test('new V3 deployment is readable by the panel API without legacy locks or tim
   fs.writeFileSync(file,JSON.stringify({...cfg,release:RELEASE,...releaseManifest(),timelock:timelock.target,development:addresses[38],daoPartners:addresses.slice(31,38),transferFeeBps:300,transferFeeMode:'burn',codeHashes}));
   process.env.PORT='0';process.env.HOST='127.0.0.1';delete process.env.RPC_URL;
   server=await startWeb(file);const origin='http://127.0.0.1:'+server.address().port;
+  for(const route of ['/app/','/token/','/admin/']){
+    const html=await fetch(origin+route);assert.equal(html.status,200);assert.match(await html.text(),/src="\.\/app.js"/);
+    const js=await fetch(origin+route+'app.js');assert.equal(js.status,200);assert.equal(await js.text(),fs.readFileSync('web/app.js','utf8'));
+  }
+  if(fs.existsSync('landing/dist/index.html')){
+    const home=await fetch(origin+'/');assert.equal(home.status,200);assert.equal(await home.text(),fs.readFileSync('landing/dist/index.html','utf8'));
+    for(const file of ['app.js','app.css','protocol-ring.webp']){
+      const asset=await fetch(origin+'/'+file);assert.equal(asset.status,200);assert.deepEqual(Buffer.from(await asset.arrayBuffer()),fs.readFileSync('landing/dist/'+file));
+    }
+  }
   const stateResponse=await fetch(origin+'/api/state?wallet='+addresses[0]);assert.equal(stateResponse.status,200);const state=await stateResponse.json();
   assert.equal(state.cycle,'1');assert.equal(state.cycleStartPrice,E('0.1').toString());assert.equal(state.development,addresses[38]);assert.equal(state.rewardModel,'attributed-credit-target-v2');
   assert.equal(state.pricingModel,'zero-start-reserve-v3');assert.equal(state.rewardQueue,'1');
