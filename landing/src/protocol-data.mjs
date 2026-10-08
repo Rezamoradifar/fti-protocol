@@ -14,7 +14,7 @@ export const LEGACY_CONTRACTS=[
  {name:'Timelock',role:'Governance execution delay, initially configured to 72 hours.',address:'0x7e28976e53AF9A66824F08169ac0a17AB3C00685',source:'contracts/Governance.sol'}
 ];
 export const DOC_BASE='https://github.com/Rezamoradifar/fti-protocol';
-export const REVISION='9d627c722f055f56ebc7a5608ec06b20945f1349';
+export const REVISION='fix/v3-no-charity-batched-rewards-20261008';
 export const SOURCE_BASE=DOC_BASE+'/blob/'+REVISION+'/';
 export const MAX_POINT_VALUE=20;
 export const V3_CONTRACTS=[

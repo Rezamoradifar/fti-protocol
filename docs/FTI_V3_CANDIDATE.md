@@ -23,10 +23,14 @@ Optional auto-buy funds remain reserved until execution or release to cash.
 The constructor now accepts (stable, governance, council), without animal
 wallet parameters. Bought/Sold event signatures remove charityTokens.
 The deployment script creates only 30 Genesis helper wallets and emits
-release FTI_V3_NO_CHARITY with explicit 300 bps reserve fee metadata.
+release FTI_V3_INTEGRATED_20261008 with explicit 300 bps reserve fee metadata.
 Consumers must use freshly compiled V3 ABI/artifacts for this release.
 
 This is source for a NEW testnet deployment. Existing immutable contracts,
 recorded addresses and published services are not upgraded in place.
 No public-chain transaction or mainnet deployment is authorized or performed
 by this code change. Independent audit and production governance remain open.
+
+## Integrated release
+
+Deployment now assigns normal governance to FTITimelock (72 hours), with SevenGuardianCouncil as its only initial proposer (5 of 7 approvals). Emergency authority stays with the council. Server and keeper verify the shared source/artifact fingerprint, network, deployed code hashes and roles before starting. See [Persian integration specification](FTI_INTEGRATED_TESTNET_FA.md) for exact implemented economics, unresolved specification conflicts and reproducible owner-run instructions. No change to transfer fees or sale limits is implied by integration.

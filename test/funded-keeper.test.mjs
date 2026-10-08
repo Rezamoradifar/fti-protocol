@@ -19,3 +19,8 @@ test('keeper pays a bounded finalized reward batch before optional auto buys',as
  let waited=false;b.payRewards=async size=>{assert.equal(size,100);return{wait:async()=>{waited=true;}};};
  assert.equal(await keeperStep(b,provider),'reward payout batch');assert(waited);
 });
+
+ test('legacy deployment disables reward ABI calls while retaining keeper settlement',async()=>{
+ const b=stub();b.interface.hasFunction=()=>true;b.rewardAccountCount=async()=>{throw Error('Old bytecode has no reward queue');};
+ assert.equal(await keeperStep(b,provider,{batchedRewards:false}),'idle');
+ });
