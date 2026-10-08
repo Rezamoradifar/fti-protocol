@@ -28,3 +28,27 @@ test('a taxed claim reverts without reducing the beneficiary entitlement',async(
 test('missing collateral blocks claims and funding; direct donations cannot create payout credits or be rescued',async()=>{
  await settle({binary,token,usd},p);const pool=await binary.pointPool();await(await usd.burn(binary.target,E('1'))).wait();await fails(()=>binary.claim());await fails(()=>binary.addUnits(1));await(await usd.mint(binary.target,E('11'))).wait();assert.equal(await binary.pointPool(),pool);await fails(()=>binary.rescue(usd.target,addresses[0],E('10')));await check();
 });
+
+test('taxed batch transfers roll back each recipient atomically, preserving its queued entitlement',async()=>{
+ await settle({binary,token,usd},p);
+ const cash=await binary.totalPending(),queue=await binary.rewardAccountCount(),root=await binary.pendingReward(addresses[0]);
+ const pool=await usd.balanceOf(binary.target),supply=await usd.totalSupply();
+ for(const mode of [1,2]){
+  await(await usd.setFeeMode(mode)).wait();await(await binary.payRewards(100,{gasLimit:12000000})).wait();
+  assert.equal(await binary.totalPending(),cash);assert.equal(await binary.rewardAccountCount(),queue);
+  assert.equal(await binary.pendingReward(addresses[0]),root);assert.equal(await usd.balanceOf(binary.target),pool);assert.equal(await usd.totalSupply(),supply);
+ }
+ await(await usd.setFeeMode(0)).wait();await(await binary.payRewards(100)).wait();assert.equal(await binary.totalPending(),0n);await check();
+});
+
+test('collateral callbacks cannot reenter a cash batch, claim or isolated-payment helper',async()=>{
+ await settle({binary,token,usd},p);
+ let saved=await p.send('evm_snapshot',[]);
+ for(const [method,args]of [['payRewards',[1]],['claim',[]],['payRewardIsolated',[addresses[0]]]]){
+  await p.send('evm_revert',[saved]);
+  saved=await p.send('evm_snapshot',[]);
+  await(await usd.setCallback(binary.target,binary.interface.encodeFunctionData(method,args))).wait();
+  await(await binary.payRewards(100,{gasLimit:12000000})).wait();
+  assert(await usd.attempted());assert.equal(await usd.succeeded(),false);assert.equal(await binary.totalPending(),0n);await check();
+ }
+});

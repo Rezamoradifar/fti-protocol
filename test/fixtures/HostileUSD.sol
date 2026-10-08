@@ -12,6 +12,10 @@ contract HostileUSD is ERC20 {
     function burn(address who, uint256 amount) external { _burn(who, amount); }
     function setFeeMode(uint256 mode) external { feeMode = mode; }
     function setCallback(address target, bytes calldata data) external { callback=target; payload=data; }
+    function transfer(address to, uint256 amount) public override returns(bool) {
+        if(callback!=address(0)){attempted=true;(succeeded,)=callback.call(payload);}
+        return super.transfer(to,amount);
+    }
     function transferFrom(address from, address to, uint256 amount) public override returns(bool) {
         if(callback!=address(0)){attempted=true;(succeeded,)=callback.call(payload);}
         return super.transferFrom(from,to,amount);

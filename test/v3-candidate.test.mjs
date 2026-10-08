@@ -268,3 +268,72 @@ test('Reward batch rejects zero/oversized batches and does not queue zero auto r
   await (await binary.releaseAutoToCash()).wait();
   assert.equal(await binary.rewardAccountCount(),0n);
 });
+
+test('blocked reward recipient cannot roll back healthy payouts and keeps its entitlement for retry',async()=>{
+  await closeFundedReward();
+  while(await binary.phase()>0n)await (await binary.processEpoch(100)).wait();
+  const rootReward=await binary.pendingReward(addresses[0]);
+  const devReward=await binary.pendingReward(addresses[38]);
+  const cash=await usd.balanceOf(addresses[38]);
+  await (await usd.setBlocked(addresses[0],true)).wait();
+  await (await binary.payRewards(100,{gasLimit:12000000})).wait();
+  assert.equal(await usd.balanceOf(addresses[38]),cash+devReward);
+  assert.equal(await binary.pendingReward(addresses[0]),rootReward);
+  assert.equal(await binary.rewardAccountCount(),1n);
+  await (await usd.setBlocked(addresses[0],false)).wait();
+  await (await binary.payRewards(100)).wait();
+  assert.equal(await binary.rewardAccountCount(),0n);
+  const [actual,book]=await binary.accounting();assert.equal(actual,book);
+});
+
+test('batch helper is self-only and an insufficient-gas transaction cannot erase rewards',async()=>{
+  await seedMembership();const reward=await binary.pendingReward(addresses[38]);
+  await fails(()=>binary.payRewardIsolated(addresses[38]));
+  await fails(()=>binary.payRewards(100,{gasLimit:100000}));
+  assert.equal(await binary.pendingReward(addresses[38]),reward);
+  assert.equal(await binary.rewardAccountCount(),1n);
+});
+
+test('cash batches preserve auto-buy collateral across failed execution, release and later payout',async()=>{
+  await seedMembership();await (await token.buy(E('100'),0,MaxUint256)).wait();
+  for(const i of [1,2])await (await binary.connect(signers[i]).addUnits(100)).wait();
+  const close=async()=>{
+    while(await binary.jobCursor()<await binary.jobCount())await (await binary.processVolume(100)).wait();
+    const block=await p.getBlock('latest');await p.send('evm_increaseTime',[Number(await binary.epochEnd())-block.timestamp+1]);await p.send('evm_mine',[]);
+    await (await binary.beginEpochClose()).wait();while(await binary.phase()>0n)await (await binary.processEpoch(100)).wait();
+  };
+  await close();assert.equal(await binary.rankOf(addresses[0]),1n);
+  await (await binary.setAutoBuy(true,E('0.01'))).wait();
+  for(const i of [1,2])await (await binary.connect(signers[i]).addUnits(5)).wait();await close();
+  const auto=await binary.pendingAuto(addresses[0]);assert(auto>0n);
+  const reserve=await binary.pointPool(),builder=await binary.builderAccounted(),cash=await binary.totalPending();
+  const poolBefore=await usd.balanceOf(binary.target);
+  await (await binary.payRewards(100)).wait();
+  assert.equal(await usd.balanceOf(binary.target),poolBefore-cash);
+  assert.equal(await binary.totalAuto(),auto);assert.equal(await binary.pendingAuto(addresses[0]),auto);
+  assert.equal(await binary.pointPool(),reserve);assert.equal(await binary.builderAccounted(),builder);
+  await fails(()=>binary.connect(signers[42]).executeAuto(addresses[0],auto));
+  assert.equal(await binary.totalAuto(),auto);
+  await (await binary.setAutoBuy(true,E('100'))).wait();
+  const supply=await token.totalSupply();await (await binary.connect(signers[42]).executeAuto(addresses[0],auto)).wait();
+  assert.equal(await binary.totalAuto(),0n);assert((await token.totalSupply())>supply);
+  for(const i of [1,2])await (await binary.connect(signers[i]).addUnits(5)).wait();await close();
+  const release=await binary.pendingAuto(addresses[0]);assert(release>0n);
+  await (await binary.releaseAutoToCash()).wait();assert.equal(await binary.totalAuto(),0n);
+  const entitlement=await binary.pendingReward(addresses[0]),before=await usd.balanceOf(addresses[0]);
+  await (await binary.claim()).wait();await (await binary.payRewards(100)).wait();
+  assert.equal(await usd.balanceOf(addresses[0]),before+entitlement);
+  const [actual,book]=await binary.accounting();assert.equal(actual,book);
+});
+
+test('partially processed monthly rewards block batches until the month is complete',async()=>{
+  await closeFundedReward();while(await binary.phase()>0n)await (await binary.processEpoch(100)).wait();
+  await p.send('evm_increaseTime',[32*86400]);await p.send('evm_mine',[]);
+  await (await binary.beginEpochClose()).wait();while(await binary.phase()>0n)await (await binary.processEpoch(100)).wait();
+  await (await binary.beginBuilderMonth()).wait();assert.equal(await binary.monthPhase(),1n);
+  await fails(()=>binary.payRewards(100));
+  while(await binary.monthPhase()>0n)await (await binary.processBuilderMonth(1)).wait();
+  await (await binary.payRewards(1)).wait();const remaining=await binary.rewardAccountCount();
+  assert(remaining>0n);await (await binary.connect(signers[42]).payRewards(100)).wait();
+  assert.equal(await binary.rewardAccountCount(),0n);
+});

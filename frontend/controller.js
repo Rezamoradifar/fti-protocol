@@ -53,7 +53,7 @@ function write(key){if(!signer||!address)throw Error('Connect your wallet first.
 async function transaction(fn){
  if(busy)return;if(!signer){status('Connect your wallet first.',true);return;}
  busy=true;transactionAddress=address;syncActions();$('#transaction-link').hidden=true;status('Refreshing wallet data before your request…');
- try{await refresh();if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');await fn();await refresh();status('Transaction confirmed on-chain.');}
+ try{await refresh();if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const result=await fn();await refresh();status(typeof result==='string'?result:'Transaction confirmed on-chain.');}
  catch(error){status(reason(error),true);}
  finally{busy=false;transactionAddress=null;syncActions();}
 }
@@ -139,7 +139,11 @@ function renderWallet(){
  if(w&&!autoDirty){$('#auto-form').elements.enabled.checked=w.autoEnabled;if(BigInt(w.maxAutoPrice)>0n)$('#auto-form').elements.price.value=formatEther(w.maxAutoPrice);}
 }
 $('#reward-all-panel').hidden=!cfg.batchedRewards;
-$('#reward-all').onclick=()=>transaction(()=>send(write('binary').payRewards(100)));
+$('#reward-all').onclick=()=>transaction(async()=>{
+ const receipt=await send(write('binary').payRewards(100));
+ const paid=receipt.logs.map(log=>{try{return read.binary.interface.parseLog(log);}catch{return null;}}).find(log=>log?.name==='RewardBatchPaid');
+ return paid?'Payout confirmed: '+integer(paid.args.accounts)+' wallets paid. Remaining payments stay queued.':'Payout transaction confirmed. Check the queue for remaining payments.';
+});
 $('#refresh-state').onclick=async()=>{try{await refresh();status('Contract data refreshed.');}catch(e){status(reason(e),true);}};
 for(const[id,step]of [['locks-prev',-64],['locks-next',64]])$('#'+id).onclick=async()=>{lockOffset=Math.max(0,lockOffset+step);try{await refresh();}catch(e){status(reason(e),true);}};
 async function copy(value,input){try{await navigator.clipboard.writeText(value);status('Copied to clipboard.');}catch{if(input){input.focus();input.select();status('The link is selected. Copy it from the text field.');}else{const range=document.createRange();range.selectNodeContents($('#wallet-address'));getSelection().removeAllRanges();getSelection().addRange(range);status('The address is selected. Copy the selected text.');}}}

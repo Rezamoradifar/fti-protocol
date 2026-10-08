@@ -20,6 +20,27 @@ test('keeper pays a bounded finalized reward batch before optional auto buys',as
  assert.equal(await keeperStep(b,provider),'reward payout batch');assert(waited);
 });
 
+test('keeper backs off a fully deferred queue and still attempts auto-buy work',async()=>{
+ const b=stub();b.interface.hasFunction=()=>true;b.rewardAccountCount=async()=>1n;
+ let payouts=0,buys=0;b.interface.parseLog=()=>({name:'RewardBatchPaid',args:{accounts:0n}});
+ b.payRewards=async()=>{payouts++;return{wait:async()=>({logs:[{}]})};};
+ b.autoAccountCount=async()=>1n;b.autoAccounts=async()=> 'auto-wallet';b.pendingAuto=async()=>5n;
+ b.executeAuto=async()=>{buys++;return{wait:async()=>({status:1})};};
+ assert.equal(await keeperStep(b,provider),'auto-buy executed');
+ assert.equal(await keeperStep(b,provider),'auto-buy executed');
+ assert.equal(payouts,1);assert.equal(buys,2);
+});
+
+test('keeper restart resumes a durable payout queue without paying twice or overlapping receipts',async()=>{
+ const b=stub();b.interface.hasFunction=()=>true;let queue=205,paid=0;
+ b.rewardAccountCount=async()=>BigInt(queue);
+ b.payRewards=async batch=>({wait:async()=>{const size=Math.min(batch,queue);queue-=size;paid+=size;return{logs:[]};}});
+ assert.equal(await keeperStep(b,provider),'reward payout batch');assert.equal(queue,105);
+ let stop,finish;const done=new Promise(r=>{finish=r;});const original=b.payRewards;
+ b.payRewards=async batch=>{const tx=await original(batch);return{wait:async()=>{const receipt=await tx.wait();if(!queue){stop();finish();}return receipt;}};};
+ stop=startKeeper(b,provider,100);await done;assert.equal(paid,205);assert.equal(queue,0);
+});
+
  test('legacy deployment disables reward ABI calls while retaining keeper settlement',async()=>{
  const b=stub();b.interface.hasFunction=()=>true;b.rewardAccountCount=async()=>{throw Error('Old bytecode has no reward queue');};
  assert.equal(await keeperStep(b,provider,{batchedRewards:false}),'idle');
