@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 umask 027
 [ "$(id -u)" = 0 ] || { echo 'Run as root on the existing FTI server.'; exit 1; }
-FTI_UI_REV=1eb727da1b4200afc7056f5e35af57dc95718e02
+FTI_UI_REV=9fb4eef1e286a943ff18a62790cf82300577b617
 FTI_WEB_ENV=/etc/fti-v3/web.env
 test -s "$FTI_WEB_ENV"
 id fti-v3 >/dev/null
@@ -46,8 +46,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {JsonRpcProvider,FetchRequest} from 'ethers';
+const unit=fs.readFileSync('/etc/systemd/system/fti-v3-web.service','utf8');
+const drops='/etc/systemd/system/fti-v3-web.service.d';
+let settings=unit;
+if(fs.existsSync(drops))for(const file of fs.readdirSync(drops).filter(x=>x.endsWith('.conf')).sort())settings+='\n'+fs.readFileSync(path.join(drops,file),'utf8');
 const env={};
-for(const line of fs.readFileSync(process.env.FTI_WEB_ENV,'utf8').split(/\r?\n/)){
+let envFiles=[];
+for(const match of settings.matchAll(/^EnvironmentFile=(.*)$/gm)){
+ const value=match[1].trim();if(!value){envFiles=[];continue;}
+ const name=value.startsWith('-')?value.slice(1):value;
+ if(!path.isAbsolute(name)||/\s/.test(name))throw Error('Unexpected environment file path');envFiles.push(name);
+}
+for(const file of envFiles)for(const line of fs.readFileSync(file,'utf8').split(/\r?\n/)){
  const i=line.indexOf('=');if(i<1||line.startsWith('#'))continue;
  const raw=line.slice(i+1).trim();env[line.slice(0,i)]=raw.startsWith('"')?JSON.parse(raw):raw;
 }
@@ -55,10 +65,6 @@ const oldFile=env.DEPLOYMENT_FILE;
 if(!oldFile||!path.isAbsolute(oldFile))throw Error('Expected an absolute existing deployment path');
 const cfg=JSON.parse(fs.readFileSync(oldFile));
 if(cfg.chainId!==97||cfg.tokenContract!=='FTIReserveTokenV3'||cfg.binaryContract!=='FundedBinaryPlan')throw Error('Expected the installed V3 BNB testnet deployment');
-const unit=fs.readFileSync('/etc/systemd/system/fti-v3-web.service','utf8');
-const drops='/etc/systemd/system/fti-v3-web.service.d';
-let settings=unit;
-if(fs.existsSync(drops))for(const file of fs.readdirSync(drops).filter(x=>x.endsWith('.conf')).sort())settings+='\n'+fs.readFileSync(path.join(drops,file),'utf8');
 const dirs=[...settings.matchAll(/^WorkingDirectory=(.+)$/gm)];
 const oldDir=dirs.at(-1)?.[1].trim();
 if(!oldDir||!path.isAbsolute(oldDir))throw Error('Cannot resolve the installed web working directory');
@@ -69,16 +75,20 @@ try{
  const old=await import(pathToFileURL(path.join(oldDir,'scripts/v3-release.mjs')));
  await old.verifyV3Deployment(cfg,provider);
  const digest=old.contractDigest();
- for(const file of ['package.json','package-lock.json'])if(!fs.readFileSync(file).equals(fs.readFileSync(path.join(process.env.FTI_UI_DIR,file))))throw Error('Dependency change requires separate review: '+file);
+ const oldPackage=JSON.parse(fs.readFileSync('package.json')),newPackage=JSON.parse(fs.readFileSync(path.join(process.env.FTI_UI_DIR,'package.json')));
+ if(newPackage.dependencies['@walletconnect/ethereum-provider']!=='2.26.0')throw Error('Unexpected WalletConnect dependency');
+ const withoutWallet=values=>Object.fromEntries(Object.entries(values||{}).filter(([key])=>key!=='@walletconnect/ethereum-provider').sort(([a],[b])=>a.localeCompare(b)));
+ for(const field of ['dependencies','devDependencies','overrides'])if(JSON.stringify(withoutWallet(oldPackage[field]))!==JSON.stringify(withoutWallet(newPackage[field])))throw Error('Unexpected dependency change: '+field);
  process.chdir(process.env.FTI_UI_DIR);process.env.FTI_SOURCE_REVISION=process.env.FTI_UI_REV;
  const next=await import(pathToFileURL(path.join(process.env.FTI_UI_DIR,'scripts/v3-release.mjs')));
  const manifest=next.releaseManifest();
  if(next.contractDigest()!==digest||JSON.stringify(manifest.artifactHashes)!==JSON.stringify(cfg.artifactHashes))throw Error('Contract source/artifacts differ; frontend update refused');
  const nextCfg={...cfg,...manifest,contractSourceRevision:cfg.contractSourceRevision||cfg.sourceRevision,frontendUpdate:{previousSourceRevision:cfg.sourceRevision,previousSourceFingerprint:cfg.sourceFingerprint,previousDeploymentFile:oldFile,at:new Date().toISOString()}};
  await next.verifyV3Deployment(nextCfg,provider);
+ const projectId=process.env.WALLETCONNECT_PROJECT_ID||env.WALLETCONNECT_PROJECT_ID||'';if(!/^[a-f0-9]{32}$/i.test(projectId))throw Error('Set WALLETCONNECT_PROJECT_ID to your public Reown project ID');
  const destination=path.join(process.env.FTI_UI_STATE,'deployment.json');
  fs.writeFileSync(destination,JSON.stringify(nextCfg,null,2),{mode:0o640});
- fs.writeFileSync(path.join(process.env.FTI_UI_STATE,'web-ui.env'),'DEPLOYMENT_FILE='+JSON.stringify(destination)+'\nFTI_SOURCE_REVISION='+JSON.stringify(process.env.FTI_UI_REV)+'\n',{mode:0o640});
+ fs.writeFileSync(path.join(process.env.FTI_UI_STATE,'web-ui.env'),'DEPLOYMENT_FILE='+JSON.stringify(destination)+'\nFTI_SOURCE_REVISION='+JSON.stringify(process.env.FTI_UI_REV)+'\nWALLETCONNECT_PROJECT_ID='+JSON.stringify(projectId)+'\n',{mode:0o640});
  console.log('Verified: chain 97, unchanged contract artifacts, five live code hashes and contract bindings.');
 }finally{provider.destroy();}
 JS
@@ -107,12 +117,13 @@ curl --max-time 20 -fsS http://127.0.0.1:3108/api/config -o "$FTI_UI_STATE/publi
 node --input-type=module <<'JS'
 import fs from 'node:fs';
 const dir=process.env.FTI_UI_STATE,cfg=JSON.parse(fs.readFileSync(dir+'/deployment.json')),actual=JSON.parse(fs.readFileSync(dir+'/public-config.json')),health=JSON.parse(fs.readFileSync(dir+'/health.json'));
+if(!/^[a-f0-9]{32}$/i.test(actual.walletConnectProjectId||''))throw Error('WalletConnect is not configured');
 if(!health.ok||health.chainId!==97)throw Error('Web health/network mismatch');
 for(const key of ['token','binary','usd','council','timelock','sourceRevision','sourceFingerprint'])if(actual[key]!==cfg[key])throw Error('Wrong served deployment: '+key);
-for(const route of ['/','/app/','/token/','/admin/','/app.js','/app.css','/app/app.js','/token/app.js','/admin/app.js']){
+for(const route of ['/','/app/','/token/','/admin/','/app.js','/app.css','/app/app.js','/token/app.js','/admin/app.js','/vendor/walletconnect.js']){
  const r=await fetch('http://127.0.0.1:3108'+route,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Route failed: '+route);
  const body=Buffer.from(await r.arrayBuffer());
- const expected=route==='/'?'landing/dist/index.html':['/app/','/token/','/admin/'].includes(route)?'web/index.html':route==='/app.js'?'landing/dist/app.js':route==='/app.css'?'landing/dist/app.css':'web/app.js';
+ const expected=route==='/'?'landing/dist/index.html':['/app/','/token/','/admin/'].includes(route)?'web/index.html':route==='/app.js'?'landing/dist/app.js':route==='/app.css'?'landing/dist/app.css':route==='/vendor/walletconnect.js'?'web/vendor/walletconnect.js':'web/app.js';
  if(!body.equals(fs.readFileSync(expected)))throw Error('Wrong frontend asset: '+route);
 }
 console.log('Frontend and deployment routes verified.');
