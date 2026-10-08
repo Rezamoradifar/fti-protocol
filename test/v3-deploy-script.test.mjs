@@ -62,12 +62,12 @@ test('dedicated V3 deployment script deploys only the new stack and verifies zer
       }
     );
 
-    assert.match(stdout, /FTI_V3_ZERO_START/);
+    assert.match(stdout, /FTI_V3_NO_CHARITY/);
     assert(fs.existsSync(deploymentFile));
     assert(fs.existsSync(secretsFile));
 
     const d = JSON.parse(fs.readFileSync(deploymentFile, 'utf8'));
-    assert.equal(d.release, 'FTI_V3_ZERO_START');
+    assert.equal(d.release, 'FTI_V3_NO_CHARITY');
     assert.equal(d.mode, 'local');
     assert.equal(d.chainId, 31337);
     assert.equal(d.daoThreshold, 5);
@@ -84,12 +84,13 @@ test('dedicated V3 deployment script deploys only the new stack and verifies zer
 
     const s = JSON.parse(fs.readFileSync(secretsFile, 'utf8'));
     assert.equal(s.genesisHelpers.length, 30);
-    assert.match(s.charityWalletA.address, /^0x[0-9a-fA-F]{40}$/);
-    assert.match(s.charityWalletB.address, /^0x[0-9a-fA-F]{40}$/);
-    assert.notEqual(
-      s.charityWalletA.address.toLowerCase(),
-      s.charityWalletB.address.toLowerCase()
-    );
+    assert.equal(d.tradeFeeBps,300);
+    assert.equal(d.reserveFeeBps,300);
+    assert.equal(d.charityEnabled,false);
+    assert.equal('charityWalletA' in d,false);
+    assert.equal('charityWalletB' in d,false);
+    assert.equal('charityWalletA' in s,false);
+    assert.equal('charityWalletB' in s,false);
   } finally {
     await server.close();
     fs.rmSync(dir, {recursive: true, force: true});

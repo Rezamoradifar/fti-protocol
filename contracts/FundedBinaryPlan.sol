@@ -52,6 +52,9 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
     mapping(address=>uint256) public pendingReward;
     mapping(address=>uint256) public pendingAuto;
     uint256 public totalPending;uint256 public totalAuto;
+    address[] public rewardAccounts;
+    mapping(address=>uint256) private rewardIndex;
+    event RewardBatchPaid(uint256 accounts,uint256 amount);
     uint256 public builderAccounted;
     mapping(uint256=>uint256[4]) public monthFunding;
     uint256[4] public builderCarry;
@@ -83,6 +86,7 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
         }
         usd.forceApprove(fti,type(uint256).max);
     }
+    function rewardAccountCount() external view returns(uint256){return rewardAccounts.length;}
     function memberCount() external view returns(uint256){return memberList.length;}
     function jobCount() external view returns(uint256){return jobs.length;}
     function autoAccountCount() external view returns(uint256){return autoAccounts.length;}
@@ -107,7 +111,7 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
         usd.safeTransferFrom(who,address(this),amount);require(usd.balanceOf(address(this))-beforeBal==amount&&beforeUser-usd.balanceOf(who)==amount,'unsupported USD');
         fundingSerial++;if(members[who].units==0)activatedAtSerial[who]=fundingSerial;
         members[who].units+=units;epochUnits+=units;unitsSinceSettlement+=units;pointPool+=units*90e18;
-        pendingReward[development]+=units*1e18;totalPending+=units*1e18;
+        pendingReward[development]+=units*1e18;totalPending+=units*1e18;_trackReward(development);
         (uint256 monthKey,)=Calendar.month(block.timestamp);uint256[4] memory portions=[uint256(16e17),12e17,8e17,4e17];
         for(uint256 i;i<4;i++)monthFunding[monthKey][i]+=units*portions[i];builderAccounted+=units*4e18;
         address parent=members[who].parent;uint256 d=depth[who];uint256 pointShare=d==0?0:units*90e18/d;uint256[4] memory shares;
@@ -160,7 +164,7 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
                 m.carryL-=raw;m.carryR-=raw;paidPoints[epoch][who]=paid;totalPaidPoints+=paid;matchedFunding+=budget;
                 autoSnapshot[epoch][who]=m.autoEnabled&&m.rank>0;
                 uint256 automatic=autoSnapshot[epoch][who]?reward*5/100:0;
-                pendingReward[who]+=reward-automatic;totalPending+=reward-automatic;pendingAuto[who]+=automatic;totalAuto+=automatic;
+                pendingReward[who]+=reward-automatic;totalPending+=reward-automatic;_trackReward(who);pendingAuto[who]+=automatic;totalAuto+=automatic;
                 if(automatic>0)_trackAuto(who);allocated+=reward;pointPool-=reward;settled[epoch][who]=true;dirty[who]=false;
                 emit RewardAllocated(epoch,who,reward-automatic,automatic);
                 uint256 lifetime=m.lifetimeL<m.lifetimeR?m.lifetimeL:m.lifetimeR;uint256[4] memory thresholds=[uint256(100),200,500,1000];
@@ -199,8 +203,34 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
         uint256 beforeBal=usd.balanceOf(address(this));uint256 minted=token.autoBuy(who,amount,minimum,block.timestamp);
         require(beforeBal-usd.balanceOf(address(this))==amount,'unsupported USD');_backed();emit AutoExecuted(who,amount,minted);
     }
-    function releaseAutoToCash() external nonReentrant {uint256 amount=pendingAuto[msg.sender];pendingAuto[msg.sender]=0;totalAuto-=amount;pendingReward[msg.sender]+=amount;totalPending+=amount;_removeAuto(msg.sender);}
-    function claim() external nonReentrant {_backed();uint256 amount=pendingReward[msg.sender];require(amount>0,'no reward');pendingReward[msg.sender]=0;totalPending-=amount;uint256 beforeBal=usd.balanceOf(address(this));uint256 beforeUser=usd.balanceOf(msg.sender);usd.safeTransfer(msg.sender,amount);require(beforeBal-usd.balanceOf(address(this))==amount&&usd.balanceOf(msg.sender)-beforeUser==amount,'unsupported USD');_backed();emit Claimed(msg.sender,amount);}
+    function releaseAutoToCash() external nonReentrant {uint256 amount=pendingAuto[msg.sender];pendingAuto[msg.sender]=0;totalAuto-=amount;pendingReward[msg.sender]+=amount;totalPending+=amount;_trackReward(msg.sender);_removeAuto(msg.sender);}
+    function _trackReward(address who) private {
+        if(pendingReward[who]>0&&rewardIndex[who]==0){rewardAccounts.push(who);rewardIndex[who]=rewardAccounts.length;}
+    }
+    function _removeReward(address who) private {
+        uint256 at=rewardIndex[who];if(at==0)return;
+        address last=rewardAccounts[rewardAccounts.length-1];
+        rewardAccounts[at-1]=last;rewardIndex[last]=at;rewardAccounts.pop();delete rewardIndex[who];
+    }
+    function _payReward(address who) private returns(uint256 amount) {
+        amount=pendingReward[who];require(amount>0,'no reward');
+        pendingReward[who]=0;totalPending-=amount;_removeReward(who);
+        uint256 beforeBal=usd.balanceOf(address(this));uint256 beforeUser=usd.balanceOf(who);
+        usd.safeTransfer(who,amount);
+        require(beforeBal-usd.balanceOf(address(this))==amount&&usd.balanceOf(who)-beforeUser==amount,'unsupported USD');
+        emit Claimed(who,amount);
+    }
+    /// @notice Permissionless bounded payout; caller cannot choose a recipient or amount.
+    /// Remaining queue entries persist for the next transaction/keeper iteration.
+    function payRewards(uint256 batch) external nonReentrant returns(uint256 accounts,uint256 amount) {
+        require(batch>0&&batch<=MAX_BATCH,'batch');
+        require(phase==0&&monthPhase==0,'settlement incomplete');_backed();
+        while(accounts<batch&&rewardAccounts.length>0){
+            amount+=_payReward(rewardAccounts[rewardAccounts.length-1]);accounts++;
+        }
+        _backed();emit RewardBatchPaid(accounts,amount);
+    }
+    function claim() external nonReentrant {_backed();_payReward(msg.sender);_backed();}
     function beginBuilderMonth() external nonReentrant {
         uint256 end=Calendar.endOf(nextBuilderMonth);require(monthPhase==0&&block.timestamp>=end&&lastClosedAt>=end,'month not ready');
         monthMembers=builderAccounts[nextBuilderMonth].length;monthCursor=0;monthPhase=1;
@@ -217,7 +247,7 @@ contract FundedBinaryPlan is ReentrancyGuard,Pausable {
                 uint256 pay;
                 if(credit>0&&_eligible(who,p,cutoff)){
                     monthEligible[p]++;pay=credit<monthPay[p]?credit:monthPay[p];
-                    if(pay>0){builderClaimed[who][p]=true;pendingReward[who]+=pay;totalPending+=pay;builderAccounted-=pay;monthPaid[p]+=pay;}
+                    if(pay>0){builderClaimed[who][p]=true;pendingReward[who]+=pay;totalPending+=pay;_trackReward(who);builderAccounted-=pay;monthPaid[p]+=pay;}
                 }
                 retainedBuilderReserve+=credit-pay;
             }

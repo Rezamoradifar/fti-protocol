@@ -13,7 +13,7 @@ async function deploy(){
   council=await deployOne('SevenGuardianCouncil',[addresses.slice(31,38)],signers[0]);
   token=await deployOne(
     'FTIReserveTokenV3',
-    [usd.target,addresses[39],council.target,addresses[40],addresses[41]],
+    [usd.target,addresses[39],council.target],
     signers[0]
   );
   binary=await deployOne(

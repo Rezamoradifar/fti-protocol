@@ -60,10 +60,8 @@ if (
 // Testnet helpers are intentionally generated at deployment time.
 // The deployer is genesis root so the deployment owner can test immediately.
 // Private keys are written only to a local gitignored file with mode 0600.
-const generated = Array.from({length: 32}, () => Wallet.createRandom());
-const genesisHelpers = generated.slice(0, 30);
-const charityWalletA = generated[30];
-const charityWalletB = generated[31];
+const generated = Array.from({length: 30}, () => Wallet.createRandom());
+const genesisHelpers = generated;
 
 const genesis = [
   deployer,
@@ -88,15 +86,7 @@ const secretPayload = {
     index: index + 1,
     address: w.address,
     privateKey: w.privateKey
-  })),
-  charityWalletA: {
-    address: charityWalletA.address,
-    privateKey: charityWalletA.privateKey
-  },
-  charityWalletB: {
-    address: charityWalletB.address,
-    privateKey: charityWalletB.privateKey
-  }
+  }))
 };
 
 fs.writeFileSync(
@@ -125,9 +115,7 @@ const token = await deployOne(
   [
     usd.target,
     deployer,             // testnet governance
-    council.target,
-    charityWalletA.address,
-    charityWalletB.address
+    council.target
   ],
   signer
 );
@@ -180,7 +168,11 @@ const deploymentTxs = {
 };
 
 const result = {
-  release: 'FTI_V3_ZERO_START',
+  release: 'FTI_V3_NO_CHARITY',
+  tokenContract: 'FTIReserveTokenV3',
+  binaryContract: 'FundedBinaryPlan',
+  councilContract: 'SevenGuardianCouncil',
+  batchedRewards: true,
   mode: chainId === 97 ? 'bnb-testnet' : 'local',
   chainId,
   deployedAt: new Date().toISOString(),
@@ -193,9 +185,10 @@ const result = {
   token: token.target,
   binary: binary.target,
   daoThreshold: 5,
+  tradeFeeBps: 300,
+  reserveFeeBps: 300,
+  charityEnabled: false,
   daoPartners: daoConfig.partners,
-  charityWalletA: charityWalletA.address,
-  charityWalletB: charityWalletB.address,
   genesis,
   initialState: {
     totalSupply: '0',
@@ -225,8 +218,6 @@ console.log(JSON.stringify({
   token: result.token,
   binary: result.binary,
   daoThreshold: result.daoThreshold,
-  charityWalletA: result.charityWalletA,
-  charityWalletB: result.charityWalletB,
   initialState: result.initialState,
   deploymentFile: output
 }, null, 2));

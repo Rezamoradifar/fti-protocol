@@ -12,7 +12,7 @@ async function deploy(){
   council=await deployOne('SevenGuardianCouncil',[addresses.slice(31,38)],signers[0]);
   token=await deployOne(
     'FTIReserveTokenV3',
-    [usd.target,addresses[39],council.target,addresses[40],addresses[41]],
+    [usd.target,addresses[39],council.target],
     signers[0]
   );
   binary=await deployOne(
@@ -75,7 +75,7 @@ test('membership support starts from zero and mints no FTI',async()=>{
   assert.equal(await token.price(),0n);
 });
 
-test('first real buy launches supply; 1% fee value becomes backed charity FTI split across two wallets',async()=>{
+test('first real buy retains the full 3% fee in reserve and mints only buyer tokens',async()=>{
   await seedMembership();
 
   const q=await token.quoteBuy(E('100'));
@@ -84,9 +84,9 @@ test('first real buy launches supply; 1% fee value becomes backed charity FTI sp
   await (await token.buy(E('100'),q,MaxUint256)).wait();
 
   assert.equal(await token.balanceOf(addresses[0]),E('97'));
-  assert.equal(await token.balanceOf(addresses[40]),E('0.5'));
-  assert.equal(await token.balanceOf(addresses[41]),E('0.5'));
-  assert.equal(await token.totalSupply(),E('98'));
+  assert.equal(await token.balanceOf(addresses[40]),0n);
+  assert.equal(await token.balanceOf(addresses[41]),0n);
+  assert.equal(await token.totalSupply(),E('97'));
   assert.equal(await token.reserve(),E('100'));
   assert.equal(await token.supportReserve(),E('5'));
   assert((await token.launchPrice())>0n);
@@ -190,4 +190,81 @@ test('stablecoin and FTI cannot be rescued by governance',async()=>{
       data:token.interface.encodeFunctionData('rescue',[token.target,addresses[39],1])
     })
   );
+});
+
+test('later buys mint only quoted user tokens; sells burn exactly their input without fee mints',async()=>{
+  await seedMembership();
+  await (await token.buy(E('100'),0,MaxUint256)).wait();
+  const before=await token.totalSupply();
+  const quote=await token.quoteBuy(E('50'));
+  await (await token.buy(E('50'),quote,MaxUint256)).wait();
+  assert.equal(await token.totalSupply(),before+quote);
+  assert.equal(await token.balanceOf(addresses[0]),before+quote);
+  assert.equal(await token.balanceOf(addresses[40]),0n);
+  assert.equal(await token.balanceOf(addresses[41]),0n);
+  const sold=E('1');const supply=await token.totalSupply();const reserve=await token.reserve();
+  const [net]=await token.quoteSell(sold);
+  const cash=await usd.balanceOf(addresses[0]);
+  const receipt=await (await token.sell(sold,net,MaxUint256)).wait();
+  assert.equal(await token.totalSupply(),supply-sold);
+  assert.equal(await token.reserve(),reserve-net);
+  assert.equal(await usd.balanceOf(addresses[0]),cash+net);
+  const transfers=receipt.logs.filter(l=>l.address===token.target).map(l=>token.interface.parseLog(l)).filter(l=>l?.name==='Transfer');
+  assert.equal(transfers.length,1);assert.equal(transfers[0].args.from,addresses[0]);
+  assert.equal(transfers[0].args.to,'0x0000000000000000000000000000000000000000');
+  assert.equal(await token.RESERVE_FEE_BPS(),await token.TRADE_FEE_BPS());
+  assert.equal(await token.supportReserve(),E('5'));
+});
+
+async function closeFundedReward(){
+  await seedMembership();
+  await (await binary.connect(signers[1]).addUnits(5)).wait();
+  await (await binary.connect(signers[2]).addUnits(5)).wait();
+  while(await binary.jobCursor()<await binary.jobCount())await (await binary.processVolume(100)).wait();
+  await p.send('evm_increaseTime',[3601]);await p.send('evm_mine',[]);
+  await (await binary.beginEpochClose()).wait();
+}
+
+test('Reward batch sends finalized cash to fixed beneficiaries and resumes without duplicate payments',async()=>{
+  await closeFundedReward();
+  await fails(()=>binary.connect(signers[42]).payRewards(100));
+  while(await binary.phase()>0n)await (await binary.processEpoch(100)).wait();
+  const rootReward=await binary.pendingReward(addresses[0]);
+  const devReward=await binary.pendingReward(addresses[38]);
+  assert(rootReward>0n);assert(devReward>0n);
+  assert.equal(await binary.rewardAccountCount(),2n);
+  const rootCash=await usd.balanceOf(addresses[0]);const devCash=await usd.balanceOf(addresses[38]);
+  const outsiderCash=await usd.balanceOf(addresses[42]);
+  const pointReserve=await binary.pointPool(),builderReserve=await binary.builderAccounted();
+  await (await binary.connect(signers[42]).payRewards(1)).wait();
+  assert.equal(await binary.rewardAccountCount(),1n);
+  await (await binary.connect(signers[42]).payRewards(100)).wait();
+  assert.equal(await binary.rewardAccountCount(),0n);assert.equal(await binary.totalPending(),0n);
+  assert.equal(await usd.balanceOf(addresses[0]),rootCash+rootReward);
+  assert.equal(await usd.balanceOf(addresses[38]),devCash+devReward);
+  assert.equal(await usd.balanceOf(addresses[42]),outsiderCash);
+  assert.equal(await binary.pointPool(),pointReserve);assert.equal(await binary.builderAccounted(),builderReserve);
+  const [actual,accounted]=await binary.accounting();assert.equal(actual,accounted);
+  await (await binary.payRewards(100)).wait();
+  assert.equal(await usd.balanceOf(addresses[0]),rootCash+rootReward);
+});
+
+test('individual claim removes its queue entry and later credits can be queued again',async()=>{
+  await seedMembership();
+  const before=await usd.balanceOf(addresses[38]);
+  await (await binary.connect(signers[38]).claim()).wait();
+  assert.equal(await usd.balanceOf(addresses[38]),before+E('1'));
+  assert.equal(await binary.rewardAccountCount(),0n);
+  await (await binary.addUnits(1)).wait();await (await binary.addUnits(1)).wait();
+  assert.equal(await binary.rewardAccountCount(),1n);
+  await (await binary.connect(signers[42]).payRewards(100)).wait();
+  assert.equal(await usd.balanceOf(addresses[38]),before+E('3'));
+  assert.equal(await binary.rewardAccountCount(),0n);
+  await fails(()=>binary.connect(signers[38]).claim());
+});
+
+test('Reward batch rejects zero/oversized batches and does not queue zero auto releases',async()=>{
+  await fails(()=>binary.payRewards(0));await fails(()=>binary.payRewards(101));
+  await (await binary.releaseAutoToCash()).wait();
+  assert.equal(await binary.rewardAccountCount(),0n);
 });
