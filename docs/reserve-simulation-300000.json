@@ -1,0 +1,21 @@
+{
+  "wallets": 300000,
+  "buys": 300000,
+  "sells": 399999,
+  "transfers": 59999,
+  "checks": 1059998,
+  "limitedOrderHalvings": 34,
+  "largestBuyUSDWei": "500000000000000000000000",
+  "largestSaleUSDWei": "488390936825971763090172",
+  "priceBeforeFinalExitWad": "217329965857807312",
+  "finalPriceWad": "450744564901253179",
+  "cashInUSDWei": "86705773000000000000000000",
+  "cashOutUSDWei": "86705750462771754937341012",
+  "finalReserveUSDWei": "22537228245062658988",
+  "finalCirculatingSupply": "0",
+  "nonRedeemableAnchorShares": "50000000000000000000",
+  "allUserTokensSold": true,
+  "negativePriceTransitions": 0,
+  "unfundedPayouts": 0,
+  "scope": "BigInt arithmetic simulation; all user locks assumed mature. Not a 300k-account EVM/RPC throughput or binary-settlement load test."
+}

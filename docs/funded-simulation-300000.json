@@ -1,0 +1,39 @@
+{
+  "model": "attributed-credit-v1",
+  "kind": "BigInt accounting simulation; NOT EVM or public-testnet load",
+  "newWallets": 300000,
+  "genesis": 31,
+  "paidGenesis": 31,
+  "epochs": 60,
+  "months": 6,
+  "maxDepth": 18,
+  "ancestorVisits": 4876290,
+  "sparseEpochVisits": 298228,
+  "legacyTwoPassScanVisits": 18303720,
+  "monthlyAccountVisits": 275059,
+  "membershipInflow": "90003100.000000000000000000",
+  "pointRewardsAllocated": "11620329.239827015844901673",
+  "builderRewardsAllocated": "563626.103859539152668752",
+  "retainedPointReserve": "65285716.890071833696152808",
+  "retainedBuilderReserve": "3036497.896140460847331248",
+  "unmatchedPointCredits": "4096743.870101150458945519",
+  "unclosedBuilderCredits": "0.000000000000000000",
+  "developmentAllocation": "900031.000000000000000000",
+  "tokenReserveSupport": "4500155.000000000000000000",
+  "assertions": {
+    "nonnegative": true,
+    "pointPartition": true,
+    "builderPartition": true,
+    "globalCashConservation": true,
+    "perWalletLedgerReconciliation": true
+  },
+  "durationSeconds": 8.4,
+  "exclusions": [
+    "On-chain gas throughput",
+    "300k concurrent users",
+    "Adversarial public RPC",
+    "Token trading (separate reserve simulation)",
+    "Calendar automation",
+    "Individual identity / Sybil prevention"
+  ]
+}

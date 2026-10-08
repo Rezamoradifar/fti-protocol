@@ -1,0 +1,106 @@
+{
+  "reviewDateUTC": "2026-10-01",
+  "baselineCommit": "2e1507f6405544815a0f3534426f684c5654b1de",
+  "environment": {
+    "node": "v24.19.0",
+    "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+    "chainId": 31337,
+    "chain": "local in-process Ganache 7.9.2",
+    "collateral": "test-only MockUSD",
+    "publicTransactionsSent": 0
+  },
+  "baselineRun": {
+    "command": "node --test --test-concurrency=1 test/protocol.test.mjs test/math.test.mjs test/economic-adversary.test.mjs",
+    "passed": 31,
+    "failed": 0
+  },
+  "candidateRun": {
+    "command": "npm test",
+    "summary": {
+      "tests": 46,
+      "suites": 0,
+      "pass": 46,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "durationMs": 534343.477204,
+    "autoBuyRegressionTests": 8,
+    "reserveInvariantScenarioTests": 1,
+    "economicDiagnosticTests": 3,
+    "diagnosticMeaning": "Two scenarios pass by confirming unresolved carried-pool capture and sale-splitting behavior; one is a self-funded baseline. These are not fixes.",
+    "log": "core-validation-output.txt",
+    "savedLogSHA256": "288a9ba81daabbf60f791fc87d4ac3b487fc5cc9aa4b6130b00bfe74ca14e008"
+  },
+  "reserveScenario": {
+    "holders": 8,
+    "purchases": 32,
+    "mixedSales": 14,
+    "mixedTransfers": 10,
+    "postOperationInvariantChecks": 72,
+    "finalCirculatingSupply": "0",
+    "clockAdvance": "91 days on local EVM only"
+  },
+  "artifacts": {
+    "BinaryPlan": {
+      "baselineCreationBytecodeSHA256": "e10b84968158510e1c987a92feff9c322f25cec1434d4e4a50788342bf59e779",
+      "candidateCreationBytecodeSHA256": "4306b70c8a55a693dbfd1dbb8ae0dc34d1b4c4e118cc78787dd8d43c8d5b9f48",
+      "runtimeSizeBytes": 15106,
+      "creationBytecodeUnchanged": false,
+      "abiUnchanged": true
+    },
+    "FTIToken": {
+      "baselineCreationBytecodeSHA256": "a84f96d600e1ca7ee912ca185a2fc5c0a9708d44d52810c9924bcff7cd32c2a5",
+      "candidateCreationBytecodeSHA256": "a84f96d600e1ca7ee912ca185a2fc5c0a9708d44d52810c9924bcff7cd32c2a5",
+      "runtimeSizeBytes": 13427,
+      "creationBytecodeUnchanged": true,
+      "abiUnchanged": true
+    },
+    "Council": {
+      "baselineCreationBytecodeSHA256": "bcf3faeb80f3cda84075b8f4e2a17f1fc24662ecc91868c3205c73b3fc937fb2",
+      "candidateCreationBytecodeSHA256": "bcf3faeb80f3cda84075b8f4e2a17f1fc24662ecc91868c3205c73b3fc937fb2",
+      "runtimeSizeBytes": 2893,
+      "creationBytecodeUnchanged": true,
+      "abiUnchanged": true
+    },
+    "FTITimelock": {
+      "baselineCreationBytecodeSHA256": "2d53fb12dd104e509852c019ea114d86104a0bfa4321a0225fb35c707ddde3e0",
+      "candidateCreationBytecodeSHA256": "2d53fb12dd104e509852c019ea114d86104a0bfa4321a0225fb35c707ddde3e0",
+      "runtimeSizeBytes": 5450,
+      "creationBytecodeUnchanged": true,
+      "abiUnchanged": true
+    },
+    "MockUSD": {
+      "baselineCreationBytecodeSHA256": "73890c1ec514ed52729d451d6daa26150cffc28dd3cbc0e577e812414de37a5c",
+      "candidateCreationBytecodeSHA256": "73890c1ec514ed52729d451d6daa26150cffc28dd3cbc0e577e812414de37a5c",
+      "runtimeSizeBytes": 1994,
+      "creationBytecodeUnchanged": true,
+      "abiUnchanged": true
+    }
+  },
+  "sourceFileSHA256": {
+    "contracts/BinaryPlan.sol": "1dc8834759f0b47cf293e5d1368189bf876485797ced8471c66c9e61298223c3",
+    "contracts/FTIToken.sol": "64e65c01d4af204eca1d971c9c82b6558f59820b98f4a526514768aa50030efe",
+    "contracts/Governance.sol": "182368005711afdbc7ba65ad5301c02b90bc5269f9ddd8d903390c7e0c16a72d",
+    "contracts/MockUSD.sol": "660b95edc8684c476f7c50c0da618c16b71ef5c82d948042d20dcd963a229157",
+    "package-lock.json": "50c3f6d053793cd81c776a0bc461bf1550de93b0713e0c928ba18ff43917682a",
+    "package.json": "5d89bc7127a2f1a1e3fb14565e7f45cd464975ab64ddbdf1b061a1a8010022ab",
+    "scripts/compile.mjs": "fc159f67d5615d8b6989aece15aa86049f30a18fe68a30591d9d634a639b19aa",
+    "scripts/lib.mjs": "3ca659947485a2871ceef91a6a289099f0d13bdfec08a5a46dd8abf0172cb532",
+    "test/core-autobuy.test.mjs": "fc7f1cd2edce8dbc9c763593807cdabc847e85bece6dff38e233637d83e960bf",
+    "test/core-solvency.test.mjs": "30ae90708c950ff9654ba0e1c093bb9fd579d76a7c75ec08bb8994e5adc82982",
+    "test/economic-adversary.test.mjs": "c0a426954182f91819c783811a8fd74d4cdabba7754b6bf9522bd35cadfb0d0f",
+    "test/event-reader.test.mjs": "26d8fe9f8fb428a5a101356f50c967bb6b715b462c2da6feee4fe36b334b7a70",
+    "test/event-server.test.mjs": "12ead8d8bef95b703192837a492cf3e423e994f7e8cd2364a090c14af3da36a1",
+    "test/journey-sale.test.mjs": "9bc00897dbeeb7b8195ed8fe05603d9aa982baa16ca03d3e7dd2d557fd588681",
+    "test/math.test.mjs": "a4abf5b32185c0720f9901eb0f0f7bf0056ab1115a37e18a2948f826dd92492a",
+    "test/migration.test.mjs": "0d6068554b725800939491709b0f21878d08767149ee60312153f95d3bc77b94",
+    "test/protocol.test.mjs": "56d1847c2476323147e06667437c48e8339f7de55cc8e3c22f5eb8196915d66f"
+  },
+  "limits": [
+    "Selected regression and integration tests, not an independent audit or formal verification",
+    "No public testnet deployment, source verification or load test performed",
+    "Reward allocation, Sybil limits, sale splitting, legitimate lock capacity and large-scale settlement remain open"
+  ]
+}

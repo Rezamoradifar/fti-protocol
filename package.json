@@ -9,7 +9,7 @@
   },
   "scripts": {
     "compile": "node scripts/compile.mjs",
-    "test": "npm run compile && node --test --test-concurrency=1 test/*.test.mjs",
+    "test": "npm run compile && node --test --test-concurrency=4 test/*.test.mjs",
     "start": "node scripts/server.mjs",
     "demo": "npm run compile && node scripts/local.mjs",
     "keeper": "node scripts/keeper.mjs",
@@ -19,7 +19,14 @@
     "import:deployment": "node scripts/import-browser-deployment.mjs",
     "build:web": "node scripts/build-web.mjs",
     "prestart": "npm run build:web",
-    "predemo": "npm run build:web"
+    "predemo": "npm run build:web",
+    "demo:reserve": "npm run build:web && npm run compile && node scripts/local.mjs --reserve-token",
+    "test:reserve": "npm run compile && node --test --test-concurrency=1 test/reserve-*.test.mjs",
+    "simulate:reserve": "node scripts/simulate-reserve.mjs 300000 docs/reserve-simulation-300000.json",
+    "demo:funded": "npm run build:web && npm run compile && node scripts/local.mjs --funded-plan",
+    "test:funded": "npm run compile && node --test --test-concurrency=1 test/funded-*.test.mjs",
+    "simulate:funded": "node scripts/simulate-funded.mjs 300000 docs/funded-simulation-300000.json",
+    "deploy:v3:testnet": "npm run compile && node scripts/deploy-v3-testnet.mjs"
   },
   "keywords": [],
   "author": "",
@@ -39,5 +46,10 @@
   "private": true,
   "engines": {
     "node": ">=22"
+  },
+  "overrides": {
+    "solc": {
+      "tmp": "0.2.7"
+    }
   }
 }

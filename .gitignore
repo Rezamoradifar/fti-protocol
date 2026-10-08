@@ -16,3 +16,13 @@ deployments/testnet-input.json
 
 # Local browser QA output
 /qa/
+
+# Separate reserve-token test deployments
+deployments/local-reserve.json
+deployments/reserve-testnet*.json
+deployments/local-funded.json
+deployments/funded-testnet*.json
+
+# FTI V3 testnet deployment outputs and generated test-only keys
+deployments/v3-testnet*.json
+deployments/v3-*-secrets*.json
