@@ -9,7 +9,7 @@
   },
   "scripts": {
     "compile": "node scripts/compile.mjs",
-    "test": "npm run compile && node --test --test-concurrency=1 test/*.test.mjs",
+    "test": "npm run compile && node --test --test-concurrency=4 test/*.test.mjs",
     "start": "node scripts/server.mjs",
     "demo": "npm run compile && node scripts/local.mjs",
     "keeper": "node scripts/keeper.mjs",

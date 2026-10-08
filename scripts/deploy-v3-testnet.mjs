@@ -5,9 +5,11 @@ import {
   Wallet,
   NonceManager,
   formatEther,
-  isAddress
+  isAddress, keccak256
 } from 'ethers';
 import {deployOne} from './lib.mjs';
+import {RELEASE, releaseManifest, verifyV3Deployment} from './v3-release.mjs';
+const manifest=releaseManifest();
 
 const rpc = process.env.RPC_URL;
 const privateKey = process.env.DEPLOYER_PRIVATE_KEY;
@@ -25,6 +27,8 @@ if (chainId !== 97 && chainId !== 31337) {
     `FTI V3 deployment is TESTNET/LOCAL ONLY. Expected chain 97 or 31337, got ${chainId}.`
   );
 }
+
+if(chainId===97&&!/^[a-f0-9]{40}$/.test(manifest.sourceRevision||''))throw Error('A full source revision is required for testnet deployment. Build from the pinned git checkout.');
 
 const baseSigner = new Wallet(privateKey, provider);
 const signer = new NonceManager(baseSigner);
@@ -60,10 +64,8 @@ if (
 // Testnet helpers are intentionally generated at deployment time.
 // The deployer is genesis root so the deployment owner can test immediately.
 // Private keys are written only to a local gitignored file with mode 0600.
-const generated = Array.from({length: 32}, () => Wallet.createRandom());
-const genesisHelpers = generated.slice(0, 30);
-const charityWalletA = generated[30];
-const charityWalletB = generated[31];
+const generated = Array.from({length: 30}, () => Wallet.createRandom());
+const genesisHelpers = generated;
 
 const genesis = [
   deployer,
@@ -88,15 +90,7 @@ const secretPayload = {
     index: index + 1,
     address: w.address,
     privateKey: w.privateKey
-  })),
-  charityWalletA: {
-    address: charityWalletA.address,
-    privateKey: charityWalletA.privateKey
-  },
-  charityWalletB: {
-    address: charityWalletB.address,
-    privateKey: charityWalletB.privateKey
-  }
+  }))
 };
 
 fs.writeFileSync(
@@ -120,14 +114,14 @@ const council = await deployOne(
   signer
 );
 
+const timelock = await deployOne('FTITimelock',[council.target],signer);
+
 const token = await deployOne(
   'FTIReserveTokenV3',
   [
     usd.target,
-    deployer,             // testnet governance
-    council.target,
-    charityWalletA.address,
-    charityWalletB.address
+    timelock.target,      // 72-hour normal governance
+    council.target
   ],
   signer
 );
@@ -137,7 +131,7 @@ const binary = await deployOne(
   [
     usd.target,
     token.target,
-    deployer,             // testnet governance
+    timelock.target,      // 72-hour normal governance
     council.target,       // 5/7 emergency guardian
     deployer,             // testnet development wallet
     genesis
@@ -174,28 +168,39 @@ if ((await token.reserve()) !== 0n || (await token.supportReserve()) !== 0n) {
 const deploymentTxs = {
   usd: usd.deploymentTransaction()?.hash ?? null,
   council: council.deploymentTransaction()?.hash ?? null,
+  timelock: timelock.deploymentTransaction()?.hash ?? null,
   token: token.deploymentTransaction()?.hash ?? null,
   binary: binary.deploymentTransaction()?.hash ?? null,
   bind: bindTx.hash
 };
 
 const result = {
-  release: 'FTI_V3_ZERO_START',
+  release: RELEASE,
+  ...manifest,
+  tokenContract: 'FTIReserveTokenV3',
+  binaryContract: 'FundedBinaryPlan',
+  councilContract: 'SevenGuardianCouncil',
+  batchedRewards: true,
   mode: chainId === 97 ? 'bnb-testnet' : 'local',
   chainId,
   deployedAt: new Date().toISOString(),
   deployedBlock: bindReceipt.blockNumber,
   deployer,
-  governance: deployer,
+  governance: timelock.target,
+  timelock: timelock.target,
+  governanceDelay: 259200,
   development: deployer,
   usd: usd.target,
   council: council.target,
   token: token.target,
   binary: binary.target,
   daoThreshold: 5,
+  tradeFeeBps: 300,
+  reserveFeeBps: 300,
+  transferFeeBps: 300,
+  transferFeeMode: 'burn',
+  charityEnabled: false,
   daoPartners: daoConfig.partners,
-  charityWalletA: charityWalletA.address,
-  charityWalletB: charityWalletB.address,
   genesis,
   initialState: {
     totalSupply: '0',
@@ -204,9 +209,19 @@ const result = {
     price: '0'
   },
   transactions: deploymentTxs,
+  constructorArgs:{usd:[],council:[daoConfig.partners],timelock:[council.target],token:[usd.target,timelock.target,council.target],binary:[usd.target,token.target,timelock.target,council.target,deployer,genesis]},
   secretsFile: path.basename(secretsPath),
   note: 'TESTNET ONLY. MockUSD has no monetary value. Mainnet deployment is not approved.'
 };
+
+result.receipts={};result.codeHashes={};
+for(const [name,hash] of Object.entries(deploymentTxs)){
+ const receipt=await provider.getTransactionReceipt(hash);
+ if(!receipt||receipt.status!==1)throw Error('Unsuccessful deployment receipt: '+name);
+ result.receipts[name]={hash,status:receipt.status,blockNumber:receipt.blockNumber,contractAddress:receipt.contractAddress};
+ if(name!=='bind')result.codeHashes[name]=keccak256(await provider.getCode(result[name]));
+}
+await verifyV3Deployment(result,provider);
 
 const output =
   process.env.V3_DEPLOYMENT_FILE ||
@@ -225,8 +240,6 @@ console.log(JSON.stringify({
   token: result.token,
   binary: result.binary,
   daoThreshold: result.daoThreshold,
-  charityWalletA: result.charityWalletA,
-  charityWalletB: result.charityWalletB,
   initialState: result.initialState,
   deploymentFile: output
 }, null, 2));

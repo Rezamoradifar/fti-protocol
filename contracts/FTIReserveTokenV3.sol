@@ -20,9 +20,9 @@ interface IFTIMembership {
  * Goals:
  * - zero premint / zero anchor / zero artificial initial price
  * - membership reserve support never mints FTI and pays no trading fee
- * - 3% buy/sell fee:
- *      1% -> fully-backed FTI minted to two animal-welfare wallets
- *      2% -> retained inside reserve, increasing backing/share
+ * - 3% buy/sell fee retained entirely inside reserve
+ * - 3% of each ordinary ERC20 transfer is burned, including transferFrom
+ * - no charity allocation, charity wallets or fee-token minting
  * - no time/wallet locks
  * - slippage via minOut + deadline
  * - anti-whale sell limits + hourly circuit breaker
@@ -38,8 +38,8 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
     uint256 public constant WAD = 1e18;
 
     uint256 public constant TRADE_FEE_BPS = 300;
-    uint256 public constant CHARITY_BPS = 100;
-    uint256 public constant RESERVE_FEE_BPS = 200;
+    uint256 public constant RESERVE_FEE_BPS = 300;
+    uint256 public constant TRANSFER_FEE_BPS = 300;
 
     uint256 public constant MAX_SINGLE_SELL_BPS = 500;
     uint256 public constant MAX_HOURLY_OUTFLOW_BPS = 2000;
@@ -57,9 +57,6 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
     address public immutable governance;
     address public immutable guardianCouncil;
     address public immutable deployer;
-
-    address public immutable animalWalletA;
-    address public immutable animalWalletB;
 
     IFTIMembership public binary;
 
@@ -79,9 +76,8 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
 
     event Bound(address indexed binary);
     event SupportInjected(uint256 assets, bool indexed newWallet);
-    event Bought(address indexed buyer, uint256 usdIn, uint256 userTokens, uint256 charityTokens, bool automatic);
-    event Sold(address indexed seller, uint256 tokensIn, uint256 usdOut, uint256 charityTokens);
-    event CharityMinted(address indexed animalWalletA, address indexed animalWalletB, uint256 totalTokens);
+    event Bought(address indexed buyer, uint256 usdIn, uint256 userTokens, bool automatic);
+    event Sold(address indexed seller, uint256 tokensIn, uint256 usdOut);
     event EmergencyUnwindActivated(uint256 collateral, uint256 supply);
     event EmergencyRedeemed(address indexed user, uint256 burnedTokens, uint256 usdOut);
 
@@ -93,21 +89,15 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
     constructor(
         address stable,
         address gov,
-        address council,
-        address animalA,
-        address animalB
+        address council
     ) ERC20("FTI Protocol", "FTI") {
         require(stable.code.length > 0, "stable");
         require(gov != address(0) && council != address(0), "roles");
-        require(animalA != address(0) && animalB != address(0), "animal wallets");
-        require(animalA != animalB, "same charity wallet");
         require(IERC20Metadata(stable).decimals() == 18, "18 decimals required");
 
         usd = IERC20(stable);
         governance = gov;
         guardianCouncil = council;
-        animalWalletA = animalA;
-        animalWalletB = animalB;
         deployer = msg.sender;
     }
 
@@ -160,6 +150,13 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         payout = gross - fee;
     }
 
+    /// @notice Amount is the sender's total debit. The burn rounds up to one token base unit.
+    function quoteTransfer(uint256 amount) public pure returns (uint256 received, uint256 burned) {
+        burned = _ceilFee(amount, TRANSFER_FEE_BPS);
+        received = amount - burned;
+        require(amount == 0 || received > 0, "transfer dust");
+    }
+
     function buy(uint256 amount, uint256 minTokens, uint256 deadline)
         external
         nonReentrant
@@ -200,20 +197,15 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         uint256 oldSupply = totalSupply();
 
         uint256 totalFee = _ceilFee(amount, TRADE_FEE_BPS);
-        uint256 charityAssets = _ceilFee(amount, CHARITY_BPS);
         uint256 userAssets = amount - totalFee;
 
         minted = oldSupply == 0
             ? userAssets
             : Math.mulDiv(userAssets, oldSupply, oldReserve);
 
-        uint256 charityMint = oldSupply == 0
-            ? charityAssets
-            : Math.mulDiv(charityAssets, oldSupply, oldReserve);
-
         require(minted >= MIN_MINT, "dust");
         require(minted >= minTokens, "slippage");
-        require(oldSupply + minted + charityMint <= MAX_SUPPLY, "supply cap");
+        require(oldSupply + minted <= MAX_SUPPLY, "supply cap");
         require(reserve + supportReserve + amount <= MAX_RESERVE, "reserve cap");
 
         _receiveExact(payer, amount);
@@ -225,7 +217,6 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         }
 
         _mint(beneficiary, minted);
-        _mintCharity(charityMint);
 
         if (oldSupply == 0) {
             launchPrice = price();
@@ -234,7 +225,7 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
             _requirePriceGrowth(oldReserve, oldSupply);
         }
 
-        emit Bought(beneficiary, amount, minted, charityMint, automatic);
+        emit Bought(beneficiary, amount, minted, automatic);
     }
 
     function sell(uint256 tokens, uint256 minUSD, uint256 deadline)
@@ -257,12 +248,8 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
 
         _checkSellProtection(gross, payout, oldReserve);
 
-        uint256 charityAssets = _ceilFee(gross, CHARITY_BPS);
-        uint256 charityMint = Math.mulDiv(charityAssets, oldSupply, oldReserve);
-
         _burn(msg.sender, tokens);
         reserve -= payout;
-        _mintCharity(charityMint);
 
         _requirePriceGrowth(oldReserve, oldSupply);
 
@@ -274,7 +261,7 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         require(beforePool - usd.balanceOf(address(this)) == payout, "pool delta");
         require(usd.balanceOf(msg.sender) - beforeUser == payout, "user delta");
 
-        emit Sold(msg.sender, tokens, payout, charityMint);
+        emit Sold(msg.sender, tokens, payout);
     }
 
     function _checkSellProtection(uint256 gross, uint256 payout, uint256 currentReserve) internal {
@@ -349,18 +336,6 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         return limit > used ? limit - used : 0;
     }
 
-    function _mintCharity(uint256 tokens) internal {
-        if (tokens == 0) return;
-
-        uint256 a = tokens / 2;
-        uint256 b = tokens - a;
-
-        if (a > 0) _mint(animalWalletA, a);
-        if (b > 0) _mint(animalWalletB, b);
-
-        emit CharityMinted(animalWalletA, animalWalletB, tokens);
-    }
-
     function _ceilFee(uint256 amount, uint256 bps) internal pure returns (uint256) {
         return Math.mulDiv(amount, bps, 10000, Math.Rounding.Ceil);
     }
@@ -413,6 +388,12 @@ contract FTIReserveTokenV3 is ERC20, ReentrancyGuard, Pausable {
         if (from != address(0) && to != address(0)) {
             require(!paused(), "paused");
             require(!emergencyUnwind, "emergency");
+            (uint256 received, uint256 burned) = quoteTransfer(value);
+            // Use the parent implementation so neither leg is taxed again.
+            // Minting, sale burns and emergency redemption never enter this branch.
+            if (burned > 0) super._update(from, address(0), burned);
+            super._update(from, to, received);
+            return;
         }
 
         super._update(from, to, value);
