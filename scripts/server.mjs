@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {readMarket} from './market-reader.mjs';
 import {readEvents} from './event-reader.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,7 +27,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data,(_,v)=>typeof v==='bigint'?v.toString():v));};
  const readMethods=new Set(['eth_chainId','eth_blockNumber','eth_call','eth_getBalance','eth_getStorageAt','eth_getCode','eth_getLogs','eth_getTransactionReceipt','eth_getTransactionByHash','eth_getBlockByNumber','eth_estimateGas','eth_gasPrice','eth_maxPriorityFeePerGas','eth_feeHistory','eth_getTransactionCount']);
  async function body(req){let raw='';for await(const c of req){raw+=c;if(raw.length>65536)throw Error('Request too large');}return JSON.parse(raw);}
- let eventCache,eventFlight;
+ let eventCache,eventFlight,marketCache,marketFlight;
  const server=http.createServer(async(req,res)=>{try{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Content-Security-Policy',`default-src 'self'; script-src 'self'; style-src 'self' ${walletConnectProjectId?"'unsafe-inline'":''}; connect-src 'self' ${walletConnectProjectId?"https://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.com wss://*.walletconnect.org https://*.reown.com https://api.web3modal.org":''}; img-src 'self' data: ${walletConnectProjectId?"https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com https://api.web3modal.org":''}; font-src 'self' ${walletConnectProjectId?'https://fonts.reown.com':''}; frame-src 'self' ${walletConnectProjectId?'https://verify.walletconnect.com https://verify.walletconnect.org':''}; frame-ancestors 'none'; base-uri 'none'`);
@@ -65,6 +66,11 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
    const t=contracts.token;const locks=cfg.lockVersion===2?await t.lockPage(address,offset,limit):(await t.lockInfo(address)).slice(offset,offset+limit);
    const total=cfg.lockVersion===2?await t.lockCount(address):(await t.lockInfo(address)).length;
    return json(res,200,{total,offset,locks:locks.map(l=>({amount:l.amount,clock:l.clock,deadline:l.deadline}))});
+  }
+  if(url.pathname==='/api/market'){
+   if(marketCache&&Date.now()-marketCache.at<30000)return json(res,200,marketCache.data);
+   if(!marketFlight)marketFlight=(async()=>{if((await eventProvider.getNetwork()).chainId!==BigInt(cfg.chainId))throw Error('Wrong market network');const latest=await eventProvider.getBlockNumber();const data=await readMarket(eventProvider,contracts.token,Math.max(cfg.deployedBlock||0,latest-299),latest);marketCache={at:Date.now(),data};return data;})().finally(()=>{marketFlight=null;});
+   try{return json(res,200,await marketFlight);}catch{return json(res,503,{error:'Market history unavailable; no fabricated volume.'});}
   }
   if(url.pathname==='/api/events'){
    if(eventCache&&Date.now()-eventCache.at<15000)return json(res,200,eventCache.rows);

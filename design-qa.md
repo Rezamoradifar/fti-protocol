@@ -18,3 +18,6 @@ Iteration history: fixed wallet/header overlap; reserved desktop navigation spac
 Validation: nine candle, settlement-view and wallet-discovery tests passed. Web and landing production builds passed. Browser verified Buy/Sell tabs, 5m selection, pure-black background and desktop/mobile overflow. No application console errors observed. Real wallet signing and server deployment were not performed in this environment.
 
 No unresolved visual P0/P1/P2 issues. Intentional deviations from the mock are documented above; exact mock financial numbers/history are not production data.
+
+## Candles and volume follow-up
+Added recent 300-block token trade history, execution-price OHLC, actual buy/sell USD volume bars and recent trade rows. Buy USD is usdIn; sale USD is actual usdOut (after fee). This is explicitly recent-block volume, not a fabricated 24h number. RPC batches disabled for browser reads; history requests shared and cached on server. Invalid/unavailable history shows unavailable instead of zero. Historical execution candles are separate from spot-price fallback samples. Twelve relevant tests and production web build passed. Local captured-data preview has no trade-history fixture, so live server retrieval remains to be verified after installation.
