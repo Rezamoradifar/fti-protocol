@@ -73,6 +73,16 @@ JS
  unset DEPLOYER_PRIVATE_KEY KEEPER_PRIVATE_KEY FTI_COUNCIL RPC_URL
  fi
 fi
+# Root's 027 umask otherwise leaves the service unable to traverse the checkout.
+for FTI_PARENT in /opt /opt/fti /opt/fti/releases /var /var/lib /var/lib/fti-continuity; do
+ if ! runuser -u fti-v3 -- test -x "$FTI_PARENT"; then
+  chgrp fti-v3 "$FTI_PARENT"
+  chmod g+x "$FTI_PARENT"
+ fi
+done
+chgrp -R fti-v3 "$FTI_DIR"
+chmod -R g+rX "$FTI_DIR"
+runuser -u fti-v3 -- test -r "$FTI_DIR/scripts/server.mjs"
 chown root:fti-v3 "$FTI_STATE"/{deployment.json,web.env,keeper.env,dao.json}
 chmod 0640 "$FTI_STATE"/{deployment.json,web.env,keeper.env,dao.json}
 chmod 0600 "$FTI_STATE/genesis-secrets.json"
