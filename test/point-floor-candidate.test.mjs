@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import ganache from 'ganache';
 import {BrowserProvider,parseEther as E,MaxUint256} from 'ethers';
 import {deployOne,settle,checkAccounting} from '../scripts/lib.mjs';
+import {collectInventory,validateGenealogy} from '../scripts/migration-inventory.mjs';
 
 test('funded floor: per-wallet minimum, deferred carry, payouts, development 1%, rank boundary and no replay',{timeout:180000},async()=>{
  const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:50},miner:{blockGasLimit:30000000}});
@@ -36,5 +37,9 @@ test('funded floor: per-wallet minimum, deferred carry, payouts, development 1%,
   await settle(suite,p,1);assert.equal(await binary.pendingReward(a[35]),0n);assert.equal((await binary.members(a[35])).carryL,1n);
   await send(binary.connect(w[1]).addUnits(1));await send(binary.connect(w[2]).addUnits(1));await settle(suite,p,1);
   assert.equal(await binary.rankOf(a[0]),1n);await checkAccounting(suite);
+  const inventory=await collectInventory({provider:p,binary,token,usd,cfg:{},blockTag:await p.getBlockNumber()});
+  assert.equal(inventory.users.length,38);assert.equal(inventory.migrationReady,false);
+  assert.equal(inventory.development.wallet,a[49]);assert.equal(inventory.users[35].member.carryL,1n);
+  const broken=structuredClone(inventory.users);broken[35].member.parent=a[0];assert.throws(()=>validateGenealogy(broken));
  }finally{await engine.disconnect();}
 });
