@@ -24,3 +24,10 @@ test('keeper pays a bounded finalized reward batch before optional auto buys',as
  const b=stub();b.interface.hasFunction=()=>true;b.rewardAccountCount=async()=>{throw Error('Old bytecode has no reward queue');};
  assert.equal(await keeperStep(b,provider,{batchedRewards:false}),'idle');
  });
+
+test('finalized rewards are paid even while new volume jobs keep arriving',async()=>{
+ const b=stub();b.interface.hasFunction=()=>true;b.rewardAccountCount=async()=>1n;b.jobCount=async()=>1000n;
+ b.processVolume=async()=>{throw Error('Rewards must not starve behind volume');};
+ let paid=false;b.payRewards=async()=>({wait:async()=>{paid=true;}});
+ assert.equal(await keeperStep(b,provider),'reward payout batch');assert(paid);
+});
