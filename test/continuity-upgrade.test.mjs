@@ -53,6 +53,12 @@ test('proxy upgrade keeps funded users, genealogy, rank, liabilities, token bala
   const reopen=[token.interface.encodeFunctionData('setRecoveryFrozen',[false]),binary.interface.encodeFunctionData('setRecoveryFrozen',[false])],reopenSalt=id('reopen-upgrade');
   await councilCall(timelock.target,timelock.interface.encodeFunctionData('scheduleBatch',[targets,values,reopen,ZeroHash,reopenSalt,259200]));await p.send('evm_increaseTime',[259201]);await p.send('evm_mine',[]);await send(timelock.executeBatch(targets,values,reopen,ZeroHash,reopenSalt));
   const userCash=await usd.balanceOf(a[0]);await send(binary.payRewards(100));assert.equal(await usd.balanceOf(a[0]),userCash+before.pending);await send(binary.payRewards(100));assert.equal(await usd.balanceOf(a[0]),userCash+before.pending);await checkAccounting({usd,token,binary});
+  // No business cap on repeat units: exceed the former one-million limit.
+  await settle({usd,token,binary},p);
+  for(let i=0;i<101;i++)await send(usd.connect(w[30]).faucet());
+  await send(usd.connect(w[30]).approve(binary.target,MaxUint256));
+  await send(binary.connect(w[30]).addUnits(1000001));
+  assert.equal(await binary.unitsOf(a[30]),1000001n);await checkAccounting({usd,token,binary});
  }finally{await engine.disconnect();}
 });
 test('layout gate rejects slot, field and mapping type changes',()=>{

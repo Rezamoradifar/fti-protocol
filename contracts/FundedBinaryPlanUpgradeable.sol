@@ -155,7 +155,7 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     }
     function addUnits(uint256 units) external nonReentrant whenRecoveryOpen whenNotPaused {if(!(members[msg.sender].exists))revert InvalidOperation();_fund(msg.sender,units,false);emit UnitsAdded(msg.sender,units);}
     function _fund(address who,uint256 units,bool newWallet) private {
-        if(!(phase==0&&block.timestamp<epochEnd))revert InvalidOperation();if(!(units>0&&units<=1000000))revert InvalidOperation();
+        if(!(phase==0&&block.timestamp<epochEnd))revert InvalidOperation();if(!(units>0))revert InvalidOperation();
         _backed();uint256 amount=units*UNIT;uint256 beforeBal=usd.balanceOf(address(this));uint256 beforeUser=usd.balanceOf(who);
         usd.safeTransferFrom(who,address(this),amount);if(!(usd.balanceOf(address(this))-beforeBal==amount&&beforeUser-usd.balanceOf(who)==amount))revert InvalidOperation();
         fundingSerial++;if(members[who].units==0)activatedAtSerial[who]=fundingSerial;

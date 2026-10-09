@@ -15,7 +15,7 @@ if(reserveModel){
  text('token-price-label','Gross reserve value per FTI');text('token-model-title','Real-reserve pricing');text('token-model-ratio-label','Pricing model');text('token-model-ratio','Reserve / total shares');
  text('token-reserve-description','Recorded test USD backing');text('token-model-description','The 3% buy and sell fees remain in the real reserve. Positive trades and transfer burns increase the exact reserve/share value. There is no timed yield. The first paid allocation backs permanently locked shares; direct USD donations do not change quotes.');
  text('token-sale-description','Redeem unlocked FTI against recorded reserves. A 3% fee stays in reserve; check the net quote. A rising gross price does not guarantee profit or the value of the collateral.');
- $('#token-anchor-row').hidden=false;$('#token-source').href='https://github.com/Rezamoradifar/fti-protocol/blob/fix/funded-binary/contracts/FTIReserveToken.sol';
+ $('#token-anchor-row').hidden=false;
 }
 
 if(v3Model){
@@ -33,7 +33,7 @@ if(v3Model){
  $('#timelock-form').hidden=!cfg.timelock;$('#timelock-heading').hidden=!cfg.timelock;
  const select=$('#proposal-form').elements.action;for(const option of [...select.options])if(option.value==='milestone'||(!cfg.timelock&&!['pauseBinary','pauseToken'].includes(option.value)))option.remove();
  const option=document.createElement('option');option.value='emergencyUnwind';option.textContent=t('Permanent emergency pro-rata redemption');select.append(option);
- $('#token-source').href='https://github.com/Rezamoradifar/fti-protocol/blob/'+(cfg.sourceRevision||'fix/v3-no-charity-batched-rewards-20261008')+'/contracts/FTIReserveTokenV3.sol';
+ 
 }
 
 const rpc=new JsonRpcProvider(location.origin+'/rpc',undefined,{cacheTimeout:-1});rpc.pollingInterval=1000;
@@ -177,7 +177,7 @@ const sponsor=new URLSearchParams(location.search).get('sponsor');if(sponsor&&is
 $('#register-form').elements.units.oninput=()=>{const raw=$('#register-form').elements.units.value;text('registration-cost',/^\d+$/.test(raw)?integer(BigInt(raw)*100n)+' test USD':'Enter whole units');};
 for(const id of ['claim','claim-rewards'])$('#'+id).onclick=()=>transaction(()=>send(write('binary').claim()));
 $('#faucet').onclick=()=>transaction(()=>send(write('usd').faucet()));
-$('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const f=e.target,n=BigInt(f.elements.units.value);if(n<1n||n>1000000n)throw Error('Enter between 1 and 1,000,000 whole units.');const w=wallet();if(!w)throw Error('Reload wallet data and try again.');const sponsorAddress=f.elements.sponsor.value.trim();if(!w.exists&&(!isAddress(sponsorAddress)||sponsorAddress===ZeroAddress))throw Error('Enter a valid sponsor address.');const cost=n*parseEther('100');if(cost>BigInt(w.usdBalance))throw Error('Not enough test USD. Use Get test USD on Overview.');await approve(cfg.binary,cost);await send(w.exists?write('binary').addUnits(n):write('binary').register(sponsorAddress,n));});};
+$('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const f=e.target,n=BigInt(f.elements.units.value);if(n<1n)throw Error('Enter a positive whole number of units.');const w=wallet();if(!w)throw Error('Reload wallet data and try again.');const sponsorAddress=f.elements.sponsor.value.trim();if(!w.exists&&(!isAddress(sponsorAddress)||sponsorAddress===ZeroAddress))throw Error('Enter a valid sponsor address.');const cost=n*parseEther('100');if(cost>BigInt(w.usdBalance))throw Error('Not enough test USD. Use Get test USD on Overview.');await approve(cfg.binary,cost);await send(w.exists?write('binary').addUnits(n):write('binary').register(sponsorAddress,n));});};
 $('#auto-form').addEventListener('input',()=>{autoDirty=true;});
 $('#auto-form').onsubmit=e=>{e.preventDefault();const enabled=e.target.elements.enabled.checked,price=e.target.elements.price.value;transaction(async()=>{await send(write('binary').setAutoBuy(enabled,parseEther(price)));autoDirty=false;});};
 $('#execute-auto').onclick=()=>transaction(()=>send(write('binary').executeAuto(address,BigInt(wallet().autoPending))));
