@@ -30,7 +30,13 @@ test('proxy upgrade keeps funded users, genealogy, rank, liabilities, token bala
   await send(usd.approve(token.target,MaxUint256));await send(binary.addUnits(2));
   await send(binary.connect(w[1]).addUnits(100));await send(binary.connect(w[2]).addUnits(100));await settle({usd,token,binary},p);
   assert.equal(await binary.calculatedPointValue(),await binary.candidateFunding()/await binary.candidatePoints());assert(await binary.pointValue()>=E('20'));
-  assert.equal(await binary.rankOf(a[0]),1n);await send(token.buy(E('300'),0,MaxUint256));await send(token.transfer(a[1],E('10')));await send(token.approve(a[2],E('5')));
+  assert.equal(await binary.rankOf(a[0]),1n);await send(token.buy(E('300'),0,MaxUint256));const preR=await token.reserve(),preS=await token.totalSupply(),quote=await token.quoteBuy(E('800'));
+  const first=E('485')*preS/preR,second=E('291')*(preS+first)/(preR+E('500'));
+  assert.equal(quote,first+second);assert(quote<E('776')*preS/preR);await assert.rejects(()=>token.buy.staticCall(E('800'),quote+1n,MaxUint256));
+  const balanceBefore=await token.balanceOf(a[0]);await send(token.buy(E('800'),quote,MaxUint256));
+  assert.equal(await token.balanceOf(a[0]),balanceBefore+quote);assert.equal(await token.reserve(),preR+E('800'));
+  await assert.rejects(()=>token.quoteBuy(E('64000.01')));
+  await send(token.transfer(a[1],E('10')));await send(token.approve(a[2],E('5')));
   const snapshot=async()=>({members:await Promise.all([0,1,2].map(i=>binary.members(a[i]).then(r=>Array.from(r)))),credits:await Promise.all([0,1,2].map(i=>binary.creditL(a[i]))),pending:await binary.pendingReward(a[0]),dev:await binary.pendingReward(a[44]),pool:await binary.pointPool(),balance0:await token.balanceOf(a[0]),balance1:await token.balanceOf(a[1]),allowance:await token.allowance(a[0],a[2]),reserve:await token.reserve(),support:await token.supportReserve(),supply:await token.totalSupply(),ath:await token.ath(),epoch:await binary.epoch()});
   const before=await snapshot(),newTi=await deployOne('FTIReserveTokenUpgradeable',[],w[0]),newBi=await deployOne('FundedBinaryPlanUpgradeable',[],w[0]);
   await assert.rejects(()=>binary.upgradeToAndCall.staticCall(newBi.target,'0x'),/governance/);await assert.rejects(()=>bi.upgradeToAndCall.staticCall(newBi.target,'0x'));await assert.rejects(()=>binary.proxiableUUID());

@@ -166,17 +166,18 @@ contract FTIReserveTokenUpgradeable is ERC20, ReentrancyGuard, Pausable, Initial
         emit SupportInjected(amount, newWallet);
     }
 
+    uint256 public constant BUY_STEP=500e18;
+    uint256 public constant MAX_BUY_STEPS=128;
     function quoteBuy(uint256 amount) public view returns (uint256 userTokens) {
-        require(amount > 0, "amount");
-
-        uint256 totalFee = _ceilFee(amount, TRADE_FEE_BPS);
-        uint256 userAssets = amount - totalFee;
-
-        if (totalSupply() == 0) {
-            return Math.mulDiv(userAssets, WAD, cycleStartPrice);
+        require(amount>0&&amount<=BUY_STEP*MAX_BUY_STEPS,"split order");
+        uint256 r=reserve;uint256 supply=totalSupply();
+        for(uint256 left=amount;left>0;){
+            uint256 step=left>BUY_STEP?BUY_STEP:left;
+            uint256 assets=step-_ceilFee(step,TRADE_FEE_BPS);
+            uint256 minted=supply==0?Math.mulDiv(assets,WAD,cycleStartPrice):Math.mulDiv(assets,supply,r);
+            require(minted>=MIN_MINT,"dust");
+            userTokens+=minted;supply+=minted;r+=step;left-=step;
         }
-
-        userTokens = Math.mulDiv(userAssets, totalSupply(), reserve);
     }
 
     function quoteSell(uint256 tokens) public view returns (uint256 payout, uint256 gross) {
@@ -230,14 +231,7 @@ contract FTIReserveTokenUpgradeable is ERC20, ReentrancyGuard, Pausable, Initial
 
         uint256 oldSupply = totalSupply();
 
-        uint256 totalFee = _ceilFee(amount, TRADE_FEE_BPS);
-        uint256 userAssets = amount - totalFee;
-
-        minted = oldSupply == 0
-            ? Math.mulDiv(userAssets, WAD, cycleStartPrice)
-            : Math.mulDiv(userAssets, oldSupply, reserve);
-
-        require(minted >= MIN_MINT, "dust");
+        minted=quoteBuy(amount);
         require(minted >= minTokens, "slippage");
         require(oldSupply + minted <= MAX_SUPPLY, "supply cap");
         require(reserve + supportReserve + amount <= MAX_RESERVE, "reserve cap");

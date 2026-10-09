@@ -36,3 +36,10 @@ test('keeper does not write during recovery freeze',async()=>{
  const b=stub();b.interface.hasFunction=()=>true;b.recoveryFrozen=async()=>true;b.phase=async()=>{throw Error('Must stop before any settlement');};
  assert.equal(await keeperStep(b,provider),'idle');
 });
+
+test('keeper splits oversized auto balances into bounded batches without losing remainder',async()=>{
+ const b=stub();let pending=130n;const amounts=[];b.autoAccountCount=async()=>1n;b.autoAccounts=async()=> 'wallet';b.pendingAuto=async()=>pending;
+ b.executeAuto=async(who,amount)=>{amounts.push(amount);return{wait:async()=>{pending-=amount;}};};
+ for(let i=0;i<3;i++)assert.equal(await keeperStep(b,provider,{maxAutoAmount:64n}),'auto-buy executed');
+ assert.deepEqual(amounts,[64n,64n,2n]);assert.equal(pending,0n);
+});
