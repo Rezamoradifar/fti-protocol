@@ -32,12 +32,16 @@ node scripts/check-upgrade-layout.mjs docs/storage-layout/FundedBinaryPlanUpgrad
 node scripts/check-upgrade-layout.mjs docs/storage-layout/FTIReserveTokenUpgradeable.json artifacts/storage-layout/FTIReserveTokenUpgradeable.json
 npm run build:web
 (cd landing && node build.mjs)
-node --test --test-concurrency=2 test/continuity-upgrade.test.mjs test/continuity-deployment.test.mjs test/funded-keeper.test.mjs test/continuity-monitor.test.mjs test/market-curve.test.mjs
+node --test --test-concurrency=2 test/continuity-upgrade.test.mjs test/continuity-deployment.test.mjs test/funded-keeper.test.mjs test/continuity-monitor.test.mjs test/market-curve.test.mjs test/continuity-auto-setup.test.mjs
 export FTI_SOURCE_REVISION="$FTI_REV" FTI_STATE
 # Do not accept edits to the reviewed checkout.
 git diff --quiet HEAD -- contracts frontend scripts web/style.css web/favicon.svg landing package.json package-lock.json
 if ! test -s "$FTI_STATE/deployment.json"; then
  if test -e "$FTI_STATE/genesis-secrets.json"; then echo 'A previous deployment started but has no completed record. Stop and inspect; no duplicate deployment was attempted.'; exit 1; fi
+ if test "${2:-}" = --auto; then
+  node scripts/prepare-continuity-auto.mjs
+  node scripts/deploy-continuity-auto.mjs
+ else
  read -r -s -p 'BNB TESTNET RPC URL (hidden): ' RPC_URL </dev/tty; echo
  read -r -s -p 'DEPLOYER TESTNET private key (hidden): ' DEPLOYER_PRIVATE_KEY </dev/tty; echo
  read -r -s -p 'KEEPER TESTNET private key, gas-only (hidden): ' KEEPER_PRIVATE_KEY </dev/tty; echo
@@ -67,6 +71,7 @@ try{
 JS
  DAO_CONFIG="$FTI_STATE/dao.json" V3_TESTNET_SECRETS="$FTI_STATE/genesis-secrets.json" V3_DEPLOYMENT_FILE="$FTI_STATE/deployment.json" node scripts/deploy-continuity-testnet.mjs
  unset DEPLOYER_PRIVATE_KEY KEEPER_PRIVATE_KEY FTI_COUNCIL RPC_URL
+ fi
 fi
 chown root:fti-v3 "$FTI_STATE"/{deployment.json,web.env,keeper.env,dao.json}
 chmod 0640 "$FTI_STATE"/{deployment.json,web.env,keeper.env,dao.json}
