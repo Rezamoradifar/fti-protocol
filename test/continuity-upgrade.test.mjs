@@ -18,7 +18,9 @@ test('proxy upgrade keeps funded users, genealogy, rank, liabilities, token bala
   await assert.rejects(()=>ti.initialize.staticCall(usd.target,timelock.target,council.target));
   await assert.rejects(()=>deployOne('FTIProxy',[ti.target,ti.interface.encodeFunctionData('initialize',[usd.target,usd.target,council.target])],w[0]));
   const tp=await deployOne('FTIProxy',[ti.target,tokenInit],w[0]),token=new Contract(tp.target,artifact('FTIReserveTokenUpgradeable').abi,w[0]);
-  const bi=await deployOne('FundedBinaryPlanUpgradeable',[],w[0]),binaryArgs=[usd.target,token.target,timelock.target,council.target,a[44],a.slice(0,31)];
+  const bi=await deployOne('FundedBinaryPlanUpgradeable',[],w[0]);
+  for(const [level,budget,points,expected] of [[0,E('15.999999999999999999'),1,1],[1,E('16'),1,1],[1,E('20'),1,1],[1,E('20.000000000000000001'),1,0],[3,E('1'),1,3],[2,0n,0,2],[0,E('32'),2,0]])assert.equal(await bi.protectionForValue(level,budget,points),BigInt(expected));
+  const binaryArgs=[usd.target,token.target,timelock.target,council.target,a[44],a.slice(0,31)];
   const binaryInit=bi.interface.encodeFunctionData('initialize',binaryArgs);
   await assert.rejects(()=>bi.initialize.staticCall(...binaryArgs));
   const bp=await deployOne('FTIProxy',[bi.target,binaryInit],w[0]),binary=new Contract(bp.target,artifact('FundedBinaryPlanUpgradeable').abi,w[0]);
@@ -27,6 +29,7 @@ test('proxy upgrade keeps funded users, genealogy, rank, liabilities, token bala
   for(const i of [0,1,2]){await send(usd.connect(w[i]).faucet());await send(usd.connect(w[i]).approve(binary.target,MaxUint256));}
   await send(usd.approve(token.target,MaxUint256));await send(binary.addUnits(2));
   await send(binary.connect(w[1]).addUnits(100));await send(binary.connect(w[2]).addUnits(100));await settle({usd,token,binary},p);
+  assert.equal(await binary.calculatedPointValue(),await binary.candidateFunding()/await binary.candidatePoints());assert(await binary.pointValue()>=E('20'));
   assert.equal(await binary.rankOf(a[0]),1n);await send(token.buy(E('300'),0,MaxUint256));await send(token.transfer(a[1],E('10')));await send(token.approve(a[2],E('5')));
   const snapshot=async()=>({members:await Promise.all([0,1,2].map(i=>binary.members(a[i]).then(r=>Array.from(r)))),credits:await Promise.all([0,1,2].map(i=>binary.creditL(a[i]))),pending:await binary.pendingReward(a[0]),dev:await binary.pendingReward(a[44]),pool:await binary.pointPool(),balance0:await token.balanceOf(a[0]),balance1:await token.balanceOf(a[1]),allowance:await token.allowance(a[0],a[2]),reserve:await token.reserve(),support:await token.supportReserve(),supply:await token.totalSupply(),ath:await token.ath(),epoch:await binary.epoch()});
   const before=await snapshot(),newTi=await deployOne('FTIReserveTokenUpgradeable',[],w[0]),newBi=await deployOne('FundedBinaryPlanUpgradeable',[],w[0]);

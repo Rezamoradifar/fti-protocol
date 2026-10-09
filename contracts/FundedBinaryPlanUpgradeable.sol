@@ -113,6 +113,11 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     bool public recoveryFrozen;
     uint256 public recoveryCheckpointSerial;
     bytes32 public recoverySnapshotRoot;
+    // Append-only epoch totals measured before the funded $20 payout filter.
+    uint256 public candidatePoints;
+    uint256 public candidateFunding;
+    uint256 public calculatedPointValue;
+    uint256 public constant PROTECTION_TRIGGER=16e18;
     event RecoveryFreezeChanged(bool frozen);
     event RecoveryCheckpoint(uint256 indexed serial,bytes32 indexed root,uint256 blockNumber,bytes32 blockHash);
     modifier whenRecoveryOpen(){if(!(!recoveryFrozen))revert InvalidOperation();_;}
@@ -191,7 +196,7 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     function beginEpochClose() external nonReentrant whenRecoveryOpen {
         if(!(phase==0&&block.timestamp>=epochEnd&&jobCursor==jobs.length))revert InvalidOperation();
         if(unitsSinceSettlement<5&&dirtyCount==0){_nextEpoch();return;}
-        carriedDirtyCount=0;fundingShortfall=false;frozenMembers=dirtyCount;frozenLevel=protectionLevel;cursor=0;totalPaidPoints=0;allocated=0;matchedFunding=0;frozenPool=pointPool;phase=1;
+        candidatePoints=0;candidateFunding=0;carriedDirtyCount=0;fundingShortfall=false;frozenMembers=dirtyCount;frozenLevel=protectionLevel;cursor=0;totalPaidPoints=0;allocated=0;matchedFunding=0;frozenPool=pointPool;phase=1;
         if(frozenMembers==0)_finishEpoch();
     }
     function processEpoch(uint256 batch) external nonReentrant whenRecoveryOpen {
@@ -203,6 +208,7 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
                 uint256 takenL=raw==0?0:Math.mulDiv(creditL[who],raw,m.carryL);
                 uint256 takenR=raw==0?0:Math.mulDiv(creditR[who],raw,m.carryR);
                 uint256 taken=takenL+takenR;uint256 budget=raw==0?0:Math.mulDiv(taken,paid,raw);
+                candidatePoints+=paid;candidateFunding+=budget;
                 // Count only points backed by at least $20 of this wallet's credit.
                 // Keep unpaid matching volume and unspent credit for later epochs.
                 uint256 funded=budget/TARGET_POINT_VALUE;
@@ -224,12 +230,21 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
             }
             if(cursor==frozenMembers)_finishEpoch();
     }
+    // Strictly below $16 increases protection; $16 through $20 holds it.
+    // No candidate points means no price observation, not a zero-value point.
+    function protectionForValue(uint8 level,uint256 budget,uint256 points) public pure returns(uint8){
+        if(!(level<4))revert InvalidOperation();
+        if(points==0)return level;
+        uint256 value=budget/points;
+        if(value<PROTECTION_TRIGGER&&level<3)return level+1;
+        if(value>TARGET_POINT_VALUE&&level>0)return level-1;
+        return level;
+    }
     function _finishEpoch() private {
         pointValue=totalPaidPoints==0?0:allocated/totalPaidPoints;
-        if(fundingShortfall&&protectionLevel<3)protectionLevel++;
+        calculatedPointValue=candidatePoints==0?0:candidateFunding/candidatePoints;
+        protectionLevel=protectionForValue(protectionLevel,candidateFunding,candidatePoints);
         if(totalPaidPoints>0){
-            if(!fundingShortfall&&matchedFunding<TARGET_POINT_VALUE*totalPaidPoints&&protectionLevel<3)protectionLevel++;
-            else if(!fundingShortfall&&matchedFunding>TARGET_POINT_VALUE*totalPaidPoints&&protectionLevel>0)protectionLevel--;
             unitsSinceSettlement=0;
         }
         // Reuse indexed slots: deleting an unbounded storage array would itself be an O(N) close.
