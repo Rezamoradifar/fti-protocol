@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 umask 027
 [ "$(id -u)" = 0 ] || { echo 'Run as root on the existing FTI server.'; exit 1; }
-FTI_UI_REV=e1c2bc41a39399f3956ee7ab403049bf2907da65
+FTI_UI_REV=1ef5f5b908a450fdf744998ad85ac59b207172f7
 FTI_WEB_ENV=/etc/fti-v3/web.env
 test -s "$FTI_WEB_ENV"
 id fti-v3 >/dev/null
