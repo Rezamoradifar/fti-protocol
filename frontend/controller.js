@@ -126,6 +126,7 @@ function navigate(page,focus=false){
  if(location.hash!=='#'+page)history.replaceState(null,'','#'+page);
  if(focus){$('#page-title').focus({preventScroll:true});$('#main').scrollIntoView({behavior:'instant'});}
  if(page==='activity')loadEvents();if(page==='admin')loadProposals();
+ if(page==='network'&&new URLSearchParams(location.search).get('view')==='tree')requestAnimationFrame(()=>$('#network-explorer')?.scrollIntoView({behavior:'smooth',block:'start'}));
 }
 document.querySelectorAll('[data-page],[data-go]').forEach(button=>button.onclick=()=>navigate(button.dataset.page||button.dataset.go,true));
 window.addEventListener('hashchange',()=>navigate(location.hash.slice(1)));
