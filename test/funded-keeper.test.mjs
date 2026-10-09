@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {keeperStep,startKeeper} from '../scripts/keeper.mjs';
 const provider={getBlock:async()=>({timestamp:100})};
-function stub(){return {target:'stub-'+Math.random(),interface:{hasFunction:name=>name==='autoAccountCount'},phase:async()=>0n,jobCursor:async()=>0n,jobCount:async()=>0n,epochEnd:async()=>1000n,monthPhase:async()=>0n,nextBuilderMonth:async()=>24000n,autoAccountCount:async()=>0n,memberCount:async()=>{throw Error('Must not scan full member list');}};}
+function stub(){return {target:'stub-'+Math.random(),interface:{hasFunction:name=>name==='autoAccountCount'},recoveryFrozen:async()=>false,phase:async()=>0n,jobCursor:async()=>0n,jobCount:async()=>0n,epochEnd:async()=>1000n,monthPhase:async()=>0n,nextBuilderMonth:async()=>24000n,autoAccountCount:async()=>0n,memberCount:async()=>{throw Error('Must not scan full member list');}};}
 test('funded keeper scans only eligible pending auto accounts',async()=>{
  const b=stub();let calls=0;b.autoAccountCount=async()=>2n;b.autoAccounts=async i=>'wallet-'+i;b.pendingAuto=async()=>5n;b.executeAuto=async who=>{calls++;assert.equal(who,'wallet-0');return {wait:async()=>({status:1})};};assert.equal(await keeperStep(b,provider),'auto-buy executed');assert.equal(calls,1);
 });
@@ -30,4 +30,9 @@ test('finalized rewards are paid even while new volume jobs keep arriving',async
  b.processVolume=async()=>{throw Error('Rewards must not starve behind volume');};
  let paid=false;b.payRewards=async()=>({wait:async()=>{paid=true;}});
  assert.equal(await keeperStep(b,provider),'reward payout batch');assert(paid);
+});
+
+test('keeper does not write during recovery freeze',async()=>{
+ const b=stub();b.interface.hasFunction=()=>true;b.recoveryFrozen=async()=>true;b.phase=async()=>{throw Error('Must stop before any settlement');};
+ assert.equal(await keeperStep(b,provider),'idle');
 });

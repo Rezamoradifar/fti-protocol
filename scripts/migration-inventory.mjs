@@ -24,6 +24,8 @@ const named=r=>r.toObject(true);
 export async function collectInventory({provider,binary,token,usd,cfg,blockTag}){
  const block=await provider.getBlock(blockTag);if(!block)throw Error('Snapshot block unavailable');
  const at={blockTag:block.number};const read=async(c,n,...args)=>c[n](...args,at);
+ const same=(a,b)=>a.toLowerCase()===b.toLowerCase();
+ if(!same(await read(binary,'token'),token.target)||!same(await read(binary,'usd'),usd.target)||!same(await read(token,'binary'),binary.target)||!same(await read(token,'usd'),usd.target))throw Error('Contract binding mismatch');
  const count=Number(await read(binary,'memberCount'));
  if(!Number.isSafeInteger(count)||count>1000000)throw Error('Unexpected member count');
  const users=[];
@@ -40,6 +42,8 @@ export async function collectInventory({provider,binary,token,usd,cfg,blockTag})
  const global={binary:{},token:{}};
  for(const n of ['epoch','epochEnd','lastClosedAt','epochUnits','unitsSinceSettlement','fundingSerial','pointPool','queuedPointCredit','assignedPointCredit','retainedPointReserve','queuedBuilderCredit','assignedBuilderCredit','retainedBuilderReserve','builderAccounted','totalPending','totalAuto','phase','monthPhase','nextBuilderMonth','protectionLevel','frozenLevel','cursor','frozenMembers','totalPaidPoints','allocated','pointValue','dirtyCount','jobCursor','jobCount'])global.binary[n]=await read(binary,n);
  for(const n of ['reserve','supportReserve','launchPrice','ath','pendingSupportTarget','cycle','cycleStartPrice','sellWindowStart','sellWindowOpeningReserve','sellWindowOutflow','emergencyUnwind','emergencyRemainingPool','emergencyRemainingSupply','totalSupply','price'])global.token[n]=await read(token,n);
+ for(const n of ['recoveryFrozen','recoverySnapshotRoot','recoveryCheckpointSerial'])if(binary.interface.hasFunction(n))global.binary[n]=await read(binary,n);
+ if(token.interface.hasFunction('recoveryFrozen'))global.token.recoveryFrozen=await read(token,'recoveryFrozen');
  const development=await read(binary,'development');
  const pendingDevelopment=await read(binary,'pendingReward',development);
  const queues={rewards:[],auto:[],dirty:[],jobs:[]};
@@ -60,7 +64,9 @@ if(process.argv[1]===fileURLToPath(import.meta.url)){
  try{
   const chain=(await provider.getNetwork()).chainId;if(chain!==97n&&chain!==31337n)throw Error('Testnet/local only');if(chain!==BigInt(cfg.chainId))throw Error('Wrong deployment chain');
   const abi=n=>JSON.parse(fs.readFileSync(`artifacts/${n}.json`,'utf8')).abi;
-  const binary=new Contract(cfg.binary,abi('FundedBinaryPlan'),provider),token=new Contract(cfg.token,abi('FTIReserveTokenV3'),provider),usd=new Contract(cfg.usd,abi('MockUSD'),provider);
+  const binaryName=cfg.binaryContract||'FundedBinaryPlan',tokenName=cfg.tokenContract||'FTIReserveTokenV3';
+  if(!['FundedBinaryPlan','FundedBinaryPlanFloor'].includes(binaryName)||!['FTIReserveTokenV3','FTIReserveTokenRecovery'].includes(tokenName))throw Error('Unsupported inventory model');
+  const binary=new Contract(cfg.binary,abi(binaryName),provider),token=new Contract(cfg.token,abi(tokenName),provider),usd=new Contract(cfg.usd,abi('MockUSD'),provider);
   const blockTag=process.env.FTI_SNAPSHOT_BLOCK?Number(process.env.FTI_SNAPSHOT_BLOCK):await provider.getBlockNumber();
   if(!Number.isSafeInteger(blockTag)||blockTag<0)throw Error('Invalid block');
   const report=await collectInventory({provider,binary,token,usd,cfg,blockTag});

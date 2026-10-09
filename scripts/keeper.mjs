@@ -6,6 +6,7 @@ import {RELEASE, verifyV3Deployment} from './v3-release.mjs';
 const autoCursor=new Map();
 export async function keeperStep(binary,provider,{batchedRewards=true}={}){
  const funded=!!binary.interface?.hasFunction('autoAccountCount');const batch=funded?25:50;
+ if(binary.interface?.hasFunction('recoveryFrozen')&&await binary.recoveryFrozen())return 'idle';
  const phase=await binary.phase();
  if(phase>0n){await(await binary.processEpoch(batch)).wait();return 'epoch batch';}
  // Finalized cash must not starve behind a continuously growing volume queue.

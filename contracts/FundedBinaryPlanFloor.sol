@@ -94,6 +94,26 @@ contract FundedBinaryPlanFloor is ReentrancyGuard,Pausable {
         }
         usd.forceApprove(fti,type(uint256).max);
     }
+    bool public recoveryFrozen;
+    uint256 public recoveryCheckpointSerial;
+    bytes32 public recoverySnapshotRoot;
+    event RecoveryFreezeChanged(bool frozen);
+    event RecoveryCheckpoint(uint256 indexed serial,bytes32 indexed root,uint256 blockNumber,bytes32 blockHash);
+    modifier whenRecoveryOpen(){require(!recoveryFrozen,'recovery frozen');_;}
+    function setRecoveryFrozen(bool frozen) external {
+        if(frozen)require(msg.sender==guardian||msg.sender==governance,'recovery role');
+        else {require(msg.sender==governance,'governance');_backed();}
+        recoveryFrozen=frozen;emit RecoveryFreezeChanged(frozen);
+    }
+    // This attests an export only. It grants no right to drain or mint assets.
+    function recordRecoveryCheckpoint(bytes32 root,uint256 snapshotBlock) external {
+        require(msg.sender==governance,'governance');require(recoveryFrozen,'freeze first');
+        require(root!=bytes32(0)&&snapshotBlock<block.number&&block.number-snapshotBlock<=256,'checkpoint');
+        (bool ok,bytes memory data)=address(token).staticcall(abi.encodeWithSignature("recoveryFrozen()"));
+        require(ok&&data.length==32&&abi.decode(data,(bool)),'token freeze required');
+        _backed();recoverySnapshotRoot=root;recoveryCheckpointSerial++;
+        emit RecoveryCheckpoint(recoveryCheckpointSerial,root,snapshotBlock,blockhash(snapshotBlock));
+    }
     function rewardAccountCount() external view returns(uint256){return rewardAccounts.length;}
     function memberCount() external view returns(uint256){return memberList.length;}
     function jobCount() external view returns(uint256){return jobs.length;}
@@ -104,7 +124,7 @@ contract FundedBinaryPlanFloor is ReentrancyGuard,Pausable {
     function registered(address who) external view returns(bool){return members[who].exists;}
     function pause() external {require(msg.sender==guardian||msg.sender==governance,'role');_pause();}
     function unpause() external {require(msg.sender==governance,'governance');_unpause();}
-    function register(address sponsor,uint256 units) external nonReentrant whenNotPaused {
+    function register(address sponsor,uint256 units) external nonReentrant whenRecoveryOpen whenNotPaused {
         require(!members[msg.sender].exists&&members[sponsor].exists&&sponsor!=msg.sender,'registration');
         Member storage p=members[sponsor];require(p.right==address(0),'sponsor full');
         require(depth[sponsor]<MAX_DEPTH,'maximum tree depth');depth[msg.sender]=depth[sponsor]+1;
@@ -112,7 +132,7 @@ contract FundedBinaryPlanFloor is ReentrancyGuard,Pausable {
         if(p.left==address(0))p.left=msg.sender;else p.right=msg.sender;
         _fund(msg.sender,units,true);emit Registered(msg.sender,sponsor,units);
     }
-    function addUnits(uint256 units) external nonReentrant whenNotPaused {require(members[msg.sender].exists,'member');_fund(msg.sender,units,false);emit UnitsAdded(msg.sender,units);}
+    function addUnits(uint256 units) external nonReentrant whenRecoveryOpen whenNotPaused {require(members[msg.sender].exists,'member');_fund(msg.sender,units,false);emit UnitsAdded(msg.sender,units);}
     function _fund(address who,uint256 units,bool newWallet) private {
         require(phase==0&&block.timestamp<epochEnd,'settlement required');require(units>0&&units<=1000000,'unit range');
         _backed();uint256 amount=units*UNIT;uint256 beforeBal=usd.balanceOf(address(this));uint256 beforeUser=usd.balanceOf(who);
@@ -130,7 +150,7 @@ contract FundedBinaryPlanFloor is ReentrancyGuard,Pausable {
         _backed();
     }
     function _touch(address who) private {if(!dirty[who]){dirty[who]=true;dirtyMembers[dirtyCount++]=who;}}
-    function processVolume(uint256 steps) external nonReentrant {require(phase==0&&steps>0&&steps<=MAX_BATCH,'batch');
+    function processVolume(uint256 steps) external nonReentrant whenRecoveryOpen {require(phase==0&&steps>0&&steps<=MAX_BATCH,'batch');
         for(uint256 i;i<steps&&jobCursor<jobs.length;i++){
             Job storage j=jobs[jobCursor];Member storage p=members[j.ancestor];
             bool left=p.left==j.child;require(left||p.right==j.child,'tree');
@@ -152,13 +172,13 @@ contract FundedBinaryPlanFloor is ReentrancyGuard,Pausable {
         }
     }
     function cap(uint8 rank,uint8 level) public pure returns(uint256){require(rank<5&&level<4,'cap');uint8[5][4] memory c=[[5,10,15,20,25],[5,10,12,16,20],[5,10,10,12,15],[5,10,10,10,10]];return c[level][rank];}
-    function beginEpochClose() external nonReentrant {
+    function beginEpochClose() external nonReentrant whenRecoveryOpen {
         require(phase==0&&block.timestamp>=epochEnd&&jobCursor==jobs.length,'not ready');
         if(unitsSinceSettlement<5&&dirtyCount==0){_nextEpoch();return;}
         carriedDirtyCount=0;fundingShortfall=false;frozenMembers=dirtyCount;frozenLevel=protectionLevel;cursor=0;totalPaidPoints=0;allocated=0;matchedFunding=0;frozenPool=pointPool;phase=1;
         if(frozenMembers==0)_finishEpoch();
     }
-    function processEpoch(uint256 batch) external nonReentrant {
+    function processEpoch(uint256 batch) external nonReentrant whenRecoveryOpen {
         require(batch>0&&batch<=MAX_BATCH&&phase>0,'batch');
         uint256 end=cursor+batch;if(end>frozenMembers)end=frozenMembers;
             for(;cursor<end;cursor++){
@@ -200,10 +220,10 @@ contract FundedBinaryPlanFloor is ReentrancyGuard,Pausable {
         dirtyCount=carriedDirtyCount;emit EpochClosed(epoch,frozenPool,totalPaidPoints,pointValue,protectionLevel);_nextEpoch();
     }
     function _nextEpoch() private {lastClosedAt=(block.timestamp/1 hours)*1 hours;epoch++;epochEnd=(block.timestamp/1 hours+1)*1 hours;epochUnits=0;phase=0;cursor=0;}
-    function setAutoBuy(bool enabled,uint256 maxPrice) external nonReentrant {require(phase==0,'settings frozen');require(members[msg.sender].exists,'member');require(!enabled||maxPrice>0,'price limit');members[msg.sender].autoEnabled=enabled;members[msg.sender].maxAutoPrice=maxPrice;if(enabled&&pendingAuto[msg.sender]>0)_trackAuto(msg.sender);else _removeAuto(msg.sender);}
+    function setAutoBuy(bool enabled,uint256 maxPrice) external nonReentrant whenRecoveryOpen {require(phase==0,'settings frozen');require(members[msg.sender].exists,'member');require(!enabled||maxPrice>0,'price limit');members[msg.sender].autoEnabled=enabled;members[msg.sender].maxAutoPrice=maxPrice;if(enabled&&pendingAuto[msg.sender]>0)_trackAuto(msg.sender);else _removeAuto(msg.sender);}
     function _trackAuto(address who) private {if(autoIndex[who]==0){autoAccounts.push(who);autoIndex[who]=autoAccounts.length;}}
     function _removeAuto(address who) private {uint256 at=autoIndex[who];if(at==0)return;address last=autoAccounts[autoAccounts.length-1];autoAccounts[at-1]=last;autoIndex[last]=at;autoAccounts.pop();delete autoIndex[who];}
-    function executeAuto(address who,uint256 amount) external nonReentrant {
+    function executeAuto(address who,uint256 amount) external nonReentrant whenRecoveryOpen {
         _backed();
         require(amount>0&&amount<=pendingAuto[who],'amount');
         require(members[who].autoEnabled,'auto disabled');
@@ -220,7 +240,7 @@ contract FundedBinaryPlanFloor is ReentrancyGuard,Pausable {
         uint256 beforeBal=usd.balanceOf(address(this));uint256 minted=token.autoBuy(who,amount,minimum,block.timestamp);
         require(beforeBal-usd.balanceOf(address(this))==amount,'unsupported USD');_backed();emit AutoExecuted(who,amount,minted);
     }
-    function releaseAutoToCash() external nonReentrant {uint256 amount=pendingAuto[msg.sender];pendingAuto[msg.sender]=0;totalAuto-=amount;pendingReward[msg.sender]+=amount;totalPending+=amount;_trackReward(msg.sender);_removeAuto(msg.sender);}
+    function releaseAutoToCash() external nonReentrant whenRecoveryOpen {uint256 amount=pendingAuto[msg.sender];pendingAuto[msg.sender]=0;totalAuto-=amount;pendingReward[msg.sender]+=amount;totalPending+=amount;_trackReward(msg.sender);_removeAuto(msg.sender);}
     function _trackReward(address who) private {
         if(pendingReward[who]>0&&rewardIndex[who]==0){rewardAccounts.push(who);rewardIndex[who]=rewardAccounts.length;}
     }
@@ -239,7 +259,7 @@ contract FundedBinaryPlanFloor is ReentrancyGuard,Pausable {
     }
     /// @notice Permissionless bounded payout; caller cannot choose a recipient or amount.
     /// Remaining queue entries persist for the next transaction/keeper iteration.
-    function payRewards(uint256 batch) external nonReentrant returns(uint256 accounts,uint256 amount) {
+    function payRewards(uint256 batch) external nonReentrant whenRecoveryOpen returns(uint256 accounts,uint256 amount) {
         require(batch>0&&batch<=MAX_BATCH,'batch');
         require(phase==0&&monthPhase==0,'settlement incomplete');_backed();
         while(accounts<batch&&rewardAccounts.length>0){
@@ -247,15 +267,15 @@ contract FundedBinaryPlanFloor is ReentrancyGuard,Pausable {
         }
         _backed();emit RewardBatchPaid(accounts,amount);
     }
-    function claim() external nonReentrant {_backed();_payReward(msg.sender);_backed();}
-    function beginBuilderMonth() external nonReentrant {
+    function claim() external nonReentrant whenRecoveryOpen {_backed();_payReward(msg.sender);_backed();}
+    function beginBuilderMonth() external nonReentrant whenRecoveryOpen {
         uint256 end=Calendar.endOf(nextBuilderMonth);require(monthPhase==0&&block.timestamp>=end&&lastClosedAt>=end,'month not ready');
         monthMembers=builderAccounts[nextBuilderMonth].length;monthCursor=0;monthPhase=1;
         for(uint256 p;p<4;p++){monthBalances[p]=monthFunding[nextBuilderMonth][p];monthFunding[nextBuilderMonth][p]=0;monthEligible[p]=0;monthPaid[p]=0;monthPay[p]=monthBalances[p]/5;}
         if(monthMembers==0)_finishBuilderMonth();
     }
     function _eligible(address who,uint256 p,uint256 end) private view returns(bool){uint256 at=rankReachedAt[who][p];return at>0&&at<=end&&!builderClaimed[who][p];}
-    function processBuilderMonth(uint256 batch) external nonReentrant {
+    function processBuilderMonth(uint256 batch) external nonReentrant whenRecoveryOpen {
         require(monthPhase>0&&batch>0&&batch<=MAX_BATCH,'batch');uint256 end=monthCursor+batch;if(end>monthMembers)end=monthMembers;uint256 cutoff=Calendar.endOf(nextBuilderMonth);
         for(;monthCursor<end;monthCursor++){
             address who=builderAccounts[nextBuilderMonth][monthCursor];
@@ -275,5 +295,5 @@ contract FundedBinaryPlanFloor is ReentrancyGuard,Pausable {
     function fundingAccounting() external view returns(uint256 pointCredits,uint256 pointBook,uint256 builderCredits,uint256 builderBook){return(queuedPointCredit+assignedPointCredit+retainedPointReserve,pointPool,queuedBuilderCredit+assignedBuilderCredit+retainedBuilderReserve,builderAccounted);}
     function _backed() private view {require(usd.balanceOf(address(this))>=pointPool+builderAccounted+totalPending+totalAuto,'reserve deficit');}
     function accounting() external view returns(uint256 actual,uint256 accounted){return(usd.balanceOf(address(this)),pointPool+builderAccounted+totalPending+totalAuto);}
-    function rescue(address asset,address to,uint256 amount) external nonReentrant {require(msg.sender==governance&&asset!=address(usd)&&asset!=address(token),'protected');IERC20(asset).safeTransfer(to,amount);}
+    function rescue(address asset,address to,uint256 amount) external nonReentrant whenRecoveryOpen {require(msg.sender==governance&&asset!=address(usd)&&asset!=address(token),'protected');IERC20(asset).safeTransfer(to,amount);}
 }
