@@ -1,3 +1,4 @@
+import {settledPoints} from './settled-points.js';
 import {initLiveMarket} from './live-market.js';
 import {initNetworkTree} from './network-tree.js';
 import {t,language} from './locale.js';
@@ -159,7 +160,7 @@ function renderWallet(){
  text('rank-points',w?.exists?integer(matched)+' lifetime points':'— lifetime points');text('rank-next',w?.exists?(next?'Next: '+integer(next):'Top rank'):'—');
  text('trade-notice',!address?'Connect a registered wallet to trade.':!w?.exists?'Register your wallet in Membership before buying FTI.':BigInt(w?.units||0)===0n?'Add at least one membership unit before buying FTI.':state?.tokenPaused?'Token trading is currently paused by the contract.':BigInt(w?.ftiBalance||0)>0n&&BigInt(w?.unlocked||0)===0n?'Your FTI is locked. Selling becomes available when a tranche reaches its wallet threshold or UTC deadline below.':'Buy, sell or transfer through your wallet. Every transaction requires your approval.');
  const registered=!!w?.exists;const form=$('#register-form');form.elements.sponsor.disabled=registered;
- if(cfg.tokenContract==='FTIReserveTokenUpgradeable'){const final=Number(state.phase)===0;text('raw-point-value',final&&BigInt(state.candidatePoints||0)>0n?fmt(state.calculatedPointValue):'—');text('paid-point-value',final&&BigInt(state.totalPaidPoints||0)>0n?fmt(state.pointValue):'—');text('paid-point-count',final?integer(state.totalPaidPoints||0):'—');}
+ if(cfg.tokenContract==='FTIReserveTokenUpgradeable'){const points=settledPoints(state);text('raw-point-value',points.raw===null?'—':fmt(points.raw));text('paid-point-value',points.paid===null?'—':fmt(points.paid));text('paid-point-count',points.count===null?'—':integer(points.count));}
  text('registration-title',registered?'Add membership units':'Join the network');text('register-button',registered?'Add units':'Register membership');
  text('sponsor-help',registered?'Your sponsor and position stay unchanged when you add units.':'New positions fill the sponsor’s left slot first, then the right. Both slots must not be full.');
  for(const[id,done]of [['step-wallet',!!signer],['step-funds',BigInt(w?.usdBalance||0)>0n],['step-member',registered]])$('#'+id).classList.toggle('done',done);
