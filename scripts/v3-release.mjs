@@ -19,7 +19,7 @@ export function releaseManifest(){
  for(const dir of ['contracts','frontend','scripts','landing/src'])for(const name of fs.readdirSync(dir).sort()){
   const file=dir+'/'+name;if(fs.statSync(file).isFile()&&/\.(sol|mjs|jsx|js|css)$/.test(name))sources[file]=hash(fs.readFileSync(file));
  }
- for(const file of ['package.json','package-lock.json','web/app.js'])sources[file]=hash(fs.readFileSync(file));
+ for(const file of ['package.json','package-lock.json','web/app.js','web/vendor/walletconnect.js'])sources[file]=hash(fs.readFileSync(file));
  const sourceFingerprint=hash(JSON.stringify(sources));
  let sourceRevision=process.env.FTI_SOURCE_REVISION||process.env.GITHUB_SHA||null;
  if(!sourceRevision)try{sourceRevision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim();}catch{}
