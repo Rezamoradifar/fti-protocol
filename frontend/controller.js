@@ -1,3 +1,4 @@
+import {initLiveMarket} from './live-market.js';
 import {initNetworkTree} from './network-tree.js';
 import {t,language} from './locale.js';
 import {chooseWallet,requestWalletAccounts} from './wallet-selector.js';
@@ -39,6 +40,7 @@ const rpc=new JsonRpcProvider(location.origin+'/rpc',undefined,{cacheTimeout:-1}
 const names={binary:cfg.binaryContract||'BinaryPlan',token:cfg.tokenContract||'FTIToken',usd:'MockUSD',council:v3Model?'SevenGuardianCouncil':'Council',...(cfg.timelock?{timelock:'FTITimelock'}:{})},read={};
 await Promise.all(Object.entries(names).map(async([key,name])=>{read[key]=new Contract(cfg[key],await json('/abi/'+name),rpc);}));
 initNetworkTree(read.binary,rpc);
+if(v3Model)initLiveMarket(read.token,rpc,cfg);
 let signer,address,state,busy=false,connecting=false,transactionAddress,refreshSequence=0,autoDirty=false,councilOwner=false;
 let lockOffset=0;
 const ranks=['Member','Builder 1','Builder 2','Builder 3','Builder 4'].map(x=>t(x));
