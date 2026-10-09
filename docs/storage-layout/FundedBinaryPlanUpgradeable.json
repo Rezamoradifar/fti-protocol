@@ -1,0 +1,918 @@
+{
+  "storage": [
+    {
+      "astId": 24747,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "_status",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 24637,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "_paused",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_bool"
+    },
+    {
+      "astId": 19640,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "pointValueIsTarget",
+      "offset": 1,
+      "slot": "1",
+      "type": "t_bool"
+    },
+    {
+      "astId": 19646,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "usd",
+      "offset": 2,
+      "slot": "1",
+      "type": "t_contract(IERC20)24138"
+    },
+    {
+      "astId": 19649,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "token",
+      "offset": 0,
+      "slot": "2",
+      "type": "t_contract(IFTI)46"
+    },
+    {
+      "astId": 19651,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "governance",
+      "offset": 0,
+      "slot": "3",
+      "type": "t_address"
+    },
+    {
+      "astId": 19653,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "guardian",
+      "offset": 0,
+      "slot": "4",
+      "type": "t_address"
+    },
+    {
+      "astId": 19655,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "development",
+      "offset": 0,
+      "slot": "5",
+      "type": "t_address"
+    },
+    {
+      "astId": 19685,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "members",
+      "offset": 0,
+      "slot": "6",
+      "type": "t_mapping(t_address,t_struct(Member)19680_storage)"
+    },
+    {
+      "astId": 19688,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "memberList",
+      "offset": 0,
+      "slot": "7",
+      "type": "t_array(t_address)dyn_storage"
+    },
+    {
+      "astId": 19694,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "rankReachedAt",
+      "offset": 0,
+      "slot": "8",
+      "type": "t_mapping(t_address,t_array(t_uint64)4_storage)"
+    },
+    {
+      "astId": 19698,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "depth",
+      "offset": 0,
+      "slot": "9",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 19702,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "activatedAtSerial",
+      "offset": 0,
+      "slot": "10",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 19704,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "fundingSerial",
+      "offset": 0,
+      "slot": "11",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19708,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "creditL",
+      "offset": 0,
+      "slot": "12",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 19712,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "creditR",
+      "offset": 0,
+      "slot": "13",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 19714,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "queuedPointCredit",
+      "offset": 0,
+      "slot": "14",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19716,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "assignedPointCredit",
+      "offset": 0,
+      "slot": "15",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19718,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "retainedPointReserve",
+      "offset": 0,
+      "slot": "16",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19720,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "queuedBuilderCredit",
+      "offset": 0,
+      "slot": "17",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19722,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "assignedBuilderCredit",
+      "offset": 0,
+      "slot": "18",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19724,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "retainedBuilderReserve",
+      "offset": 0,
+      "slot": "19",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19728,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "dirtyMembers",
+      "offset": 0,
+      "slot": "20",
+      "type": "t_mapping(t_uint256,t_address)"
+    },
+    {
+      "astId": 19732,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "dirty",
+      "offset": 0,
+      "slot": "21",
+      "type": "t_mapping(t_address,t_bool)"
+    },
+    {
+      "astId": 19734,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "dirtyCount",
+      "offset": 0,
+      "slot": "22",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19736,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "matchedFunding",
+      "offset": 0,
+      "slot": "23",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19738,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "carriedDirtyCount",
+      "offset": 0,
+      "slot": "24",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19740,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "fundingShortfall",
+      "offset": 0,
+      "slot": "25",
+      "type": "t_bool"
+    },
+    {
+      "astId": 19761,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "jobs",
+      "offset": 0,
+      "slot": "26",
+      "type": "t_array(t_struct(Job)19757_storage)dyn_storage"
+    },
+    {
+      "astId": 19763,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "jobCursor",
+      "offset": 0,
+      "slot": "27",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19766,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "epoch",
+      "offset": 0,
+      "slot": "28",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19768,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "epochEnd",
+      "offset": 0,
+      "slot": "29",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19770,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "lastClosedAt",
+      "offset": 0,
+      "slot": "30",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19772,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "epochUnits",
+      "offset": 0,
+      "slot": "31",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19774,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "unitsSinceSettlement",
+      "offset": 0,
+      "slot": "32",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19776,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "pointPool",
+      "offset": 0,
+      "slot": "33",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19778,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "protectionLevel",
+      "offset": 0,
+      "slot": "34",
+      "type": "t_uint8"
+    },
+    {
+      "astId": 19780,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "frozenLevel",
+      "offset": 1,
+      "slot": "34",
+      "type": "t_uint8"
+    },
+    {
+      "astId": 19782,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "phase",
+      "offset": 2,
+      "slot": "34",
+      "type": "t_uint8"
+    },
+    {
+      "astId": 19784,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "cursor",
+      "offset": 0,
+      "slot": "35",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19786,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "frozenMembers",
+      "offset": 0,
+      "slot": "36",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19788,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "totalPaidPoints",
+      "offset": 0,
+      "slot": "37",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19790,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "pointValue",
+      "offset": 0,
+      "slot": "38",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19792,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "frozenPool",
+      "offset": 0,
+      "slot": "39",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19794,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "allocated",
+      "offset": 0,
+      "slot": "40",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19800,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "paidPoints",
+      "offset": 0,
+      "slot": "41",
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))"
+    },
+    {
+      "astId": 19806,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "autoSnapshot",
+      "offset": 0,
+      "slot": "42",
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))"
+    },
+    {
+      "astId": 19812,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "settled",
+      "offset": 0,
+      "slot": "43",
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))"
+    },
+    {
+      "astId": 19816,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "pendingReward",
+      "offset": 0,
+      "slot": "44",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 19820,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "pendingAuto",
+      "offset": 0,
+      "slot": "45",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 19822,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "totalPending",
+      "offset": 0,
+      "slot": "46",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19824,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "totalAuto",
+      "offset": 0,
+      "slot": "47",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19827,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "rewardAccounts",
+      "offset": 0,
+      "slot": "48",
+      "type": "t_array(t_address)dyn_storage"
+    },
+    {
+      "astId": 19831,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "rewardIndex",
+      "offset": 0,
+      "slot": "49",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 19839,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "builderAccounted",
+      "offset": 0,
+      "slot": "50",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19845,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "monthFunding",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_mapping(t_uint256,t_array(t_uint256)4_storage)"
+    },
+    {
+      "astId": 19849,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "builderCarry",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)4_storage"
+    },
+    {
+      "astId": 19855,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "builderClaimed",
+      "offset": 0,
+      "slot": "56",
+      "type": "t_mapping(t_address,t_array(t_bool)4_storage)"
+    },
+    {
+      "astId": 19857,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "nextBuilderMonth",
+      "offset": 0,
+      "slot": "57",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19859,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "monthPhase",
+      "offset": 0,
+      "slot": "58",
+      "type": "t_uint8"
+    },
+    {
+      "astId": 19861,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "monthCursor",
+      "offset": 0,
+      "slot": "59",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19863,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "monthMembers",
+      "offset": 0,
+      "slot": "60",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 19867,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "monthBalances",
+      "offset": 0,
+      "slot": "61",
+      "type": "t_array(t_uint256)4_storage"
+    },
+    {
+      "astId": 19871,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "monthEligible",
+      "offset": 0,
+      "slot": "65",
+      "type": "t_array(t_uint256)4_storage"
+    },
+    {
+      "astId": 19875,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "monthPay",
+      "offset": 0,
+      "slot": "69",
+      "type": "t_array(t_uint256)4_storage"
+    },
+    {
+      "astId": 19883,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "builderCredit",
+      "offset": 0,
+      "slot": "73",
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_array(t_uint256)4_storage))"
+    },
+    {
+      "astId": 19888,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "builderAccounts",
+      "offset": 0,
+      "slot": "74",
+      "type": "t_mapping(t_uint256,t_array(t_address)dyn_storage)"
+    },
+    {
+      "astId": 19894,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "builderSeen",
+      "offset": 0,
+      "slot": "75",
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))"
+    },
+    {
+      "astId": 19898,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "monthPaid",
+      "offset": 0,
+      "slot": "76",
+      "type": "t_array(t_uint256)4_storage"
+    },
+    {
+      "astId": 19901,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "autoAccounts",
+      "offset": 0,
+      "slot": "80",
+      "type": "t_array(t_address)dyn_storage"
+    },
+    {
+      "astId": 19905,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "autoIndex",
+      "offset": 0,
+      "slot": "81",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 20343,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "recoveryFrozen",
+      "offset": 0,
+      "slot": "82",
+      "type": "t_bool"
+    },
+    {
+      "astId": 20345,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "recoveryCheckpointSerial",
+      "offset": 0,
+      "slot": "83",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 20347,
+      "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+      "label": "recoverySnapshotRoot",
+      "offset": 0,
+      "slot": "84",
+      "type": "t_bytes32"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_address)dyn_storage": {
+      "base": "t_address",
+      "encoding": "dynamic_array",
+      "label": "address[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_bool)4_storage": {
+      "base": "t_bool",
+      "encoding": "inplace",
+      "label": "bool[4]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_struct(Job)19757_storage)dyn_storage": {
+      "base": "t_struct(Job)19757_storage",
+      "encoding": "dynamic_array",
+      "label": "struct FundedBinaryPlanUpgradeable.Job[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_uint256)4_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[4]",
+      "numberOfBytes": "128"
+    },
+    "t_array(t_uint64)4_storage": {
+      "base": "t_uint64",
+      "encoding": "inplace",
+      "label": "uint64[4]",
+      "numberOfBytes": "32"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_bytes32": {
+      "encoding": "inplace",
+      "label": "bytes32",
+      "numberOfBytes": "32"
+    },
+    "t_contract(IERC20)24138": {
+      "encoding": "inplace",
+      "label": "contract IERC20",
+      "numberOfBytes": "20"
+    },
+    "t_contract(IFTI)46": {
+      "encoding": "inplace",
+      "label": "contract IFTI",
+      "numberOfBytes": "20"
+    },
+    "t_mapping(t_address,t_array(t_bool)4_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => bool[4])",
+      "numberOfBytes": "32",
+      "value": "t_array(t_bool)4_storage"
+    },
+    "t_mapping(t_address,t_array(t_uint256)4_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256[4])",
+      "numberOfBytes": "32",
+      "value": "t_array(t_uint256)4_storage"
+    },
+    "t_mapping(t_address,t_array(t_uint64)4_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint64[4])",
+      "numberOfBytes": "32",
+      "value": "t_array(t_uint64)4_storage"
+    },
+    "t_mapping(t_address,t_bool)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => bool)",
+      "numberOfBytes": "32",
+      "value": "t_bool"
+    },
+    "t_mapping(t_address,t_struct(Member)19680_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct FundedBinaryPlanUpgradeable.Member)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Member)19680_storage"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_mapping(t_uint256,t_address)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
+    },
+    "t_mapping(t_uint256,t_array(t_address)dyn_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => address[])",
+      "numberOfBytes": "32",
+      "value": "t_array(t_address)dyn_storage"
+    },
+    "t_mapping(t_uint256,t_array(t_uint256)4_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => uint256[4])",
+      "numberOfBytes": "32",
+      "value": "t_array(t_uint256)4_storage"
+    },
+    "t_mapping(t_uint256,t_mapping(t_address,t_array(t_uint256)4_storage))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(address => uint256[4]))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_array(t_uint256)4_storage)"
+    },
+    "t_mapping(t_uint256,t_mapping(t_address,t_bool))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(address => bool))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_bool)"
+    },
+    "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(address => uint256))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_uint256)"
+    },
+    "t_struct(Job)19757_storage": {
+      "encoding": "inplace",
+      "label": "struct FundedBinaryPlanUpgradeable.Job",
+      "members": [
+        {
+          "astId": 19742,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "child",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "astId": 19744,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "ancestor",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "astId": 19746,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "units",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 19748,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "pointShare",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 19752,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "builderShares",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_array(t_uint256)4_storage"
+        },
+        {
+          "astId": 19754,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "month",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 19756,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "serial",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_uint256"
+        }
+      ],
+      "numberOfBytes": "320"
+    },
+    "t_struct(Member)19680_storage": {
+      "encoding": "inplace",
+      "label": "struct FundedBinaryPlanUpgradeable.Member",
+      "members": [
+        {
+          "astId": 19657,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "parent",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "astId": 19659,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "left",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "astId": 19661,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "right",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "astId": 19663,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "units",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 19665,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "carryL",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 19667,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "carryR",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 19669,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "lifetimeL",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 19671,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "lifetimeR",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 19673,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "rank",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_uint8"
+        },
+        {
+          "astId": 19675,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "exists",
+          "offset": 1,
+          "slot": "8",
+          "type": "t_bool"
+        },
+        {
+          "astId": 19677,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "autoEnabled",
+          "offset": 2,
+          "slot": "8",
+          "type": "t_bool"
+        },
+        {
+          "astId": 19679,
+          "contract": "FundedBinaryPlanUpgradeable.sol:FundedBinaryPlanUpgradeable",
+          "label": "maxAutoPrice",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_uint256"
+        }
+      ],
+      "numberOfBytes": "320"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint64": {
+      "encoding": "inplace",
+      "label": "uint64",
+      "numberOfBytes": "8"
+    },
+    "t_uint8": {
+      "encoding": "inplace",
+      "label": "uint8",
+      "numberOfBytes": "1"
+    }
+  }
+}

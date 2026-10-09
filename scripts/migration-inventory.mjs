@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {JsonRpcProvider,Contract,keccak256,ZeroAddress} from 'ethers';
+import {completeExport} from './migration-complete-export.mjs';
 
 export function validateGenealogy(users){
  const index=new Map(users.map(u=>[u.wallet.toLowerCase(),u]));
@@ -33,6 +34,7 @@ export async function collectInventory({provider,binary,token,usd,cfg,blockTag})
   const wallet=await read(binary,'memberList',i),member=named(await read(binary,'members',wallet));
   const u={index:i,wallet,member};
   for(const n of ['depth','activatedAtSerial','creditL','creditR','pendingReward','pendingAuto'])u[n]=await read(binary,n,wallet);
+  u.walletUSD=await read(usd,'balanceOf',wallet);
   u.rankReachedAt=await Promise.all([0,1,2,3].map(k=>read(binary,'rankReachedAt',wallet,k)));
   u.builderClaimed=await Promise.all([0,1,2,3].map(k=>read(binary,'builderClaimed',wallet,k)));
   u.token={};for(const n of ['balanceOf','purchaseCycle','cyclePurchases','lifetimeManualBuys'])u.token[n]=await read(token,n,wallet);
@@ -54,8 +56,19 @@ export async function collectInventory({provider,binary,token,usd,cfg,blockTag})
  const binaryBook=await read(binary,'accounting'),tokenBook=await read(token,'accounting'),credits=await read(binary,'fundingAccounting');
  if(binaryBook[0]!==binaryBook[1]||tokenBook[0]!==tokenBook[1]||credits[0]!==credits[1]||credits[2]!==credits[3])throw Error('Accounting mismatch; inventory rejected');
  const codes={};for(const [key,address]of Object.entries({binary:binary.target,token:token.target,usd:usd.target})){const code=await provider.getCode(address,block.number);if(code==='0x')throw Error('Missing contract code');codes[key]=keccak256(code);if(cfg.codeHashes?.[key]&&codes[key]!==cfg.codeHashes[key])throw Error('Deployment code hash mismatch');}
+ const implementations={};
+ const implementationSlot='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
+ for(const [key,c]of [['binary',binary],['token',token]])if(cfg[key+'Contract']?.endsWith('Upgradeable')){
+  const raw=await provider.getStorage(c.target,implementationSlot,block.number);
+  if(BigInt(raw==='0x'?'0x0':raw)===0n)throw Error('Proxy implementation missing');
+  const address='0x'+raw.slice(-40);
+  if(address.toLowerCase()===ZeroAddress)throw Error('Proxy implementation missing');
+  const code=await provider.getCode(address,block.number);if(code==='0x')throw Error('Proxy implementation has no code');
+  implementations[key]={address,codeHash:keccak256(code)};
+  if(cfg.implementationCodeHashes?.[key]&&implementations[key].codeHash!==cfg.implementationCodeHashes[key])throw Error('Implementation code mismatch');
+ }
  const again=await provider.getBlock(block.number);if(again.hash!==block.hash)throw Error('Snapshot block reorganized');
- return {schema:'FTI_READONLY_INVENTORY_V1',chainId:String((await provider.getNetwork()).chainId),block:{number:block.number,hash:block.hash,timestamp:block.timestamp},contracts:{binary:binary.target,token:token.target,usd:usd.target},codeHashes:codes,users,global,queues,development:{wallet:development,pending:pendingDevelopment},accounting:{binary:[...binaryBook],token:[...tokenBook],funding:[...credits]},migrationReady:false,limitations:['Read-only inventory; no funds or users migrated.','A fixed-block read is not a freeze of the old contracts.','Non-member token holders, ERC20 allowances, historical epoch mappings and monthly builder mappings require separate event/storage export before any full migration.','The old binary has no USD migration withdrawal; never issue unfunded replacement balances.']};
+ return {schema:'FTI_READONLY_INVENTORY_V1',chainId:String((await provider.getNetwork()).chainId),block:{number:block.number,hash:block.hash,timestamp:block.timestamp},contracts:{binary:binary.target,token:token.target,usd:usd.target},codeHashes:codes,implementations,users,global,queues,development:{wallet:development,pending:pendingDevelopment},accounting:{binary:[...binaryBook],token:[...tokenBook],funding:[...credits]},migrationReady:false,limitations:['Read-only inventory; no funds or users migrated.','A fixed-block read is not a freeze of the old contracts.','Non-member token holders, ERC20 allowances, historical epoch mappings and monthly builder mappings require separate event/storage export before any full migration.','The old binary has no USD migration withdrawal; never issue unfunded replacement balances.']};
 }
 
 if(process.argv[1]===fileURLToPath(import.meta.url)){
@@ -65,11 +78,12 @@ if(process.argv[1]===fileURLToPath(import.meta.url)){
   const chain=(await provider.getNetwork()).chainId;if(chain!==97n&&chain!==31337n)throw Error('Testnet/local only');if(chain!==BigInt(cfg.chainId))throw Error('Wrong deployment chain');
   const abi=n=>JSON.parse(fs.readFileSync(`artifacts/${n}.json`,'utf8')).abi;
   const binaryName=cfg.binaryContract||'FundedBinaryPlan',tokenName=cfg.tokenContract||'FTIReserveTokenV3';
-  if(!['FundedBinaryPlan','FundedBinaryPlanFloor'].includes(binaryName)||!['FTIReserveTokenV3','FTIReserveTokenRecovery'].includes(tokenName))throw Error('Unsupported inventory model');
+  if(!['FundedBinaryPlan','FundedBinaryPlanFloor','FundedBinaryPlanUpgradeable'].includes(binaryName)||!['FTIReserveTokenV3','FTIReserveTokenRecovery','FTIReserveTokenUpgradeable'].includes(tokenName))throw Error('Unsupported inventory model');
   const binary=new Contract(cfg.binary,abi(binaryName),provider),token=new Contract(cfg.token,abi(tokenName),provider),usd=new Contract(cfg.usd,abi('MockUSD'),provider);
   const blockTag=process.env.FTI_SNAPSHOT_BLOCK?Number(process.env.FTI_SNAPSHOT_BLOCK):await provider.getBlockNumber();
   if(!Number.isSafeInteger(blockTag)||blockTag<0)throw Error('Invalid block');
-  const report=await collectInventory({provider,binary,token,usd,cfg,blockTag});
+  let report=await collectInventory({provider,binary,token,usd,cfg,blockTag});
+  if(process.env.FTI_FULL_EXPORT==='1'){cfg.binaryStorageLayout=JSON.parse(fs.readFileSync(`artifacts/storage-layout/${binaryName}.json`));report=await completeExport(report,{provider,binary,token,cfg});}
   const output=process.env.FTI_INVENTORY_OUTPUT;if(!output)throw Error('Set FTI_INVENTORY_OUTPUT to a new report path');
   fs.writeFileSync(output,JSON.stringify(report,(_,v)=>typeof v==='bigint'?v.toString():v,2)+'\n',{flag:'wx',mode:0o600});
   console.log(JSON.stringify({result:'INVENTORY_SAVED',members:report.users.length,block:report.block.number,migrationReady:false,output}));

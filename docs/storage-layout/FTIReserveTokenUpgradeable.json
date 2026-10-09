@@ -1,0 +1,295 @@
+{
+  "storage": [
+    {
+      "astId": 26487,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "_balances",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 26493,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "_allowances",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))"
+    },
+    {
+      "astId": 26495,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "_totalSupply",
+      "offset": 0,
+      "slot": "2",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 26497,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "_name",
+      "offset": 0,
+      "slot": "3",
+      "type": "t_string_storage"
+    },
+    {
+      "astId": 26499,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "_symbol",
+      "offset": 0,
+      "slot": "4",
+      "type": "t_string_storage"
+    },
+    {
+      "astId": 24747,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "_status",
+      "offset": 0,
+      "slot": "5",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 24637,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "_paused",
+      "offset": 0,
+      "slot": "6",
+      "type": "t_bool"
+    },
+    {
+      "astId": 6889,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "usd",
+      "offset": 1,
+      "slot": "6",
+      "type": "t_contract(IERC20)24138"
+    },
+    {
+      "astId": 6891,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "governance",
+      "offset": 0,
+      "slot": "7",
+      "type": "t_address"
+    },
+    {
+      "astId": 6893,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "guardianCouncil",
+      "offset": 0,
+      "slot": "8",
+      "type": "t_address"
+    },
+    {
+      "astId": 6895,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "deployer",
+      "offset": 0,
+      "slot": "9",
+      "type": "t_address"
+    },
+    {
+      "astId": 6898,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "binary",
+      "offset": 0,
+      "slot": "10",
+      "type": "t_contract(IUpgradeableMembership)6823"
+    },
+    {
+      "astId": 6900,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "reserve",
+      "offset": 0,
+      "slot": "11",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 6902,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "supportReserve",
+      "offset": 0,
+      "slot": "12",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 6904,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "launchPrice",
+      "offset": 0,
+      "slot": "13",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 6906,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "ath",
+      "offset": 0,
+      "slot": "14",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 6908,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "pendingSupportTarget",
+      "offset": 0,
+      "slot": "15",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 6911,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "cycle",
+      "offset": 0,
+      "slot": "16",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 6914,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "cycleStartPrice",
+      "offset": 0,
+      "slot": "17",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 6916,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "development",
+      "offset": 0,
+      "slot": "18",
+      "type": "t_address"
+    },
+    {
+      "astId": 6920,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "purchaseCycle",
+      "offset": 0,
+      "slot": "19",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 6924,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "cyclePurchases",
+      "offset": 0,
+      "slot": "20",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 6928,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "lifetimeManualBuys",
+      "offset": 0,
+      "slot": "21",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 6930,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "sellWindowStart",
+      "offset": 0,
+      "slot": "22",
+      "type": "t_uint64"
+    },
+    {
+      "astId": 6932,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "sellWindowOpeningReserve",
+      "offset": 0,
+      "slot": "23",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 6934,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "sellWindowOutflow",
+      "offset": 0,
+      "slot": "24",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 6936,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "emergencyUnwind",
+      "offset": 0,
+      "slot": "25",
+      "type": "t_bool"
+    },
+    {
+      "astId": 6938,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "emergencyRemainingPool",
+      "offset": 0,
+      "slot": "26",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 6940,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "emergencyRemainingSupply",
+      "offset": 0,
+      "slot": "27",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 7006,
+      "contract": "FTIReserveTokenUpgradeable.sol:FTIReserveTokenUpgradeable",
+      "label": "recoveryFrozen",
+      "offset": 0,
+      "slot": "28",
+      "type": "t_bool"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_contract(IERC20)24138": {
+      "encoding": "inplace",
+      "label": "contract IERC20",
+      "numberOfBytes": "20"
+    },
+    "t_contract(IUpgradeableMembership)6823": {
+      "encoding": "inplace",
+      "label": "contract IUpgradeableMembership",
+      "numberOfBytes": "20"
+    },
+    "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => mapping(address => uint256))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_uint256)"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint64": {
+      "encoding": "inplace",
+      "label": "uint64",
+      "numberOfBytes": "8"
+    }
+  }
+}

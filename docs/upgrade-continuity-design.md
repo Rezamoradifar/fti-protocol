@@ -1,3 +1,5 @@
+> Historical stage note: see [current implementation status](continuity-implementation-status.md) for the subsequently implemented UUPS contracts, extended export and monitor. Legacy collateral-transfer limitations remain.
+
 # Governed continuity architecture (owner approved, not implemented)
 
 ## Stable contract identity

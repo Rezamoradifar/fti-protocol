@@ -1,3 +1,5 @@
+> Historical stage note: see [current implementation status](continuity-implementation-status.md) for the subsequently implemented UUPS contracts, extended export and monitor. Legacy collateral-transfer limitations remain.
+
 # Recovery freeze candidate — 9 October 2026
 
 ## Implemented (isolated, not deployed)

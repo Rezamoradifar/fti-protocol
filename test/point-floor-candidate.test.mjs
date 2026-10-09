@@ -4,6 +4,8 @@ import ganache from 'ganache';
 import {BrowserProvider,parseEther as E,MaxUint256} from 'ethers';
 import {deployOne,settle,checkAccounting} from '../scripts/lib.mjs';
 import {collectInventory,validateGenealogy} from '../scripts/migration-inventory.mjs';
+import fs from 'node:fs';
+import {completeExport} from '../scripts/migration-complete-export.mjs';
 
 test('funded floor: per-wallet minimum, deferred carry, payouts, development 1%, rank boundary and no replay',{timeout:180000},async()=>{
  const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:50},miner:{blockGasLimit:30000000}});
@@ -13,7 +15,7 @@ test('funded floor: per-wallet minimum, deferred carry, payouts, development 1%,
   const usd=await deployOne('MockUSD',[],w[0]),council=await deployOne('SevenGuardianCouncil',[a.slice(40,47)],w[0]);
   const token=await deployOne('FTIReserveTokenV3',[usd.target,a[48],council.target],w[0]);
   const binary=await deployOne('FundedBinaryPlanFloor',[usd.target,token.target,a[48],council.target,a[49],a.slice(0,31)],w[0]);
-  await(await token.bind(binary.target)).wait();const suite={usd,token,binary};
+  const bindReceipt=await(await token.bind(binary.target)).wait();const suite={usd,token,binary};
   const send=async t=>{const r=await(await t).wait();assert.equal(r.status,1);return r;};
   for(const i of [0,1,2,15,31,32,33,34,35,36,37]){await send(usd.connect(w[i]).faucet());await send(usd.connect(w[i]).approve(binary.target,MaxUint256));}
   await send(binary.addUnits(1));await send(binary.connect(w[15]).addUnits(1));
@@ -37,9 +39,12 @@ test('funded floor: per-wallet minimum, deferred carry, payouts, development 1%,
   await settle(suite,p,1);assert.equal(await binary.pendingReward(a[35]),0n);assert.equal((await binary.members(a[35])).carryL,1n);
   await send(binary.connect(w[1]).addUnits(1));await send(binary.connect(w[2]).addUnits(1));await settle(suite,p,1);
   assert.equal(await binary.rankOf(a[0]),1n);await checkAccounting(suite);
+  await send(usd.approve(token.target,MaxUint256));await send(token.buy(E('100'),0,MaxUint256));await send(token.transfer(a[40],E('10')));await send(token.approve(a[41],E('5')));
   const inventory=await collectInventory({provider:p,binary,token,usd,cfg:{},blockTag:await p.getBlockNumber()});
   assert.equal(inventory.users.length,38);assert.equal(inventory.migrationReady,false);
   assert.equal(inventory.development.wallet,a[49]);assert.equal(inventory.users[35].member.carryL,1n);
+  const exported=await completeExport(inventory,{provider:p,binary,token,cfg:{deployedBlock:bindReceipt.blockNumber,binaryStorageLayout:JSON.parse(fs.readFileSync('artifacts/storage-layout/FundedBinaryPlanFloor.json'))}});
+  assert.equal(exported.schema,'FTI_COMPLETE_EXPORT_V1');assert.equal(exported.ledger.holders.reduce((sum,h)=>sum+h.balance,0n),await token.totalSupply());assert(exported.ledger.holders.some(h=>h.wallet===a[40].toLowerCase()&&h.balance>0n));assert(exported.ledger.allowances.some(x=>x.spender.toLowerCase()===a[41].toLowerCase()&&x.amount===E('5')));assert(exported.ledger.months.length>0);assert(exported.ledger.months.some(m=>m.members.length>0));
   const broken=structuredClone(inventory.users);broken[35].member.parent=a[0];assert.throws(()=>validateGenealogy(broken));
  }finally{await engine.disconnect();}
 });

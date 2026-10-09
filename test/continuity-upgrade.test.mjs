@@ -1,0 +1,62 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ganache from 'ganache';
+import {BrowserProvider,Contract,parseEther as E,MaxUint256,ZeroHash,id} from 'ethers';
+import {deployOne,artifact,settle,checkAccounting} from '../scripts/lib.mjs';
+import {collectInventory} from '../scripts/migration-inventory.mjs';
+import {assertStorageCompatible} from '../scripts/check-upgrade-layout.mjs';
+
+const implementationSlot='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
+test('proxy upgrade keeps funded users, genealogy, rank, liabilities, token balances and proxy addresses',{timeout:240000},async()=>{
+ const engine=ganache.provider({logging:{quiet:true},wallet:{totalAccounts:45},miner:{blockGasLimit:30000000}}),p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
+ try{
+  const w=await Promise.all(Array.from({length:45},(_,i)=>p.getSigner(i))),a=await Promise.all(w.map(s=>s.getAddress())),send=async t=>{const r=await(await t).wait();assert.equal(r.status,1);return r;};
+  const usd=await deployOne('MockUSD',[],w[0]),council=await deployOne('SevenGuardianCouncil',[a.slice(31,38)],w[0]),timelock=await deployOne('FTITimelock',[council.target],w[0]);
+  const ti=await deployOne('FTIReserveTokenUpgradeable',[],w[0]);
+  const tokenInit=ti.interface.encodeFunctionData('initialize',[usd.target,timelock.target,council.target]);
+  await assert.rejects(()=>ti.initialize.staticCall(usd.target,timelock.target,council.target));
+  await assert.rejects(()=>deployOne('FTIProxy',[ti.target,ti.interface.encodeFunctionData('initialize',[usd.target,usd.target,council.target])],w[0]));
+  const tp=await deployOne('FTIProxy',[ti.target,tokenInit],w[0]),token=new Contract(tp.target,artifact('FTIReserveTokenUpgradeable').abi,w[0]);
+  const bi=await deployOne('FundedBinaryPlanUpgradeable',[],w[0]),binaryArgs=[usd.target,token.target,timelock.target,council.target,a[44],a.slice(0,31)];
+  const binaryInit=bi.interface.encodeFunctionData('initialize',binaryArgs);
+  await assert.rejects(()=>bi.initialize.staticCall(...binaryArgs));
+  const bp=await deployOne('FTIProxy',[bi.target,binaryInit],w[0]),binary=new Contract(bp.target,artifact('FundedBinaryPlanUpgradeable').abi,w[0]);
+  await send(token.bind(binary.target));assert.equal(await token.name(),'FTI Protocol');assert.equal(await token.symbol(),'FTI');assert.equal(await token.cycle(),1n);assert.equal(await token.cycleStartPrice(),E('0.1'));assert.equal(await binary.epoch(),1n);
+  await assert.rejects(()=>token.initialize.staticCall(usd.target,timelock.target,council.target));await assert.rejects(()=>binary.initialize.staticCall(...binaryArgs));
+  for(const i of [0,1,2]){await send(usd.connect(w[i]).faucet());await send(usd.connect(w[i]).approve(binary.target,MaxUint256));}
+  await send(usd.approve(token.target,MaxUint256));await send(binary.addUnits(2));
+  await send(binary.connect(w[1]).addUnits(100));await send(binary.connect(w[2]).addUnits(100));await settle({usd,token,binary},p);
+  assert.equal(await binary.rankOf(a[0]),1n);await send(token.buy(E('300'),0,MaxUint256));await send(token.transfer(a[1],E('10')));await send(token.approve(a[2],E('5')));
+  const snapshot=async()=>({members:await Promise.all([0,1,2].map(i=>binary.members(a[i]).then(r=>Array.from(r)))),credits:await Promise.all([0,1,2].map(i=>binary.creditL(a[i]))),pending:await binary.pendingReward(a[0]),dev:await binary.pendingReward(a[44]),pool:await binary.pointPool(),balance0:await token.balanceOf(a[0]),balance1:await token.balanceOf(a[1]),allowance:await token.allowance(a[0],a[2]),reserve:await token.reserve(),support:await token.supportReserve(),supply:await token.totalSupply(),ath:await token.ath(),epoch:await binary.epoch()});
+  const before=await snapshot(),newTi=await deployOne('FTIReserveTokenUpgradeable',[],w[0]),newBi=await deployOne('FundedBinaryPlanUpgradeable',[],w[0]);
+  await assert.rejects(()=>binary.upgradeToAndCall.staticCall(newBi.target,'0x'),/governance/);await assert.rejects(()=>bi.upgradeToAndCall.staticCall(newBi.target,'0x'));await assert.rejects(()=>binary.proxiableUUID());
+  const councilCall=async(target,data)=>{const n=await council.proposalCount();await send(council.connect(w[31]).propose(target,data));for(let i=32;i<=35;i++)await send(council.connect(w[i]).approve(n));await send(council.execute(n));};
+  const targets=[token.target,binary.target],values=[0,0],payloads=[token.interface.encodeFunctionData('upgradeToAndCall',[newTi.target,'0x']),binary.interface.encodeFunctionData('upgradeToAndCall',[newBi.target,'0x'])],salt=id('continuity-upgrade');
+  await councilCall(timelock.target,timelock.interface.encodeFunctionData('scheduleBatch',[targets,values,payloads,ZeroHash,salt,259200]));
+  await assert.rejects(()=>timelock.executeBatch.staticCall(targets,values,payloads,ZeroHash,salt));await p.send('evm_increaseTime',[259201]);await p.send('evm_mine',[]);
+  await assert.rejects(()=>timelock.executeBatch.staticCall(targets,values,payloads,ZeroHash,salt),/freeze first/);
+  await councilCall(binary.target,binary.interface.encodeFunctionData('setRecoveryFrozen',[true]));await councilCall(token.target,token.interface.encodeFunctionData('setRecoveryFrozen',[true]));
+  await assert.rejects(()=>binary.setRecoveryFrozen.staticCall(false),/governance/);await assert.rejects(()=>token.setRecoveryFrozen.staticCall(false),/governance/);
+  await send(timelock.executeBatch(targets,values,payloads,ZeroHash,salt));
+  assert.equal((await p.getStorage(token.target,implementationSlot)).slice(-40).toLowerCase(),newTi.target.slice(2).toLowerCase());assert.equal((await p.getStorage(binary.target,implementationSlot)).slice(-40).toLowerCase(),newBi.target.slice(2).toLowerCase());
+  assert.deepEqual(await snapshot(),before);assert.equal(await binary.recoveryFrozen(),true);
+  const exported=await collectInventory({provider:p,binary,token,usd,cfg:{binaryContract:'FundedBinaryPlanUpgradeable',tokenContract:'FTIReserveTokenUpgradeable'},blockTag:await p.getBlockNumber()});
+  assert.equal(exported.implementations.binary.address.toLowerCase(),newBi.target.toLowerCase());assert.equal(exported.users.length,31);
+  const badPayload=binary.interface.encodeFunctionData('upgradeToAndCall',[newTi.target,'0x']),badSalt=id('wrong-component');
+  await councilCall(timelock.target,timelock.interface.encodeFunctionData('schedule',[binary.target,0,badPayload,ZeroHash,badSalt,259200]));await p.send('evm_increaseTime',[259201]);await p.send('evm_mine',[]);
+  await assert.rejects(()=>timelock.execute.staticCall(binary.target,0,badPayload,ZeroHash,badSalt),/component/);
+  assert.deepEqual(await snapshot(),before);
+  const reopen=[token.interface.encodeFunctionData('setRecoveryFrozen',[false]),binary.interface.encodeFunctionData('setRecoveryFrozen',[false])],reopenSalt=id('reopen-upgrade');
+  await councilCall(timelock.target,timelock.interface.encodeFunctionData('scheduleBatch',[targets,values,reopen,ZeroHash,reopenSalt,259200]));await p.send('evm_increaseTime',[259201]);await p.send('evm_mine',[]);await send(timelock.executeBatch(targets,values,reopen,ZeroHash,reopenSalt));
+  const userCash=await usd.balanceOf(a[0]);await send(binary.payRewards(100));assert.equal(await usd.balanceOf(a[0]),userCash+before.pending);await send(binary.payRewards(100));assert.equal(await usd.balanceOf(a[0]),userCash+before.pending);await checkAccounting({usd,token,binary});
+ }finally{await engine.disconnect();}
+});
+test('layout gate rejects slot, field and mapping type changes',()=>{
+ for(const name of ['FundedBinaryPlanUpgradeable','FTIReserveTokenUpgradeable']){
+  const old=JSON.parse(fs.readFileSync(`artifacts/storage-layout/${name}.json`)),same=structuredClone(old);assertStorageCompatible(old,same);
+  const bad=structuredClone(old);bad.storage[0].slot='999';assert.throws(()=>assertStorageCompatible(old,bad));
+  const removed=structuredClone(old);removed.storage.pop();assert.throws(()=>assertStorageCompatible(old,removed));
+  const type=structuredClone(old);type.types[type.storage[0].type].numberOfBytes='17';assert.throws(()=>assertStorageCompatible(old,type));
+ }
+});
