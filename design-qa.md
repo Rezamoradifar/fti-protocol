@@ -37,3 +37,10 @@ Added recent 300-block token trade history, execution-price OHLC, actual buy/sel
 - Web and landing builds pass. Desktop member, council and token public screens reviewed; member mobile body width equals scroll width (375px), with no horizontal overflow.
 - Preview financial responses are captured fixtures; council/market fixture limitations remain, not a live-network validation.
 - Server deployment prepared only; existing HTTPS/subdomain configuration is preserved by frontend installer.
+
+## 2026-10-10: restore the first complete landing
+- Restored the original layout from 4ca08073fc9b60f8cf5081b24fce0caf6016a171: mint ring hero, architecture cards, light allocation section, point lab, conceptual funding flow, journey, development cards, FAQ and oversized footer. English presentation matches the initial landing.
+- Updated obsolete economic copy to the current R/S model, retained unpaid matches, 16 USD protection trigger, funded 20 USD gross points, 500 USD steps and current rank thresholds. Removed old fixed contract address, legacy server URL and GitHub links. Token address is read from validated chain-97 configuration; unavailable data is not invented.
+- Kept current member/token/council destinations and bilingual public documents. Scoped public/initial styles to avoid cross-page restyling.
+- Production landing build passed. Desktop and 390px mobile hero reviewed; FAQ expansion and mobile menu verified. Token public page retains its layout. Preview uses captured testnet configuration, not live transaction evidence.
+- No contract, keeper, user data or money changed. Server activation requires the existing frontend-only installer.
