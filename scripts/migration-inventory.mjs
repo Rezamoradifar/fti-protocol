@@ -44,10 +44,17 @@ export async function collectInventory({provider,binary,token,usd,cfg,blockTag})
  const global={binary:{},token:{}};
  for(const n of ['epoch','epochEnd','lastClosedAt','epochUnits','unitsSinceSettlement','fundingSerial','pointPool','queuedPointCredit','assignedPointCredit','retainedPointReserve','queuedBuilderCredit','assignedBuilderCredit','retainedBuilderReserve','builderAccounted','totalPending','totalAuto','phase','monthPhase','nextBuilderMonth','protectionLevel','frozenLevel','cursor','frozenMembers','totalPaidPoints','allocated','pointValue','dirtyCount','jobCursor','jobCount'])global.binary[n]=await read(binary,n);
  for(const n of ['reserve','supportReserve','launchPrice','ath','pendingSupportTarget','cycle','cycleStartPrice','sellWindowStart','sellWindowOpeningReserve','sellWindowOutflow','emergencyUnwind','emergencyRemainingPool','emergencyRemainingSupply','totalSupply','price'])global.token[n]=await read(token,n);
+ for(const n of ['candidatePoints','candidateFunding','calculatedPointValue','pointValueIsTarget'])if(binary.interface.hasFunction(n))global.binary[n]=await read(binary,n);
+ for(const [key,c]of [['binary',binary],['token',token]])if(c.interface.hasFunction('paused'))global[key].paused=await read(c,'paused');
  for(const n of ['recoveryFrozen','recoverySnapshotRoot','recoveryCheckpointSerial'])if(binary.interface.hasFunction(n))global.binary[n]=await read(binary,n);
  if(token.interface.hasFunction('recoveryFrozen'))global.token.recoveryFrozen=await read(token,'recoveryFrozen');
  const development=await read(binary,'development');
  const pendingDevelopment=await read(binary,'pendingReward',development);
+ const authorities={};
+ for(const [key,c,names]of [['binary',binary,['governance','guardian','development']],['token',token,['governance','guardianCouncil','development','deployer']]]){
+  authorities[key]={};for(const n of names)if(c.interface.hasFunction(n))authorities[key][n]=await read(c,n);
+ }
+ const collateral={binaryBalance:await read(usd,'balanceOf',binary.target),tokenBalance:await read(usd,'balanceOf',token.target),binaryToTokenAllowance:await read(usd,'allowance',binary.target,token.target)};
  const queues={rewards:[],auto:[],dirty:[],jobs:[]};
  for(const [key,countName,itemName]of [['rewards','rewardAccountCount','rewardAccounts'],['auto','autoAccountCount','autoAccounts'],['dirty','dirtyCount','dirtyMembers'],['jobs','jobCount','jobs']]){
   const size=Number(await read(binary,countName));if(!Number.isSafeInteger(size)||size>1000000)throw Error('Unexpected queue size');
@@ -68,7 +75,7 @@ export async function collectInventory({provider,binary,token,usd,cfg,blockTag})
   if(cfg.implementationCodeHashes?.[key]&&implementations[key].codeHash!==cfg.implementationCodeHashes[key])throw Error('Implementation code mismatch');
  }
  const again=await provider.getBlock(block.number);if(again.hash!==block.hash)throw Error('Snapshot block reorganized');
- return {schema:'FTI_READONLY_INVENTORY_V1',chainId:String((await provider.getNetwork()).chainId),block:{number:block.number,hash:block.hash,timestamp:block.timestamp},contracts:{binary:binary.target,token:token.target,usd:usd.target},codeHashes:codes,implementations,users,global,queues,development:{wallet:development,pending:pendingDevelopment},accounting:{binary:[...binaryBook],token:[...tokenBook],funding:[...credits]},migrationReady:false,limitations:['Read-only inventory; no funds or users migrated.','A fixed-block read is not a freeze of the old contracts.','Non-member token holders, ERC20 allowances, historical epoch mappings and monthly builder mappings require separate event/storage export before any full migration.','The old binary has no USD migration withdrawal; never issue unfunded replacement balances.']};
+ return {schema:'FTI_READONLY_INVENTORY_V1',chainId:String((await provider.getNetwork()).chainId),block:{number:block.number,hash:block.hash,timestamp:block.timestamp},contracts:{binary:binary.target,token:token.target,usd:usd.target},codeHashes:codes,implementations,users,global,queues,authorities,collateral,development:{wallet:development,pending:pendingDevelopment,walletUSD:await read(usd,'balanceOf',development)},accounting:{binary:[...binaryBook],token:[...tokenBook],funding:[...credits]},migrationReady:false,limitations:['Read-only inventory; no funds or users migrated.','A fixed-block read is not a freeze of the old contracts.','Non-member token holders, ERC20 allowances, historical epoch mappings and monthly builder mappings require separate event/storage export before any full migration.','The old binary has no USD migration withdrawal; never issue unfunded replacement balances.']};
 }
 
 if(process.argv[1]===fileURLToPath(import.meta.url)){

@@ -1,5 +1,11 @@
 # Continuity implementation status — 9 October 2026
 
+See [10 October transition verification](continuity-transition-20261010.md) for
+the expanded complete-export comparison, candidate point-value fields,
+collateral/authority checks and post-upgrade payment/trade tests. These tools
+verify a stable-address proxy upgrade; independent-address migration remains
+unimplemented and must not be represented as complete.
+
 ## Implemented
 
 - Separate UUPS binary and token implementations (`FundedBinaryPlanUpgradeable`, `FTIReserveTokenUpgradeable`) and ERC-1967 `FTIProxy` with mandatory atomic initialization.

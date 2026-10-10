@@ -1,6 +1,11 @@
 > Historical stage note: see [current implementation status](continuity-implementation-status.md) for the subsequently implemented UUPS contracts, extended export and monitor. Legacy collateral-transfer limitations remain.
 
-# Governed continuity architecture (owner approved, not implemented)
+# Governed continuity architecture
+
+Status: governed stable-address proxies are implemented and locally tested.
+New-address import/collateral migration remains a design requirement, not an
+implemented transfer path. See [current status](continuity-implementation-status.md)
+and [transition verification](continuity-transition-20261010.md).
 
 ## Stable contract identity
 
