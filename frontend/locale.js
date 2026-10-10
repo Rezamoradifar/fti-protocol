@@ -2,6 +2,8 @@ export const language=(()=>{try{return localStorage.getItem('fti-language')==='e
 export function t(value,fa){const s=String(value);if(language==='en')return s;return fa||translations[s]||dynamicText(s);}
 export function initializeLanguage(){document.documentElement.lang=language;document.documentElement.dir=language==='fa'?'rtl':'ltr';}
 const translations=Object.fromEntries(`
+Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.|خرید در پله‌های ۵۰۰ دلاری با قیمت جدید هر پله انجام می‌شود؛ کارمزد هر پله ۳٪ و حداکثر ۱۲۸ پله در تراکنش است. مجوز عضویت و چرخه اعمال می‌شود.
+Connect to view your balance and allowance.|برای مشاهده موجودی و مجوز خرید، ولت را متصل کنید.
 PROTOCOL|پروتکل
 EXPLORE FTI|فضاهای FTI
 Main website|صفحه اصلی

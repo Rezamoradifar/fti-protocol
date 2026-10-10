@@ -1,42 +1,46 @@
+import {settledPoints} from './settled-points.js';
 import {initLiveMarket} from './live-market.js';
 import {initNetworkTree} from './network-tree.js';
 import {t,language} from './locale.js';
 import {chooseWallet,requestWalletAccounts} from './wallet-selector.js';
 import {JsonRpcProvider,BrowserProvider,Contract,parseEther,formatEther,ZeroAddress,ZeroHash,randomBytes,hexlify,isAddress} from '/vendor/ethers.js';
+import {siteLinks} from './site-links.js';
+const sites=siteLinks(location.href);
 import {surface,surfacePages,defaultPage,pagePath} from './surfaces.js';
 const $=s=>document.querySelector(s);
 const text=(id,value)=>{document.getElementById(id).textContent=t(value);};
 async function json(url){const response=await fetch(url,{signal:AbortSignal.timeout(25000),cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to read contract data.');return data;}
 const cfg=await json('/api/config');
-const reserveModel=cfg.tokenContract==='FTIReserveToken';const v3Model=cfg.tokenContract==='FTIReserveTokenV3';
-const fundedModel=cfg.binaryContract==='FundedBinaryPlan';
+const reserveModel=cfg.tokenContract==='FTIReserveToken';const v3Model=['FTIReserveTokenV3','FTIReserveTokenUpgradeable'].includes(cfg.tokenContract);
+const fundedModel=['FundedBinaryPlan','FundedBinaryPlanUpgradeable'].includes(cfg.binaryContract);
 $('#funded-policy').hidden=!fundedModel;
+$('#point-values-panel').hidden=cfg.tokenContract!=='FTIReserveTokenUpgradeable';
 if(reserveModel){
  text('token-price-label','Gross reserve value per FTI');text('token-model-title','Real-reserve pricing');text('token-model-ratio-label','Pricing model');text('token-model-ratio','Reserve / total shares');
  text('token-reserve-description','Recorded test USD backing');text('token-model-description','The 3% buy and sell fees remain in the real reserve. Positive trades and transfer burns increase the exact reserve/share value. There is no timed yield. The first paid allocation backs permanently locked shares; direct USD donations do not change quotes.');
  text('token-sale-description','Redeem unlocked FTI against recorded reserves. A 3% fee stays in reserve; check the net quote. A rising gross price does not guarantee profit or the value of the collateral.');
- $('#token-anchor-row').hidden=false;$('#token-source').href='https://github.com/Rezamoradifar/fti-protocol/blob/fix/funded-binary/contracts/FTIReserveToken.sol';
+ $('#token-anchor-row').hidden=false;
 }
 
 if(v3Model){
  for(const id of ['legacy-locks','locked-ftis','legacy-floor-fund','legacy-token-floor'])$('#'+id).hidden=true;
- text('buy-policy','Membership and rank purchase limits apply. V3 has no time or wallet-count locks.');
+ text('buy-policy',cfg.tokenContract==='FTIReserveTokenUpgradeable'?'Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.':'Membership and rank purchase limits apply. V3 has no time or wallet-count locks.');
  text('sell-policy','3% fee. Gross sales up to $500 and final full-supply exits are exempt from ordinary sale limits. Minimum output and deadline always apply.');
  text('availability-policy','V3 tokens have no time or wallet-count locks. Pauses, emergency state and sale limits still apply.');
  text('token-price-label','Reserve / FTI');text('token-model-ratio-label','Pricing model');text('token-model-ratio','Reserve / supply · $0.10 first cycle, $0.20 restarts');
  text('token-model-description','No premint or time locks. Ordinary trade fees stay in reserve. Support is used only on a price drop, with the minimum available injection. Final-exit fees and remaining support go to development. Each new cycle starts with a $0.20 bootstrap quote.');
  text('token-sale-description','Reserve/share quotes, 3% fee. Sales above $500 retain 5% single-sale and 20% hourly limits; final full-supply exit is exempt. Transfers burn 3%. Support may be exhausted and does not guarantee a price floor.');
- text('point-policy','Rewards use funded credits from your own branches. $20 per point is the protection target, not a reward ceiling or an unfunded guarantee. Protection adjusts hourly point caps when funding falls below that target.');
+ text('point-policy',cfg.tokenContract==='FTIReserveTokenUpgradeable'?'Rewards use funded credits from your own branches. Every paid point has at least $20 gross funding. Protection increases below $16 calculated before the payout filter.':'Rewards use funded credits from your own branches. $20 per point is the protection target, not a reward ceiling or an unfunded guarantee. Protection adjusts hourly point caps when funding falls below that target.');
  text('transfer-title','Transfer FTI');text('transfer-description','The amount entered is your total debit: the recipient receives 97% and 3% is burned. The burn rounds up to the smallest FTI unit. Recipients do not need membership.');
  $('#transfer-quote').hidden=false;
  text('governance-title','5-of-7 governance');text('governance-description',cfg.timelock?'Five guardians approve proposals. Ordinary operations pass through a 72-hour timelock; emergency pause and redemption require five approvals.':'Legacy V3 configuration: ordinary governance is not timelocked. A new integrated deployment is required.');
  $('#timelock-form').hidden=!cfg.timelock;$('#timelock-heading').hidden=!cfg.timelock;
  const select=$('#proposal-form').elements.action;for(const option of [...select.options])if(option.value==='milestone'||(!cfg.timelock&&!['pauseBinary','pauseToken'].includes(option.value)))option.remove();
  const option=document.createElement('option');option.value='emergencyUnwind';option.textContent=t('Permanent emergency pro-rata redemption');select.append(option);
- $('#token-source').href='https://github.com/Rezamoradifar/fti-protocol/blob/'+(cfg.sourceRevision||'fix/v3-no-charity-batched-rewards-20261008')+'/contracts/FTIReserveTokenV3.sol';
+ 
 }
 
-const rpc=new JsonRpcProvider(location.origin+'/rpc',undefined,{cacheTimeout:-1});rpc.pollingInterval=1000;
+const rpc=new JsonRpcProvider(location.origin+'/rpc',undefined,{cacheTimeout:-1,batchMaxCount:1});rpc.pollingInterval=1000;
 const names={binary:cfg.binaryContract||'BinaryPlan',token:cfg.tokenContract||'FTIToken',usd:'MockUSD',council:v3Model?'SevenGuardianCouncil':'Council',...(cfg.timelock?{timelock:'FTITimelock'}:{})},read={};
 await Promise.all(Object.entries(names).map(async([key,name])=>{read[key]=new Contract(cfg[key],await json('/abi/'+name),rpc);}));
 initNetworkTree(read.binary,rpc);
@@ -126,6 +130,7 @@ function navigate(page,focus=false){
  if(location.hash!=='#'+page)history.replaceState(null,'','#'+page);
  if(focus){$('#page-title').focus({preventScroll:true});$('#main').scrollIntoView({behavior:'instant'});}
  if(page==='activity')loadEvents();if(page==='admin')loadProposals();
+ if(page==='network'&&new URLSearchParams(location.search).get('view')==='tree')requestAnimationFrame(()=>$('#network-explorer')?.scrollIntoView({behavior:'smooth',block:'start'}));
 }
 document.querySelectorAll('[data-page],[data-go]').forEach(button=>button.onclick=()=>navigate(button.dataset.page||button.dataset.go,true));
 window.addEventListener('hashchange',()=>navigate(location.hash.slice(1)));
@@ -157,10 +162,11 @@ function renderWallet(){
  text('rank-points',w?.exists?integer(matched)+' lifetime points':'— lifetime points');text('rank-next',w?.exists?(next?'Next: '+integer(next):'Top rank'):'—');
  text('trade-notice',!address?'Connect a registered wallet to trade.':!w?.exists?'Register your wallet in Membership before buying FTI.':BigInt(w?.units||0)===0n?'Add at least one membership unit before buying FTI.':state?.tokenPaused?'Token trading is currently paused by the contract.':BigInt(w?.ftiBalance||0)>0n&&BigInt(w?.unlocked||0)===0n?'Your FTI is locked. Selling becomes available when a tranche reaches its wallet threshold or UTC deadline below.':'Buy, sell or transfer through your wallet. Every transaction requires your approval.');
  const registered=!!w?.exists;const form=$('#register-form');form.elements.sponsor.disabled=registered;
+ if(cfg.tokenContract==='FTIReserveTokenUpgradeable'){const points=settledPoints(state);text('raw-point-value',points.raw===null?'—':fmt(points.raw));text('paid-point-value',points.paid===null?'—':fmt(points.paid));text('paid-point-count',points.count===null?'—':integer(points.count));}
  text('registration-title',registered?'Add membership units':'Join the network');text('register-button',registered?'Add units':'Register membership');
  text('sponsor-help',registered?'Your sponsor and position stay unchanged when you add units.':'New positions fill the sponsor’s left slot first, then the right. Both slots must not be full.');
  for(const[id,done]of [['step-wallet',!!signer],['step-funds',BigInt(w?.usdBalance||0)>0n],['step-member',registered]])$('#'+id).classList.toggle('done',done);
- $('#referral-link').value=registered?location.origin+'/app/?sponsor='+address+'#network':'';
+ $('#referral-link').value=registered?sites.member+'?sponsor='+address+'#network':'';
  $('#tree').replaceChildren();for(const[label,key]of [['Sponsor','parent'],['Left branch','left'],['Right branch','right']]){const node=document.createElement('div');node.textContent=t(label);const value=document.createElement('small');value.textContent=t(w&&w[key]!==ZeroAddress?w[key]:w?'Empty position':'Connect to view');node.append(value);$('#tree').append(node);}
  $('#locks').replaceChildren();
  if(w?.locks.length){for(const l of w.locks){const tr=document.createElement('tr');for(const value of [fmt(l.amount,6),integer(l.clock),utc(l.deadline),BigInt(state.clock)>=BigInt(l.clock)||state.timestamp>=Number(l.deadline)?'Unlocked':'Locked']){const td=document.createElement('td');td.textContent=value;tr.append(td);}$('#locks').append(tr);}}
@@ -177,18 +183,18 @@ const sponsor=new URLSearchParams(location.search).get('sponsor');if(sponsor&&is
 $('#register-form').elements.units.oninput=()=>{const raw=$('#register-form').elements.units.value;text('registration-cost',/^\d+$/.test(raw)?integer(BigInt(raw)*100n)+' test USD':'Enter whole units');};
 for(const id of ['claim','claim-rewards'])$('#'+id).onclick=()=>transaction(()=>send(write('binary').claim()));
 $('#faucet').onclick=()=>transaction(()=>send(write('usd').faucet()));
-$('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const f=e.target,n=BigInt(f.elements.units.value);if(n<1n||n>1000000n)throw Error('Enter between 1 and 1,000,000 whole units.');const w=wallet();if(!w)throw Error('Reload wallet data and try again.');const sponsorAddress=f.elements.sponsor.value.trim();if(!w.exists&&(!isAddress(sponsorAddress)||sponsorAddress===ZeroAddress))throw Error('Enter a valid sponsor address.');const cost=n*parseEther('100');if(cost>BigInt(w.usdBalance))throw Error('Not enough test USD. Use Get test USD on Overview.');await approve(cfg.binary,cost);await send(w.exists?write('binary').addUnits(n):write('binary').register(sponsorAddress,n));});};
+$('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const f=e.target,n=BigInt(f.elements.units.value);if(n<1n)throw Error('Enter a positive whole number of units.');const w=wallet();if(!w)throw Error('Reload wallet data and try again.');const sponsorAddress=f.elements.sponsor.value.trim();if(!w.exists&&(!isAddress(sponsorAddress)||sponsorAddress===ZeroAddress))throw Error('Enter a valid sponsor address.');const cost=n*parseEther('100');if(cost>BigInt(w.usdBalance))throw Error('Not enough test USD. Use Get test USD on Overview.');await approve(cfg.binary,cost);await send(w.exists?write('binary').addUnits(n):write('binary').register(sponsorAddress,n));});};
 $('#auto-form').addEventListener('input',()=>{autoDirty=true;});
 $('#auto-form').onsubmit=e=>{e.preventDefault();const enabled=e.target.elements.enabled.checked,price=e.target.elements.price.value;transaction(async()=>{await send(write('binary').setAutoBuy(enabled,parseEther(price)));autoDirty=false;});};
-$('#execute-auto').onclick=()=>transaction(()=>send(write('binary').executeAuto(address,BigInt(wallet().autoPending))));
+$('#execute-auto').onclick=()=>transaction(()=>{let amount=BigInt(wallet().autoPending);if(cfg.tokenContract==='FTIReserveTokenUpgradeable'&&amount>parseEther('64000'))amount=parseEther('64000');return send(write('binary').executeAuto(address,amount));});
 $('#release-auto').onclick=()=>transaction(()=>send(write('binary').releaseAutoToCash()));
 function amountInput(form){const amount=parseEther(form.elements.amount.value);const percent=Number(form.elements.slippage.value);if(amount<=0n||!Number.isFinite(percent)||percent<0||percent>5)throw Error('Enter a positive amount and slippage between 0% and 5%.');return[amount,BigInt(Math.round(percent*100))];}
 for(const kind of ['buy','sell']){
  const form=$('#'+kind+'-form');let debounce,quoteSequence=0;
- const showQuote=()=>{clearTimeout(debounce);const sequence=++quoteSequence;text(kind+'-quote','Updating quote…');debounce=setTimeout(async()=>{try{const[a,slip]=amountInput(form);let output,fee;if(kind==='buy')output=await read.token.quoteBuy(a);else[output,fee]=await read.token.quoteSell(a);if(sequence!==quoteSequence)return;const minimum=output*(10000n-slip)/10000n;text(kind+'-quote',(kind==='buy'?'Estimated output: ':'Net proceeds: ')+fmt(output,6)+(kind==='buy'?' FTI':' test USD')+'\nMinimum accepted: '+fmt(minimum,6)+(kind==='buy'?' FTI':' test USD')+(fee!==undefined?(v3Model?' · Fee 3%':' · Fee '+Number(fee)/100+'%'):''));$('#'+kind+'-quote').classList.remove('invalid');}catch(error){if(sequence!==quoteSequence)return;text(kind+'-quote',form.elements.amount.value?'Quote unavailable. Check the amount or refresh contract data.':'Enter an amount for a live quote.');$('#'+kind+'-quote').classList.add('invalid');}},250);};
+ const showQuote=()=>{clearTimeout(debounce);const sequence=++quoteSequence;text(kind+'-quote','Updating quote…');debounce=setTimeout(async()=>{try{const[a,slip]=amountInput(form);let output,fee;if(kind==='buy')output=await read.token.quoteBuy(a);else[output,fee]=await read.token.quoteSell(a);if(sequence!==quoteSequence)return;const minimum=output*(10000n-slip)/10000n;text(kind+'-quote',(kind==='buy'?'Estimated output: ':'Net proceeds: ')+fmt(output,6)+(kind==='buy'?' FTI':' test USD')+'\nMinimum accepted: '+fmt(minimum,6)+(kind==='buy'?' FTI':' test USD')+(kind==='buy'&&cfg.tokenContract==='FTIReserveTokenUpgradeable'?' · '+((a+parseEther('500')-1n)/parseEther('500')).toString()+' steps · updated price per step · 3% fee':'')+(fee!==undefined?(v3Model?' · Fee 3%':' · Fee '+Number(fee)/100+'%'):''));$('#'+kind+'-quote').classList.remove('invalid');}catch(error){if(sequence!==quoteSequence)return;text(kind+'-quote',form.elements.amount.value?'Quote unavailable. Check the amount or refresh contract data.':'Enter an amount for a live quote.');$('#'+kind+'-quote').classList.add('invalid');}},250);};
  form.elements.amount.oninput=showQuote;form.elements.slippage.oninput=showQuote;
  form.onsubmit=e=>{e.preventDefault();transaction(async()=>{const[a,slip]=amountInput(form),w=wallet();if(kind==='buy'&&(!w?.exists||BigInt(w.units)===0n))throw Error('Register or add membership units before trading.');if(state.tokenPaused||state.emergencyUnwind)throw Error('Token trading is paused by the contract.');const deadline=BigInt(state.timestamp)+1200n;
-  if(kind==='buy'){if(a>BigInt(w.usdBalance))throw Error('Not enough test USD in your wallet.');if(a>BigInt(w.remaining))throw Error('Amount exceeds your remaining manual purchase allowance.');const quote=await read.token.quoteBuy(a);await approve(cfg.token,a);await send(write('token').buy(a,quote*(10000n-slip)/10000n,deadline));}
+  if(kind==='buy'){if(cfg.tokenContract==='FTIReserveTokenUpgradeable'&&a>parseEther('64000'))throw Error('Buy up to 64,000 USD per transaction; repeat for a larger order.');if(a>BigInt(w.usdBalance))throw Error('Not enough test USD in your wallet.');if(a>BigInt(w.remaining))throw Error('Amount exceeds your remaining manual purchase allowance.');const quote=await read.token.quoteBuy(a);await approve(cfg.token,a);await send(write('token').buy(a,quote*(10000n-slip)/10000n,deadline));}
   else{if(a>BigInt(w.unlocked))throw Error('Amount exceeds your unlocked balance. Check the unlock schedule.');const[q]=await read.token.quoteSell(a);await send(write('token').sell(a,q*(10000n-slip)/10000n,deadline));}
  });};
 }

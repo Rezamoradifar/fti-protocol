@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import path from 'node:path';
+const state=process.env.FTI_STATE;if(!state||!path.isAbsolute(state))throw Error('Absolute FTI_STATE required');
+const wallets=JSON.parse(fs.readFileSync(path.join(state,'auto-wallets.json')));
+process.env.RPC_URL=JSON.parse(fs.readFileSync(path.join(state,'auto-rpc.json'))).rpc;
+process.env.DEPLOYER_PRIVATE_KEY=wallets.deployer;
+process.env.DAO_CONFIG=path.join(state,'dao.json');
+process.env.V3_TESTNET_SECRETS=path.join(state,'genesis-secrets.json');
+process.env.V3_DEPLOYMENT_FILE=path.join(state,'deployment.json');
+await import('./deploy-continuity-testnet.mjs');
+delete process.env.DEPLOYER_PRIVATE_KEY;
