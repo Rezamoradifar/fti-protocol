@@ -30,3 +30,10 @@ Added recent 300-block token trade history, execution-price OHLC, actual buy/sel
 - Fifteen focused routing, wallet discovery, candles, market and settled-points tests pass. Web and landing builds pass. Shell syntax checked for subdomain installer.
 - No contracts changed or network transactions signed. Preview uses captured testnet data with a visible label.
 - Production activation still requires server installation, DNS A records and TLS issuance. WalletConnect origin allowlist must include the three subdomains in the existing Reown project.
+
+## 2026-10-10: restore original green/gold identity
+- Restored source palette (#101817 / #182321 / #1e2d29, pale-green #c5e8a4, gold #d4b87b) across landing, member, token, council, whitepaper and roadmap.
+- Preserved all routes, UI controls, read/write handlers and contract sources.
+- Web and landing builds pass. Desktop member, council and token public screens reviewed; member mobile body width equals scroll width (375px), with no horizontal overflow.
+- Preview financial responses are captured fixtures; council/market fixture limitations remain, not a live-network validation.
+- Server deployment prepared only; existing HTTPS/subdomain configuration is preserved by frontend installer.
