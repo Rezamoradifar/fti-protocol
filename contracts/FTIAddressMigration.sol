@@ -29,6 +29,7 @@ library FTIMigrationSlots {
         uint256 indexedSupply;
         address lastHolder;
         address peer;
+        bool initialized;
     }
     function book(address coordinator) internal pure returns (Book storage s) {
         bytes32 location = keccak256(abi.encode(CONTROL,coordinator));
@@ -201,12 +202,18 @@ contract FTIAddressMigrationTarget is FTIReadOnlyAdapter {
         SOURCE=source;GOVERNANCE=gov;COLLATERAL=usd;OLD_PEER=oldPeer;
         LAYOUT_HASH=layout;PEER_SLOT=peerSlot;PEER_OFFSET=peerOffset;
     }
+    /// @notice Atomic initialization of the locked receiver, NOT a user genesis.
+    function initializeMigration() external onlyCoordinator {
+        FTIMigrationSlots.Book storage s=FTIMigrationSlots.book(migrationCoordinator);
+        require(address(this)!=SELF && !s.initialized && s.phase==0,'already initialized');
+        s.initialized=true;
+    }
     function domain() public view returns(bytes32) {
         return keccak256(abi.encode(keccak256('FTI_ADDRESS_MIGRATION_V1'),block.chainid,migrationCoordinator,SOURCE,address(this),KIND,ORIGINAL_CODE_HASH,LAYOUT_HASH));
     }
     function configure(bytes32 root,uint256 slots,bytes32 holderRoot,uint256 holders,address peer) external onlyCoordinator {
         FTIMigrationSlots.Book storage s=FTIMigrationSlots.book(migrationCoordinator);
-        require(s.phase==0 && root!=bytes32(0) && slots>0 && peer.code.length>0,'configuration');
+        require(s.initialized && s.phase==0 && root!=bytes32(0) && slots>0 && peer.code.length>0,'configuration');
         require(KIND==0?(holders==0 && holderRoot==bytes32(0)):(holders>0 && holderRoot!=bytes32(0)),'holder manifest');
         s.phase=1;s.root=root;s.slots=slots;s.holderRoot=holderRoot;s.holders=holders;s.peer=peer;
     }
@@ -314,7 +321,7 @@ contract FTIAddressMigration is ReentrancyGuard {
         sources=src;originalLogic=logic;
         for(uint8 i;i<2;i++) {
             targetAdapters[i]=address(new FTIAddressMigrationTarget(logic[i],address(this),i,src[i],governance,collateral,src[1-i],layout[i],peerSlots[i],peerOffsets[i]));
-            targets[i]=address(new FTIProxy(targetAdapters[i],''));
+            targets[i]=address(new FTIProxy(targetAdapters[i],abi.encodeCall(FTIAddressMigrationTarget.initializeMigration,())));
             sourceAdapters[i]=address(new FTIAddressMigrationSource(logic[i],address(this),i,src[i],governance,collateral,src[1-i]));
         }
         // Protocol contracts cannot silently become stranded token holders.
