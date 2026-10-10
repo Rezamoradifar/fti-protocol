@@ -32,7 +32,7 @@ library FTIMigrationSlots {
     }
     function book(address coordinator) internal pure returns (Book storage s) {
         bytes32 location = keccak256(abi.encode(CONTROL,coordinator));
-        assembly { s.slot := location }
+        assembly ("memory-safe") { s.slot := location }
     }
     function initializableSlot() internal pure returns (bytes32) {
         return keccak256(abi.encode(uint256(keccak256('openzeppelin.storage.Initializable')) - 1)) & ~bytes32(uint256(255));
@@ -43,7 +43,7 @@ library FTIMigrationSlots {
         return key != IMPLEMENTATION && key != ADMIN && key != BEACON &&
             !(n >= control && n < control + 32);
     }
-    function read(bytes32 key) internal view returns (bytes32 value) { assembly { value := sload(key) } }
+    function read(bytes32 key) internal view returns (bytes32 value) { assembly ("memory-safe") { value := sload(key) } }
     function component(uint8 kind) internal pure returns (bytes32) {
         return kind == 0 ? keccak256('FTI_BINARY_CONTINUITY_V1') : keccak256('FTI_TOKEN_CONTINUITY_V1');
     }
@@ -87,20 +87,20 @@ abstract contract FTIReadOnlyAdapter {
     function _original(bytes memory data) internal view returns (bytes memory) {
         require(ORIGINAL_LOGIC.codehash == ORIGINAL_CODE_HASH, 'logic hash');
         (bool ok, bytes memory wrapped) = address(this).staticcall(abi.encodeCall(this.delegateStatic, (data)));
-        if (!ok) assembly { revert(add(wrapped,32),mload(wrapped)) }
+        if (!ok) assembly ("memory-safe") { revert(add(wrapped,32),mload(wrapped)) }
         return abi.decode(wrapped,(bytes));
     }
     function delegateStatic(bytes calldata data) external returns (bytes memory result) {
         require(msg.sender == address(this), 'self only');
         bool ok; (ok,result) = ORIGINAL_LOGIC.delegatecall(data);
-        if (!ok) assembly { revert(add(result,32),mload(result)) }
+        if (!ok) assembly ("memory-safe") { revert(add(result,32),mload(result)) }
     }
     function _word(string memory signature) internal view returns (uint256) {
         return abi.decode(_original(abi.encodeWithSignature(signature)),(uint256));
     }
     function _fallbackView() internal view {
         bytes memory result = _original(msg.data);
-        assembly { return(add(result,32),mload(result)) }
+        assembly ("memory-safe") { return(add(result,32),mload(result)) }
     }
     modifier onlyCoordinator() { require(msg.sender == migrationCoordinator,'coordinator'); _; }
 }
@@ -216,7 +216,7 @@ contract FTIAddressMigrationTarget is FTIReadOnlyAdapter {
     function importPage(bytes32[] calldata keys,bytes32[] calldata proof) external {
         FTIMigrationSlots.Book storage s=FTIMigrationSlots.book(migrationCoordinator);
         require(s.phase==1 && IFTIMigrationSource(SOURCE).migrationPhase()==1,'inactive source/target');
-        uint256 remaining=s.slots-s.copied, length=remaining<FTIMigrationSlots.PAGE?remaining:FTIMigrationSlots.PAGE;
+        uint256 remaining=s.slots-s.copied; uint256 length=remaining<FTIMigrationSlots.PAGE?remaining:FTIMigrationSlots.PAGE;
         require(keys.length==length && length>0,'page size');
         bytes32[] memory values=IFTIMigrationSource(SOURCE).readMigrationSlots(keys);
         uint256 page=s.copied/FTIMigrationSlots.PAGE;
@@ -226,7 +226,7 @@ contract FTIAddressMigrationTarget is FTIReadOnlyAdapter {
             require(FTIMigrationSlots.permitted(keys[i],migrationCoordinator),'control slot');
             require(s.copied+i==0 || uint256(keys[i])>uint256(s.lastSlot),'unordered/duplicate slot');
             require(values[i]!=bytes32(0),'zero slot');
-            bytes32 key=keys[i],value=values[i];assembly{sstore(key,value)}
+            bytes32 key=keys[i];bytes32 value=values[i];assembly ("memory-safe"){sstore(key,value)}
             s.lastSlot=key;
         }
         s.copied+=length;emit StoragePageImported(page,length);
@@ -235,7 +235,7 @@ contract FTIAddressMigrationTarget is FTIReadOnlyAdapter {
         FTIMigrationSlots.Book storage s=FTIMigrationSlots.book(migrationCoordinator);
         require(KIND==1 && s.phase==1 && s.copied==s.slots,'not indexing');
         require(IFTIMigrationSource(SOURCE).migrationPhase()==1,'source inactive');
-        uint256 remaining=s.holders-s.indexedHolders,length=remaining<FTIMigrationSlots.PAGE?remaining:FTIMigrationSlots.PAGE;
+        uint256 remaining=s.holders-s.indexedHolders;uint256 length=remaining<FTIMigrationSlots.PAGE?remaining:FTIMigrationSlots.PAGE;
         require(length>0 && wallets.length==length,'page size');
         uint256[] memory balances=new uint256[](length);
         for(uint256 i;i<length;i++) {
@@ -269,9 +269,9 @@ contract FTIAddressMigrationTarget is FTIReadOnlyAdapter {
         // The production initializer must remain consumed on the new proxy.
         require(uint256(FTIMigrationSlots.read(FTIMigrationSlots.initializableSlot()))==1,'initializer missing');
         bytes32 key=bytes32(PEER_SLOT);uint256 word=uint256(FTIMigrationSlots.read(key));
-        uint256 shift=uint256(PEER_OFFSET)*8,mask=uint256(type(uint160).max)<<shift;
+        uint256 shift=uint256(PEER_OFFSET)*8;uint256 mask=uint256(type(uint160).max)<<shift;
         require(address(uint160(word>>shift))==OLD_PEER,'layout/binding mismatch');
-        word=(word&~mask)|(uint256(uint160(s.peer))<<shift);assembly{sstore(key,word)}
+        word=(word&~mask)|(uint256(uint160(s.peer))<<shift);assembly ("memory-safe"){sstore(key,word)}
         require(address(uint160(_word(KIND==0?'token()':'binary()')))==s.peer,'wrong binding slot');
         s.phase=2;
         if(KIND==0)IERC20(COLLATERAL).forceApprove(s.peer,type(uint256).max);
