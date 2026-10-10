@@ -45,6 +45,13 @@ substitute `latest` data or synthesize missing balances.
 
 ## Execution tests
 
+Validation on 10 October 2026: compilation and frontend build passed; the
+complete local suite passed 165 tests, with zero failures or skipped tests.
+Both upgradeable storage-layout comparisons passed. The focused final upgrade
+rerun passed two tests, preserving 31 members, 32 token holders, 2,610 testUSD
+pending cash and 90 testUSD pending automatic purchase rewards. These are
+local fixture amounts, not payments observed on BNB testnet.
+
 The expanded local-EVM upgrade test compares full exports before and after the
 governed upgrade while frozen. It includes pending auto-buy rewards, a
 non-member token holder and ERC20 allowances. After governed reopening it tests
