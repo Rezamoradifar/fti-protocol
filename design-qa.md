@@ -21,3 +21,12 @@ No unresolved visual P0/P1/P2 issues. Intentional deviations from the mock are d
 
 ## Candles and volume follow-up
 Added recent 300-block token trade history, execution-price OHLC, actual buy/sell USD volume bars and recent trade rows. Buy USD is usdIn; sale USD is actual usdOut (after fee). This is explicitly recent-block volume, not a fabricated 24h number. RPC batches disabled for browser reads; history requests shared and cached on server. Invalid/unavailable history shows unavailable instead of zero. Historical execution candles are separate from spot-price fallback samples. Twelve relevant tests and production web build passed. Local captured-data preview has no trade-history fixture, so live server retrieval remains to be verified after installation.
+
+## 2026-10-10: coordinated public sites and subdomains
+- Four destinations: protocol landing, member app, token public site/market, council.
+- Added bilingual whitepaper and staged roadmap, with current code rules and pending validation clearly separated.
+- Fixed landing acceptance of continuity upgradeable contract models.
+- Desktop browser checked token public site, whitepaper and member panel. Token public mobile at 390px had body width/scroll width 375/375; menu expanded with all links.
+- Fifteen focused routing, wallet discovery, candles, market and settled-points tests pass. Web and landing builds pass. Shell syntax checked for subdomain installer.
+- No contracts changed or network transactions signed. Preview uses captured testnet data with a visible label.
+- Production activation still requires server installation, DNS A records and TLS issuance. WalletConnect origin allowlist must include the three subdomains in the existing Reown project.

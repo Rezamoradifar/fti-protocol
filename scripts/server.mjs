@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {rootForHost,PUBLIC_ROUTES} from './site-routing.mjs';
 import {readMarket} from './market-reader.mjs';
 import {readEvents} from './event-reader.mjs';
 import fs from 'node:fs';
@@ -32,6 +33,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Content-Security-Policy',`default-src 'self'; script-src 'self'; style-src 'self' ${walletConnectProjectId?"'unsafe-inline'":''}; connect-src 'self' ${walletConnectProjectId?"https://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.com wss://*.walletconnect.org https://*.reown.com https://api.web3modal.org":''}; img-src 'self' data: ${walletConnectProjectId?"https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com https://api.web3modal.org":''}; font-src 'self' ${walletConnectProjectId?'https://fonts.reown.com':''}; frame-src 'self' ${walletConnectProjectId?'https://verify.walletconnect.com https://verify.walletconnect.org':''}; frame-ancestors 'none'; base-uri 'none'`);
   const url=new URL(req.url,'http://localhost');
+  if(req.method==='GET'&&url.pathname==='/'&&rootForHost(req.headers.host)){res.writeHead(302,{Location:rootForHost(req.headers.host)+url.search});return res.end();}
   if(req.method==='POST'){
    const origin=req.headers.origin;if(origin&&new URL(origin).host!==req.headers.host)return json(res,403,{error:'Cross-origin denied'});
    if(url.pathname==='/rpc'){
@@ -78,7 +80,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
    try{return json(res,200,await eventFlight);}catch{return json(res,503,{error:'Activity RPC unavailable. Retry later; no events have been fabricated.'});}
   }
   if(url.pathname.startsWith('/abi/')){const name=url.pathname.slice(5);if(!['BinaryPlan','FundedBinaryPlan','FTIToken','FTIReserveToken','FTIReserveTokenV3','MockUSD','Council','SevenGuardianCouncil','FTITimelock','FundedBinaryPlanUpgradeable','FTIReserveTokenUpgradeable'].includes(name))throw Error('Unknown ABI');return json(res,200,artifact(name).abi);}
-  let file;if(url.pathname==='/vendor/ethers.js')file=path.join(root,'node_modules/ethers/dist/ethers.min.js');else {const entry=url.pathname.match(/^\/(app|token|admin)$/);if(entry){res.writeHead(301,{Location:url.pathname+'/'+url.search});return res.end();}const landingReady=fs.existsSync(path.join(root,'landing/dist/index.html'));const landingRoute=landingReady&&['/','/app.js','/app.css','/protocol-ring.webp'].includes(url.pathname);const staticRoot=path.join(root,landingRoute?'landing/dist':'web');const staticPath=url.pathname.replace(/^\/(app|token|admin)\//,'/');const route=staticPath==='/'?'index.html':staticPath.slice(1);file=path.resolve(staticRoot,route);if(!file.startsWith(staticRoot+path.sep))return json(res,403,{error:'Denied'});}
+  let file;if(url.pathname==='/vendor/ethers.js')file=path.join(root,'node_modules/ethers/dist/ethers.min.js');else {const entry=url.pathname.match(/^\/(app|token|admin)$/);if(entry){res.writeHead(301,{Location:url.pathname+'/'+url.search});return res.end();}const landingReady=fs.existsSync(path.join(root,'landing/dist/index.html'));const landingRoute=landingReady&&['/','/app.js','/app.css','/protocol-ring.webp',...PUBLIC_ROUTES].includes(url.pathname);const staticRoot=path.join(root,landingRoute?'landing/dist':'web');const staticPath=url.pathname.replace(/^\/(app|token|admin)\//,'/');const route=staticPath==='/'||PUBLIC_ROUTES.includes(url.pathname)?'index.html':staticPath.slice(1);file=path.resolve(staticRoot,route);if(!file.startsWith(staticRoot+path.sep))return json(res,403,{error:'Denied'});}
   if(!fs.existsSync(file)||!fs.statSync(file).isFile())return json(res,404,{error:'Not found'});const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.webp':'image/webp'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
  }catch(e){json(res,400,{error:e.shortMessage||e.message});}});
  server.once('close',()=>{provider.destroy();if(eventProvider!==provider)eventProvider.destroy();});
