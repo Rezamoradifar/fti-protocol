@@ -44,3 +44,8 @@ Added recent 300-block token trade history, execution-price OHLC, actual buy/sel
 - Kept current member/token/council destinations and bilingual public documents. Scoped public/initial styles to avoid cross-page restyling.
 - Production landing build passed. Desktop and 390px mobile hero reviewed; FAQ expansion and mobile menu verified. Token public page retains its layout. Preview uses captured testnet configuration, not live transaction evidence.
 - No contract, keeper, user data or money changed. Server activation requires the existing frontend-only installer.
+
+## 2026-10-10: genealogy contract-data clarification
+- Node cards distinguish remaining branch units from lifetime units. Root detail shows purchased units, test-USD equivalent, actual contract rank, historical/remaining L/R and raw remaining matches explicitly distinct from settled paid points.
+- Missing historical RPC state falls back to current reads with a visible multi-block warning; contract errors clear stale tree/details rather than displaying missing values as zero.
+- Three focused data/fallback tests pass; production web build passes. No contracts or economic behavior changed. Browser visual and live server validation are pending installation.
