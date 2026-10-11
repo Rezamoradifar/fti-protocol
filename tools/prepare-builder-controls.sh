@@ -52,10 +52,12 @@ stage=compile
 npm run compile
 stage=storage
 node scripts/check-upgrade-layout.mjs docs/storage-layout/FundedBinaryPlanUpgradeable-20261009.json artifacts/storage-layout/FundedBinaryPlanUpgradeable.json
-stage=tests
-node --test --test-concurrency=2 test/global-builder-controls.test.mjs test/funded-keeper.test.mjs test/continuity-deployment.test.mjs test/continuity-upgrade.test.mjs test/address-migration*.test.mjs test/builder-installer.test.mjs
+# Deployment/API tests use releaseManifest(), which reads generated web assets.
+# Build FIRST; a previous local bundle must never be a hidden prerequisite.
 stage=web
 npm run build:web
+stage=tests
+node --test --test-concurrency=2 test/global-builder-controls.test.mjs test/funded-keeper.test.mjs test/continuity-deployment.test.mjs test/continuity-upgrade.test.mjs test/address-migration*.test.mjs test/builder-installer.test.mjs
 stage=complete; result=CANDIDATE_PREPARED
 printf 'FTI_BUILDER_CANDIDATE_PREPARED: %s/source\n' "$work"
 echo 'NOT ACTIVATED: existing web/keeper, deployment config, proxy addresses and balances are unchanged.'
