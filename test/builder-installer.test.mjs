@@ -17,10 +17,10 @@ function fixture({fail='',rev=revision,nodeMajor='22',mismatch=false}={}) {
  const put=(name,body)=>fs.writeFileSync(path.join(bin,name),pre+body,{mode:0o700});
  put('node',`if [[ "$1" == -p ]]; then echo '${nodeMajor}'; exit 0; fi\nif [[ "$1" == --version ]]; then echo v${nodeMajor}.0.0; exit 0; fi\n`+
   `if [[ "$1" == scripts/check-upgrade-layout.mjs && '${fail}' == storage ]]; then exit 19; fi\n`+
-  `if [[ "$1" == --test && '${fail}' == tests ]]; then exit 19; fi\n`);
+  `if [[ "$1" == --test ]]; then test -f web/app.js || { echo 'missing generated web/app.js'; exit 98; }; if [[ '${fail}' == tests ]]; then exit 19; fi; fi\n`);
  put('git',`if [[ "$*" == 'rev-parse HEAD' ]]; then echo '${mismatch?'0'.repeat(40):revision}'; fi\n`+
   `if [[ "$*" == *'fetch --depth=1'* && '${fail}' == checkout ]]; then exit 19; fi\n`);
- put('npm',`case "$*" in ci) stage=dependencies;; 'run compile') stage=compile;; 'run build:web') stage=web;; *) exit 97;; esac\n[[ "$stage" != '${fail}' ]] || exit 19\n`);
+ put('npm',`case "$*" in ci) stage=dependencies;; 'run compile') stage=compile;; 'run build:web') stage=web;; *) exit 97;; esac\n[[ "$stage" != '${fail}' ]] || exit 19\nif [[ "$stage" == web ]]; then mkdir -p web; : > web/app.js; fi\n`);
  const env={...process.env,FTI_CANDIDATE_ROOT:path.join(root,'candidates'),FTI_NODE_BINARY:path.join(bin,'node'),
   PRIVATE_KEY:'fake-private-key',KEEPER_PRIVATE_KEY:'fake-keeper-key',RPC_URL:'https://invalid.example',DEPLOYMENT_FILE:'/invalid',NODE_OPTIONS:'--invalid-option',NPM_TOKEN:'fake-token'};
  delete env.BASH_ENV;delete env.ENV;
@@ -57,4 +57,16 @@ test('candidate installer rejects unsupported Node before checkout',()=>{
 });
 test('candidate installer rejects a mutable branch as the revision',()=>{
  const f=fixture({rev:'main'});try{assert.notEqual(f.output.status,0);assert.equal(f.result,null);assert.equal(f.calls,'');}finally{f.close();}
+});
+test('clean install builds web assets before the deployment and API tests',()=>{
+ const f=fixture();try{
+  assert.equal(f.output.status,0,f.output.stderr+f.output.stdout);
+  const build=f.calls.indexOf('npm run build:web'),tests=f.calls.indexOf('node --test');
+  assert(build>=0&&tests>build,'web build must precede all integration tests');
+ }finally{f.close();}
+});
+test('Builder workflow has the same build-before-test ordering',()=>{
+ const source=fs.readFileSync(new URL('../.github/workflows/global-builder.yml',import.meta.url),'utf8');
+ const build=source.indexOf('- run: npm run build:web'),tests=source.indexOf('- run: node --test');
+ assert(build>=0&&tests>build,'CI needs generated assets before deployment tests');
 });
