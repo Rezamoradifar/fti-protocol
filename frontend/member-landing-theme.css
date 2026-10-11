@@ -1,0 +1,391 @@
+/* Member workspace skin; palette and shapes follow initial-landing.css.
+ * Keep all data, form IDs, transaction handlers and non-member surfaces intact.
+ * Bundled locally by build-web.mjs; no remote font or image dependency.
+ */
+body[data-surface="member"] {
+  --bg: #080d0b;
+  --panel: #101c14;
+  --panel2: #15231a;
+  --line: #29342d;
+  --text: #eaf1ed;
+  --muted: #9aa79f;
+  --accent: #b2ffd0;
+  --ink: #102619;
+  --gold: #b2ffd0;
+  --warning: #edc780;
+  --error: #ffa9a9;
+  --member-border: #496353;
+  --member-header: #080d0bf2;
+  --member-art: #294736;
+  --member-font: 'DM Sans', 'Segoe UI', Tahoma, sans-serif;
+  --member-heading: 'Manrope', 'DM Sans', 'Segoe UI', Tahoma, sans-serif;
+  background: var(--bg) !important;
+  color: var(--text);
+  color-scheme: dark;
+  min-height: 100vh;
+  font: 14px/1.75 var(--member-font);
+  font-synthesis: none;
+}
+/* The saved light preference remains functional, using the landing's pale
+ * allocation-section palette rather than overriding the user back to dark. */
+body[data-surface="member"].light {
+  --bg: #dfeae2;
+  --panel: #f4f8f5;
+  --panel2: #e7f0e9;
+  --line: #acbdb1;
+  --text: #13271b;
+  --muted: #475d4e;
+  --accent: #1e5632;
+  --ink: #ffffff;
+  --gold: #1e5632;
+  --warning: #735018;
+  --error: #a32837;
+  --member-border: #5b7764;
+  --member-header: #dfeae2f2;
+  --member-art: #a4bfae;
+  color-scheme: light;
+}
+html[dir="rtl"] body[data-surface="member"] {
+  --member-font: Tahoma, 'Segoe UI', sans-serif;
+  --member-heading: Tahoma, 'Segoe UI', sans-serif;
+}
+body[data-surface="member"] :is(h1, h2, h3) {
+  font-family: var(--member-heading);
+  font-weight: 500;
+  color: var(--text);
+}
+body[data-surface="member"] :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 4px;
+}
+body[data-surface="member"] :is(button, input, select, textarea) {
+  font-family: inherit;
+}
+body[data-surface="member"] .sidebar {
+  width: 244px;
+  padding: 32px 22px;
+  background: var(--bg) !important;
+  border-color: var(--line) !important;
+  box-shadow: none !important;
+}
+body[data-surface="member"] .brand {
+  gap: 14px;
+  font-family: var(--member-heading);
+  font-size: 25px;
+  font-weight: 650;
+  color: var(--text);
+}
+/* Decorative stepped bars match the landing mark. The existing anchor label
+ * stays in the accessibility tree; no extra spoken text is introduced. */
+body[data-surface="member"] .brand img { display: none; }
+body[data-surface="member"] .brand::before {
+  content: '';
+  display: block;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 29px;
+  transform: skewY(-10deg);
+  background:
+    linear-gradient(var(--accent), var(--accent)) 0 0 / 29px 6px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 0 10px / 21px 6px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 0 20px / 13px 6px no-repeat;
+}
+body[data-surface="member"] .brand small {
+  color: var(--muted);
+  font-weight: 450;
+  letter-spacing: .16em;
+}
+body[data-surface="member"] .side-label { margin-top: 40px; }
+body[data-surface="member"] .sidebar nav { gap: 8px; }
+body[data-surface="member"] .sidebar nav button {
+  background: transparent !important;
+  color: var(--muted) !important;
+  border-color: transparent;
+  border-radius: 8px;
+  min-height: 48px;
+  padding: 12px 14px;
+}
+body[data-surface="member"] .sidebar nav button.active {
+  background: var(--panel2) !important;
+  border-color: var(--member-border) !important;
+  color: var(--accent) !important;
+}
+body[data-surface="member"] .sidebar nav button:hover:not(:disabled) {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+}
+body[data-surface="member"] :is(.side-guide, .surface-links) {
+  background: transparent !important;
+  border-color: var(--line) !important;
+  box-shadow: none !important;
+}
+body[data-surface="member"] .side-guide { border-radius: 12px; }
+body[data-surface="member"] .surface-links a { min-height: 40px; align-items: center; }
+body[data-surface="member"] main {
+  margin-left: 244px;
+  margin-right: 0;
+  padding: 30px clamp(20px, 3vw, 48px) 0;
+  max-width: 1700px;
+  min-width: 0;
+}
+html[dir="rtl"] body[data-surface="member"] main {
+  margin-left: 0;
+  margin-right: 244px;
+}
+body[data-surface="member"] .workspace-header {
+  background: transparent !important;
+  border: 0;
+  padding: 0 0 23px;
+  margin-bottom: 0;
+  gap: 20px;
+}
+body[data-surface="member"] .workspace-header h1 {
+  font-size: clamp(22px, 2.3vw, 30px);
+  letter-spacing: -.035em;
+}
+body[data-surface="member"] .connection { gap: 8px; }
+body[data-surface="member"] #connect { min-height: 44px; border-radius: 8px; }
+body[data-surface="member"] .global-tabs {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 17px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+body[data-surface="member"] .global-tabs a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 8px;
+  color: var(--muted);
+}
+body[data-surface="member"] .global-tabs a[aria-current="page"] {
+  color: var(--accent);
+  background: var(--panel2);
+  border-color: var(--member-border);
+}
+body[data-surface="member"] :is(.network-pill, .badge) {
+  border-color: var(--member-border);
+  color: var(--accent);
+  background: transparent;
+}
+body[data-surface="member"] .priority-actions {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0;
+  gap: 10px;
+  margin: 18px 0;
+}
+body[data-surface="member"] :is(.priority-actions a, .priority-actions button) {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--member-border) !important;
+  border-radius: 8px;
+  min-height: 46px;
+  font-size: 12px;
+  white-space: normal;
+}
+body[data-surface="member"] .notice {
+  background: var(--panel) !important;
+  border-color: var(--line) !important;
+  color: var(--muted);
+  border-radius: 8px;
+  line-height: 1.8;
+  flex-wrap: wrap;
+}
+body[data-surface="member"] .notice .badge { color: var(--warning); }
+body[data-surface="member"] :is(.notice a, .status-bar a) { color: var(--accent); }
+body[data-surface="member"] .status-bar { padding-block: 14px; }
+body[data-surface="member"] :is(.panel, .rank-card, .metrics article, .live-market, .trade-panel, .tree-root) {
+  background: var(--panel) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  border-radius: 16px;
+}
+body[data-surface="member"] .welcome-grid {
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  gap: 20px;
+}
+body[data-surface="member"] .welcome {
+  background: linear-gradient(125deg, var(--panel2), var(--bg)) !important;
+  border: 1px solid var(--member-border) !important;
+  border-radius: 16px;
+  padding: clamp(26px, 3vw, 40px);
+  box-shadow: none !important;
+  min-height: 310px;
+}
+body[data-surface="member"] .welcome h2 {
+  font-size: clamp(30px, 3.1vw, 44px);
+  letter-spacing: -.045em;
+  line-height: 1.25;
+  font-weight: 500;
+  max-width: 620px;
+}
+body[data-surface="member"] :is(.welcome em, .page-intro em) {
+  color: var(--accent) !important;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  font-style: italic;
+}
+html[dir="rtl"] body[data-surface="member"] :is(.welcome em, .page-intro em) {
+  font-family: var(--member-heading);
+  font-style: normal;
+  letter-spacing: 0;
+}
+html[dir="rtl"] body[data-surface="member"] :is(h1, h2, h3) { letter-spacing: 0; }
+body[data-surface="member"] :is(.welcome p, .welcome .eyebrow) { color: var(--muted); }
+body[data-surface="member"] .welcome p { line-height: 1.9; max-width: 430px; }
+body[data-surface="member"] .welcome-lines { display: block; opacity: .25; }
+body[data-surface="member"] .welcome-lines i { border-color: var(--member-art); }
+body[data-surface="member"] .rank-card { padding: 28px; }
+body[data-surface="member"] .rank-card h2 { font-size: 27px; }
+body[data-surface="member"] .section-heading { margin-top: 30px; }
+body[data-surface="member"] .section-heading h2 { font-size: 19px; }
+body[data-surface="member"] .metrics { gap: 16px; }
+body[data-surface="member"] .metrics article { padding: 23px; }
+body[data-surface="member"] .metrics strong { color: var(--text); font-size: clamp(24px, 2.3vw, 32px); }
+body[data-surface="member"] :is(.metrics small, .metrics article > span, .page-intro p, .muted, dt) { color: var(--muted); }
+body[data-surface="member"] :is(.panel, .rank-card) p { line-height: 1.9; }
+body[data-surface="member"] .panel { padding: 26px; }
+body[data-surface="member"] .panel h2 { font-size: 20px; }
+body[data-surface="member"] .page-intro { padding-top: 8px; }
+body[data-surface="member"] .page-intro h2 { font-size: clamp(30px, 3.6vw, 48px); line-height: 1.3; }
+body[data-surface="member"] button {
+  background: var(--accent);
+  color: var(--ink);
+  border-radius: 8px;
+  font-weight: 600;
+  min-height: 44px;
+}
+body[data-surface="member"] :is(button.secondary, .icon-button) {
+  background: var(--panel2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--member-border) !important;
+}
+body[data-surface="member"] :is(button.text-button, button.metric-link, button.text-link, .text-link, .metric-link) {
+  background: transparent !important;
+  color: var(--accent) !important;
+  border-color: transparent !important;
+}
+body[data-surface="member"] :is(input:not([type="checkbox"]):not([type="range"]), select, textarea) {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--member-border) !important;
+  border-radius: 8px;
+  min-height: 46px;
+  font-size: 16px;
+}
+body[data-surface="member"] input::placeholder { color: var(--muted); opacity: 1; }
+body[data-surface="member"] input[type="checkbox"] { accent-color: var(--accent); width: 20px; height: 20px; }
+body[data-surface="member"] .check { min-height: 44px; }
+body[data-surface="member"] :is(.quote, .funds > div, .market-metrics > div, .market-change-box, .tree-details) {
+  background: var(--panel2) !important;
+  color: var(--text) !important;
+  border-color: var(--line) !important;
+  border-radius: 8px;
+}
+body[data-surface="member"] :is(.tree-node, .binary-node, .binary-tree button) {
+  background: var(--panel2) !important;
+  color: var(--text) !important;
+  border-color: var(--member-border) !important;
+}
+body[data-surface="member"] :is(.live-market, .wallet-dialog) {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border-color: var(--member-border) !important;
+  border-radius: 16px;
+}
+body[data-surface="member"] .wallet-dialog::backdrop { background: #080d0bd9; }
+body[data-surface="member"] :is(.wallet-dialog p, .candle-readout, .market-volume, .market-note) { color: var(--muted); }
+body[data-surface="member"] :is(.market-price, .market-pair, .market-trades h3) { color: var(--text); }
+body[data-surface="member"] .market-chain { color: var(--accent) !important; }
+body[data-surface="member"] .reward-hero > strong { color: var(--accent); }
+body[data-surface="member"] .emergency-panel { border-color: var(--error) !important; }
+body[data-surface="member"] .emergency-panel .badge { color: var(--error); border-color: var(--error); }
+body[data-surface="member"] :is(.address, code, .contract-list a) { overflow-wrap: anywhere; }
+body[data-surface="member"] main > footer {
+  border-color: var(--line);
+  color: var(--muted);
+  padding: 26px 0;
+  margin-top: 38px;
+  line-height: 1.8;
+}
+body[data-surface="member"] main > footer a { min-height: 44px; display: inline-flex; align-items: center; }
+body[data-surface="member"] .status-bar .error { color: var(--error); }
+@media (max-width: 1180px) and (min-width: 861px) {
+  body[data-surface="member"] .sidebar { width: 214px; padding-inline: 16px; }
+  body[data-surface="member"] main { margin-left: 214px; }
+  html[dir="rtl"] body[data-surface="member"] main { margin-left: 0; margin-right: 214px; }
+  body[data-surface="member"] .welcome-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+}
+@media (max-width: 860px) {
+  body[data-surface="member"] .sidebar {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    padding: 22px 24px 16px;
+    background: var(--bg) !important;
+    border-width: 0 0 1px !important;
+    overflow: visible;
+  }
+  body[data-surface="member"] .brand { justify-content: flex-start; width: fit-content; }
+  body[data-surface="member"] .sidebar nav {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 22px 0 0;
+    gap: 6px;
+  }
+  body[data-surface="member"] .sidebar nav button { flex: 1 1 115px; justify-content: center; gap: 8px; min-height: 44px; padding: 10px; }
+  body[data-surface="member"] :is(.side-guide, .side-label, .surface-links, .workspace-resources) { display: none; }
+  body[data-surface="member"] .side-foot {
+    position: static;
+    padding-top: 10px;
+    margin: 0;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  body[data-surface="member"] .side-foot a { margin-inline-start: auto; }
+  body[data-surface="member"] .side-foot small { display: none; }
+  body[data-surface="member"] main,
+  html[dir="rtl"] body[data-surface="member"] main { margin: 0; padding: 24px 24px 0; }
+}
+@media (max-width: 640px) {
+  body[data-surface="member"] .sidebar { padding: 20px 16px 12px; }
+  body[data-surface="member"] .sidebar nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  body[data-surface="member"] .sidebar nav button { flex-direction: column; font-size: 11px; line-height: 1.5; min-height: 66px; padding: 9px 4px; }
+  body[data-surface="member"] .sidebar nav button.active::after { display: none; }
+  body[data-surface="member"] main,
+  html[dir="rtl"] body[data-surface="member"] main { margin: 0; padding: 22px 16px 0; }
+  body[data-surface="member"] .workspace-header { flex-direction: column; align-items: stretch; gap: 16px; }
+  body[data-surface="member"] .connection { max-width: none; width: 100%; flex-wrap: wrap; gap: 8px; }
+  body[data-surface="member"] #connect { flex: 1; }
+  body[data-surface="member"] :is(.global-tabs a, .priority-actions a, .priority-actions button) { font-size: 11px; padding: 10px; }
+  body[data-surface="member"] .global-tabs { gap: 4px; }
+  body[data-surface="member"] .welcome-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  body[data-surface="member"] .welcome { min-height: 290px; padding: 27px 24px; }
+  body[data-surface="member"] .welcome h2 { font-size: 32px; line-height: 1.4; }
+  body[data-surface="member"] .welcome .actions { flex-wrap: wrap; gap: 10px; }
+  body[data-surface="member"] .rank-card { padding: 24px; }
+  body[data-surface="member"] .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  body[data-surface="member"] .metrics article { padding: 18px 14px; }
+  body[data-surface="member"] .metrics strong { font-size: 24px; }
+  body[data-surface="member"] .panel { padding: 22px 18px; }
+  body[data-surface="member"] .panel-head { align-items: flex-start; flex-wrap: wrap; }
+  body[data-surface="member"] .panel h2 { font-size: 18px; }
+  body[data-surface="member"] :is(.quote, .inline, .auto-balance, .actions) { min-width: 0; }
+  body[data-surface="member"] .page-intro h2 { font-size: 32px; }
+  body[data-surface="member"] .notice { align-items: flex-start; gap: 9px; }
+  body[data-surface="member"] .notice a { margin-inline-start: 0; }
+}
+@media (max-width: 360px) {
+  body[data-surface="member"] .metrics { grid-template-columns: minmax(0, 1fr); }
+  body[data-surface="member"] .welcome h2 { font-size: 28px; }
+  body[data-surface="member"] .global-tabs a { padding-inline: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-surface="member"] *,
+  body[data-surface="member"] *::before,
+  body[data-surface="member"] *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
