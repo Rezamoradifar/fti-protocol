@@ -1,0 +1,34 @@
+name: Global Builder controls
+on:
+  pull_request:
+    branches: ['feat/funded-address-migration-20261011']
+permissions:
+  contents: read
+jobs:
+  build-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run compile
+      - run: npm run build:web
+      - name: Package public source and locked local-test dependencies
+        run: |
+          mkdir -p /tmp/fti-build-fixture
+          git archive HEAD | tar -x -C /tmp/fti-build-fixture
+          cp -a node_modules artifacts /tmp/fti-build-fixture/
+          git rev-parse HEAD > /tmp/fti-build-fixture/BUILD_COMMIT
+          tar -czf /tmp/fti-build-fixture.tgz -C /tmp/fti-build-fixture .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: global-builder-fixture
+          path: /tmp/fti-build-fixture.tgz
+          retention-days: 1
+          compression-level: 0
