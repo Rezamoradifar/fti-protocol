@@ -1,0 +1,28 @@
+name: User state backup checks
+on:
+  pull_request:
+    paths:
+      - 'tools/backup-users-state.py'
+      - 'test/recovery-snapshot.test.py'
+      - 'test/recovery-snapshot.test.mjs'
+      - 'scripts/migration-inventory.mjs'
+      - 'scripts/migration-complete-export.mjs'
+      - '.github/workflows/recovery-snapshot.yml'
+permissions:
+  contents: read
+jobs:
+  private-export-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: python3 -I test/recovery-snapshot.test.py
+      - run: npm ci
+      - run: npm run compile
+      - run: node --test test/recovery-snapshot.test.mjs
