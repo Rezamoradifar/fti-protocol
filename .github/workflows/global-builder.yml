@@ -5,9 +5,9 @@ on:
 permissions:
   contents: read
 jobs:
-  build-fixture:
+  builder-controls:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -18,17 +18,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run compile
+      - run: node scripts/check-upgrade-layout.mjs docs/storage-layout/FundedBinaryPlanUpgradeable-20261009.json artifacts/storage-layout/FundedBinaryPlanUpgradeable.json
+      - run: node --test --test-concurrency=2 test/global-builder-controls.test.mjs test/funded-keeper.test.mjs test/continuity-deployment.test.mjs test/continuity-upgrade.test.mjs test/address-migration*.test.mjs test/builder-installer.test.mjs
       - run: npm run build:web
-      - name: Package public source and locked local-test dependencies
-        run: |
-          mkdir -p /tmp/fti-build-fixture
-          git archive HEAD | tar -x -C /tmp/fti-build-fixture
-          cp -a node_modules artifacts /tmp/fti-build-fixture/
-          git rev-parse HEAD > /tmp/fti-build-fixture/BUILD_COMMIT
-          tar -czf /tmp/fti-build-fixture.tgz -C /tmp/fti-build-fixture .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: global-builder-fixture
-          path: /tmp/fti-build-fixture.tgz
-          retention-days: 1
-          compression-level: 0

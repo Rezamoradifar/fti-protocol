@@ -118,6 +118,11 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     uint256 public candidateFunding;
     uint256 public calculatedPointValue;
     uint256 public constant PROTECTION_TRIGGER=16e18;
+    // Append-only. Existing enabled wallets default to 5%; never reinterpret maxAutoPrice.
+    mapping(address=>uint8) private _autoBuyPercent;
+    event AutoBuyPreference(address indexed wallet,bool enabled,uint8 percent);
+    event BuilderMonthCloseRequested(uint256 indexed month,uint256 effectiveAt);
+    function autoBuyPercent(address who) public view returns(uint8){uint8 p=_autoBuyPercent[who];return p==0?5:p;}
     event RecoveryFreezeChanged(bool frozen);
     event RecoveryCheckpoint(uint256 indexed serial,bytes32 indexed root,uint256 blockNumber,bytes32 blockHash);
     modifier whenRecoveryOpen(){if(!(!recoveryFrozen))revert InvalidOperation();_;}
@@ -219,7 +224,7 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
                 creditL[who]-=spentL;creditR[who]-=spentR;assignedPointCredit-=reward;
                 m.carryL-=paid;m.carryR-=paid;paidPoints[epoch][who]=paid;totalPaidPoints+=paid;matchedFunding+=reward;
                 autoSnapshot[epoch][who]=m.autoEnabled&&m.rank>0;
-                uint256 automatic=autoSnapshot[epoch][who]?reward*5/100:0;
+                uint256 automatic=autoSnapshot[epoch][who]?Math.mulDiv(reward,autoBuyPercent(who),100):0;
                 pendingReward[who]+=reward-automatic;totalPending+=reward-automatic;_trackReward(who);pendingAuto[who]+=automatic;totalAuto+=automatic;
                 if(automatic>0)_trackAuto(who);allocated+=reward;pointPool-=reward;settled[epoch][who]=true;
                 dirty[who]=m.carryL>0&&m.carryR>0;
@@ -251,21 +256,28 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
         dirtyCount=carriedDirtyCount;emit EpochClosed(epoch,frozenPool,totalPaidPoints,pointValue,protectionLevel);_nextEpoch();
     }
     function _nextEpoch() private {lastClosedAt=(block.timestamp/1 hours)*1 hours;epoch++;epochEnd=(block.timestamp/1 hours+1)*1 hours;epochUnits=0;phase=0;cursor=0;}
-    function setAutoBuy(bool enabled,uint256 maxPrice) external nonReentrant whenRecoveryOpen {if(!(phase==0))revert InvalidOperation();if(!(members[msg.sender].exists))revert InvalidOperation();if(!(!enabled||maxPrice>0))revert InvalidOperation();members[msg.sender].autoEnabled=enabled;members[msg.sender].maxAutoPrice=maxPrice;if(enabled&&pendingAuto[msg.sender]>0)_trackAuto(msg.sender);else _removeAuto(msg.sender);}
+    // Legacy ABI retained. Its former maximum-price argument is ignored, not repurposed.
+    function setAutoBuy(bool enabled,uint256) external nonReentrant whenRecoveryOpen {_setAutoBuy(enabled,autoBuyPercent(msg.sender));}
+    function setAutoBuyPercent(bool enabled,uint8 percent) external nonReentrant whenRecoveryOpen {_setAutoBuy(enabled,percent);}
+    function _setAutoBuy(bool enabled,uint8 percent) private {
+        if(!(phase==0&&members[msg.sender].exists&&percent>=5&&percent<=100))revert InvalidOperation();
+        members[msg.sender].autoEnabled=enabled;_autoBuyPercent[msg.sender]=percent;
+        if(enabled&&pendingAuto[msg.sender]>0)_trackAuto(msg.sender);else _removeAuto(msg.sender);
+        emit AutoBuyPreference(msg.sender,enabled,percent);
+    }
     function _trackAuto(address who) private {if(autoIndex[who]==0){autoAccounts.push(who);autoIndex[who]=autoAccounts.length;}}
     function _removeAuto(address who) private {uint256 at=autoIndex[who];if(at==0)return;address last=autoAccounts[autoAccounts.length-1];autoAccounts[at-1]=last;autoIndex[last]=at;autoAccounts.pop();delete autoIndex[who];}
     function executeAuto(address who,uint256 amount) external nonReentrant whenRecoveryOpen {
         _backed();
         if(!(amount>0&&amount<=pendingAuto[who]))revert InvalidOperation();
         if(!(members[who].autoEnabled))revert InvalidOperation();
-        // A keeper may not split someone else's reward into dust-sized lock tranches.
-        // The beneficiary can still request a deliberate partial purchase.
-        if(!(msg.sender==who||amount==pendingAuto[who]))revert InvalidOperation();
-        uint256 maxPrice=members[who].maxAutoPrice;
-        if(!(maxPrice>0&&token.price()<=maxPrice))revert InvalidOperation();
+        // Keeper uses a full bounded tranche, never arbitrary dust. The existing
+        // token's 128 x $500 transaction bound and wallet purchase allowance still apply.
+        uint256 batch=pendingAuto[who]>64000e18?64000e18:pendingAuto[who];
+        if(!(msg.sender==who||amount==batch))revert InvalidOperation();
+        // No user maximum-price gate. Quote and buy occur in the same transaction;
+        // exact minimum output, fees and ordinary allowance checks remain enforced.
         uint256 minimum=token.quoteBuy(amount);if(!(minimum>0))revert InvalidOperation();
-        // Max price is the total USD paid per FTI received, including fees/curve impact.
-        if(!(minimum>=Math.mulDiv(amount,1e18,maxPrice,Math.Rounding.Ceil)))revert InvalidOperation();
         pendingAuto[who]-=amount;totalAuto-=amount;
         if(pendingAuto[who]==0)_removeAuto(who);
         uint256 beforeBal=usd.balanceOf(address(this));uint256 minted=token.autoBuy(who,amount,minimum,block.timestamp);
@@ -300,7 +312,11 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     }
     function claim() external nonReentrant whenRecoveryOpen {_backed();_payReward(msg.sender);_backed();}
     function beginBuilderMonth() external nonReentrant whenRecoveryOpen {
-        uint256 end=Calendar.endOf(nextBuilderMonth);if(!(monthPhase==0&&block.timestamp>=end&&lastClosedAt>=end))revert InvalidOperation();
+        uint256 end=Calendar.endOf(nextBuilderMonth);if(!(monthPhase==0))revert InvalidOperation();
+        // Early requests never drain, snapshot or reset this month's funding.
+        // Keeper starts work at/after 00:00 UTC on the first of the next month,
+        // once hourly settlement reaches that boundary. A request is not a payout.
+        if(block.timestamp<end||lastClosedAt<end){emit BuilderMonthCloseRequested(nextBuilderMonth,end);return;}
         monthMembers=builderAccounts[nextBuilderMonth].length;monthCursor=0;monthPhase=1;
         for(uint256 p;p<4;p++){monthBalances[p]=monthFunding[nextBuilderMonth][p];monthFunding[nextBuilderMonth][p]=0;monthEligible[p]=0;monthPaid[p]=0;monthPay[p]=monthBalances[p]/5;}
         if(monthMembers==0)_finishBuilderMonth();
