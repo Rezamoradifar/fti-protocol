@@ -38,6 +38,7 @@ export async function collectInventory({provider,binary,token,usd,cfg,blockTag})
   u.rankReachedAt=await Promise.all([0,1,2,3].map(k=>read(binary,'rankReachedAt',wallet,k)));
   u.builderClaimed=await Promise.all([0,1,2,3].map(k=>read(binary,'builderClaimed',wallet,k)));
   u.token={};for(const n of ['balanceOf','purchaseCycle','cyclePurchases','lifetimeManualBuys'])u.token[n]=await read(token,n,wallet);
+  if(binary.interface.hasFunction('autoBuyPercent'))u.autoBuyPercent=await read(binary,'autoBuyPercent',wallet);
   users.push(u);
  }
  validateGenealogy(users);

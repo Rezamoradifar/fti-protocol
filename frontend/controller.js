@@ -13,6 +13,11 @@ async function json(url){const response=await fetch(url,{signal:AbortSignal.time
 const cfg=await json('/api/config');
 const reserveModel=cfg.tokenContract==='FTIReserveToken';const v3Model=['FTIReserveTokenV3','FTIReserveTokenUpgradeable'].includes(cfg.tokenContract);
 const fundedModel=['FundedBinaryPlan','FundedBinaryPlanUpgradeable'].includes(cfg.binaryContract);
+const selectableAuto=cfg.selectableHourlyAutoBuy===true;
+$('#auto-percent-control').hidden=!selectableAuto;$('#auto-form').elements.percent.disabled=!selectableAuto;
+$('#auto-price-control').hidden=selectableAuto;$('#auto-form').elements.price.disabled=selectableAuto;
+if(selectableAuto)document.getElementById('auto-policy').textContent=t('Choose 5–100% of your eligible hourly binary income for FTI purchases at the current price. Monthly Builder funds are not used. Existing pending funds are unchanged; purchase allowance and fees still apply.','از ۵ تا ۱۰۰ درصد درآمد ساعتی واجد شرایط باینری خود را برای خرید FTI به قیمت جاری انتخاب کنید. وجه از صندوق ماهانه بیلدر برداشت نمی‌شود. موجودی معوق قبلی تغییر نمی‌کند؛ سقف مجاز خرید و کارمزدها همچنان اعمال می‌شوند.');
+
 $('#funded-policy').hidden=!fundedModel;
 $('#point-values-panel').hidden=cfg.tokenContract!=='FTIReserveTokenUpgradeable';
 if(reserveModel){
@@ -143,6 +148,7 @@ async function refresh(){
  if(sequence!==refreshSequence||requestedAddress!==address)return;
  state=d;councilOwner=isOwner;if(cfg.batchedRewards)text('reward-queue',integer(d.rewardQueue||0)+' wallets awaiting cash payout');if(reserveModel)text('token-anchor',fmt(d.anchorSupply,6));
  if(fundedModel){text('point-retained',fmt(d.pointRetained));text('builder-retained',fmt(d.builderRetained));}
+ const monthKey=Number(d.nextMonth);if(Number.isSafeInteger(monthKey)){const monthEnd=Date.UTC(Math.floor(monthKey/12),monthKey%12+1,1)/1000;document.getElementById('builder-month-schedule').textContent=t('Monthly settlement boundary: ','مرز تسویه ماهانه: ')+utc(monthEnd);if(selectableAuto)document.getElementById('begin-month').textContent=Number(d.timestamp)<monthEnd?t('Request close at next month boundary','ثبت درخواست بستن در مرز ماه بعد'):t('Close month','بستن ماه');}
  for(const[id,value]of Object.entries({'token-spot':fmt(d.price,6),'token-reserve':fmt(d.reserve),'token-supply':fmt(d.supply),'token-bb':fmt(d.bb),'token-floor':fmt(d.floor),'token-status':d.emergencyUnwind?'Emergency redemption':d.tokenPaused?'Paused':'Active',price:fmt(d.price,6),reserve:fmt(d.reserve),reserve2:fmt(d.reserve),members:integer(d.count),'point-pool':fmt(d.pointPool),buyback:fmt(d.bb),floor:fmt(d.floor),supply:fmt(d.supply),epoch:'Epoch '+integer(d.epoch),phase:['Accepting deposits','Matching points','Allocating rewards'][d.phase]||'Processing',protection:integer(d.level),'epoch-end':utc(d.epochEnd),accounting:d.account1[0]===d.account1[1]&&d.account2[0]===d.account2[1]?'Balanced':'Review required',queue:`Volume queue: ${d.jobCursor} / ${d.jobCount}\nSettlement phase: ${d.phase} · Member cursor: ${d.cursor}`,'lock-clock':v3Model?'No time locks':'Wallet counter '+integer(d.clock),'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))text(id,value);
  if(v3Model){text('cycle-display',integer(d.cycle));text('ath-display',fmt(d.ath,6)+' USD');text('bootstrap-display',fmt(d.cycleStartPrice,2)+' USD');text('builder-multiplier',integer(d.builderMultiplier)+'×');}
  $('#emergency-panel').hidden=!v3Model||!d.emergencyUnwind||!['member','token'].includes(surface);
@@ -171,7 +177,7 @@ function renderWallet(){
  $('#locks').replaceChildren();
  if(w?.locks.length){for(const l of w.locks){const tr=document.createElement('tr');for(const value of [fmt(l.amount,6),integer(l.clock),utc(l.deadline),BigInt(state.clock)>=BigInt(l.clock)||state.timestamp>=Number(l.deadline)?'Unlocked':'Locked']){const td=document.createElement('td');td.textContent=value;tr.append(td);}$('#locks').append(tr);}}
  else{const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.textContent=v3Model?'V3 does not create time or wallet-count lock tranches.':address?'No token lock tranches recorded.':'Connect a wallet to see its unlock schedule.';tr.append(td);$('#locks').append(tr);}
- if(w&&!autoDirty){$('#auto-form').elements.enabled.checked=w.autoEnabled;if(BigInt(w.maxAutoPrice)>0n)$('#auto-form').elements.price.value=formatEther(w.maxAutoPrice);}
+ if(w&&!autoDirty){$('#auto-form').elements.enabled.checked=w.autoEnabled;if(selectableAuto)$('#auto-form').elements.percent.value=String(w.autoBuyPercent??5);else if(BigInt(w.maxAutoPrice)>0n)$('#auto-form').elements.price.value=formatEther(w.maxAutoPrice);}
 }
 $('#reward-all-panel').hidden=!cfg.batchedRewards;
 $('#reward-all').onclick=()=>transaction(()=>send(write('binary').payRewards(100)));
@@ -185,7 +191,10 @@ for(const id of ['claim','claim-rewards'])$('#'+id).onclick=()=>transaction(()=>
 $('#faucet').onclick=()=>transaction(()=>send(write('usd').faucet()));
 $('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const f=e.target,n=BigInt(f.elements.units.value);if(n<1n)throw Error('Enter a positive whole number of units.');const w=wallet();if(!w)throw Error('Reload wallet data and try again.');const sponsorAddress=f.elements.sponsor.value.trim();if(!w.exists&&(!isAddress(sponsorAddress)||sponsorAddress===ZeroAddress))throw Error('Enter a valid sponsor address.');const cost=n*parseEther('100');if(cost>BigInt(w.usdBalance))throw Error('Not enough test USD. Use Get test USD on Overview.');await approve(cfg.binary,cost);await send(w.exists?write('binary').addUnits(n):write('binary').register(sponsorAddress,n));});};
 $('#auto-form').addEventListener('input',()=>{autoDirty=true;});
-$('#auto-form').onsubmit=e=>{e.preventDefault();const enabled=e.target.elements.enabled.checked,price=e.target.elements.price.value;transaction(async()=>{await send(write('binary').setAutoBuy(enabled,parseEther(price)));autoDirty=false;});};
+$('#auto-form').onsubmit=e=>{e.preventDefault();const enabled=e.target.elements.enabled.checked;
+ if(selectableAuto){const percent=Number(e.target.elements.percent.value);if(!Number.isInteger(percent)||percent<5||percent>100){status(t('Choose a whole percentage from 5 to 100.','یک درصد صحیح بین ۵ تا ۱۰۰ انتخاب کنید.'),true);return;}transaction(async()=>{await send(write('binary').setAutoBuyPercent(enabled,percent));autoDirty=false;});}
+ else {const price=e.target.elements.price.value;transaction(async()=>{await send(write('binary').setAutoBuy(enabled,parseEther(price)));autoDirty=false;});}
+};
 $('#execute-auto').onclick=()=>transaction(()=>{let amount=BigInt(wallet().autoPending);if(cfg.tokenContract==='FTIReserveTokenUpgradeable'&&amount>parseEther('64000'))amount=parseEther('64000');return send(write('binary').executeAuto(address,amount));});
 $('#release-auto').onclick=()=>transaction(()=>send(write('binary').releaseAutoToCash()));
 function amountInput(form){const amount=parseEther(form.elements.amount.value);const percent=Number(form.elements.slippage.value);if(amount<=0n||!Number.isFinite(percent)||percent<0||percent>5)throw Error('Enter a positive amount and slippage between 0% and 5%.');return[amount,BigInt(Math.round(percent*100))];}

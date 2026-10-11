@@ -10,14 +10,15 @@ export async function keeperStep(binary,provider,{batchedRewards=true,maxAutoAmo
  if(binary.interface?.hasFunction('recoveryFrozen')&&await binary.recoveryFrozen())return 'idle';
  const phase=await binary.phase();
  if(phase>0n){await(await binary.processEpoch(batch)).wait();return 'epoch batch';}
- // Finalized cash must not starve behind a continuously growing volume queue.
- if(batchedRewards&&binary.interface?.hasFunction('rewardAccountCount')&&await binary.monthPhase()===0n&&await binary.rewardAccountCount()>0n){await(await binary.payRewards(100)).wait();return 'reward payout batch';}
- if(await binary.jobCursor()<await binary.jobCount()){await(await binary.processVolume(batch)).wait();return 'volume batch';}
  const now=(await provider.getBlock('latest')).timestamp;
- if(BigInt(now)>=await binary.epochEnd()){await(await binary.beginEpochClose()).wait();return 'epoch close';}
+ // Calendar-due Builder work cannot be starved by a continuously replenished cash queue.
  if(await binary.monthPhase()>0n){await(await binary.processBuilderMonth(batch)).wait();return 'builder batch';}
  const key=Number(await binary.nextBuilderMonth());const monthEnd=Date.UTC(Math.floor(key/12),key%12+1,1)/1000;
  if(now>=monthEnd&&Number(await binary.lastClosedAt())>=monthEnd){await(await binary.beginBuilderMonth()).wait();return 'builder close';}
+ // Finalized cash must not starve behind a continuously growing volume queue.
+ if(batchedRewards&&binary.interface?.hasFunction('rewardAccountCount')&&await binary.monthPhase()===0n&&await binary.rewardAccountCount()>0n){await(await binary.payRewards(100)).wait();return 'reward payout batch';}
+ if(await binary.jobCursor()<await binary.jobCount()){await(await binary.processVolume(batch)).wait();return 'volume batch';}
+ if(BigInt(now)>=await binary.epochEnd()){await(await binary.beginEpochClose()).wait();return 'epoch close';}
 
  const count=Number(await (funded?binary.autoAccountCount():binary.memberCount()));let cursor=autoCursor.get(binary.target)||0;
  for(let i=0;i<Math.min(5,count);i++){const who=await (funded?binary.autoAccounts(cursor%count):binary.memberList(cursor%count));cursor++;autoCursor.set(binary.target,cursor%count);let amount=await binary.pendingAuto(who);if(maxAutoAmount&&amount>maxAutoAmount)amount=maxAutoAmount;if(amount>0n){try{await(await binary.executeAuto(who,amount)).wait();return 'auto-buy executed';}catch{/* A failed auto-buy remains owned by the beneficiary and never blocks settlement. */}}}
