@@ -1,0 +1,23 @@
+name: FTI same-domain cutover checks
+
+on:
+  pull_request:
+    paths:
+      - 'tools/fti-same-domain-cutover.py'
+      - 'test/test_fti_domain_cutover.py'
+      - '.github/workflows/fti-same-domain-cutover.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-policy-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Python syntax
+        run: python3 -m py_compile tools/fti-same-domain-cutover.py test/test_fti_domain_cutover.py
+      - name: Run Nginx path, guard and rollback fixture tests
+        run: python3 test/test_fti_domain_cutover.py
