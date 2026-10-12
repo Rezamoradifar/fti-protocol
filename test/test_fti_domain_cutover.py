@@ -79,6 +79,25 @@ class Cutover(unittest.TestCase):
             obj={**f.EXPECTED,key:value}
             self.assertFalse(f.check_addresses(obj))
 
+    def test_reload_race_waits_for_new_nginx_workers(self):
+        with mock.patch.object(f, 'verify_domain',
+                               side_effect=[RuntimeError('stale worker'), None]) as check, \\
+             mock.patch.object(f.time, 'monotonic', side_effect=[0, 1]), \\
+             mock.patch.object(f.time, 'sleep') as sleep:
+            f.wait_for_domain(timeout=40, interval=2)
+            self.assertEqual(check.call_count, 2)
+            sleep.assert_called_once_with(2)
+
+    def test_stale_domain_timeout_still_fails_closed(self):
+        with mock.patch.object(f, 'verify_domain',
+                               side_effect=RuntimeError('old contract still responding')) as check, \\
+             mock.patch.object(f.time, 'monotonic', side_effect=[0, 99]), \\
+             mock.patch.object(f.time, 'sleep') as sleep:
+            with self.assertRaisesRegex(RuntimeError, 'CUTOVER_VERIFICATION_TIMEOUT'):
+                f.wait_for_domain(timeout=40, interval=2)
+            self.assertEqual(check.call_count, 1)
+            sleep.assert_not_called()
+
     def patched_paths(self, base):
         main=base/'fti-domain.conf'
         work=base/'fti-workspaces.conf'
