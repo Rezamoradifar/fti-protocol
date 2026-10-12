@@ -27,3 +27,5 @@ deployments/funded-testnet*.json
 # FTI V3 testnet deployment outputs and generated test-only keys
 deployments/v3-testnet*.json
 deployments/v3-*-secrets*.json
+
+/web/global-interface.css

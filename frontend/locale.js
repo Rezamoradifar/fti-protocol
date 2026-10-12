@@ -1,6 +1,15 @@
-export const language=(()=>{try{return localStorage.getItem('fti-language')==='en'?'en':'fa';}catch{return 'fa';}})();
-export function t(value,fa){const s=String(value);if(language==='en')return s;return fa||translations[s]||dynamicText(s);}
-export function initializeLanguage(){document.documentElement.lang=language;document.documentElement.dir=language==='fa'?'rtl':'ltr';}
+import {landingTranslations} from './landing-translations.js';
+import {coreTranslations} from './core-translations.js';
+import {language,initializeLanguage} from './language-policy.js';
+export {language,initializeLanguage,LANGUAGES,languageInfo,changeLanguage,withLanguage,displayNumber,displayUTC} from './language-policy.js';
+export function translate(value,lang=language,fa){
+ const text=String(value);if(lang==='en')return text;
+ const landing=landingTranslations[lang];if(landing&&Object.hasOwn(landing,text))return landing[text];
+ const core=coreTranslations[lang];if(core&&Object.hasOwn(core,text))return core[text];
+ if(lang==='fa')return fa||translations[text]||dynamicText(text);
+ return text;
+}
+export function t(value,fa){return translate(value,language,fa);}
 const translations=Object.fromEntries(`
 Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.|خرید در پله‌های ۵۰۰ دلاری با قیمت جدید هر پله انجام می‌شود؛ کارمزد هر پله ۳٪ و حداکثر ۱۲۸ پله در تراکنش است. مجوز عضویت و چرخه اعمال می‌شود.
 Connect to view your balance and allowance.|برای مشاهده موجودی و مجوز خرید، ولت را متصل کنید.

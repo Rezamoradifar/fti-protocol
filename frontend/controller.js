@@ -1,7 +1,8 @@
 import {settledPoints} from './settled-points.js';
 import {initLiveMarket} from './live-market.js';
 import {initNetworkTree} from './network-tree.js';
-import {t,language} from './locale.js';
+import {t,language,displayNumber,displayUTC,withLanguage} from './locale.js';
+import {readBuilderMode,builderMonthState,autoPercent} from './builder-view.js';
 import {chooseWallet,requestWalletAccounts} from './wallet-selector.js';
 import {JsonRpcProvider,BrowserProvider,Contract,parseEther,formatEther,ZeroAddress,ZeroHash,randomBytes,hexlify,isAddress} from '/vendor/ethers.js';
 import {siteLinks} from './site-links.js';
@@ -13,11 +14,7 @@ async function json(url){const response=await fetch(url,{signal:AbortSignal.time
 const cfg=await json('/api/config');
 const reserveModel=cfg.tokenContract==='FTIReserveToken';const v3Model=['FTIReserveTokenV3','FTIReserveTokenUpgradeable'].includes(cfg.tokenContract);
 const fundedModel=['FundedBinaryPlan','FundedBinaryPlanUpgradeable'].includes(cfg.binaryContract);
-const selectableAuto=cfg.selectableHourlyAutoBuy===true;
-$('#auto-percent-control').hidden=!selectableAuto;$('#auto-form').elements.percent.disabled=!selectableAuto;
-$('#auto-price-control').hidden=selectableAuto;$('#auto-form').elements.price.disabled=selectableAuto;
-if(selectableAuto)document.getElementById('auto-policy').textContent=t('Choose 5–100% of your eligible hourly binary income for FTI purchases at the current price. Monthly Builder funds are not used. Existing pending funds are unchanged; purchase allowance and fees still apply.','از ۵ تا ۱۰۰ درصد درآمد ساعتی واجد شرایط باینری خود را برای خرید FTI به قیمت جاری انتخاب کنید. وجه از صندوق ماهانه بیلدر برداشت نمی‌شود. موجودی معوق قبلی تغییر نمی‌کند؛ سقف مجاز خرید و کارمزدها همچنان اعمال می‌شوند.');
-
+let builderMode='unknown',selectableAuto=false;
 $('#funded-policy').hidden=!fundedModel;
 $('#point-values-panel').hidden=cfg.tokenContract!=='FTIReserveTokenUpgradeable';
 if(reserveModel){
@@ -55,9 +52,9 @@ let lockOffset=0;
 const ranks=['Member','Builder 1','Builder 2','Builder 3','Builder 4'].map(x=>t(x));
 const thresholds=[100n,200n,500n,1000n];
 const explorer=cfg.chainId===97?'https://testnet.bscscan.com':null;
-const fmt=(value,digits=2)=>value===undefined?'—':Number(formatEther(value)).toLocaleString('en-US',{maximumFractionDigits:digits});
-const integer=value=>BigInt(value).toLocaleString('en-US');
-const utc=value=>new Date(Number(value)*1000).toISOString().replace('T',' ').replace('.000Z',' UTC');
+const fmt=(value,digits=2)=>value===undefined?'—':displayNumber(Number(formatEther(value)),{maximumFractionDigits:digits});
+const integer=value=>displayNumber(BigInt(value));
+const utc=displayUTC;
 const short=value=>value.slice(0,6)+'…'+value.slice(-4);
 function status(message,error=false){text('status',message);$('#status').dataset.state=error?'error':'ready';$('#status').classList.toggle('error',error);}
 function reason(error){if(error.code===4001||error.code==='ACTION_REJECTED')return 'Request cancelled in your wallet.';return error.reason||error.shortMessage||error.message||'The request could not be completed.';}
@@ -69,16 +66,23 @@ function syncActions(){
  const normal=!state?.tokenPaused&&!state?.emergencyUnwind;
  for(const id of ['buy-form','sell-form','transfer-form'])for(const button of $('#'+id).querySelectorAll('[data-write]'))button.disabled=button.disabled||!normal;
  if(state?.paused||Number(state?.phase)!==0||Number(state?.monthPhase)!==0)$('#register-button').disabled=true;
- $('#connect').disabled=busy||connecting;$('#local-accounts').disabled=busy||connecting;
+ $('#language-select').disabled=busy||connecting;$('#connect').disabled=busy||connecting;$('#local-accounts').disabled=busy||connecting;
  $('#copy-address').disabled=!address;$('#copy-referral').disabled=!w?.exists;
  $('#max-sell').disabled=busy||!enabled.unlocked;
  $('#locks-prev').disabled=busy||lockOffset===0;$('#locks-next').disabled=busy||lockOffset+64>=Number(w?.lockCount||0);
+ const autoForm=$('#auto-form');autoForm.elements.enabled.disabled=busy;autoForm.elements.percent.disabled=busy||!selectableAuto;autoForm.elements.price.disabled=busy||selectableAuto;const uncertain=builderMode==='unknown'||(selectableAuto&&w&&w.autoBuyPercent==null);
+ for(const el of autoForm.elements)el.disabled=el.disabled||busy||uncertain;
+ if(uncertain||state?.binaryRecoveryFrozen||Number(state?.phase)!==0)autoForm.querySelector('[data-write]').disabled=true;
+ const month=builderMonthState(state,builderMode);
+ $('#begin-month').disabled=busy||!signer||!month.canBegin;
+ $('#process-month').disabled=busy||!signer||!month.canProcess;
 }
+
 function write(key){if(!signer||!address)throw Error('Connect your wallet first.');if(transactionAddress&&address!==transactionAddress)throw Error('Wallet changed. Please review the action and try again.');return read[key].connect(signer);}
 async function transaction(fn){
  if(busy)return;if(!signer){status('Connect your wallet first.',true);return;}
  busy=true;transactionAddress=address;syncActions();$('#transaction-link').hidden=true;status('Refreshing wallet data before your request…');
- try{await refresh();if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');await fn();await refresh();status('Transaction confirmed on-chain.');}
+ try{await refresh();if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();await refresh();status(typeof outcome==='string'?outcome:'Transaction confirmed on-chain.');}
  catch(error){status(reason(error),true);}
  finally{busy=false;transactionAddress=null;syncActions();}
 }
@@ -117,7 +121,7 @@ async function connect({silent=false}={}){
  }catch(error){status(reason(error),true);}finally{connecting=false;syncActions();}
 }
 $('#connect').onclick=()=>connect();
-$('#language-toggle').onclick=()=>{try{localStorage.setItem('fti-language',language==='fa'?'en':'fa');location.reload();}catch{status('Language preference could not be saved.',true);}};
+
 
 if(cfg.mode==='local'){
  $('#local-accounts').hidden=false;$('#dev-controls').hidden=false;
@@ -129,7 +133,7 @@ const network=cfg.mode==='local'?t('Local chain · 31337','شبکه محلی · 
 const titles={'token-home':'FTI token',overview:'Overview',network:'Membership & network',trade:'Buy & sell FTI',rewards:'Your rewards',activity:'Protocol activity',admin:'Governance & settlement'};
 function navigate(page,focus=false){
  if(!titles[page])page=defaultPage;
- if(!surfacePages.some(([id])=>id===page)){location.assign(pagePath(page));return;}document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==page);
+ if(!surfacePages.some(([id])=>id===page)){location.assign(withLanguage(pagePath(page)));return;}document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==page);
  document.querySelectorAll('[data-page]').forEach(button=>{const active=button.dataset.page===page;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');});
  text('page-title',t(titles[page]));document.title=t(titles[page])+' · FTI Protocol';
  if(location.hash!=='#'+page)history.replaceState(null,'','#'+page);
@@ -145,10 +149,29 @@ async function refresh(){
  const sequence=++refreshSequence,requestedAddress=address;
  const [d,isOwner]=await Promise.all([json('/api/state'+(requestedAddress?'?wallet='+encodeURIComponent(requestedAddress):'')),requestedAddress&&surface==='admin'?(v3Model?read.council.isGuardian(requestedAddress):read.council.isOwner(requestedAddress)):Promise.resolve(false)]);
  if(requestedAddress&&cfg.lockVersion===2){if(state?.wallet?.address!==requestedAddress||lockOffset>=Number(d.wallet.lockCount))lockOffset=0;if(lockOffset>0){const page=await json('/api/locks?wallet='+requestedAddress+'&offset='+lockOffset);d.wallet.locks=page.locks;d.wallet.lockCount=page.total;}}
+ let checkedMode='unknown';
+ try{
+  checkedMode=await readBuilderMode(read.binary,Number(d.block));
+  d.lastClosedAt=String(await read.binary.lastClosedAt({blockTag:Number(d.block)}));
+  if(checkedMode==='selectable'&&requestedAddress){
+   try{d.wallet.autoBuyPercent=autoPercent(String(await read.binary.autoBuyPercent(requestedAddress,{blockTag:Number(d.block)})));}
+   catch{d.wallet.autoBuyPercent=null;}
+  }
+ }catch{d.lastClosedAt=null;}
  if(sequence!==refreshSequence||requestedAddress!==address)return;
+ builderMode=checkedMode;selectableAuto=builderMode==='selectable';
+ $('#auto-percent-control').hidden=!selectableAuto;$('#auto-price-control').hidden=selectableAuto||builderMode==='unknown';
+ const note=$('#auto-capability');note.dataset.state=builderMode;
+ note.textContent=t(builderMode==='selectable'?'Installed contract: selectable hourly auto-buy.':builderMode==='legacy'?'Installed contract: legacy 5% auto-buy with a maximum-price setting.':'Contract capabilities could not be verified. Auto-buy changes are disabled.');
+ text('auto-policy',selectableAuto?'Choose 5–100% of your eligible hourly binary income for FTI purchases at the current price. Monthly Builder funds are not used. Existing pending funds are unchanged; purchase allowance and fees still apply.':builderMode==='legacy'?'When enabled, 5% of eligible hourly rewards is reserved for FTI purchases. Set the highest price you are willing to pay.':'Checking installed contract capabilities…');
  state=d;councilOwner=isOwner;if(cfg.batchedRewards)text('reward-queue',integer(d.rewardQueue||0)+' wallets awaiting cash payout');if(reserveModel)text('token-anchor',fmt(d.anchorSupply,6));
  if(fundedModel){text('point-retained',fmt(d.pointRetained));text('builder-retained',fmt(d.builderRetained));}
- const monthKey=Number(d.nextMonth);if(Number.isSafeInteger(monthKey)){const monthEnd=Date.UTC(Math.floor(monthKey/12),monthKey%12+1,1)/1000;document.getElementById('builder-month-schedule').textContent=t('Monthly settlement boundary: ','مرز تسویه ماهانه: ')+utc(monthEnd);if(selectableAuto)document.getElementById('begin-month').textContent=Number(d.timestamp)<monthEnd?t('Request close at next month boundary','ثبت درخواست بستن در مرز ماه بعد'):t('Close month','بستن ماه');}
+ const month=builderMonthState(d,builderMode);
+ const monthLabels={'unknown':'Monthly status is unavailable; no date or readiness is assumed.','waiting-month':'Waiting for the next Gregorian month boundary.','waiting-hour':'Month boundary reached; hourly settlement must finish first.','ready':'Ready for monthly processing. A transaction is still required.','processing':'Monthly processing is in progress.'};
+ const monthText=(month.boundary?t('Monthly settlement boundary: ')+utc(month.boundary)+' · ':'')+t(monthLabels[month.kind]);
+ for(const id of ['builder-month-schedule','member-month-schedule'])document.getElementById(id).textContent=monthText;
+ $('#begin-month').textContent=t(month.kind!=='ready'&&builderMode==='selectable'?'Request close at next month boundary':'Close month');
+
  for(const[id,value]of Object.entries({'token-spot':fmt(d.price,6),'token-reserve':fmt(d.reserve),'token-supply':fmt(d.supply),'token-bb':fmt(d.bb),'token-floor':fmt(d.floor),'token-status':d.emergencyUnwind?'Emergency redemption':d.tokenPaused?'Paused':'Active',price:fmt(d.price,6),reserve:fmt(d.reserve),reserve2:fmt(d.reserve),members:integer(d.count),'point-pool':fmt(d.pointPool),buyback:fmt(d.bb),floor:fmt(d.floor),supply:fmt(d.supply),epoch:'Epoch '+integer(d.epoch),phase:['Accepting deposits','Matching points','Allocating rewards'][d.phase]||'Processing',protection:integer(d.level),'epoch-end':utc(d.epochEnd),accounting:d.account1[0]===d.account1[1]&&d.account2[0]===d.account2[1]?'Balanced':'Review required',queue:`Volume queue: ${d.jobCursor} / ${d.jobCount}\nSettlement phase: ${d.phase} · Member cursor: ${d.cursor}`,'lock-clock':v3Model?'No time locks':'Wallet counter '+integer(d.clock),'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))text(id,value);
  if(v3Model){text('cycle-display',integer(d.cycle));text('ath-display',fmt(d.ath,6)+' USD');text('bootstrap-display',fmt(d.cycleStartPrice,2)+' USD');text('builder-multiplier',integer(d.builderMultiplier)+'×');}
  $('#emergency-panel').hidden=!v3Model||!d.emergencyUnwind||!['member','token'].includes(surface);
@@ -172,12 +195,12 @@ function renderWallet(){
  text('registration-title',registered?'Add membership units':'Join the network');text('register-button',registered?'Add units':'Register membership');
  text('sponsor-help',registered?'Your sponsor and position stay unchanged when you add units.':'New positions fill the sponsor’s left slot first, then the right. Both slots must not be full.');
  for(const[id,done]of [['step-wallet',!!signer],['step-funds',BigInt(w?.usdBalance||0)>0n],['step-member',registered]])$('#'+id).classList.toggle('done',done);
- $('#referral-link').value=registered?sites.member+'?sponsor='+address+'#network':'';
+ $('#referral-link').value=registered?withLanguage(sites.member+'?sponsor='+address+'#network'):'';
  $('#tree').replaceChildren();for(const[label,key]of [['Sponsor','parent'],['Left branch','left'],['Right branch','right']]){const node=document.createElement('div');node.textContent=t(label);const value=document.createElement('small');value.textContent=t(w&&w[key]!==ZeroAddress?w[key]:w?'Empty position':'Connect to view');node.append(value);$('#tree').append(node);}
  $('#locks').replaceChildren();
  if(w?.locks.length){for(const l of w.locks){const tr=document.createElement('tr');for(const value of [fmt(l.amount,6),integer(l.clock),utc(l.deadline),BigInt(state.clock)>=BigInt(l.clock)||state.timestamp>=Number(l.deadline)?'Unlocked':'Locked']){const td=document.createElement('td');td.textContent=value;tr.append(td);}$('#locks').append(tr);}}
  else{const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.textContent=v3Model?'V3 does not create time or wallet-count lock tranches.':address?'No token lock tranches recorded.':'Connect a wallet to see its unlock schedule.';tr.append(td);$('#locks').append(tr);}
- if(w&&!autoDirty){$('#auto-form').elements.enabled.checked=w.autoEnabled;if(selectableAuto)$('#auto-form').elements.percent.value=String(w.autoBuyPercent??5);else if(BigInt(w.maxAutoPrice)>0n)$('#auto-form').elements.price.value=formatEther(w.maxAutoPrice);}
+ if(w&&!autoDirty){$('#auto-form').elements.enabled.checked=w.autoEnabled;if(selectableAuto)$('#auto-form').elements.percent.value=w.autoBuyPercent==null?'':String(w.autoBuyPercent);else if(BigInt(w.maxAutoPrice)>0n)$('#auto-form').elements.price.value=formatEther(w.maxAutoPrice);}
 }
 $('#reward-all-panel').hidden=!cfg.batchedRewards;
 $('#reward-all').onclick=()=>transaction(()=>send(write('binary').payRewards(100)));
@@ -192,8 +215,9 @@ $('#faucet').onclick=()=>transaction(()=>send(write('usd').faucet()));
 $('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const f=e.target,n=BigInt(f.elements.units.value);if(n<1n)throw Error('Enter a positive whole number of units.');const w=wallet();if(!w)throw Error('Reload wallet data and try again.');const sponsorAddress=f.elements.sponsor.value.trim();if(!w.exists&&(!isAddress(sponsorAddress)||sponsorAddress===ZeroAddress))throw Error('Enter a valid sponsor address.');const cost=n*parseEther('100');if(cost>BigInt(w.usdBalance))throw Error('Not enough test USD. Use Get test USD on Overview.');await approve(cfg.binary,cost);await send(w.exists?write('binary').addUnits(n):write('binary').register(sponsorAddress,n));});};
 $('#auto-form').addEventListener('input',()=>{autoDirty=true;});
 $('#auto-form').onsubmit=e=>{e.preventDefault();const enabled=e.target.elements.enabled.checked;
- if(selectableAuto){const percent=Number(e.target.elements.percent.value);if(!Number.isInteger(percent)||percent<5||percent>100){status(t('Choose a whole percentage from 5 to 100.','یک درصد صحیح بین ۵ تا ۱۰۰ انتخاب کنید.'),true);return;}transaction(async()=>{await send(write('binary').setAutoBuyPercent(enabled,percent));autoDirty=false;});}
- else {const price=e.target.elements.price.value;transaction(async()=>{await send(write('binary').setAutoBuy(enabled,parseEther(price)));autoDirty=false;});}
+ if(builderMode==='unknown'){status(t('Contract capabilities could not be verified. Auto-buy changes are disabled.'),true);return;}
+ if(selectableAuto){const percent=Number(e.target.elements.percent.value);if(!Number.isInteger(percent)||percent<5||percent>100){status(t('Choose a whole percentage from 5 to 100.','یک درصد صحیح بین ۵ تا ۱۰۰ انتخاب کنید.'),true);return;}transaction(async()=>{if(builderMode!=='selectable')throw Error('Contract capabilities could not be verified. Auto-buy changes are disabled.');await send(write('binary').setAutoBuyPercent(enabled,percent));autoDirty=false;});}
+ else {const price=e.target.elements.price.value;transaction(async()=>{if(builderMode!=='legacy')throw Error('Contract capabilities could not be verified. Auto-buy changes are disabled.');await send(write('binary').setAutoBuy(enabled,parseEther(price)));autoDirty=false;});}
 };
 $('#execute-auto').onclick=()=>transaction(()=>{let amount=BigInt(wallet().autoPending);if(cfg.tokenContract==='FTIReserveTokenUpgradeable'&&amount>parseEther('64000'))amount=parseEther('64000');return send(write('binary').executeAuto(address,amount));});
 $('#release-auto').onclick=()=>transaction(()=>send(write('binary').releaseAutoToCash()));
@@ -217,7 +241,7 @@ if(v3Model){
  },250);};
 }
 $('#transfer-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const to=e.target.elements.to.value.trim(),amount=parseEther(e.target.elements.amount.value);if(!isAddress(to)||to===ZeroAddress)throw Error('Enter a valid recipient address.');if(amount<=0n||amount>BigInt(wallet().unlocked))throw Error('Enter an amount within your unlocked token balance.');if(to.toLowerCase()===address.toLowerCase())throw Error('Choose a different recipient wallet.');if(!v3Model&&await read.binary.unitsOf(to)===0n)throw Error('The recipient must own at least one membership unit.');await send(write('token').transfer(to,amount));});};
-for(const[id,method,arg]of [['volume','processVolume',50],['close-epoch','beginEpochClose'],['process-epoch','processEpoch',50],['begin-month','beginBuilderMonth'],['process-month','processBuilderMonth',50]])$('#'+id).onclick=()=>transaction(()=>send(write('binary')[method](...(arg?[arg]:[]))));
+for(const[id,method,arg]of [['volume','processVolume',50],['close-epoch','beginEpochClose'],['process-epoch','processEpoch',50],['process-month','processBuilderMonth',50]])$('#'+id).onclick=()=>transaction(()=>send(write('binary')[method](...(arg?[arg]:[]))));
 document.querySelectorAll('[data-time]').forEach(button=>button.onclick=()=>transaction(async()=>{const response=await fetch('/api/dev/time',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seconds:Number(button.dataset.time)})});if(!response.ok)throw Error((await response.json()).error);}));
 let eventsLoading=false;
 async function loadEvents(){
@@ -229,6 +253,12 @@ async function loadEvents(){
 }
 $('#refresh-events').onclick=loadEvents;
 for(const[key,name]of Object.entries(names)){const el=document.createElement('div');el.textContent=name;const code=document.createElement('code');code.textContent=cfg[key];if(explorer){const a=document.createElement('a');a.href=explorer+'/address/'+cfg[key];a.target='_blank';a.rel='noreferrer';a.append(code);el.append(a);}else el.append(code);$('#contracts').append(el);}
+$('#begin-month').onclick=()=>transaction(async()=>{
+ const readiness=builderMonthState(state,builderMode);if(!readiness.canBegin)throw Error('Monthly status is unavailable; no date or readiness is assumed.');
+ const receipt=await send(write('binary').beginBuilderMonth());
+ const requested=receipt?.logs?.some(log=>{try{return read.binary.interface.parseLog(log)?.name==='BuilderMonthCloseRequested';}catch{return false;}});
+ return requested?'Request recorded on-chain; no monthly funds have been paid by this request.':undefined;
+});
 async function loadProposals(){try{const count=Number(await (v3Model?read.council.proposalCount():read.council.count()));$('#proposals').replaceChildren();if(!count)text('proposals','No governance proposals yet.');for(let i=count-1;i>=Math.max(0,count-20);i--){const p=await read.council.proposal(i),box=document.createElement('div');box.className='proposal';const title=document.createElement('p');title.textContent=language==='fa'?`پیشنهاد ${i} · ${p[2]} از ${v3Model?5:3} تأیید · ${p[3]?'اجراشده':'در انتظار'}`:`Proposal ${i} · ${p[2]} of ${v3Model?5:3} approvals · ${p[3]?'Executed':'Pending'}`;box.append(title);for(const[label,fn]of [['Approve',()=>write('council').approve(i)],['Execute proposal',()=>write('council').execute(i)]]){const button=document.createElement('button');button.className='secondary';button.textContent=t(label);button.dataset.write='';button.dataset.requires=label==='Approve'?'council':'wallet';button.dataset.executed=String(p[3]);button.onclick=()=>transaction(async()=>{await send(fn());await loadProposals();});box.append(button);}$('#proposals').append(box);}syncActions();}catch(error){text('proposals','Proposals could not be loaded. Reopen this section to retry.');status(reason(error),true);}}
 $('#proposal-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const action=e.target.elements.action.value;let target,data;
  if(action==='emergencyUnwind'){target=cfg.token;data=read.token.interface.encodeFunctionData('activateEmergencyUnwind');}
