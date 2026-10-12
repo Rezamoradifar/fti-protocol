@@ -140,7 +140,7 @@ class Cutover(unittest.TestCase):
                  mock.patch.object(f,'BACKUPS',backups), \
                  mock.patch.object(f,'STATE',backups/'state.json'), \
                  mock.patch.object(f,'verify_ready'), \
-                 mock.patch.object(f,'verify_domain',side_effect=RuntimeError('live failed')), \
+                 mock.patch.object(f,'wait_for_domain',side_effect=RuntimeError('live failed')), \
                  mock.patch.object(f,'command',return_value=''):
                 with self.assertRaisesRegex(RuntimeError,'live failed'):
                     f.apply()
