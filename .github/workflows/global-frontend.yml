@@ -19,7 +19,9 @@ jobs:
       - run: npm ci
       - run: npm run build:web
       - run: npm --prefix landing run build
-      - run: node --test test/member-landing-theme.test.mjs
+      - run: node --test test/global-frontend.test.mjs test/member-landing-theme.test.mjs
+      - run: npm run compile
+      - run: node --test test/continuity-deployment.test.mjs
       - name: Preserve reviewed source and frontend output (no deployment or credentials)
         run: |
           mkdir -p /tmp/fti-global-review

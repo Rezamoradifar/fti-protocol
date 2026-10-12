@@ -1,0 +1,28 @@
+/* Shared interface controls; neither transactions nor wallet data are styled away. */
+.fti-language{display:inline-flex;align-items:center;gap:8px;max-width:100%;font-size:13px}
+.fti-language select{min-height:44px;max-width:180px;border:1px solid var(--line,#29342d);border-radius:8px;background:var(--panel,#101c14);color:var(--text,#eaf1ed);padding:8px 12px;font:inherit}
+.fti-language select:focus-visible{outline:2px solid var(--accent,#b2ffd0);outline-offset:3px}
+.fti-social{border-top:1px solid var(--line,#29342d);padding:24px 0;margin-top:24px}
+.fti-social h2{font-size:16px!important;margin:0 0 12px!important}
+.fti-social nav{display:flex;flex-wrap:wrap;gap:12px}
+.fti-social nav a{display:inline-flex;align-items:center;min-height:44px;border:1px solid var(--line,#29342d);border-radius:8px;padding:8px 14px;color:inherit}
+.fti-social p,.fti-translation-notice{font-size:13px;line-height:1.8;color:var(--muted,#9aa79f)}
+.fti-translation-notice{padding:12px 16px;border:1px solid var(--line,#29342d);border-radius:8px;margin:14px 0}
+.fti-contract-note{margin-top:14px;padding:14px;border:1px solid var(--line,#29342d);border-radius:8px;color:var(--muted,#9aa79f);line-height:1.8}
+.fti-contract-note[data-state="unknown"]{border-color:var(--warning,#edc780)}
+.market-chart{display:block;width:100%;min-width:0;aspect-ratio:780/300;max-height:380px;touch-action:pan-y}
+.market-chart text{font-size:11px;fill:var(--muted,#9aa79f)}
+.market-chart .price-line{fill:none;stroke:var(--accent,#b2ffd0);stroke-width:2.5;vector-effect:non-scaling-stroke}
+.market-chart .price-grid{stroke:var(--line,#29342d);stroke-width:1;vector-effect:non-scaling-stroke}
+.market-chart .price-dot{fill:var(--accent,#b2ffd0)}
+.market-chart .price-cursor{stroke:var(--muted,#9aa79f);stroke-dasharray:4 4}
+.initial-landing{--bg:#080d0b;--text:#eaf1ed;--panel:#101c14;--accent:#b2ffd0}
+.initial-landing .nav{flex-wrap:wrap;height:auto;min-height:86px;padding-block:12px}
+.initial-landing .fti-language{color:#eaf1ed}
+.initial-landing .fti-social nav{display:flex}
+html[dir="rtl"] .initial-landing{font-family:Tahoma,'Segoe UI',sans-serif}
+html[dir="rtl"] .initial-landing :is(h1,h2,h3){font-family:inherit;letter-spacing:normal}
+html[dir="rtl"] .initial-landing em{font-family:inherit;font-style:normal;letter-spacing:normal}
+@media(max-width:640px){.fti-language>span{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}.fti-language select{max-width:142px;font-size:16px}.initial-landing .nav .fti-language{margin-inline-start:auto}.initial-landing .nav{gap:12px}}
+
+@media(max-width:640px){.market-chart text{display:none}.candle-readout{font-size:13px;line-height:1.8;overflow-wrap:anywhere}.market-chart{min-height:180px}}
