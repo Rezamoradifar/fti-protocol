@@ -163,7 +163,14 @@ def verify_ready():
 
 def verify_domain():
     for host in HOSTS:
-        chk(check_addresses(domain_json(host,'/api/config')),
+        cfg = domain_json(host, '/api/config')
+        if not check_addresses(cfg):
+            print('DOMAIN_MISMATCH host=' + host +
+                  ' chain=' + str(cfg.get('chainId') if isinstance(cfg,dict) else 'invalid') +
+                  ' token=' + str(cfg.get('token') if isinstance(cfg,dict) else 'invalid') +
+                  ' binary=' + str(cfg.get('binary') if isinstance(cfg,dict) else 'invalid'),
+                  flush=True)
+        chk(check_addresses(cfg),
             'PUBLIC_DOMAIN_WRONG_CONTRACT: ' + host)
         health=domain_json(host,'/health')
         chk(health.get('chainId') == 97 and health.get('ok') is True,
@@ -179,6 +186,27 @@ def verify_domain():
                  '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}',
                  'https://'+HOSTS[0]+'/rpc'],timeout=32)
     chk(json.loads(rpc).get('result')=='0x61','NEW_RPC_WRONG_CHAIN')
+
+def wait_for_domain(timeout=40, interval=2):
+    """Nginx reload is asynchronous. Do not mistake a stale worker for failure."""
+    stop = time.monotonic() + timeout
+    last_error = None
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            verify_domain()
+            print('ROUTE_VERIFIED_AFTER_ATTEMPTS=' + str(attempt), flush=True)
+            return
+        except Exception as exc:
+            last_error = str(exc)
+            print('ROUTE_PENDING attempt=' + str(attempt) + ' reason=' + last_error,
+                  flush=True)
+            remaining = stop - time.monotonic()
+            if remaining <= 0:
+                break
+            time.sleep(min(interval, remaining))
+    raise RuntimeError('CUTOVER_VERIFICATION_TIMEOUT: ' + str(last_error))
 
 def restore(manifest):
     for row in manifest['files']:
@@ -228,7 +256,7 @@ def apply():
             atomic(path,patch(original,TARGETS[str(path)]),row['mode'])
         command(['nginx','-t'])
         command(['systemctl','reload','nginx'])
-        verify_domain()
+        wait_for_domain(timeout=40, interval=2)
         print('FTI_SAME_DOMAIN_TESTNET_CUTOVER_OK',flush=True)
         print('Old 3110 and new 3111 processes were NOT restarted.',flush=True)
     except Exception:
