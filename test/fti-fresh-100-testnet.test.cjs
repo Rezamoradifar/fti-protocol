@@ -76,14 +76,14 @@ test('testnet-only mock faucet, 100 registration/buy/transfer/sell and payouts a
 
 test('no editing deployed contract sources, real assets, existing nginx or keeper',()=>{
  assert.doesNotMatch(src,/systemctl\s+(restart|stop|reload)|nginx\s+-s|do-release-upgrade|git\s+pull|eth_sendTransaction/);
- assert.match(src,/Outside the pinned contract source tree/);
+ assert.match(src,/OUTSIDE the pinned contract source tree/);
  assert.match(src,/Only synthetic tUSD/);
 });
 
 test('secrets live in private standalone storage, never log private key',()=>{
  assert.match(src,/wallets-PRIVATE\.json/);
  assert.match(src,/fs\.openSync\(file,'wx',0o600\)/);
- assert.match(src,/testnet key file must be root-owned, private/);
+ assert.match(src,/Funder key file must be root-owned, private/);
  assert.doesNotMatch(src,/console\.log\(.*privateKey/);
 });
 
