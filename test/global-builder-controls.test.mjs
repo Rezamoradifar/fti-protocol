@@ -109,7 +109,8 @@ test('Builder controls use hourly funded income, retain liabilities and close at
 test('all existing storage fields retain their position and representation',()=>{
  const old=JSON.parse(fs.readFileSync('docs/storage-layout/FundedBinaryPlanUpgradeable-20261009.json'));
  const next=JSON.parse(fs.readFileSync('artifacts/storage-layout/FundedBinaryPlanUpgradeable.json'));
- assertStorageCompatible(old,next);assert.equal(next.storage.at(-1).label,'_autoBuyPercent');
+ assertStorageCompatible(old,next);assert.equal(next.storage[old.storage.length-1].label,'_autoBuyPercent');
+  assert.deepEqual(next.storage.slice(old.storage.length).map(field=>field.label),['directReferrer','directReferralCount']);
 });
 
 test('Keeper gives ready monthly settlement precedence over a replenished payout queue',async()=>{
