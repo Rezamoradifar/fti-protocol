@@ -117,5 +117,5 @@ test('manifest verification uses pinned working directory even when invoked from
   throw Error('synthetic verifier failure');
  }),/synthetic verifier failure/);
  assert.equal(process.cwd(),previous);
- assert.match(src,/withSourceWorkingDirectory\\(source,\\(\\)=>verifyV3Deployment\\(cfg,p\\)\\)/);
+ assert.match(src,/withSourceWorkingDirectory\(source,\(\)=>verifyV3Deployment\(cfg,p\)\)/);
 });
