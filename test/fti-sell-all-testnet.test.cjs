@@ -3,8 +3,8 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const m=require('./fti-sell-all-testnet.cjs');
-const src=fs.readFileSync(path.join(__dirname,'fti-sell-all-testnet.cjs'),'utf8');
+const m=require('../tools/fti-sell-all-testnet.cjs');
+const src=fs.readFileSync(path.join(__dirname,'../tools/fti-sell-all-testnet.cjs'),'utf8');
 const E=10n**18n;
 test('hard-pin public BNB testnet contracts; no real assets',()=>{
  assert.equal(m.ADDR.token,'0x1C38Ab2c2F64e1bcE96Fc438Da374c4998E70411');
