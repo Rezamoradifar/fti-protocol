@@ -38,7 +38,7 @@ completed=j.get('completed',{})
 def count(prefix):
     return sum(k.startswith(prefix+'-') and k[len(prefix)+1:].isdigit() for k in completed)
 nums={k:count(k) for k in ('register','buy','transfer','sell','auto-pref')}
-mode='done' if all(v==100 for v in nums.values()) else 'full' if all(v>=3 for v in nums.values()) else 'pilot'
+mode='done' if all(v==100 for v in nums.values()) else 'full' if any(v>3 for v in nums.values()) or all(v>=3 for v in nums.values()) else 'pilot'
 import sys
 print('STATUS',nums,'PENDING_HASH',j.get('pending',{}).get('hash') if j.get('pending') else None,file=sys.stderr)
 print(plan['digest'],mode)
