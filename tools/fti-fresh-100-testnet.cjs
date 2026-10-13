@@ -376,5 +376,5 @@ No mainnet; never use a leaked/private mainnet key.`);return;}
   await lockRun(async()=>{const engine=new Engine(ctx,d,funder);if(command==='run')await engine.run();else await engine.settle();});
  }finally{ctx.p.destroy();}
 }
-if(require.main===module)main().catch(e=>{const msg=String(e.message||e).replace(/https?:\\/\\/[^\\s'\\"]+/g,'[RPC_URL_REDACTED]').replace(/0x[a-fA-F0-9]{64}/g,'[HEX_REDACTED]');console.error('FTI_100_TESTNET_STOP '+msg.slice(0,400));process.exitCode=1;});
+if(require.main===module)main().catch(e=>{const msg=String(e.message||e).replace(/https?:\/\/\S+/g,'[RPC_URL_REDACTED]').replace(/0x[a-fA-F0-9]{64}/g,'[HEX_REDACTED]');console.error('FTI_100_TESTNET_STOP '+msg.slice(0,400));process.exitCode=1;});
 module.exports={digest,amount,decimal,parseArgs,KNOWN,COUNT,UNIT,TUSD_PER_WALLET,BUY,contextFiles};
