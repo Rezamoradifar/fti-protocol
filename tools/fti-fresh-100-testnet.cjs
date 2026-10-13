@@ -49,6 +49,15 @@ function readPrivateJSON(file){const st=fs.lstatSync(file);ensure(st.isFile()&&!
 async function lockRun(fn){const file=path.join(OUT,LOCK);const fd=fs.openSync(file,'wx',0o600);try{fs.writeSync(fd,String(process.pid));return await fn();}finally{fs.closeSync(fd);fs.unlinkSync(file);}}
 function contractAbi(source,key){const m={usd:'MockUSD',binary:'FundedBinaryPlanUpgradeable',token:'FTIReserveTokenUpgradeable'};return JSON.parse(fs.readFileSync(path.join(source,'artifacts',m[key]+'.json'))).abi;}
 function loadEthers(source){return createRequire(path.join(source,'package.json'))('ethers');}
+// The verified release manifest hashes paths relative to process.cwd().
+// Run its verification in the immutable release checkout, even when the
+// standalone test script is invoked from /root or another shell directory.
+// Always restore the caller's cwd; this helper NEVER edits any source files.
+async function withSourceWorkingDirectory(source, action){
+ const previousCwd=process.cwd();
+ try {process.chdir(source);return await action();}
+ finally {process.chdir(previousCwd);}
+}
 async function openProvider(eth,rpc){const req=new eth.FetchRequest(validateRpc(rpc));req.timeout=18000;const p=new eth.JsonRpcProvider(req,undefined,{cacheTimeout:-1,batchMaxCount:1});p.pollingInterval=2500;ensure((await p.getNetwork()).chainId===97n,'STOP: only BNB Testnet chainId=97');return p;}
 async function context(opt){
  ensure(process.getuid()===0&&os.hostname()==='vps-titan-5320','Run as root on vps-titan-5320 only');
@@ -69,7 +78,7 @@ async function context(opt){
   ensure((await binary.token()).toLowerCase()===cfg.token.toLowerCase(),'Binary/token binding mismatch');
   ensure(!(await binary.paused())&&!(await token.paused())&&!(await binary.recoveryFrozen())&&!(await token.recoveryFrozen()),'Contract is paused/frozen; stop');
   const {verifyV3Deployment}=await import(pathToFileURL(path.join(source,'scripts/continuity-release.mjs')).href);
-  await verifyV3Deployment(cfg,p);
+  await withSourceWorkingDirectory(source,()=>verifyV3Deployment(cfg,p));
   return {cfg,eth,p,usd,binary,token,source};
  }catch(e){p.destroy();throw e;}
 }
@@ -383,4 +392,4 @@ No mainnet; never use a leaked/private mainnet key.`);return;}
  }finally{ctx.p.destroy();}
 }
 if(require.main===module)main().catch(e=>{const msg=String(e.message||e).replace(/https?:\/\/\S+/g,'[RPC_URL_REDACTED]').replace(/0x[a-fA-F0-9]{64}/g,'[HEX_REDACTED]');console.error('FTI_100_TESTNET_STOP '+msg.slice(0,400));process.exitCode=1;});
-module.exports={digest,amount,decimal,parseArgs,KNOWN,COUNT,UNIT,TUSD_PER_WALLET,BUY,contextFiles};
+module.exports={digest,amount,decimal,parseArgs,KNOWN,COUNT,UNIT,TUSD_PER_WALLET,BUY,contextFiles,withSourceWorkingDirectory};
