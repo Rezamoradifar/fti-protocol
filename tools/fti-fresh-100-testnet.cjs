@@ -82,8 +82,12 @@ async function makePrepared(ctx,opt){
  const price=amount(opt['--gas-price-ceiling-gwei']||'1',9);
  ensure(gasEach>=amount('0.0001',18)&&gasEach<=amount('0.005',18),'Wallet gas allocation 0.0001..0.005 tBNB');
  ensure(budget>=gasEach*100n&&budget<=amount('1',18),'Budget must cover initial 100 wallets and cannot exceed 1 tBNB');
+ const currentGasPrice=(await ctx.p.getFeeData()).gasPrice;
+ ensure(currentGasPrice!==null&&currentGasPrice>0n,'Public testnet gas price unavailable');
  ensure(price<=amount('10',9),'Max gas price ceiling 10 gwei');
+ ensure(currentGasPrice<=price,'CURRENT_GAS_PRICE_ABOVE_REVIEWED_CEILING');
  const funder=opt['--funder-address'];ensure(eth.isAddress(funder)&&funder!==eth.ZeroAddress,'Public funder address required for prepare');
+ ensure((await ctx.p.getBalance(funder))>=gasEach*100n,'TEST_FUNDER_BALANCE_TOO_LOW_FOR_100_WALLET_GAS');
  const sponsor=ctx.cfg.genesis[15];ensure(eth.isAddress(sponsor),'Genesis leaf 15 missing');
  const node=await ctx.binary.members(sponsor);ensure(node.exists&&node.left===eth.ZeroAddress&&node.right===eth.ZeroAddress,'Genesis leaf already occupied; manual review needed');
  ensure(await ctx.binary.memberCount()===31n,'Fresh contract no longer at initial 31 members. Stop, do not collide with real users.');
@@ -101,7 +105,7 @@ async function makePrepared(ctx,opt){
  fs.mkdirSync(OUT,{mode:0o700});saveFileNew(path.join(OUT,'wallets-PRIVATE.json'),keys);saveFileNew(path.join(OUT,'plan.json'),plan);
  saveFileNew(path.join(OUT,'journal-PRIVATE.json'),{schema:'FTI_100_JOURNAL_V1',planDigest:plan.digest,completed:{},pending:null,upperNativeReserved:'0',nativeTransferred:'0',transactionCount:0,startedAt:null});
  console.log(safeStringify({result:'FTI_100_WALLETS_PREPARED_NO_TRANSACTIONS',chainId:97,wallets:100,sponsor,
-  testUsdToDistribute:decimal(TUSD_PER_WALLET*100n),nativeGasPrefundTBNB:decimal(gasEach*100n),totalBudgetTBNB:decimal(budget),
+  testUsdToDistribute:decimal(TUSD_PER_WALLET*100n),nativeGasPrefundTBNB:decimal(gasEach*100n),totalBudgetTBNB:decimal(budget),funderBalanceTBNB:decimal(await ctx.p.getBalance(funder)),
   digest:plan.digest,publicWalletAddressesFile:path.join(OUT,'plan.json'),privateKeysFile:path.join(OUT,'wallets-PRIVATE.json'),deployed:false}));
 }
 
