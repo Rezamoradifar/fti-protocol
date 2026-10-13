@@ -1,0 +1,24 @@
+name: FTI guarded testnet resume
+on:
+  push:
+    paths:
+      - 'tools/fti-resume-100-stress.sh'
+      - 'test/fti-resume-100-stress.test.cjs'
+      - '.github/workflows/fti-resume-stress.yml'
+  pull_request:
+    paths:
+      - 'tools/fti-resume-100-stress.sh'
+      - 'test/fti-resume-100-stress.test.cjs'
+      - '.github/workflows/fti-resume-stress.yml'
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: bash -n tools/fti-resume-100-stress.sh
+      - run: node --test test/fti-resume-100-stress.test.cjs
