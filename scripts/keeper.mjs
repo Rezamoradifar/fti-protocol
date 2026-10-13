@@ -2,8 +2,7 @@ import fs from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {JsonRpcProvider,Wallet,Contract} from 'ethers';
 import {artifact} from './lib.mjs';
-import {RELEASE, verifyV3Deployment} from './v3-release.mjs';
-import {RELEASE as CONTINUITY_RELEASE,verifyV3Deployment as verifyContinuity} from './continuity-release.mjs';
+import {assertOperationalConfig,verifyOperationalDeployment} from './operational-release.mjs';
 const autoCursor=new Map();
 export async function keeperStep(binary,provider,{batchedRewards=true,maxAutoAmount}={}){
  const funded=!!binary.interface?.hasFunction('autoAccountCount');const batch=funded?25:50;
@@ -32,12 +31,10 @@ export function startKeeper(binary,provider,interval=5000,options={}){
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
  const cfg=JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_FILE||'deployments/local.json'));
- if(cfg.tokenContract==='FTIReserveTokenV3'&&cfg.release!==RELEASE)throw Error('V3 release mismatch; deploy the new contracts instead of reusing old addresses');
- if(cfg.tokenContract==='FTIReserveTokenUpgradeable'&&cfg.release!==CONTINUITY_RELEASE)throw Error('Continuity release mismatch');
+ assertOperationalConfig(cfg);
  const p=new JsonRpcProvider(process.env.RPC_URL||cfg.rpcUrl,undefined,{cacheTimeout:-1});
  if(!process.env.KEEPER_PRIVATE_KEY)throw Error('KEEPER_PRIVATE_KEY is required; it needs gas only and has no admin authority');
- if(cfg.release===CONTINUITY_RELEASE)await verifyContinuity(cfg,p);
- if(cfg.release===RELEASE)await verifyV3Deployment(cfg,p);
+ await verifyOperationalDeployment(cfg,p);
  if((await p.getNetwork()).chainId!==BigInt(cfg.chainId))throw Error('Wrong keeper network');
  const name=cfg.binaryContract||'BinaryPlan';if(!['BinaryPlan','FundedBinaryPlan','FundedBinaryPlanUpgradeable'].includes(name))throw Error('Unknown reward model');
  const signer=new Wallet(process.env.KEEPER_PRIVATE_KEY,p);const c=new Contract(cfg.binary,artifact(name).abi,signer);startKeeper(c,p,Number(process.env.KEEPER_INTERVAL_MS||5000),{batchedRewards:cfg.batchedRewards===true,maxAutoAmount:cfg.tokenContract==='FTIReserveTokenUpgradeable'?64000n*10n**18n:undefined});

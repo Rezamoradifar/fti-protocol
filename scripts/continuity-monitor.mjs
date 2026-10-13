@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {verifyOperationalDeployment} from './operational-release.mjs';
 import {fileURLToPath} from 'node:url';
 import {JsonRpcProvider,Contract} from 'ethers';
 
@@ -20,7 +21,8 @@ export async function inspectContinuity({binary,token,blockTag}){
 if(process.argv[1]===fileURLToPath(import.meta.url)){
  const cfg=JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_FILE||'deployments/continuity-testnet.json','utf8')),p=new JsonRpcProvider(process.env.RPC_URL||'http://127.0.0.1:3108/rpc');
  try{
-  const chain=(await p.getNetwork()).chainId;if(![97n,31337n].includes(chain)||chain!==BigInt(cfg.chainId))throw Error('Testnet/local only; deployment chain mismatch');
+  const chain=(await p.getNetwork()).chainId;if(![56n,97n,31337n].includes(chain)||chain!==BigInt(cfg.chainId))throw Error('Deployment chain mismatch');
+  if(chain===56n)await verifyOperationalDeployment(cfg,p);
   const contract=(address,name)=>new Contract(address,JSON.parse(fs.readFileSync(`artifacts/${name}.json`)).abi,p);
   const names={binary:cfg.binaryContract||'FundedBinaryPlan',token:cfg.tokenContract||'FTIReserveTokenV3'};
   if(!['FundedBinaryPlan','FundedBinaryPlanFloor','FundedBinaryPlanUpgradeable'].includes(names.binary)||!['FTIReserveTokenV3','FTIReserveTokenRecovery','FTIReserveTokenUpgradeable'].includes(names.token))throw Error('Unsupported contract model');

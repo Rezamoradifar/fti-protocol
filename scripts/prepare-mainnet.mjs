@@ -36,26 +36,10 @@ export function validateMainnetInput(input){
  check(/^0x[0-9a-f]{64}$/i.test(input.usdCodeHash||'')&&!/^0x0{64}$/i.test(input.usdCodeHash),'Reviewed collateral runtime code hash required');
  return {schema:input.schema,chainId:56,deploymentKind:'new-contracts',daoThreshold:5,...addresses,...lists,usdCodeHash:input.usdCodeHash.toLowerCase()};
 }
-export async function prepareMainnet({provider,input}){
- input=validateMainnetInput(input);
- check((await provider.getNetwork()).chainId===56n,'RPC is not BNB mainnet chain 56');
- const block=await provider.getBlock('latest');check(block?.hash,'Snapshot block unavailable');
- const code=await provider.getCode(input.usd,block.number);
- check(code!=='0x'&&keccak256(code)===input.usdCodeHash,'Collateral runtime hash mismatch');
- const usd=new Contract(input.usd,['function decimals() view returns(uint8)'],provider);
- check(await usd.decimals({blockTag:block.number})===18n,'Contracts require collateral with 18 decimals');
- const nonce=await provider.getTransactionCount(input.deployer,'latest');
- check(nonce===await provider.getTransactionCount(input.deployer,'pending'),'Resolve pending deployer transactions first');
+export async function mainnetPayloads(rawInput,nonce){
+ const input=validateMainnetInput(rawInput);
  check(Number.isSafeInteger(nonce)&&nonce>=0&&Number.isSafeInteger(nonce+7),'Invalid deployment nonce');
- const manifest=releaseManifest();check(/^[a-f0-9]{40}$/.test(manifest.sourceRevision||''),'Pinned source revision required');
- const build=loadMigrationBuild();
  const addresses=Object.fromEntries(ORDER.map((key,i)=>[key,getCreateAddress({from:input.deployer,nonce:nonce+i})]));
- const selected=[input.deployer,input.development,input.usd,...input.partners,...input.genesis];
- for(const address of Object.values(addresses)){
-  check(!selected.some(x=>same(x,address)),'Predicted contract collides with a configured wallet');
-  check(await provider.getCode(address)==='0x','Predicted contract address already occupied');
-  check(await provider.getTransactionCount(address)===0,'Predicted contract address has a nonce');
- }
  const token=new Contract(addresses.token,artifact(MODELS.tokenImplementation).abi);
  const binary=new Contract(addresses.binary,artifact(MODELS.binaryImplementation).abi);
  const tokenInit=token.interface.encodeFunctionData('initialize',[input.usd,addresses.timelock,addresses.council]);
@@ -71,6 +55,28 @@ export async function prepareMainnet({provider,input}){
  }
  const bind=token.interface.encodeFunctionData('bind',[addresses.binary]);
  transactions.push({name:'bind',chainId:56,from:input.deployer,to:addresses.token,nonce:nonce+6,value:'0',data:bind,dataHash:keccak256(bind)});
+ return {addresses,constructorArgs,transactions};
+}
+export async function prepareMainnet({provider,input}){
+ input=validateMainnetInput(input);
+ check((await provider.getNetwork()).chainId===56n,'RPC is not BNB mainnet chain 56');
+ const block=await provider.getBlock('latest');check(block?.hash,'Snapshot block unavailable');
+ const code=await provider.getCode(input.usd,block.number);
+ check(code!=='0x'&&keccak256(code)===input.usdCodeHash,'Collateral runtime hash mismatch');
+ const usd=new Contract(input.usd,['function decimals() view returns(uint8)'],provider);
+ check(await usd.decimals({blockTag:block.number})===18n,'Contracts require collateral with 18 decimals');
+ const nonce=await provider.getTransactionCount(input.deployer,'latest');
+ check(nonce===await provider.getTransactionCount(input.deployer,'pending'),'Resolve pending deployer transactions first');
+ check(Number.isSafeInteger(nonce)&&nonce>=0&&Number.isSafeInteger(nonce+7),'Invalid deployment nonce');
+ const manifest=releaseManifest();check(/^[a-f0-9]{40}$/.test(manifest.sourceRevision||''),'Pinned source revision required');
+ const build=loadMigrationBuild();
+ const {addresses,constructorArgs,transactions}=await mainnetPayloads(input,nonce);
+ const selected=[input.deployer,input.development,input.usd,...input.partners,...input.genesis];
+ for(const address of Object.values(addresses)){
+  check(!selected.some(x=>same(x,address)),'Predicted contract collides with a configured wallet');
+  check(await provider.getCode(address)==='0x','Predicted contract address already occupied');
+  check(await provider.getTransactionCount(address)===0,'Predicted contract address has a nonce');
+ }
  check(same((await provider.getBlock(block.number))?.hash,block.hash),'Snapshot block changed');
  check(nonce===await provider.getTransactionCount(input.deployer,'latest')&&nonce===await provider.getTransactionCount(input.deployer,'pending'),'Deployer nonce changed during preparation');
  const body={schema:'FTI_MAINNET_UNSIGNED_PLAN_V1',input,manifest,nonce,addresses,constructorArgs,transactions,
@@ -79,7 +85,7 @@ export async function prepareMainnet({provider,input}){
   initialState:{genesisPositions:31,purchasedUnits:'0',tokenSupply:'0',importedUsers:0,importedFunds:'0'},
   scope:'UNSIGNED_CONTRACT_PREPARATION_ONLY',readyToBroadcast:false,
   remaining:['Public-chain rehearsal of this release','Independent contract/security review','Approved gas budget and deployment signing',
-   'Mainnet web/Keeper/monitor integration and verification','Post-deployment receipt, roles, implementation and accounting verification'],
+   'Public mainnet web/Keeper/monitor activation and verification','Post-deployment receipt, roles, implementation and accounting verification'],
   notes:['No MockUSD or private wallet keys are created.','Predicted addresses are not deployed addresses.',
    'This is a fresh deployment, not a migration; test assets and old balances are not imported.',
    'Code hash and decimals do not prove collateral transfer, upgrade or issuer behavior.',
@@ -94,15 +100,18 @@ Use a clean, pinned checkout after npm ci, npm run compile and npm run build:web
 Creates seven UNSIGNED transactions. Does not deploy, import balances, generate keys or start services.
 The output is preparation evidence, not a mainnet readiness approval or a broadcast command.
 `;
+export function assertPinnedMainnetCheckout(){
+ const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+ check(releaseManifest().sourceRevision===revision,'Source revision differs from checkout');
+ check(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()==='','Use a clean committed checkout');
+ check(execFileSync('git',['ls-files','--others','--exclude-standard','--','contracts','scripts','frontend','core','landing/src','config'],{encoding:'utf8'}).trim()==='','Untracked release sources require review and a commit');
+}
 export async function main(args=process.argv.slice(2)){
  const {values:v,positionals}=parseArgs({args,strict:true,allowPositionals:true,options:{config:{type:'string'},out:{type:'string'},help:{type:'boolean'}}});
  if(v.help){console.log(HELP);return;}
  check(positionals.length===0&&v.config&&v.out,'Use --config and --out; see --help');
  const input=validateMainnetInput(JSON.parse(fs.readFileSync(v.config,'utf8')));
- const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
- check(releaseManifest().sourceRevision===revision,'Source revision differs from checkout');
- check(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()==='','Use a clean committed checkout');
- check(execFileSync('git',['ls-files','--others','--exclude-standard','--','contracts','scripts','frontend','core','landing/src','config'],{encoding:'utf8'}).trim()==='','Untracked release sources require review and a commit');
+ assertPinnedMainnetCheckout();
  const out=path.resolve(v.out),parent=fs.realpathSync(path.dirname(out)),root=fs.realpathSync(process.cwd());
  check(parent!==root&&!parent.startsWith(root+path.sep),'Write plans outside the source checkout');
  check(!fs.existsSync(out),'Output already exists; never overwrite a reviewed plan');

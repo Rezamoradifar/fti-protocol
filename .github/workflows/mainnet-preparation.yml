@@ -1,0 +1,33 @@
+name: Mainnet preparation and runtime rehearsal
+on:
+  pull_request:
+    paths:
+      - 'core/**'
+      - 'scripts/**'
+      - 'frontend/**'
+      - 'landing/src/**'
+      - 'test/mainnet-*.test.mjs'
+      - 'tools/prepare-mainnet-candidate.sh'
+      - 'config/mainnet*'
+      - '.github/workflows/mainnet-preparation.yml'
+permissions:
+  contents: read
+jobs:
+  mainnet-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm --prefix landing ci
+      - run: npm run compile
+      - run: npm run build:web
+      - run: npm --prefix landing run build
+      - run: bash -n tools/prepare-mainnet-candidate.sh
+      - run: node --test --test-concurrency=2 test/mainnet-*.test.mjs test/wallet-discovery.test.mjs test/continuity-monitor.test.mjs test/funded-keeper.test.mjs test/fresh-testnet.test.mjs test/global-frontend.test.mjs test/site-routing.test.mjs test/v3-server.test.mjs test/event-server.test.mjs
