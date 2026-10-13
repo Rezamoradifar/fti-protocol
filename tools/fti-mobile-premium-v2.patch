@@ -1,0 +1,61 @@
+--- install-fti-mobile-premium.py
++++ install-fti-mobile-premium.py
+@@ -19,6 +19,7 @@
+ import tempfile
+ import time
+ import urllib.request
++import urllib.error
+ 
+ HOST = 'vps-titan-5320'
+ ROOT = Path('/opt/fti/releases/ui-2afdc682b2eb4961b30e856b415f09d29fcda92d-20261010T185027Z-254134')
+@@ -120,11 +121,14 @@
+ 
+ def get_local(route,timeout=10):
+     client=urllib.request.build_opener(urllib.request.ProxyHandler({}))
+-    with client.open('http://127.0.0.1:3110'+route,timeout=timeout) as reply:
+-        require(reply.status==200,'LOCAL_HTTP_STATUS: '+route)
+-        data=reply.read(350_000)
+-        require(len(data)<350_000,'LOCAL_HTTP_TOO_LARGE: '+route)
+-        return data,reply.headers.get_content_type()
++    try:
++        with client.open('http://127.0.0.1:3110'+route,timeout=timeout) as reply:
++            require(reply.status==200,'LOCAL_HTTP_STATUS: '+route)
++            data=reply.read(350_000)
++            require(len(data)<350_000,'LOCAL_HTTP_TOO_LARGE: '+route)
++            return data,reply.headers.get_content_type()
++    except urllib.error.HTTPError as error:
++        raise RuntimeError('LOCAL_HTTP_'+str(error.code)+': '+route) from None
+ 
+ 
+ def assert_base_html(content):
+@@ -162,16 +166,29 @@
+ 
+ 
+ def ensure_css(css):
++    # The installer runs with umask 077. mkdir(mode=0755) and open(mode=0644)
++    # would silently create 0700 / 0600 assets. 3110 runs as fti-v3, not root;
++    # an unreadable stylesheet then returns HTTP 404 and aborts the install.
+     dest=safe_root_path(CSS_RELATIVE)
+     folder=dest.parent
+     if folder.exists():
+         require(folder.is_dir() and not folder.is_symlink(), 'UNSAFE_ASSET_DIRECTORY')
+     else:
+         folder.mkdir(mode=0o755)
++    require(folder.stat().st_uid==os.geteuid(),'ASSET_DIRECTORY_NOT_OWNED_BY_INSTALLER')
+     if dest.exists():
+-        require(regular(dest)[0]==css, 'VERSIONED_ASSET_MODIFIED')
++        old,info=regular(dest)
++        require(old==css,'VERSIONED_ASSET_MODIFIED')
++        require(info.st_uid==os.geteuid(),'ASSET_FILE_NOT_OWNED_BY_INSTALLER')
+     else:
+         save_new(dest,css,0o644)
++    # Explicit chmod after validated content is intentional: installed assets
++    # must be world-readable while the site runs as an unprivileged user.
++    folder.chmod(0o755)
++    dest.chmod(0o644)
++    require(stat.S_IMODE(folder.stat().st_mode)==0o755 and
++            stat.S_IMODE(dest.stat().st_mode)==0o644,
++            'STATIC_ASSET_NOT_READABLE')
+     received,mime=get_local(CSS_URL)
+     require(received==css and mime=='text/css','STATIC_CSS_HTTP_MISMATCH')
+ 
