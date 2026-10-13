@@ -2,10 +2,42 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {spawn,execFileSync} from 'node:child_process';
 import os from 'node:os';
+import http from 'node:http';
+import assert from 'node:assert/strict';
 import test from 'node:test';
 import ganache from 'ganache';
 import {JsonRpcProvider,Contract,MaxUint256,parseEther as E,keccak256} from 'ethers';
 import {deployOne,artifact,settle} from '../scripts/lib.mjs';
+test('snapshot rejects an invalid compiler before opening RPC and leaves no completed export',{timeout:30000},async()=>{
+ const root=process.cwd(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'fti-snapshot-offline-'));
+ let requests=0;
+ const server=http.createServer((req,res)=>{
+  requests++;let body='';req.on('data',part=>{body+=part;});req.on('end',()=>{
+   const input=JSON.parse(body),fail=r=>({jsonrpc:'2.0',id:r.id,error:{code:-32000,message:'RPC before local verification'}});
+   res.setHeader('content-type','application/json');res.end(JSON.stringify(Array.isArray(input)?input.map(fail):fail(input)));
+  });
+ });
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ try{
+  fs.mkdirSync(path.join(dir,'tooling'));fs.mkdirSync(path.join(dir,'artifacts'));
+  fs.writeFileSync(path.join(dir,'deployment-public.json'),JSON.stringify({chainId:31337,deployedBlock:1,binaryContract:'FundedBinaryPlanUpgradeable'}));
+  fs.writeFileSync(path.join(dir,'artifacts/FundedBinaryPlanUpgradeable.json'),JSON.stringify({compiler:'unreviewed-compiler'}));
+  for(const name of ['migration-inventory.mjs','migration-complete-export.mjs'])fs.copyFileSync(path.join(root,'scripts',name),path.join(dir,'tooling',name));
+  fs.symlinkSync(path.join(root,'node_modules'),path.join(dir,'tooling/node_modules'),'dir');
+  const capture=path.join(dir,'tooling/capture.mjs');
+  fs.writeFileSync(capture,execFileSync('python3',['-I','-c',"import runpy; print(runpy.run_path('tools/backup-users-state.py')['NODE_READER'])"]));
+  const result=await new Promise((resolve,reject)=>{
+   const child=spawn(process.execPath,[capture,root,dir,'http://127.0.0.1:'+server.address().port,'1','0x'+'a'.repeat(64)],{timeout:20000});
+   let output='';for(const stream of [child.stdout,child.stderr])stream.on('data',part=>{output+=part;});
+   child.on('error',reject);child.on('close',(code,signal)=>resolve({code,signal,output}));
+  });
+  assert.equal(result.signal,null,result.output);assert.equal(result.code,1,result.output);
+  assert.match(result.output,/FTI_SNAPSHOT_READ_FAILED: COMPILER_VERSION_MISMATCH/);
+  assert.equal(requests,0,'RPC must not open before the blocking compiler verification');
+  assert.equal(fs.existsSync(path.join(dir,'snapshot.json')),false);
+  assert.equal(fs.existsSync(path.join(dir,'binary-storage-layout.json')),false);
+ }finally{await new Promise(resolve=>server.close(resolve));fs.rmSync(dir,{recursive:true,force:true});}
+});
 test('read-only snapshots preserve both source models and survive private archive roundtrip',{timeout:600000},async()=>{
 const root=process.cwd(),kit=fs.mkdtempSync(path.join(os.tmpdir(),'fti-recovery-test-'));
 fs.writeFileSync(path.join(kit,'capture.mjs'),execFileSync('python3',['-I','-c',"import runpy; print(runpy.run_path('tools/backup-users-state.py')['NODE_READER'])"]));

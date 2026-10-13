@@ -206,15 +206,10 @@ class ReadOnly extends JsonRpcProvider {
   return super._send(payload);
  }
 }
-const request=new FetchRequest(url);request.timeout=30000;
-const provider=new ReadOnly(request,undefined,{cacheTimeout:-1,batchMaxCount:20,batchStallTime:10});
+let provider;
 const save=(name,value)=>fs.writeFileSync(path.join(dir,name),JSON.stringify(value,(_,x)=>typeof x==='bigint'?String(x):x,2)+'\n',{flag:'wx',mode:0o600});
 try{
  check(Number.isSafeInteger(blockTag)&&blockTag>=cfg.deployedBlock,'BAD_SNAPSHOT_BLOCK');
- check((await provider.getNetwork()).chainId===BigInt(cfg.chainId),'WRONG_CHAIN');
- const first=await provider.getBlock(blockTag);check(first?.hash===expectedHash,'BLOCK_IDENTITY_CHANGED');
- const abi=n=>JSON.parse(fs.readFileSync(path.join(dir,'artifacts',n+'.json'))).abi;
- const binary=new Contract(cfg.binary,abi(cfg.binaryContract),provider),token=new Contract(cfg.token,abi(cfg.tokenContract),provider),usd=new Contract(cfg.usd,abi('MockUSD'),provider);
  // Reproduce the binary bytecode before trusting its storage layout. Only
  // snapshot files are written; installed artifacts/contracts stay untouched.
  console.log(JSON.stringify({stage:'reproducing-storage-layout'}));
@@ -235,6 +230,15 @@ try{
  check(compiledBinary&&('0x'+compiledBinary.evm.bytecode.object).toLowerCase()===binaryArtifact.bytecode.toLowerCase(),'SOURCE_ARTIFACT_MISMATCH');
  cfg.binaryStorageLayout=compiledBinary.storageLayout;
  save('binary-storage-layout.json',cfg.binaryStorageLayout);
+ // solc.compile blocks this process for long enough to expire idle HTTP
+ // connections. Open RPC only after compilation, so no stale keep-alive socket
+ // or request timer survives that pause. The fixed block is still verified.
+ const request=new FetchRequest(url);request.timeout=30000;
+ provider=new ReadOnly(request,undefined,{cacheTimeout:-1,batchMaxCount:20,batchStallTime:10});
+ check((await provider.getNetwork()).chainId===BigInt(cfg.chainId),'WRONG_CHAIN');
+ const first=await provider.getBlock(blockTag);check(first?.hash===expectedHash,'BLOCK_IDENTITY_CHANGED');
+ const abi=n=>JSON.parse(fs.readFileSync(path.join(dir,'artifacts',n+'.json'))).abi;
+ const binary=new Contract(cfg.binary,abi(cfg.binaryContract),provider),token=new Contract(cfg.token,abi(cfg.tokenContract),provider),usd=new Contract(cfg.usd,abi('MockUSD'),provider);
  const bytecode={},nativeBalances={};
  for(const key of ['binary','token','usd','council','timelock']){
   const code=await provider.getCode(cfg[key],blockTag);
@@ -254,7 +258,7 @@ try{
  save('snapshot.json',complete);save('onchain-code.json',bytecode);save('native-balances.json',nativeBalances);
  console.log(JSON.stringify({result:'FIXED_BLOCK_EXPORT_SAVED',members:complete.users.length,requests:reads}));
 }catch(e){console.error('FTI_SNAPSHOT_READ_FAILED: '+(/^[A-Z0-9_]{3,80}$/.test(e?.message||'')?e.message:e?.code||'EXPORT_OR_HISTORY_CHECK'));process.exitCode=1;}
-finally{provider.destroy();}
+finally{provider?.destroy();}
 '''
 
 
