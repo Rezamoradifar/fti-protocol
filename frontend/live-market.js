@@ -1,7 +1,10 @@
+import {deploymentNetwork} from '../core/deployment-network.mjs';
 import {formatEther} from '/vendor/ethers.js';
 import {t,displayNumber,displayUTC} from './locale.js';
 import {mergeObservations,observedSeries,curveGeometry,readObservation,historicalObservations,tradeHistory} from './spot-history.js';
 export function initLiveMarket(token,rpc,cfg){
+ const network=deploymentNetwork(cfg),currency=network.currency;
+
  const hosts=[...document.querySelectorAll('[data-live-market]')];if(!hosts.length)return;
  const make=(tag,txt,cls)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=txt;if(cls)e.className=cls;return e;};
  const svg=(tag,attributes={})=>{const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const[k,v]of Object.entries(attributes))n.setAttribute(k,String(v));return n;};
@@ -9,7 +12,7 @@ export function initLiveMarket(token,rpc,cfg){
  const percent=v=>v===null||!Number.isFinite(v)?'—':(v>0?'+':'')+displayNumber(v,{maximumFractionDigits:4})+'%';
  const widgets=hosts.map((host,i)=>{
   host.className='live-market';
-  const head=make('div',undefined,'market-heading');head.append(make('span','FTI / tUSD','market-pair'),make('span',cfg.chainId===97?'BNB TESTNET':'LOCAL','market-chain'));
+  const head=make('div',undefined,'market-heading');head.append(make('span','FTI / '+currency,'market-pair'),make('span',network.label,'market-chain'));
   const price=make('strong','—','market-price'),change=make('span','—','market-change'),growth=make('strong','—','market-growth');
   const summary=make('div',undefined,'market-summary');
   for(const[label,element]of [['Observed contract price',price],['Price vs cycle opening quote',growth],['Chart-window change',change]]){
@@ -39,7 +42,7 @@ export function initLiveMarket(token,rpc,cfg){
    for(const[index,xpos,anchor]of [[0,54,'start'],[series.length-1,704,'end']]){
     const label=svg('text',{x:xpos,y:270,'text-anchor':anchor});label.textContent=displayUTC(series[index].time);chart.append(label);
    }
-   readout.textContent=t('Price')+': '+number(sample.price)+' tUSD · '+displayUTC(sample.time)+' · '+t('Block')+' '+sample.block+' · '+t('Observations')+': '+series.length;
+   readout.textContent=t('Price')+': '+number(sample.price)+' '+currency+' · '+displayUTC(sample.time)+' · '+t('Block')+' '+sample.block+' · '+t('Observations')+': '+series.length;
   }
   chart.addEventListener('pointermove',event=>{
    const series=observedSeries(data,windowSeconds),g=curveGeometry(series);if(!g)return;
@@ -53,17 +56,17 @@ export function initLiveMarket(token,rpc,cfg){
    selected=event.key==='Home'?0:event.key==='End'?length-1:Math.max(0,Math.min(length-1,(selected??length-1)+(event.key==='ArrowLeft'?-1:1)));draw();
   });
   const metrics=make('div',undefined,'market-metrics'),values={};
-  for(const[key,label]of [['reserve','Reserve · tUSD'],['support','Support · tUSD'],['supply','Supply · FTI']]){
+  for(const[key,label]of [['reserve','Reserve · '+currency],['support','Support · '+currency],['supply','Supply · FTI']]){
    const item=make('div');values[key]=make('strong','—');item.append(make('span',t(label)),values[key]);metrics.append(item);
   }
   const historyNote=make('p','', 'market-note'),volume=make('p','—','market-volume'),tradeList=make('div',undefined,'market-trades');
   host.append(head,summary,indicator,toolbar,readout,chart,metrics,historyNote,volume,tradeList,note);
   return {price,growth,indicator,values,render(samples){data=samples;draw();},historyNote,
-   history(payload){const verified=tradeHistory(payload);volume.textContent=t('Executed volume · recent blocks')+': '+number(Number(formatEther(verified.volumeWei)))+' tUSD · '+payload.fromBlock+'–'+payload.toBlock;
+   history(payload){const verified=tradeHistory(payload);volume.textContent=t('Executed volume · recent blocks')+': '+number(Number(formatEther(verified.volumeWei)))+' '+currency+' · '+payload.fromBlock+'–'+payload.toBlock;
     tradeList.replaceChildren(make('h3',t('Recent trades')));
     for(const r of verified.rows.slice(-8).reverse()){
      const row=make('div',undefined,'market-trade-row '+(r.event==='Bought'?'buy':'sell'));
-     row.append(make('span',t(r.event==='Bought'?'Buy':'Sell')),make('span',number(Number(formatEther(r.usd)))+' tUSD'),make('span',displayUTC(r.time)));tradeList.append(row);
+     row.append(make('span',t(r.event==='Bought'?'Buy':'Sell')),make('span',number(Number(formatEther(r.usd)))+' '+currency),make('span',displayUTC(r.time)));tradeList.append(row);
     }
    },historyError(){volume.textContent=t('Volume unavailable · RPC history could not be loaded');tradeList.replaceChildren();}
   };
@@ -91,7 +94,7 @@ export function initLiveMarket(token,rpc,cfg){
    const price=Number(formatEther(sample.priceWei)),base=Number(formatEther(startPrice)),hasPrice=BigInt(sample.supplyWei)>0n;
    const delta=hasPrice&&base>0?(price/base-1)*100:null;
    for(const w of widgets){
-    w.price.textContent=hasPrice?number(price)+' tUSD':'—';w.growth.textContent=percent(delta);w.growth.classList.toggle('negative',delta!==null&&delta<0);
+    w.price.textContent=hasPrice?number(price)+' '+currency:'—';w.growth.textContent=percent(delta);w.growth.classList.toggle('negative',delta!==null&&delta<0);
     const delayed=Date.now()/1000-block.timestamp>45;w.indicator.textContent=t(delayed?'Delayed chain data':'Live')+' · '+displayUTC(block.timestamp)+' · '+t('Block')+' '+block.number;w.indicator.classList.toggle('stale',delayed);
     for(const[key,raw]of Object.entries({reserve,support,supply:sample.supplyWei}))w.values[key].textContent=number(Number(formatEther(raw)));
     w.render(observations);

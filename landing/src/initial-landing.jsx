@@ -4,6 +4,9 @@ import {LanguageSelect,SocialLinks,TranslationNotice} from '../../frontend/globa
 import {language,languageInfo,displayNumber} from '../../frontend/locale.js';
 import {translateTree} from '../../frontend/translate-tree.jsx';
 import {siteLinks} from '../../frontend/site-links.js';
+import {deploymentNetwork} from '../../core/deployment-network.mjs';
+import {deploymentTree} from './deployment-tree.jsx';
+import {translateTree as translateDeploymentTree} from '../../frontend/translate-tree.jsx';
 import {CAPS} from './protocol-data.mjs';
 const sites=siteLinks(location.href),APP=sites.member,REPO=sites.whitepaper,REVIEW=sites.whitepaper;
 const format=n=>displayNumber(n,{maximumFractionDigits:0});
@@ -22,10 +25,13 @@ const faq=[
  ['Can I use real money here?','This release is for test assets only. Use BNB testnet and test tokens. MockUSD is not a real stablecoin, and an FTI testnet balance has no promised monetary value.']
 ];
 export function InitialLanding(){
+ const [cfg,setCfg]=useState(null);
+ const network=cfg?deploymentNetwork(cfg):null;
+ const translateTree=node=>translateDeploymentTree(deploymentTree(node,cfg));
  const [menu,setMenu]=useState(false),[units,setUnits]=useState(1),[left,setLeft]=useState(30),[right,setRight]=useState(12),[rank,setRank]=useState(1),[level,setLevel]=useState(0),[mode,setMode]=useState('buy'),[opened,setOpened]=useState(0),[copied,setCopied]=useState(false);
  const caps=CAPS;
  const [token,setToken]=useState(null);
- useEffect(()=>{const controller=new AbortController();fetch("/api/config",{signal:controller.signal}).then(r=>{if(!r.ok)throw Error("Config unavailable");return r.json()}).then(c=>{if(c.chainId===97&&/^0x[0-9a-fA-F]{40}$/.test(c.token)&&!/^0x0{40}$/.test(c.token))setToken(c.token)}).catch(()=>{});return()=>controller.abort()},[]);
+ useEffect(()=>{const controller=new AbortController();fetch("/api/config",{signal:controller.signal}).then(r=>{if(!r.ok)throw Error("Config unavailable");return r.json()}).then(c=>{deploymentNetwork(c);if(/^0x[0-9a-fA-F]{40}$/.test(c.token)&&!/^0x0{40}$/.test(c.token)){setCfg(c);setToken(c.token)}}).catch(()=>{});return()=>controller.abort()},[]);
  const raw=Math.min(left,right),paid=Math.min(raw,caps[level][rank]);
  useEffect(()=>{function escape(e){if(e.key==='Escape')setMenu(false)}document.addEventListener('keydown',escape);return()=>document.removeEventListener('keydown',escape)},[]);
  async function copy(){try{if(!token)return;await navigator.clipboard.writeText(token);setCopied(true);setTimeout(()=>setCopied(false),2200)}catch{setCopied(false)}}

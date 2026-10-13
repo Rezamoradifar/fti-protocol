@@ -9,24 +9,23 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {JsonRpcProvider,Contract,isAddress,FetchRequest} from 'ethers';
 import {artifact} from './lib.mjs';
-import {RELEASE, verifyV3Deployment} from './v3-release.mjs';
-import {RELEASE as CONTINUITY_RELEASE,verifyV3Deployment as verifyContinuity} from './continuity-release.mjs';
+import {assertOperationalConfig,verifyOperationalDeployment} from './operational-release.mjs';
+import {COLLATERAL_ABI,deploymentNetwork} from '../core/deployment-network.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployments/local.json'){
  const cfg=JSON.parse(fs.readFileSync(configPath));
- if(cfg.tokenContract==='FTIReserveTokenV3'&&cfg.release!==RELEASE)throw Error('V3 release mismatch; deploy the new contracts instead of reusing old addresses');
- if(cfg.tokenContract==='FTIReserveTokenUpgradeable'&&cfg.release!==CONTINUITY_RELEASE)throw Error('Continuity release mismatch');
+ assertOperationalConfig(cfg);
+ const network=deploymentNetwork(cfg);
  const rpc=process.env.RPC_URL||cfg.rpcUrl;const transport=new FetchRequest(rpc);transport.timeout=15000;const provider=new JsonRpcProvider(transport,undefined,{cacheTimeout:-1,batchMaxCount:1});
- if(cfg.release===CONTINUITY_RELEASE){try{await verifyContinuity(cfg,provider);}catch(e){provider.destroy();throw e;}}
- if(cfg.release===RELEASE){try{await verifyV3Deployment(cfg,provider);}catch(e){provider.destroy();throw e;}}
+ try{await verifyOperationalDeployment(cfg,provider);}catch(e){provider.destroy();throw e;}
  const eventTransport=new FetchRequest(process.env.EVENT_RPC_URL||rpc);eventTransport.timeout=15000;
  const eventProvider=process.env.EVENT_RPC_URL?new JsonRpcProvider(eventTransport,undefined,{cacheTimeout:-1,batchMaxCount:1}):provider;
  const tokenContract=cfg.tokenContract||'FTIToken';if(!['FTIToken','FTIReserveToken','FTIReserveTokenV3','FTIReserveTokenUpgradeable'].includes(tokenContract))throw Error('Unknown token model');
  const reserveModel=tokenContract==='FTIReserveToken';const v3Model=['FTIReserveTokenV3','FTIReserveTokenUpgradeable'].includes(tokenContract);
  const binaryContract=cfg.binaryContract||'BinaryPlan';if(!['BinaryPlan','FundedBinaryPlan','FundedBinaryPlanUpgradeable'].includes(binaryContract))throw Error('Unknown reward model');
  const fundedModel=['FundedBinaryPlan','FundedBinaryPlanUpgradeable'].includes(binaryContract);
- const contracts=Object.fromEntries(['binary','token','usd','council','timelock'].filter(k=>cfg[k]).map(k=>[k,new Contract(cfg[k],artifact({binary:binaryContract,token:tokenContract,usd:'MockUSD',council:v3Model?'SevenGuardianCouncil':'Council',timelock:'FTITimelock'}[k]).abi,provider)]));
- const host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||3000);const publicConfig={...cfg};delete publicConfig.rpcUrl;const walletConnectProjectId=process.env.WALLETCONNECT_PROJECT_ID||'';if(walletConnectProjectId&&!/^[a-f0-9]{32}$/i.test(walletConnectProjectId))throw Error('Invalid WalletConnect project ID');publicConfig.walletConnectProjectId=walletConnectProjectId;publicConfig.selectableHourlyAutoBuy=contracts.binary.interface.hasFunction('setAutoBuyPercent');
+ const contracts=Object.fromEntries(['binary','token','usd','council','timelock'].filter(k=>cfg[k]).map(k=>[k,new Contract(cfg[k],k==='usd'&&!network.testAssets?COLLATERAL_ABI:artifact({binary:binaryContract,token:tokenContract,usd:'MockUSD',council:v3Model?'SevenGuardianCouncil':'Council',timelock:'FTITimelock'}[k]).abi,provider)]));
+ const host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||3000);const publicConfig={...cfg,network};delete publicConfig.rpcUrl;const walletConnectProjectId=process.env.WALLETCONNECT_PROJECT_ID||'';if(walletConnectProjectId&&!/^[a-f0-9]{32}$/i.test(walletConnectProjectId))throw Error('Invalid WalletConnect project ID');publicConfig.walletConnectProjectId=walletConnectProjectId;publicConfig.selectableHourlyAutoBuy=contracts.binary.interface.hasFunction('setAutoBuyPercent');
  // Referral endpoint is dormant until the proxy really exposes the new
  // function. ABI presence by itself does NOT imply a completed DAO upgrade.
  let referralPlacementEnabled=false,referralIndexer;
@@ -98,7 +97,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
    if(!eventFlight)eventFlight=(async()=>{if((await eventProvider.getNetwork()).chainId!==BigInt(cfg.chainId))throw Error('Wrong activity network');const latest=await eventProvider.getBlockNumber();const rows=await readEvents(eventProvider,{binary:contracts.binary,token:contracts.token},Math.max(cfg.deployedBlock||0,latest-1499),latest);eventCache={at:Date.now(),rows};return rows;})().finally(()=>{eventFlight=null;});
    try{return json(res,200,await eventFlight);}catch{return json(res,503,{error:'Activity RPC unavailable. Retry later; no events have been fabricated.'});}
   }
-  if(url.pathname.startsWith('/abi/')){const name=url.pathname.slice(5);if(!['BinaryPlan','FundedBinaryPlan','FTIToken','FTIReserveToken','FTIReserveTokenV3','MockUSD','Council','SevenGuardianCouncil','FTITimelock','FundedBinaryPlanUpgradeable','FTIReserveTokenUpgradeable'].includes(name))throw Error('Unknown ABI');return json(res,200,artifact(name).abi);}
+  if(url.pathname.startsWith('/abi/')){const name=url.pathname.slice(5);if(name==='Collateral')return json(res,200,COLLATERAL_ABI);if(!network.testAssets&&name==='MockUSD')return json(res,404,{error:'Test ABI unavailable on mainnet'});if(!['BinaryPlan','FundedBinaryPlan','FTIToken','FTIReserveToken','FTIReserveTokenV3','MockUSD','Council','SevenGuardianCouncil','FTITimelock','FundedBinaryPlanUpgradeable','FTIReserveTokenUpgradeable'].includes(name))throw Error('Unknown ABI');return json(res,200,artifact(name).abi);}
   let file;if(url.pathname==='/vendor/ethers.js')file=path.join(root,'node_modules/ethers/dist/ethers.min.js');else {const entry=url.pathname.match(/^\/(app|token|admin)$/);if(entry){res.writeHead(301,{Location:url.pathname+'/'+url.search});return res.end();}const landingReady=fs.existsSync(path.join(root,'landing/dist/index.html'));const landingRoute=landingReady&&['/','/app.js','/app.css','/protocol-ring.webp',...PUBLIC_ROUTES].includes(url.pathname);const staticRoot=path.join(root,landingRoute?'landing/dist':'web');const staticPath=url.pathname.replace(/^\/(app|token|admin)\//,'/');const route=staticPath==='/'||PUBLIC_ROUTES.includes(url.pathname)?'index.html':staticPath.slice(1);file=path.resolve(staticRoot,route);if(!file.startsWith(staticRoot+path.sep))return json(res,403,{error:'Denied'});}
   if(!fs.existsSync(file)||!fs.statSync(file).isFile())return json(res,404,{error:'Not found'});const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.webp':'image/webp'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
  }catch(e){json(res,400,{error:e.shortMessage||e.message});}});

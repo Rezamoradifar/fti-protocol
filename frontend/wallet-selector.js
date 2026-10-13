@@ -25,7 +25,7 @@ export async function requestWalletAccounts(selected,silent=false){
  return selected.provider.request({method:silent?'eth_accounts':'eth_requestAccounts'});
 }
 export function chooseWallet({silent=false,projectId,chainId}={}) {
- const configured=/^[a-f0-9]{32}$/i.test(projectId||'')&&chainId===97;
+ const configured=/^[a-f0-9]{32}$/i.test(projectId||'')&&[56,97].includes(chainId);
  const wc=async()=>{const {walletConnectProvider}=await import('/vendor/walletconnect.js');return {provider:await walletConnectProvider(projectId,chainId),name:'WalletConnect',id:'walletconnect',remote:true};};
  discovery.request();
  let saved;try{saved=sessionStorage.getItem('fti-selected-wallet');}catch{}

@@ -1,3 +1,5 @@
+import {deploymentConfiguration} from './deployment.js';
+import {deploymentNetwork} from '../core/deployment-network.mjs';
 import {settledPoints} from './settled-points.js';
 import {initLiveMarket} from './live-market.js';
 import {initNetworkTree} from './network-tree.js';
@@ -11,7 +13,9 @@ import {surface,surfacePages,defaultPage,pagePath} from './surfaces.js';
 const $=s=>document.querySelector(s);
 const text=(id,value)=>{document.getElementById(id).textContent=t(value);};
 async function json(url){const response=await fetch(url,{signal:AbortSignal.timeout(25000),cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to read contract data.');return data;}
-const cfg=await json('/api/config');
+const cfg=await deploymentConfiguration();
+const networkProfile=deploymentNetwork(cfg);
+$('#faucet').hidden=!networkProfile.testAssets;
 const reserveModel=cfg.tokenContract==='FTIReserveToken';const v3Model=['FTIReserveTokenV3','FTIReserveTokenUpgradeable'].includes(cfg.tokenContract);
 const fundedModel=['FundedBinaryPlan','FundedBinaryPlanUpgradeable'].includes(cfg.binaryContract);
 let builderMode='unknown',selectableAuto=false;
@@ -45,7 +49,7 @@ if(v3Model){
 }
 
 const rpc=new JsonRpcProvider(location.origin+'/rpc',undefined,{cacheTimeout:-1,batchMaxCount:1});rpc.pollingInterval=1000;
-const names={binary:cfg.binaryContract||'BinaryPlan',token:cfg.tokenContract||'FTIToken',usd:'MockUSD',council:v3Model?'SevenGuardianCouncil':'Council',...(cfg.timelock?{timelock:'FTITimelock'}:{})},read={};
+const names={binary:cfg.binaryContract||'BinaryPlan',token:cfg.tokenContract||'FTIToken',usd:networkProfile.testAssets?'MockUSD':'Collateral',council:v3Model?'SevenGuardianCouncil':'Council',...(cfg.timelock?{timelock:'FTITimelock'}:{})},read={};
 await Promise.all(Object.entries(names).map(async([key,name])=>{read[key]=new Contract(cfg[key],await json('/abi/'+name),rpc);}));
 if(cfg.hourlyCapFlushVersion===1)document.getElementById('point-policy').textContent=t('Above-cap matched volume is flushed each hour; only the unmatched stronger-leg balance is saved when the capped points are fully funded. Within-cap volume deferred by the $20 funding floor remains. Flushed credit stays in the protected reserve.','تعادل بالاتر از سقف ساعتی فلش می‌شود؛ با تأمین کامل پوینت‌های مجاز، فقط اختلاف دست بزرگ ذخیره می‌شود. حجم داخل سقف که به علت کمبود پشتوانه ۲۰ پرداخت نشده، باقی می‌ماند. اعتبار فلش‌شده در ذخیره محافظت‌شده قرارداد می‌ماند.');
 initNetworkTree(read.binary,rpc,cfg.hourlyCapFlushVersion);
@@ -54,7 +58,7 @@ let signer,address,state,busy=false,connecting=false,transactionAddress,refreshS
 let lockOffset=0;
 const ranks=['Member','Builder 1','Builder 2','Builder 3','Builder 4'].map(x=>t(x));
 const thresholds=[100n,200n,500n,1000n];
-const explorer=cfg.chainId===97?'https://testnet.bscscan.com':null;
+const explorer=networkProfile.explorer;
 const fmt=(value,digits=2)=>value===undefined?'—':displayNumber(Number(formatEther(value)),{maximumFractionDigits:digits});
 const integer=value=>displayNumber(BigInt(value));
 const utc=displayUTC;
@@ -85,7 +89,7 @@ function write(key){if(!signer||!address)throw Error('Connect your wallet first.
 async function transaction(fn){
  if(busy)return;if(!signer){status('Connect your wallet first.',true);return;}
  busy=true;transactionAddress=address;syncActions();$('#transaction-link').hidden=true;status('Refreshing wallet data before your request…');
- try{await refresh();if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();await refresh();status(typeof outcome==='string'?outcome:'Transaction confirmed on-chain.');}
+ try{if(cfg.mode!=='local'&&Number(await walletProvider.request({method:'eth_chainId'}))!==cfg.chainId)throw Error('Wallet network does not match this deployment.');await refresh();if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();await refresh();status(typeof outcome==='string'?outcome:'Transaction confirmed on-chain.');}
  catch(error){status(reason(error),true);}
  finally{busy=false;transactionAddress=null;syncActions();}
 }
@@ -96,7 +100,7 @@ async function send(promise){
 }
 async function approve(spender,amount){
  const current=await read.usd.allowance(address,spender);
- if(current<amount){status('Approve test USD spending in your wallet.');if(current>0n)await send(write('usd').approve(spender,0));await send(write('usd').approve(spender,amount));}
+ if(current<amount){status(networkProfile.testAssets?'Approve test USD spending in your wallet.':'Approve collateral spending in your wallet.');if(current>0n)await send(write('usd').approve(spender,0));await send(write('usd').approve(spender,amount));}
 }
 let walletProvider,providerListeners;
 function clearWallet(){signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
@@ -117,7 +121,7 @@ async function connect({silent=false}={}){
    detachWallet();clearWallet();const injected=selected.provider;
    const accounts=await requestWalletAccounts(selected,silent);if(!accounts.length)return;
    const chain=Number(await injected.request({method:'eth_chainId'}));
-   if(chain!==cfg.chainId){if(silent)throw Error('Switch your wallet to BNB Testnet and connect again.');try{await injected.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]});}catch{throw Error('Switch your wallet to BNB Smart Chain Testnet (chain ID 97), then connect again.');}}
+   if(chain!==cfg.chainId){if(silent)throw Error('Switch your wallet to '+networkProfile.name+' and connect again.');try{await injected.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]});}catch{throw Error('Switch your wallet to '+networkProfile.name+' (chain ID '+cfg.chainId+'), then connect again.');}}
    const provider=new BrowserProvider(injected);if(Number((await provider.getNetwork()).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');nextSigner=await provider.getSigner();observeWallet(injected);
   }
   const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}await refresh();status('Wallet connected. Contract data loaded.');
@@ -132,7 +136,7 @@ if(cfg.mode==='local'){
  try{const saved=sessionStorage.getItem('fti-local-account');if(cfg.accounts.includes(saved))$('#local-accounts').value=saved;}catch{}
  $('#local-accounts').onchange=connect;
 }
-const network=cfg.mode==='local'?t('Local chain · 31337','شبکه محلی · 31337'):'BNB Testnet · 97';text('global-network',network);text('network-name',network);text('account-network',network);text('token-network',network);
+const network=networkProfile.label;text('global-network',network);text('network-name',network);text('account-network',network);text('token-network',network);
 const titles={'token-home':'FTI token',overview:'Overview',network:'Membership & network',trade:'Buy & sell FTI',rewards:'Your rewards',activity:'Protocol activity',admin:'Governance & settlement'};
 function navigate(page,focus=false){
  if(!titles[page])page=defaultPage;
@@ -213,10 +217,10 @@ for(const[id,step]of [['locks-prev',-64],['locks-next',64]])$('#'+id).onclick=as
 async function copy(value,input){try{await navigator.clipboard.writeText(value);status('Copied to clipboard.');}catch{if(input){input.focus();input.select();status('The link is selected. Copy it from the text field.');}else{const range=document.createRange();range.selectNodeContents($('#wallet-address'));getSelection().removeAllRanges();getSelection().addRange(range);status('The address is selected. Copy the selected text.');}}}
 $('#copy-address').onclick=()=>copy(address);$('#copy-referral').onclick=()=>copy($('#referral-link').value,$('#referral-link'));
 const sponsor=new URLSearchParams(location.search).get('sponsor');if(sponsor&&isAddress(sponsor))$('#register-form').elements.sponsor.value=sponsor;
-$('#register-form').elements.units.oninput=()=>{const raw=$('#register-form').elements.units.value;text('registration-cost',/^\d+$/.test(raw)?integer(BigInt(raw)*100n)+' test USD':'Enter whole units');};
+$('#register-form').elements.units.oninput=()=>{const raw=$('#register-form').elements.units.value;text('registration-cost',/^\d+$/.test(raw)?integer(BigInt(raw)*100n)+' '+networkProfile.currency:'Enter whole units');};
 for(const id of ['claim','claim-rewards'])$('#'+id).onclick=()=>transaction(()=>send(write('binary').claim()));
-$('#faucet').onclick=()=>transaction(()=>send(write('usd').faucet()));
-$('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const f=e.target,n=BigInt(f.elements.units.value);if(n<1n)throw Error('Enter a positive whole number of units.');const w=wallet();if(!w)throw Error('Reload wallet data and try again.');const sponsorAddress=f.elements.sponsor.value.trim();if(!w.exists&&(!isAddress(sponsorAddress)||sponsorAddress===ZeroAddress))throw Error('Enter a valid sponsor address.');const cost=n*parseEther('100');if(cost>BigInt(w.usdBalance))throw Error('Not enough test USD. Use Get test USD on Overview.');let placement;
+$('#faucet').onclick=()=>{if(networkProfile.testAssets)transaction(()=>send(write('usd').faucet()));};
+$('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const f=e.target,n=BigInt(f.elements.units.value);if(n<1n)throw Error('Enter a positive whole number of units.');const w=wallet();if(!w)throw Error('Reload wallet data and try again.');const sponsorAddress=f.elements.sponsor.value.trim();if(!w.exists&&(!isAddress(sponsorAddress)||sponsorAddress===ZeroAddress))throw Error('Enter a valid sponsor address.');const cost=n*parseEther('100');if(cost>BigInt(w.usdBalance))throw Error(networkProfile.testAssets?'Not enough test USD. Use Get test USD on Overview.':'Not enough collateral in your wallet.');let placement;
  if(!w.exists&&automaticReferral){
   status(t('Finding the next free position in the inviter’s network…','در حال پیدا کردن نخستین جایگاه خالی زیر مجموعهٔ معرف…'));
   placement=await json('/api/placement?referrer='+encodeURIComponent(sponsorAddress));
@@ -237,10 +241,10 @@ $('#release-auto').onclick=()=>transaction(()=>send(write('binary').releaseAutoT
 function amountInput(form){const amount=parseEther(form.elements.amount.value);const percent=Number(form.elements.slippage.value);if(amount<=0n||!Number.isFinite(percent)||percent<0||percent>5)throw Error('Enter a positive amount and slippage between 0% and 5%.');return[amount,BigInt(Math.round(percent*100))];}
 for(const kind of ['buy','sell']){
  const form=$('#'+kind+'-form');let debounce,quoteSequence=0;
- const showQuote=()=>{clearTimeout(debounce);const sequence=++quoteSequence;text(kind+'-quote','Updating quote…');debounce=setTimeout(async()=>{try{const[a,slip]=amountInput(form);let output,fee;if(kind==='buy')output=await read.token.quoteBuy(a);else[output,fee]=await read.token.quoteSell(a);if(sequence!==quoteSequence)return;const minimum=output*(10000n-slip)/10000n;text(kind+'-quote',(kind==='buy'?'Estimated output: ':'Net proceeds: ')+fmt(output,6)+(kind==='buy'?' FTI':' test USD')+'\nMinimum accepted: '+fmt(minimum,6)+(kind==='buy'?' FTI':' test USD')+(kind==='buy'&&cfg.tokenContract==='FTIReserveTokenUpgradeable'?' · '+((a+parseEther('500')-1n)/parseEther('500')).toString()+' steps · updated price per step · 3% fee':'')+(fee!==undefined?(v3Model?' · Fee 3%':' · Fee '+Number(fee)/100+'%'):''));$('#'+kind+'-quote').classList.remove('invalid');}catch(error){if(sequence!==quoteSequence)return;text(kind+'-quote',form.elements.amount.value?'Quote unavailable. Check the amount or refresh contract data.':'Enter an amount for a live quote.');$('#'+kind+'-quote').classList.add('invalid');}},250);};
+ const showQuote=()=>{clearTimeout(debounce);const sequence=++quoteSequence;text(kind+'-quote','Updating quote…');debounce=setTimeout(async()=>{try{const[a,slip]=amountInput(form);let output,fee;if(kind==='buy')output=await read.token.quoteBuy(a);else[output,fee]=await read.token.quoteSell(a);if(sequence!==quoteSequence)return;const minimum=output*(10000n-slip)/10000n;text(kind+'-quote',(kind==='buy'?'Estimated output: ':'Net proceeds: ')+fmt(output,6)+(kind==='buy'?' FTI':' '+networkProfile.currency)+'\nMinimum accepted: '+fmt(minimum,6)+(kind==='buy'?' FTI':' '+networkProfile.currency)+(kind==='buy'&&cfg.tokenContract==='FTIReserveTokenUpgradeable'?' · '+((a+parseEther('500')-1n)/parseEther('500')).toString()+' steps · updated price per step · 3% fee':'')+(fee!==undefined?(v3Model?' · Fee 3%':' · Fee '+Number(fee)/100+'%'):''));$('#'+kind+'-quote').classList.remove('invalid');}catch(error){if(sequence!==quoteSequence)return;text(kind+'-quote',form.elements.amount.value?'Quote unavailable. Check the amount or refresh contract data.':'Enter an amount for a live quote.');$('#'+kind+'-quote').classList.add('invalid');}},250);};
  form.elements.amount.oninput=showQuote;form.elements.slippage.oninput=showQuote;
  form.onsubmit=e=>{e.preventDefault();transaction(async()=>{const[a,slip]=amountInput(form),w=wallet();if(kind==='buy'&&(!w?.exists||BigInt(w.units)===0n))throw Error('Register or add membership units before trading.');if(state.tokenPaused||state.emergencyUnwind)throw Error('Token trading is paused by the contract.');const deadline=BigInt(state.timestamp)+1200n;
-  if(kind==='buy'){if(cfg.tokenContract==='FTIReserveTokenUpgradeable'&&a>parseEther('64000'))throw Error('Buy up to 64,000 USD per transaction; repeat for a larger order.');if(a>BigInt(w.usdBalance))throw Error('Not enough test USD in your wallet.');if(a>BigInt(w.remaining))throw Error('Amount exceeds your remaining manual purchase allowance.');const quote=await read.token.quoteBuy(a);await approve(cfg.token,a);await send(write('token').buy(a,quote*(10000n-slip)/10000n,deadline));}
+  if(kind==='buy'){if(cfg.tokenContract==='FTIReserveTokenUpgradeable'&&a>parseEther('64000'))throw Error('Buy up to 64,000 USD per transaction; repeat for a larger order.');if(a>BigInt(w.usdBalance))throw Error('Not enough '+networkProfile.currency+' in your wallet.');if(a>BigInt(w.remaining))throw Error('Amount exceeds your remaining manual purchase allowance.');const quote=await read.token.quoteBuy(a);await approve(cfg.token,a);await send(write('token').buy(a,quote*(10000n-slip)/10000n,deadline));}
   else{if(a>BigInt(w.unlocked))throw Error('Amount exceeds your unlocked balance. Check the unlock schedule.');const[q]=await read.token.quoteSell(a);await send(write('token').sell(a,q*(10000n-slip)/10000n,deadline));}
  });};
 }
