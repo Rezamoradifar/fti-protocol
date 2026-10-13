@@ -37,6 +37,7 @@ test('canonical reviewed digest binds each wallet and chain',()=>{
 });
 
 test('send requires consent and rejects repeated flags',()=>{
+ assert.deepEqual(parseArgs(['run','--pilot','--send']),{command:'run',opt:{'--pilot':true,'--send':true}});
  assert.deepEqual(parseArgs(['run','--send','--confirm-plan','abc']),{command:'run',opt:{'--send':true,'--confirm-plan':'abc'}});
  assert.throws(()=>parseArgs(['run','--send','--send']));
  assert.throws(()=>parseArgs(['run','--confirm-plan']));
@@ -71,7 +72,7 @@ test('testnet-only mock faucet, 100 registration/buy/transfer/sell and payouts a
  assert.match(src,/binaryAutoPending/);
  assert.match(src,/walletTransactionProof/);
  assert.match(src,/NOT_ALL_TESTS_COMPLETED/);
- assert.match(src,/chainMemberCount===131/);
+ assert.match(src,/chainMemberCount===31\+target/);
 });
 
 test('no editing deployed contract sources, real assets, existing nginx or keeper',()=>{
@@ -92,4 +93,12 @@ test('gas funding cannot select arbitrary outgoing recipients',()=>{
  assert.match(src,/to:actor\.address,value:delta/);
  assert.match(src,/await this\.send\(this\.funder,usd,'transfer',\[w\.address,amount\]/);
  assert.match(src,/EXPECTED_FTI_NOT_A_REAL_COIN|tUSD synthetic/);
+});
+
+test('pilot is limited to three staged wallets, then full run can continue same journal',()=>{
+ assert.match(src,/new Engine\(ctx,d,funder,opt\['--pilot'\]\?3:COUNT\)/);
+ assert.match(src,/const required=TUSD_PER_WALLET\*BigInt\(this\.limit\)/);
+ assert.match(src,/for\(let i=0;i<this\.limit;i\+\+\)/);
+ assert.match(src,/to=this\.actors\[\(i\+1\)%this\.limit\]/);
+ assert.match(src,/FTI_FRESH_TESTNET_3_WALLET_PILOT_COMPLETE/);
 });
