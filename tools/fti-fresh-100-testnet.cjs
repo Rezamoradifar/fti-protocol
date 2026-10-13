@@ -218,7 +218,7 @@ class Engine{
     await this.actorSend(i,binary,'register',[expectedSponsor,1],`register-${i}`);
    }
    ensure(await binary.registered(w.address),'REGISTRATION_MISSING '+i);
-   if((i+1)%10===0)console.log('REGISTERED='+String(i+1)+'/'+COUNT);
+   if((i+1)%10===0)console.log('REGISTERED='+String(i+1)+'/'+this.limit);
   }
   for(let i=0;i<Math.min(EXTRA_UNITS,this.limit);i++){
    const w=this.actors[i],units=await binary.unitsOf(w.address);
@@ -250,7 +250,7 @@ class Engine{
  async transferAll(){const {token}=this.ctx;
   for(let i=0;i<this.limit;i++){
    if(this.j.completed['transfer-'+i])continue;
-   const from=this.actors[i],to=this.actors[(i+1)%COUNT];
+   const from=this.actors[i],to=this.actors[(i+1)%this.limit];
    const amount=(await token.balanceOf(from.address))/12n;ensure(amount>1000000n,'TRANSFER_AMOUNT_TOO_SMALL '+i);
    const [received,burn]=await token.quoteTransfer(amount);
    const beforeFrom=await token.balanceOf(from.address),beforeTo=await token.balanceOf(to.address),beforeSupply=await token.totalSupply();
