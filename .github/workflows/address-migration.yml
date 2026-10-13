@@ -6,6 +6,7 @@ on:
       - 'scripts/*address-migration*.mjs'
       - 'scripts/migrate-addresses.mjs'
       - 'test/address-migration*.test.mjs'
+      - 'docs/storage-layout/*.json'
       - '.github/workflows/address-migration.yml'
 permissions:
   contents: read

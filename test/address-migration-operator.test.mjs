@@ -7,10 +7,26 @@ import {loadMigrationBuild,prepareMigrationDeployment,inspectMigration,exportOpe
  copyMigrationPages,executeMigrationAction,exportMigrationInventory,sendBudgeted,validateOperatorManifest} from '../scripts/address-migration-operator.mjs';
 import {createBudget} from '../scripts/address-migration-policy.mjs';
 import {verifyAddressMigration} from '../scripts/verify-address-migration.mjs';
+import {checkedLayout} from '../scripts/address-migration-manifest.mjs';
 import {spawnSync} from 'node:child_process';
 const json=x=>JSON.stringify(x,(_,v)=>typeof v==='bigint'?String(v):v);
 const budget=()=>createBudget({maxFeeWei:E('100'),maxGasPriceWei:10000000000n,maxGas:28000000,maxTransactions:1000});
 const send=async p=>{const r=await(await p).wait();assert.equal(r.status,1);return r;};
+
+test('migration build pins the reviewed referral layout and rejects unreviewed storage changes',()=>{
+ const {layouts}=loadMigrationBuild(),binary=layouts[0];
+ assert.deepEqual(binary.storage.slice(-2).map(s=>[s.label,s.slot,s.offset]),
+  [['directReferrer','89',0],['directReferralCount','90',0]]);
+ for(const change of [
+  l=>{l.storage.pop();},
+  l=>{l.storage.at(-1).slot='91';},
+  l=>{l.storage.find(s=>s.label==='members').slot='999';},
+  l=>{const field=l.storage.at(-1);l.types[field.type].value='t_address';}
+ ]){
+  const altered=structuredClone(binary);change(altered);
+  assert.throws(()=>checkedLayout('FundedBinaryPlanUpgradeable',altered,binary),/Unreviewed storage layout/);
+ }
+});
 
 test('operator executes reviewed migration, resumes copied pages, and verifies before governed reopening',{timeout:420000},async()=>{
  const engine=ganache.provider({chain:{chainId:31337,time:new Date('2026-01-05T00:00:00Z')},logging:{quiet:true},wallet:{totalAccounts:46},miner:{blockGasLimit:30000000}});

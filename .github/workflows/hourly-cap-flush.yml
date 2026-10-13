@@ -19,4 +19,4 @@ jobs:
       - run: npm ci
       - run: npm run compile
       - run: npm run build:web
-      - run: node --test --test-concurrency=2 test/hourly-cap-*.test.mjs test/referral-layout.test.mjs test/referral-placement-contract.test.mjs test/global-builder-controls.test.mjs test/continuity-upgrade.test.mjs test/address-migration.test.mjs test/fresh-testnet.test.mjs
+      - run: node --test --test-concurrency=2 test/hourly-cap-*.test.mjs test/referral-layout.test.mjs test/referral-placement-contract.test.mjs test/global-builder-controls.test.mjs test/continuity-upgrade.test.mjs test/address-migration*.test.mjs test/fresh-testnet.test.mjs test/mainnet-preparation.test.mjs
