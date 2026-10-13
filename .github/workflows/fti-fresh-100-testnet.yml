@@ -25,3 +25,5 @@ jobs:
         run: node --check tools/fti-fresh-100-testnet.cjs
       - name: Policy tests (no public blockchain writes)
         run: node --test test/fti-fresh-100-testnet.test.cjs
+      - name: Report immutable SHA-256 for VPS download integrity
+        run: sha256sum tools/fti-fresh-100-testnet.cjs
