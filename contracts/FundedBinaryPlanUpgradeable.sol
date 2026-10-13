@@ -120,6 +120,12 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     uint256 public constant PROTECTION_TRIGGER=16e18;
     // Append-only. Existing enabled wallets default to 5%; never reinterpret maxAutoPrice.
     mapping(address=>uint8) private _autoBuyPercent;
+    // V2 append-only storage. The existing Member layout, parent tree and payout
+    // accounting are deliberately unchanged for an upgradeable proxy.
+    // For genesis / pre-upgrade members, directReferrerOf() falls back to parent.
+    mapping(address=>address) public directReferrer;
+    mapping(address=>uint256) public directReferralCount;
+    event ReferralPlacement(address indexed wallet,address indexed referrer,address indexed placementParent,uint8 side);
     event AutoBuyPreference(address indexed wallet,bool enabled,uint8 percent);
     event BuilderMonthCloseRequested(uint256 indexed month,uint256 effectiveAt);
     function autoBuyPercent(address who) public view returns(uint8){uint8 p=_autoBuyPercent[who];return p==0?5:p;}
@@ -150,13 +156,41 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     function registered(address who) external view returns(bool){return members[who].exists;}
     function pause() external {if(!(msg.sender==guardian||msg.sender==governance))revert InvalidOperation();_pause();}
     function unpause() external {require(msg.sender==governance,'governance');_unpause();}
+    /// @notice Legacy one-hop registration remains available to existing clients.
+    /// The Registered event's sponsor argument is always the physical binary parent.
     function register(address sponsor,uint256 units) external nonReentrant whenRecoveryOpen whenNotPaused {
-        if(!(!members[msg.sender].exists&&members[sponsor].exists&&sponsor!=msg.sender))revert InvalidOperation();
-        Member storage p=members[sponsor];if(!(p.right==address(0)))revert InvalidOperation();
-        if(!(depth[sponsor]<MAX_DEPTH))revert InvalidOperation();depth[msg.sender]=depth[sponsor]+1;
-        members[msg.sender].exists=true;members[msg.sender].parent=sponsor;memberList.push(msg.sender);
-        if(p.left==address(0))p.left=msg.sender;else p.right=msg.sender;
-        _fund(msg.sender,units,true);emit Registered(msg.sender,sponsor,units);
+        _registerWithReferral(sponsor,sponsor,units);
+    }
+    /// @notice Unlimited direct invitations in the referral layer, while each
+    /// binary position retains at most two physical child slots.
+    /// @dev A UI/indexer proposes a free placement; the contract validates its
+    /// ancestry and vacancy. No expensive unbounded tree search occurs on-chain.
+    function registerWithPlacement(address referrer,address placementParent,uint256 units)
+        external nonReentrant whenRecoveryOpen whenNotPaused
+    {
+        if(!(members[referrer].exists&&members[placementParent].exists))revert InvalidOperation();
+        address cursor=placementParent;
+        // Depth is bounded by MAX_DEPTH, so ancestry verification is bounded.
+        for(uint256 i=0;i<=MAX_DEPTH&&cursor!=referrer;i++)cursor=members[cursor].parent;
+        if(cursor!=referrer)revert InvalidOperation();
+        _registerWithReferral(referrer,placementParent,units);
+    }
+    function directReferrerOf(address who) external view returns(address){
+        address r=directReferrer[who];return r!=address(0)?r:members[who].parent;
+    }
+    function _registerWithReferral(address referrer,address placementParent,uint256 units) private {
+        if(!(!members[msg.sender].exists&&members[referrer].exists&&members[placementParent].exists&&
+             referrer!=msg.sender&&placementParent!=msg.sender))revert InvalidOperation();
+        Member storage p=members[placementParent];
+        if(!(p.right==address(0)&&depth[placementParent]<MAX_DEPTH))revert InvalidOperation();
+        uint8 side=p.left==address(0)?0:1;
+        depth[msg.sender]=depth[placementParent]+1;
+        members[msg.sender].exists=true;members[msg.sender].parent=placementParent;memberList.push(msg.sender);
+        if(side==0)p.left=msg.sender;else p.right=msg.sender;
+        directReferrer[msg.sender]=referrer;directReferralCount[referrer]++;
+        _fund(msg.sender,units,true);
+        emit Registered(msg.sender,placementParent,units);
+        emit ReferralPlacement(msg.sender,referrer,placementParent,side);
     }
     function addUnits(uint256 units) external nonReentrant whenRecoveryOpen whenNotPaused {if(!(members[msg.sender].exists))revert InvalidOperation();_fund(msg.sender,units,false);emit UnitsAdded(msg.sender,units);}
     function _fund(address who,uint256 units,bool newWallet) private {
