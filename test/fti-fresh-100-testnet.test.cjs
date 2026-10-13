@@ -3,7 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const {digest,amount,decimal,parseArgs,KNOWN,COUNT,UNIT,TUSD_PER_WALLET,BUY}=require('../tools/fti-fresh-100-testnet.cjs');
+const {digest,amount,decimal,parseArgs,KNOWN,COUNT,UNIT,TUSD_PER_WALLET,BUY,withSourceWorkingDirectory}=require('../tools/fti-fresh-100-testnet.cjs');
 const src=fs.readFileSync(path.join(__dirname,'../tools/fti-fresh-100-testnet.cjs'),'utf8');
 
 test('100 unique actors on exact fresh FTI Testnet addresses',()=>{
@@ -101,4 +101,21 @@ test('pilot is limited to three staged wallets, then full run can continue same 
  assert.match(src,/for\(let i=0;i<this\.limit;i\+\+\)/);
  assert.match(src,/to=this\.actors\[\(i\+1\)%this\.limit\]/);
  assert.match(src,/FTI_FRESH_TESTNET_3_WALLET_PILOT_COMPLETE/);
+});
+
+test('manifest verification uses pinned working directory even when invoked from /root',async()=>{
+ const previous=process.cwd();
+ const sourceDir=path.resolve(__dirname,'..');
+ await withSourceWorkingDirectory(sourceDir,async()=>{
+  assert.equal(process.cwd(),sourceDir);
+  await Promise.resolve();
+  assert.equal(process.cwd(),sourceDir);
+ });
+ assert.equal(process.cwd(),previous);
+ await assert.rejects(()=>withSourceWorkingDirectory(sourceDir,async()=>{
+  assert.equal(process.cwd(),sourceDir);
+  throw Error('synthetic verifier failure');
+ }),/synthetic verifier failure/);
+ assert.equal(process.cwd(),previous);
+ assert.match(src,/withSourceWorkingDirectory\\(source,\\(\\)=>verifyV3Deployment\\(cfg,p\\)\\)/);
 });
