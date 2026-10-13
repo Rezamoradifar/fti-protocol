@@ -1,0 +1,22 @@
+name: FTI testnet 100-wallet sell-all safety
+on:
+  push:
+    branches:
+      - feat/fti-sell-all-testnet-20261013
+  pull_request:
+    paths:
+      - tools/fti-sell-all-testnet.cjs
+      - test/fti-sell-all-testnet.test.cjs
+      - .github/workflows/fti-sell-all-testnet.yml
+jobs:
+  no-chain-write:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: node --check tools/fti-sell-all-testnet.cjs
+      - name: Local policy tests (no RPC writes)
+        run: node --test test/fti-sell-all-testnet.test.cjs
