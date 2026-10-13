@@ -47,7 +47,8 @@ if(v3Model){
 const rpc=new JsonRpcProvider(location.origin+'/rpc',undefined,{cacheTimeout:-1,batchMaxCount:1});rpc.pollingInterval=1000;
 const names={binary:cfg.binaryContract||'BinaryPlan',token:cfg.tokenContract||'FTIToken',usd:'MockUSD',council:v3Model?'SevenGuardianCouncil':'Council',...(cfg.timelock?{timelock:'FTITimelock'}:{})},read={};
 await Promise.all(Object.entries(names).map(async([key,name])=>{read[key]=new Contract(cfg[key],await json('/abi/'+name),rpc);}));
-initNetworkTree(read.binary,rpc);
+if(cfg.hourlyCapFlushVersion===1)document.getElementById('point-policy').textContent=t('Above-cap matched volume is flushed each hour; only the unmatched stronger-leg balance is saved when the capped points are fully funded. Within-cap volume deferred by the $20 funding floor remains. Flushed credit stays in the protected reserve.','تعادل بالاتر از سقف ساعتی فلش می‌شود؛ با تأمین کامل پوینت‌های مجاز، فقط اختلاف دست بزرگ ذخیره می‌شود. حجم داخل سقف که به علت کمبود پشتوانه ۲۰ پرداخت نشده، باقی می‌ماند. اعتبار فلش‌شده در ذخیره محافظت‌شده قرارداد می‌ماند.');
+initNetworkTree(read.binary,rpc,cfg.hourlyCapFlushVersion);
 if(v3Model)initLiveMarket(read.token,rpc,cfg);
 let signer,address,state,busy=false,connecting=false,transactionAddress,refreshSequence=0,autoDirty=false,councilOwner=false;
 let lockOffset=0;

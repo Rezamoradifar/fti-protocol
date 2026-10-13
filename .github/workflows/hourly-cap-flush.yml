@@ -1,0 +1,22 @@
+name: Hourly cap flush candidate
+on:
+  pull_request:
+    branches: ['feat/fti-unlimited-referrals-auto-placement-20261013']
+permissions:
+  contents: read
+jobs:
+  financial-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run compile
+      - run: npm run build:web
+      - run: node --test --test-concurrency=2 test/hourly-cap-*.test.mjs test/referral-layout.test.mjs test/referral-placement-contract.test.mjs test/global-builder-controls.test.mjs test/continuity-upgrade.test.mjs test/address-migration.test.mjs test/fresh-testnet.test.mjs

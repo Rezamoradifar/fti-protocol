@@ -96,7 +96,7 @@ test('fresh deployment uses new addresses/zero books, leaves a funded previous n
   const deployment=path.join(dir,'deployment.json');fs.writeFileSync(deployment,JSON.stringify(cfg),{mode:0o600});
   process.env.RPC_URL='http://127.0.0.1:'+engine.address().port;process.env.PORT='0';process.env.HOST='127.0.0.1';
   web=await startWeb(deployment);const base='http://127.0.0.1:'+web.address().port;
-  const api=await(await fetch(base+'/api/config')).json();assert.equal(api.binary,cfg.binary);assert.equal(api.selectableHourlyAutoBuy,true);
+  const api=await(await fetch(base+'/api/config')).json();assert.equal(api.binary,cfg.binary);assert.equal(api.selectableHourlyAutoBuy,true);assert.equal(api.hourlyCapFlushVersion,1);
   const state=await(await fetch(base+'/api/state?wallet='+a[8])).json();assert.equal(state.wallet.autoBuyPercent,'100');assert.equal(state.count,'31');
   for(const route of ['/health','/app/','/token/','/admin/','/abi/FundedBinaryPlanUpgradeable'])assert.equal((await fetch(base+route)).status,200,route);
   await t.test('real CLI writes private plan/deployment records and refuses a repeated deployment',async()=>{

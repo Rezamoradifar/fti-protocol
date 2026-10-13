@@ -61,7 +61,7 @@ function keysFor(label,path,inventory,kind) {
   if(['_balances','purchaseCycle','cyclePurchases','lifetimeManualBuys'].includes(label))return wallets;
   throw Error('Unknown token mapping: '+label);
  }
- const byWallet=new Set(['members','rankReachedAt','depth','activatedAtSerial','creditL','creditR','dirty','pendingReward','pendingAuto','rewardIndex','builderClaimed','autoIndex','_autoBuyPercent']);
+ const byWallet=new Set(['members','rankReachedAt','depth','activatedAtSerial','creditL','creditR','dirty','pendingReward','pendingAuto','rewardIndex','builderClaimed','autoIndex','_autoBuyPercent','directReferrer','directReferralCount']);
  if(byWallet.has(label))return wallets;
  if(label==='dirtyMembers') {
   const n=Math.max(inventory.users.length,Number(inventory.global.binary.dirtyCount),Number(inventory.global.binary.frozenMembers));

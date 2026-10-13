@@ -49,6 +49,8 @@ test('new-address migration moves funded users and reserves, retires both source
   for(const i of [0,1,2,41,42,43]){await send(usd.connect(w[i]).faucet());await send(usd.connect(w[i]).approve(bp.target,MaxUint256));}
   await send(binary.setAutoBuy(true,MaxUint256));await send(binary.addUnits(2));
   await send(binary.connect(w[1]).addUnits(100));await send(binary.connect(w[2]).addUnits(100));await settle({usd,binary,token},p);
+  // Seed post-rank auto income with new purchases; the qualification excess now flushes.
+  for(const i of [1,2])await send(binary.connect(w[i]).addUnits(5));
   await send(usd.approve(tp.target,MaxUint256));await send(token.buy(E('300'),0,MaxUint256));
   await send(token.transfer(a[40],E('7')));await send(token.transfer(a[1],E('10')));await send(token.approve(a[2],E('5')));
   await send(binary.connect(w[41]).register(a[30],1));await send(binary.connect(w[42]).register(a[30],1));
@@ -112,6 +114,8 @@ test('new-address migration moves funded users and reserves, retires both source
   assert.equal(await usd.balanceOf(bp.target),0n);assert.equal(await usd.balanceOf(tp.target),0n);
   assert.equal(await usd.balanceOf(b2.target),oldB);assert.equal(await usd.balanceOf(t2.target),oldT);
   assert.equal(await b2.pendingReward(a[0]),oldCash);assert.equal(await b2.pendingAuto(a[0]),oldAuto);
+  assert.equal(await b2.directReferrer(a[41]),a[30]);assert.equal(await b2.directReferrer(a[42]),a[30]);
+  assert.equal(await b2.directReferralCount(a[30]),2n);
   assert.equal(await t2.allowance(a[0],a[2]),0n);
   assert.equal(await usd.allowance(a[0],b2.target),0n);assert.equal(await usd.allowance(a[0],t2.target),0n);
   await assert.rejects(()=>binary.claim.staticCall());await assert.rejects(()=>token.sell.staticCall(E('1'),0,MaxUint256));

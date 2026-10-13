@@ -1,7 +1,7 @@
 import {isAddress,getAddress,ZeroAddress} from '/vendor/ethers.js';
 import {t} from './locale.js';
 import {memberMetrics,readTreeMember} from './network-data.mjs';
-export function initNetworkTree(binary,rpc){
+export function initNetworkTree(binary,rpc,hourlyCapFlushVersion=null){
  const host=document.getElementById('network-explorer');if(!host)return;
  let sequence=0,current,parent,history=[];
  const make=(tag,txt,cls)=>{const e=document.createElement(tag);if(txt)e.textContent=txt;if(cls)e.className=cls;return e;};
@@ -33,7 +33,8 @@ export function initNetworkTree(binary,rpc){
    const rankNames=[t('Member','عضو'),t('Builder I','بیلدر ۱'),t('Builder II','بیلدر ۲'),t('Builder III','بیلدر ۳'),t('Builder IV','بیلدر ۴')];
    const dl=make('dl');
    for(const [label,value] of [[t('Root wallet','ولت ریشه'),root],[t('Purchased units','واحدهای خریداری‌شده'),metrics.units],[t('Membership contribution · test USD','مبلغ معادل عضویت · دلار آزمایشی'),metrics.contribution],[t('Rank recorded by contract','رنک ثبت‌شده در قرارداد'),rankNames[metrics.rank]||String(metrics.rank)],[t('Lifetime L / R · units','حجم تاریخی چپ / راست · واحد'),metrics.lifetimeL+' / '+metrics.lifetimeR],[t('Remaining L / R · units','مانده چپ / راست · واحد'),metrics.carryL+' / '+metrics.carryR],[t('Raw remaining matches · not paid points','تعادل خام باقی‌مانده · نه پوینت پرداخت‌شده'),metrics.matchedCarry]]){const row=make('div');row.append(make('dt',label),make('dd',String(value)));dl.append(row);}
-   details.replaceChildren(dl,make('p',t('Branch volume counts units, not people or dollars. Unpaid matches remain; payouts also require funding and rank/protection limits. Click a wallet to view its details and children.','حجم شاخه تعداد واحد است، نه تعداد افراد یا دلار. تعادل پرداخت‌نشده حفظ می‌شود؛ پرداخت به پشتوانه مالی و سقف رنک و حفاظت هم وابسته است. با انتخاب هر ولت، جزئیات و فرزندان آن نمایش داده می‌شود.')));
+   const policy=hourlyCapFlushVersion===1?t('Above-cap matches are flushed. Unmatched volume and within-cap matches deferred for insufficient funding remain. Branch volume counts units, not people or cash.','تعادل بالاتر از سقف فلش می‌شود. حجم نامتوازن و تعادل داخل سقف که به علت کمبود پشتوانه پرداخت نشده، باقی می‌مانند. حجم شاخه تعداد واحد است، نه تعداد افراد یا وجه نقد.'):t('Branch volume is read from the installed contract and counts units, not people or cash. Payouts require funding and rank/protection limits.','حجم شاخه از قرارداد نصب‌شده خوانده می‌شود و تعداد واحد است، نه تعداد افراد یا وجه نقد. پرداخت به پشتوانه مالی و سقف رنک و حفاظت وابسته است.');
+   details.replaceChildren(dl,make('p',policy));
    status.textContent=(context.approximate?t('Current-state reads; snapshot unavailable. Values may span multiple blocks.','خواندن وضعیت جاری؛ اسنپ‌شات در دسترس نبود. اعداد ممکن است از چند بلاک باشند.')+' · ':'')+maxDepth+' '+t('levels','سطح')+' · '+cache.size+' '+t('wallets','ولت')+' · '+t('Starting block','بلاک آغاز خواندن')+': '+blockTag;
   }catch(e){if(ticket===sequence){view.replaceChildren();details.replaceChildren();status.textContent=t('Tree could not be read. Retry; no missing value is displayed as zero.','خواندن درخت انجام نشد. دوباره تلاش کنید؛ داده ناموجود صفر نمایش داده نمی‌شود.')+' '+(e.info?.error?.message||e.reason||e.shortMessage||e.message);}}
   finally{if(ticket===sequence)load.disabled=false;}

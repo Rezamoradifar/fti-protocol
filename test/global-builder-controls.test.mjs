@@ -27,6 +27,12 @@ test('Builder controls use hourly funded income, retain liabilities and close at
   await send(binary.addUnits(100));await send(binary.connect(signers[1]).addUnits(100));await send(binary.connect(signers[2]).addUnits(100));
   await settle(suite,provider);
   assert.equal(await binary.rankOf(a[0]),1n);
+  assert.equal((await binary.members(a[0])).carryL,0n);
+  assert.equal((await binary.members(a[0])).carryR,0n);
+  // Above-cap volume from rank qualification is now flushed. These controls
+  // must be exercised with newly funded income, not replayed qualification carry.
+  const fundNextHour=async()=>{for(const i of [1,2])await send(binary.connect(signers[i]).addUnits(5));};
+  await fundNextHour();await drainVolume(suite);
   await send(usd.approve(tp.target,MaxUint256));await send(token.buy(E('10'),0,MaxUint256));
   const snapshot=async fn=>{const s=await provider.send('evm_snapshot',[]);try{await fn();}finally{await provider.send('evm_revert',[s]);}};
   const warp=async timestamp=>{await provider.send('evm_setTime',[timestamp*1000]);await provider.send('evm_mine',[]);};
@@ -53,6 +59,7 @@ test('Builder controls use hourly funded income, retain liabilities and close at
    await send(binary.setAutoBuyPercent(true,37));await settle(suite,provider);
    const pending=await binary.pendingAuto(a[0]);assert(pending>0n);
    await send(binary.setAutoBuyPercent(true,100));assert.equal(await binary.pendingAuto(a[0]),pending);
+   await fundNextHour();
    await drainVolume(suite);await warp(Number(await binary.epochEnd()));await send(binary.beginEpochClose());
    assert(await binary.phase()>0n);await assert.rejects(()=>binary.setAutoBuyPercent.staticCall(true,5));
    await assert.rejects(()=>binary.setAutoBuy.staticCall(false,1));
@@ -65,7 +72,7 @@ test('Builder controls use hourly funded income, retain liabilities and close at
    const before=await token.balanceOf(a[0]);await send(binary.connect(signers[40]).executeAuto(a[0],pending));
    assert(await token.balanceOf(a[0])>before);assert.equal(await binary.pendingAuto(a[0]),0n);
    await assert.rejects(()=>binary.executeAuto.staticCall(a[0],pending));
-   await settle(suite,provider);const carry=await binary.pendingAuto(a[0]);assert(carry>0n);
+   await fundNextHour();await settle(suite,provider);const carry=await binary.pendingAuto(a[0]);assert(carry>0n);
    await send(binary.setAutoBuyPercent(false,100));await assert.rejects(()=>binary.executeAuto.staticCall(a[0],carry));
    const cash=await binary.pendingReward(a[0]);await send(binary.releaseAutoToCash());await send(binary.releaseAutoToCash());
    assert.equal(await binary.pendingReward(a[0]),cash+carry);await checkAccounting(suite);
@@ -109,8 +116,8 @@ test('Builder controls use hourly funded income, retain liabilities and close at
 test('all existing storage fields retain their position and representation',()=>{
  const old=JSON.parse(fs.readFileSync('docs/storage-layout/FundedBinaryPlanUpgradeable-20261009.json'));
  const next=JSON.parse(fs.readFileSync('artifacts/storage-layout/FundedBinaryPlanUpgradeable.json'));
- assertStorageCompatible(old,next);assert.equal(next.storage[old.storage.length-1].label,'_autoBuyPercent');
-  assert.deepEqual(next.storage.slice(old.storage.length).map(field=>field.label),['directReferrer','directReferralCount']);
+ assertStorageCompatible(old,next);assert.equal(next.storage[old.storage.length-1].label,'calculatedPointValue');
+ assert.deepEqual(next.storage.slice(old.storage.length).map(field=>field.label),['_autoBuyPercent','directReferrer','directReferralCount']);
 });
 
 test('Keeper gives ready monthly settlement precedence over a replenished payout queue',async()=>{

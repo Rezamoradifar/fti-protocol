@@ -3,6 +3,7 @@ import {rootForHost,PUBLIC_ROUTES} from './site-routing.mjs';
 import {readMarket} from './market-reader.mjs';
 import {readEvents} from './event-reader.mjs';
 import {networkPlacementIndexer} from './referral-placement-index.mjs';
+import {readHourlyCapFlushVersion} from '../core/hourly-cap-policy.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -35,6 +36,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
   }catch{/* The active implementation is still the original V1. */}
  }
  publicConfig.referralPlacementEnabled=referralPlacementEnabled;
+ publicConfig.hourlyCapFlushVersion=await readHourlyCapFlushVersion(contracts.binary);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data,(_,v)=>typeof v==='bigint'?v.toString():v));};
  const readMethods=new Set(['eth_chainId','eth_blockNumber','eth_call','eth_getBalance','eth_getStorageAt','eth_getCode','eth_getLogs','eth_getTransactionReceipt','eth_getTransactionByHash','eth_getBlockByNumber','eth_estimateGas','eth_gasPrice','eth_maxPriorityFeePerGas','eth_feeHistory','eth_getTransactionCount']);
  async function body(req){let raw='';for await(const c of req){raw+=c;if(raw.length>65536)throw Error('Request too large');}return JSON.parse(raw);}
