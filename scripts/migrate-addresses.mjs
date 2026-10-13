@@ -25,12 +25,14 @@ Writes are opt-in:
 Every write also requires --key-file PRIVATE_0600_FILE --max-fee-wei INTEGER --max-gas-price-wei INTEGER --journal NEW_LOG.jsonl --out NEW_RESULT.json.
 Optional: --max-pages 100 --max-gas 12000000 --max-transactions 100 --confirmations 2 --salt BYTES32.
 RPC is read from FTI_MIGRATION_RPC_URL. The original saved deployment JSON is required.
+Older source logic: pass --source-artifacts ORIGINAL_ARTIFACT_DIRECTORY on every command.
+Its ABI files must match the original deployment hashes and on-chain creation transactions.
 Plans are UNSIGNED council proposals. No council votes, timelock shortcuts, service changes or mainnet.
 The out/journal paths must not exist. Resume COPY using the same manifest and a new log/result path.
 `;
 export async function main(args=process.argv.slice(2)) {
   const {values:v,positionals}=parseArgs({args,allowPositionals:true,strict:true,options:Object.fromEntries([
-    ...['config','record','manifest','out','action','operation','salt','key-file','expected-chain','confirm','max-fee-wei','max-gas-price-wei','max-gas','max-transactions','max-pages','confirmations','journal'].map(n=>[n,{type:'string'}]),
+    ...['config','record','manifest','out','action','operation','salt','key-file','source-artifacts','expected-chain','confirm','max-fee-wei','max-gas-price-wei','max-gas','max-transactions','max-pages','confirmations','journal'].map(n=>[n,{type:'string'}]),
     ['send',{type:'boolean'}],['help',{type:'boolean'}]])});
   if(v.help){console.log(help);return;}
   const command=positionals[0];
@@ -44,7 +46,7 @@ export async function main(args=process.argv.slice(2)) {
   let provider,journal,lock,lockPath;
   try {
     const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
-    const cfg=read(v.config),build=loadMigrationBuild();
+    const cfg=read(v.config),build=loadMigrationBuild(process.cwd(),{sourceArtifactsDir:v['source-artifacts']});
     const rpc=process.env.FTI_MIGRATION_RPC_URL;if(!rpc)throw Error('FTI_MIGRATION_RPC_URL required');
     provider=new JsonRpcProvider(rpc,undefined,{cacheTimeout:-1});
     const record=v.record?read(v.record):null,manifest=v.manifest?read(v.manifest):undefined;
