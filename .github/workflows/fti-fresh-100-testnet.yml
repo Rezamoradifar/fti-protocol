@@ -1,0 +1,27 @@
+name: FTI fresh 100-wallet testnet safety checks
+
+on:
+  pull_request:
+    paths:
+      - 'tools/fti-fresh-100-testnet.cjs'
+      - 'test/fti-fresh-100-testnet.test.cjs'
+      - 'docs/FTI_100_TESTNET_USERS.fa.md'
+      - '.github/workflows/fti-fresh-100-testnet.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax (does not sign or submit)
+        run: node --check tools/fti-fresh-100-testnet.cjs
+      - name: Policy tests (no public blockchain writes)
+        run: node --test test/fti-fresh-100-testnet.test.cjs
