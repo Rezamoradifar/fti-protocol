@@ -40,7 +40,7 @@ function canonical(value){return Array.isArray(value)?value.map(canonical):value
 function digest(x){return crypto.createHash('sha256').update(safeStringify(canonical(x))).digest('hex');}
 function amount(s,decimals){ensure(typeof s==='string'&&/^(0|[1-9][0-9]*)(\.[0-9]+)?$/.test(s),'Positive decimal required');const [a,b='']=s.split('.');ensure(b.length<=decimals,'Too many decimal places');const n=BigInt(a)*10n**BigInt(decimals)+BigInt((b+'0'.repeat(decimals)).slice(0,decimals)||'0');ensure(n>0n,'Amount must be positive');return n;}
 function decimal(n,decimals=18){n=BigInt(n);const base=10n**BigInt(decimals),q=n/base,r=(n%base).toString().padStart(decimals,'0').replace(/0+$/,'');return q.toString()+(r?'.'+r:'');}
-function parseArgs(argv){const [command,...args]=argv;ensure(['prepare','run','settle','status','help'].includes(command),'Choose prepare, run, settle or status; see help');const opt={};for(let i=0;i<args.length;i++){const a=args[i];ensure(a.startsWith('--'),'Unexpected argument '+a);ensure(!Object.hasOwn(opt,a),'Repeated flag '+a);if(['--send'].includes(a)){opt[a]=true;continue;}ensure(i+1<args.length&&!args[i+1].startsWith('--'),'Missing value for '+a);opt[a]=args[++i];}return {command,opt};}
+function parseArgs(argv){const [command,...args]=argv;ensure(['prepare','run','settle','status','help'].includes(command),'Choose prepare, run, settle or status; see help');const opt={};for(let i=0;i<args.length;i++){const a=args[i];ensure(a.startsWith('--'),'Unexpected argument '+a);ensure(!Object.hasOwn(opt,a),'Repeated flag '+a);if(['--send','--pilot'].includes(a)){opt[a]=true;continue;}ensure(i+1<args.length&&!args[i+1].startsWith('--'),'Missing value for '+a);opt[a]=args[++i];}return {command,opt};}
 function validateRpc(endpoint){ensure(typeof endpoint==='string'&&endpoint.length<=2048&&!/[\x00-\x20]/.test(endpoint),'Invalid RPC');const x=new URL(endpoint);ensure(x.protocol==='https:'&&x.hostname&&!x.username&&!x.password&&!x.hash,'Use a HTTPS RPC without credentials in the URL');return endpoint;}
 function requirePrivateKeyFile(file){ensure(file&&path.isAbsolute(file),'Absolute --funder-key-file required');const st=fs.lstatSync(file);ensure(st.isFile()&&!st.isSymbolicLink()&&st.uid===process.getuid()&&(st.mode&0o077)===0&&st.size<=128&&st.size>=64,'Funder key file must be root-owned, private (0600) and regular');const raw=fs.readFileSync(file,'utf8').trim();ensure(/^(0x)?[a-fA-F0-9]{64}$/.test(raw),'Invalid testnet key file');return raw.startsWith('0x')?raw:'0x'+raw;}
 function atomic(file,obj){const data=safeStringify(obj)+'\n';const temp=file+'.tmp-'+process.pid;const fd=fs.openSync(temp,'wx',0o600);try{fs.writeSync(fd,data);fs.fsyncSync(fd);}finally{fs.closeSync(fd);}fs.renameSync(temp,file);}
@@ -110,7 +110,7 @@ async function makePrepared(ctx,opt){
 }
 
 class Engine{
- constructor(ctx,data,funder){this.ctx=ctx;this.data=data;this.j=data.j;this.plan=data.plan;this.funder=funder;this.actors=data.keys.map(k=>new ctx.eth.Wallet(k.privateKey,ctx.p));}
+ constructor(ctx,data,funder,limit=COUNT){this.limit=limit;this.ctx=ctx;this.data=data;this.j=data.j;this.plan=data.plan;this.funder=funder;this.actors=data.keys.map(k=>new ctx.eth.Wallet(k.privateKey,ctx.p));}
  save(){atomic(this.data.statePath,this.j);}
  async recoverPending(){
   if(!this.j.pending)return;
@@ -194,11 +194,11 @@ class Engine{
   }
  }
  async distributeStable(){
-  const {usd}=this.ctx;const required=TUSD_PER_WALLET*BigInt(COUNT);
+  const {usd}=this.ctx;const required=TUSD_PER_WALLET*BigInt(this.limit);
   if(await usd.balanceOf(this.funder.address)<required && !this.j.completed.faucet){
    await this.send(this.funder,usd,'faucet',[],'faucet');
   }
-  for(let i=0;i<COUNT;i++){
+  for(let i=0;i<this.limit;i++){
    const w=this.actors[i];if(this.j.completed['stable-'+i])continue;
    const amount=TUSD_PER_WALLET;
    await this.send(this.funder,usd,'transfer',[w.address,amount],`stable-${i}`);
@@ -207,7 +207,7 @@ class Engine{
  async registerAll(){
   const {usd,binary}=this.ctx;
   const sponsor=this.plan.genesisSponsor;
-  for(let i=0;i<COUNT;i++){
+  for(let i=0;i<this.limit;i++){
    const w=this.actors[i];const expectedSponsor=i<2?sponsor:this.actors[Math.floor((i-2)/2)].address;
    if(await binary.registered(w.address)){
     const m=await binary.members(w.address);ensure(m.parent.toLowerCase()===expectedSponsor.toLowerCase()&&m.units>0n,'UNEXPECTED_EXISTING_MEMBER '+i);
@@ -220,14 +220,14 @@ class Engine{
    ensure(await binary.registered(w.address),'REGISTRATION_MISSING '+i);
    if((i+1)%10===0)console.log('REGISTERED='+String(i+1)+'/'+COUNT);
   }
-  for(let i=0;i<EXTRA_UNITS;i++){
+  for(let i=0;i<Math.min(EXTRA_UNITS,this.limit);i++){
    const w=this.actors[i],units=await binary.unitsOf(w.address);
    if(units===1n){await this.ensureEpochWritable();await this.actorSend(i,binary,'addUnits',[1],`additional-unit-${i}`);}
    ensure(await binary.unitsOf(w.address)===2n,'REPEAT_PURCHASE_FAILED '+i);
   }
  }
  async buyAll(){const {usd,token}=this.ctx;
-  for(let i=0;i<COUNT;i++){
+  for(let i=0;i<this.limit;i++){
    const w=this.actors[i];if(this.j.completed['buy-'+i])continue;
    ensure(await token.remainingAllowance(w.address)>=BUY,'PURCHASE_LIMIT '+i);
    if(await usd.allowance(w.address,this.ctx.cfg.token)<BUY){await this.actorSend(i,usd,'approve',[this.ctx.cfg.token,BUY],`approve-buy-${i}`);}
@@ -238,7 +238,7 @@ class Engine{
   }
  }
  async configureAuto(){const {binary}=this.ctx;
-  for(let i=0;i<COUNT;i++){
+  for(let i=0;i<this.limit;i++){
    if(this.j.completed['auto-pref-'+i])continue;
    await this.ensureEpochWritable();
    const enabled=(i%4===0),percent=[5,37,100][i%3];
@@ -248,7 +248,7 @@ class Engine{
   }
  }
  async transferAll(){const {token}=this.ctx;
-  for(let i=0;i<COUNT;i++){
+  for(let i=0;i<this.limit;i++){
    if(this.j.completed['transfer-'+i])continue;
    const from=this.actors[i],to=this.actors[(i+1)%COUNT];
    const amount=(await token.balanceOf(from.address))/12n;ensure(amount>1000000n,'TRANSFER_AMOUNT_TOO_SMALL '+i);
@@ -261,7 +261,7 @@ class Engine{
   }
  }
  async sellAll(){const {token,usd}=this.ctx;
-  for(let i=0;i<COUNT;i++){
+  for(let i=0;i<this.limit;i++){
    if(this.j.completed['sell-'+i])continue;
    const w=this.actors[i],balance=await token.balanceOf(w.address);
    const sellAmount=balance/9n;ensure(sellAmount>1000000n,'SELL_AMOUNT_TOO_SMALL '+i);
@@ -345,10 +345,11 @@ class Engine{
   await this.sellAll();console.log('ALL_SELLS_DONE');
   const guards=await this.readOnlyAdversarial();await this.settleEpoch();const claims=await this.claimIfEligible();const payments=await this.payQueued();await this.checkBooks();
   const report=await this.report({negativeReadOnlyTestsPassed:guards,claimsThisRun:claims,payoutBatchesThisRun:payments,epochDue:BigInt((await this.ctx.p.getBlock('latest')).timestamp)>=(await this.ctx.binary.epochEnd())});
-  ensure(report.completed.registrations===100&&report.completed.buy===100&&report.completed.transfer===100&&report.completed.sell===100&&report.completed.autoPreferences===100&&report.completed.repeatPurchases===10,
+  const target=this.limit;
+  ensure(report.completed.registrations===target&&report.completed.buy===target&&report.completed.transfer===target&&report.completed.sell===target&&report.completed.autoPreferences===target&&report.completed.repeatPurchases===Math.min(EXTRA_UNITS,target),
    'NOT_ALL_TESTS_COMPLETED');
-  ensure(report.chainMemberCount===131,'MEMBER_COUNT_MISMATCH');
-  console.log('FTI_FRESH_TESTNET_100_WALLET_JOURNEY_COMPLETE');
+  ensure(report.chainMemberCount===31+target,'MEMBER_COUNT_MISMATCH');
+  console.log(target===COUNT?'FTI_FRESH_TESTNET_100_WALLET_JOURNEY_COMPLETE':'FTI_FRESH_TESTNET_3_WALLET_PILOT_COMPLETE');
  }
  async settle(){await this.recoverPending();await this.settleEpoch();const claims=await this.claimIfEligible();const payments=await this.payQueued();await this.checkBooks();await this.report({settlementRun:true,claims,paymentBatches:payments});console.log('FTI_100_TESTNET_SETTLEMENT_CHECK_COMPLETE');}
 }
@@ -356,7 +357,7 @@ class Engine{
 async function main(){const {command,opt}=parseArgs(process.argv.slice(2));
  if(command==='help'){console.log(`FTI 100 actor BNB TESTNET ONLY. Run outside the pinned FTI source checkout.
 prepare --funder-address PUBLIC_0x [--wallet-gas-tbnb 0.001 --max-total-tbnb 0.25 --gas-price-ceiling-gwei 1]
-run --funder-key-file /root/private/testnet-funder.key --send --confirm-plan DIGEST
+run --funder-key-file /root/private/testnet-funder.key --send --confirm-plan DIGEST [--pilot first, then full run]
 settle --funder-key-file PATH --send --confirm-plan DIGEST
 status (read-only, does not print private keys)
 Optional: FTI_STRESS_RPC_URL=https://your-bnb-testnet-rpc
@@ -371,13 +372,14 @@ No mainnet; never use a leaked/private mainnet key.`);return;}
   if(command==='status'){
    console.log(safeStringify({chainId:97,planDigest:plan.digest,preparedWallets:d.keys.length,completedOperations:Object.keys(d.j.completed).length,unresolved:d.j.pending?{label:d.j.pending.label,hash:d.j.pending.hash}:null,transactions:d.j.transactionCount,upperNativeBudgetUsedTBNB:decimal(d.j.upperNativeReserved),activeKeysNeverPrinted:true}));return;
   }
+  ensure(command==='run'||!opt['--pilot'],'Pilot only allowed for run');
   ensure(opt['--send']===true&&opt['--confirm-plan']===plan.digest,'Explicit --send and full matching --confirm-plan DIGEST required');
   ensure(opt['--funder-key-file'],'Funder key file required');
   const funder=new ctx.eth.Wallet(requirePrivateKeyFile(opt['--funder-key-file']),ctx.p);
   ensure(funder.address.toLowerCase()===plan.funder.toLowerCase(),'Testnet funder key does not match reviewed address');
   ensure(await ctx.p.getBalance(funder.address)>0n,'Insufficient TEST tBNB');
   ensure(!fs.existsSync(path.join(OUT,LOCK)),'Test already running or interrupted; inspect before re-running');
-  await lockRun(async()=>{const engine=new Engine(ctx,d,funder);if(command==='run')await engine.run();else await engine.settle();});
+  await lockRun(async()=>{const engine=new Engine(ctx,d,funder,opt['--pilot']?3:COUNT);if(command==='run')await engine.run();else await engine.settle();});
  }finally{ctx.p.destroy();}
 }
 if(require.main===module)main().catch(e=>{const msg=String(e.message||e).replace(/https?:\/\/\S+/g,'[RPC_URL_REDACTED]').replace(/0x[a-fA-F0-9]{64}/g,'[HEX_REDACTED]');console.error('FTI_100_TESTNET_STOP '+msg.slice(0,400));process.exitCode=1;});
