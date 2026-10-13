@@ -1,7 +1,8 @@
 // Operational migration code. No auto-voting, mainnet, service switching or owner sweep.
 import fs from 'node:fs';
 import path from 'node:path';
-import {AbiCoder,Contract,ContractFactory,Interface,ZeroHash,keccak256,id} from 'ethers';
+import {createHash} from 'node:crypto';
+import {AbiCoder,Contract,ContractFactory,Interface,ZeroHash,ZeroAddress,keccak256,id} from 'ethers';
 import {collectInventory} from './migration-inventory.mjs';
 import {completeExport} from './migration-complete-export.mjs';
 import {checkedLayout,layoutDigest,bindingField,buildAddressMigrationManifest,migrationDomain,buildPages,IMPLEMENTATION_SLOT} from './address-migration-manifest.mjs';
@@ -34,13 +35,23 @@ const APP=['function recoveryFrozen() view returns(bool)','function setRecoveryF
  'function phase() view returns(uint256)','function monthPhase() view returns(uint256)','function jobCursor() view returns(uint256)',
  'function jobCount() view returns(uint256)','function emergencyUnwind() view returns(bool)','function accounting() view returns(uint256,uint256)'];
 
-export function loadMigrationBuild(root=process.cwd()) {
+export function loadMigrationBuild(root=process.cwd(),{sourceArtifactsDir}={}) {
   const artifact=n=>JSON.parse(fs.readFileSync(path.join(root,'artifacts',n+'.json'),'utf8'));
   const models=['FundedBinaryPlanUpgradeable','FTIReserveTokenUpgradeable'];
   const layouts=models.map(n=>checkedLayout(n,
     JSON.parse(fs.readFileSync(path.join(root,'artifacts/storage-layout',n+'.json'),'utf8')),
     JSON.parse(fs.readFileSync(path.join(root,'docs/storage-layout',n+'.json'),'utf8'))));
-  return {layouts,apps:models.map(artifact),migration:artifact('FTIAddressMigration')};
+  const build={layouts,apps:models.map(artifact),migration:artifact('FTIAddressMigration')};
+  if(sourceArtifactsDir){
+    build.sourceArtifactHashes={};
+    build.sourceApps=models.map(name=>{
+      const raw=fs.readFileSync(path.join(sourceArtifactsDir,name+'.json'));
+      build.sourceArtifactHashes[name]=createHash('sha256').update(raw).digest('hex');
+      const app=JSON.parse(raw);check(app.contractName===name&&Array.isArray(app.abi),'Wrong source artifact: '+name);
+      return app;
+    });
+  }
+  return build;
 }
 // Use the ORIGINAL saved deployment configuration, never manufacture missing hashes.
 export async function inspectSources({provider,cfg,build}) {
@@ -56,6 +67,28 @@ export async function inspectSources({provider,cfg,build}) {
     check(await u.COMPONENT_ID()===id(key==='binary'?'FTI_BINARY_CONTINUITY_V1':'FTI_TOKEN_CONTINUITY_V1')&&await u.proxiableUUID()===IMPLEMENTATION_SLOT,'Wrong UUPS component');
   }
   check(build.layouts.length===2&&build.apps.length===2,'Reviewed build required');
+  if(build.sourceApps){
+    // The ABI must come from the saved source build, not an arbitrary list of
+    // optional getters. Pin its file and prove its creation bytecode on chain.
+    check(build.sourceApps.length===2,'Both original source artifacts required');
+    for(const [i,key]of components.entries()){
+      const app=build.sourceApps[i],name=cfg[key+'Contract'],logic=key+'Implementation';
+      check(/^[a-f0-9]{64}$/.test(cfg.artifactHashes?.[name]||'')&&build.sourceArtifactHashes[name]===cfg.artifactHashes[name],'Original source artifact hash mismatch: '+key);
+      check(Array.isArray(cfg.constructorArgs?.[logic]),'Original constructor arguments required: '+key);
+      requireHash(cfg.transactions?.[logic],'original implementation transaction');
+      const tx=await provider.getTransaction(cfg.transactions[logic]),receipt=await provider.getTransactionReceipt(cfg.transactions[logic]);
+      const expected=await new ContractFactory(app.abi,app.bytecode).getDeployTransaction(...cfg.constructorArgs[logic]);
+      check(tx?.to===null&&tx.chainId===BigInt(cfg.chainId)&&same(tx.data,expected.data)&&receipt?.status===1&&same(receipt.contractAddress,cfg[logic]),'Original source creation mismatch: '+key);
+      const block=await provider.getBlock(receipt.blockNumber);check(block&&same(block.hash,receipt.blockHash),'Original source creation reorganized');
+    }
+  }
+  const sourceBinary=new Contract(cfg.binaryImplementation,(build.sourceApps??build.apps)[0].abi,provider);
+  if(sourceBinary.interface.hasFunction('autoBuyPercent')){
+    // Old deployed logic has no getter. Stop during preflight instead of after
+    // sources have been frozen/armed; never turn a failed read into a default.
+    try{await sourceBinary.autoBuyPercent(ZeroAddress);}
+    catch{throw Error('Source ABI probe failed; verify RPC and supply the verified original --source-artifacts directory for older logic');}
+  }
   const timelock=new Contract(cfg.timelock,TLABI,provider),council=new Contract(cfg.council,COUNCIL,provider),usd=new Contract(cfg.usd,UABI,provider);
   check(await timelock.getMinDelay()===259200n&&await council.THRESHOLD()===5n,'Governance must remain 5-of-7 / 72 hours');
   check(await timelock.hasRole(await timelock.PROPOSER_ROLE(),cfg.council),'Council proposer missing');
@@ -143,7 +176,7 @@ export function validateOperatorManifest(manifest,cfg,record,build) {
 export async function exportMigrationInventory(ctx,destination=false) {
   const {provider,cfg,build}=ctx;
   const blockTag=await provider.getBlockNumber(),addresses=destination?ctx.targets:components.map(k=>cfg[k]);
-  const [binary,token]=addresses.map((a,i)=>new Contract(a,build.apps[i].abi,provider));
+  const [binary,token]=addresses.map((a,i)=>new Contract(a,(build.sourceApps??build.apps)[i].abi,provider));
   // Destination proxy bytecode is checked through coordinator provenance, not old addresses.
   const exportCfg={binaryContract:cfg.binaryContract,tokenContract:cfg.tokenContract,deployedBlock:cfg.deployedBlock,binaryStorageLayout:build.layouts[0]};
   const report=await collectInventory({provider,binary,token,usd:ctx.usd,cfg:exportCfg,blockTag});

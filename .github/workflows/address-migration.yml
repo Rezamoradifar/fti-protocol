@@ -6,6 +6,9 @@ on:
       - 'scripts/*address-migration*.mjs'
       - 'scripts/migrate-addresses.mjs'
       - 'test/address-migration*.test.mjs'
+      - 'test/fixtures/legacy/*.txt'
+      - 'docs/storage-layout/*.json'
+      - 'tools/prepare-existing-testnet.sh'
       - '.github/workflows/address-migration.yml'
 permissions:
   contents: read
@@ -20,6 +23,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: bash -n tools/prepare-existing-testnet.sh
       - run: npm run compile
       - run: node --test --test-concurrency=1 test/address-migration*.test.mjs
       - run: npm run build:web

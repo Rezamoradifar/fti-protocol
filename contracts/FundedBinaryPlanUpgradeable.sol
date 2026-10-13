@@ -23,6 +23,7 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     uint256 public constant TARGET_POINT_VALUE=20e18;
     bool public pointValueIsTarget;
     bytes32 public constant rewardModel='FUNDED_POINT_FLOOR_V1';
+    uint256 public constant hourlyCapFlushVersion=1;
     IERC20 public usd;
     IFTI public token;
     address public governance;
@@ -81,6 +82,7 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     event UnitsAdded(address indexed wallet,uint256 units);
     event EpochClosed(uint256 indexed epoch,uint256 pool,uint256 points,uint256 pointValue,uint8 nextProtection);
     event RewardAllocated(uint256 indexed epoch,address indexed wallet,uint256 cash,uint256 automatic);
+    event HourlyCapFlushed(uint256 indexed epoch,address indexed wallet,uint256 points,uint256 retainedCredit);
     event Claimed(address indexed wallet,uint256 amount);
     event BuilderMonthClosed(uint256 indexed month);
     event AutoExecuted(address indexed wallet,uint256 usdIn,uint256 tokens);
@@ -244,19 +246,31 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
             for(;cursor<end;cursor++){
                 address who=dirtyMembers[cursor];Member storage m=members[who];uint256 raw=m.carryL<m.carryR?m.carryL:m.carryR;
                 uint256 paid=raw<cap(m.rank,frozenLevel)?raw:cap(m.rank,frozenLevel);
+                uint256 flushed=raw-paid;
                 uint256 takenL=raw==0?0:Math.mulDiv(creditL[who],raw,m.carryL);
                 uint256 takenR=raw==0?0:Math.mulDiv(creditR[who],raw,m.carryR);
                 uint256 taken=takenL+takenR;uint256 budget=raw==0?0:Math.mulDiv(taken,paid,raw);
                 candidatePoints+=paid;candidateFunding+=budget;
                 // Count only points backed by at least $20 of this wallet's credit.
-                // Keep unpaid matching volume and unspent credit for later epochs.
+                // Only above-cap matches flush. Within-cap matches rejected by
+                // the funded floor retain the existing deferred-volume policy.
                 uint256 funded=budget/TARGET_POINT_VALUE;
                 if(funded<paid){paid=funded;fundingShortfall=true;}
                 uint256 reward=paid==0?0:budget;
                 uint256 spentL=taken==0?0:Math.mulDiv(reward,takenL,taken);
                 uint256 spentR=reward-spentL;
-                creditL[who]-=spentL;creditR[who]-=spentR;assignedPointCredit-=reward;
-                m.carryL-=paid;m.carryR-=paid;paidPoints[epoch][who]=paid;totalPaidPoints+=paid;matchedFunding+=reward;
+                uint256 forfeited;
+                if(flushed>0){
+                    // Partition the matched credit before debiting either leg.
+                    // Forfeiture remains protected; it is not a new cash claim.
+                    uint256 budgetL=taken==0?0:Math.mulDiv(budget,takenL,taken);
+                    spentL+=takenL-budgetL;spentR+=takenR-(budget-budgetL);
+                    forfeited=taken-budget;retainedPointReserve+=forfeited;
+                    emit HourlyCapFlushed(epoch,who,flushed,forfeited);
+                }
+                creditL[who]-=spentL;creditR[who]-=spentR;assignedPointCredit-=reward+forfeited;
+                uint256 consumed=paid+flushed;
+                m.carryL-=consumed;m.carryR-=consumed;paidPoints[epoch][who]=paid;totalPaidPoints+=paid;matchedFunding+=reward;
                 autoSnapshot[epoch][who]=m.autoEnabled&&m.rank>0;
                 uint256 automatic=autoSnapshot[epoch][who]?Math.mulDiv(reward,autoBuyPercent(who),100):0;
                 pendingReward[who]+=reward-automatic;totalPending+=reward-automatic;_trackReward(who);pendingAuto[who]+=automatic;totalAuto+=automatic;

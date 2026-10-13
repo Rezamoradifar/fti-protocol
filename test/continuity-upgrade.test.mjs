@@ -32,7 +32,12 @@ test('proxy upgrade keeps funded users, genealogy, rank, liabilities, token bala
   await send(usd.approve(token.target,MaxUint256));await send(binary.setAutoBuy(true,MaxUint256));await send(binary.addUnits(2));
   await send(binary.connect(w[1]).addUnits(100));await send(binary.connect(w[2]).addUnits(100));await settle({usd,token,binary},p);
   assert.equal(await binary.calculatedPointValue(),await binary.candidateFunding()/await binary.candidatePoints());assert(await binary.pointValue()>=E('20'));
-  assert.equal(await binary.rankOf(a[0]),1n);await settle({usd,token,binary},p);await send(token.buy(E('300'),0,MaxUint256));const preR=await token.reserve(),preS=await token.totalSupply(),quote=await token.quoteBuy(E('800'));
+  assert.equal(await binary.rankOf(a[0]),1n);
+  assert.equal((await binary.members(a[0])).carryL,0n);assert.equal((await binary.members(a[0])).carryR,0n);
+  // New post-rank funding creates the auto liability to preserve across upgrade;
+  // qualification volume above the hourly cap must never pay again.
+  for(const i of [1,2])await send(binary.connect(w[i]).addUnits(5));
+  await settle({usd,token,binary},p);await send(token.buy(E('300'),0,MaxUint256));const preR=await token.reserve(),preS=await token.totalSupply(),quote=await token.quoteBuy(E('800'));
   const first=E('485')*preS/preR,second=E('291')*(preS+first)/(preR+E('500'));
   assert.equal(quote,first+second);assert(quote<E('776')*preS/preR);await assert.rejects(()=>token.buy.staticCall(E('800'),quote+1n,MaxUint256));
   const balanceBefore=await token.balanceOf(a[0]);await send(token.buy(E('800'),quote,MaxUint256));
