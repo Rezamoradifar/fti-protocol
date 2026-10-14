@@ -51,6 +51,8 @@ export async function finalizeMainnet({provider,plan,transactions,confirmations=
  check(cfg.codeHashes.usd===input.usdCodeHash,'Collateral changed from reviewed input');
  for(const key of ['binary','token'])cfg.implementationCodeHashes[key]=keccak256(await provider.getCode(cfg[key+'Implementation'],head.number));
  await verifyV3Deployment(cfg,provider);
+  cfg.poolDistributionVersion=1;
+  cfg.rewardModel='hourly-global-pool-v2';
  check((await provider.getBlock(head.number))?.hash===head.hash,'Verification block changed');
  return cfg;
 }

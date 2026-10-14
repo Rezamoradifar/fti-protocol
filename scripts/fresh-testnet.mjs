@@ -39,6 +39,7 @@ async function expectedPlan(input,genesis,nonce) {
   const manifest=releaseManifest();
   if(input.chainId===97)check(/^[a-f0-9]{40}$/.test(manifest.sourceRevision||''),'Pinned source revision required for public testnet');
   check(artifact(BINARY).abi.some(f=>f.type==='function'&&f.name==='setAutoBuyPercent'),'Build lacks the new Builder controls');
+  check(artifact(BINARY).abi.some(f=>f.type==='function'&&f.name==='poolDistributionVersion'),'Build lacks hourly pool distribution');
   const addresses=Object.fromEntries(ORDER.map((key,i)=>[key,getCreateAddress({from:input.deployer,nonce:nonce+i})]));
   const ti=new Contract(addresses.token,artifact(TOKEN).abi);
   const bi=new Contract(addresses.binary,artifact(BINARY).abi);
@@ -122,6 +123,9 @@ export async function deployFresh({provider,signer,plan,confirmPlan,budget,confi
   for(const [key,address]of Object.entries(plan.addresses))cfg.codeHashes[key]=keccak256(await provider.getCode(address,at.blockTag));
   cfg.implementationCodeHashes={token:cfg.codeHashes.tokenImplementation,binary:cfg.codeHashes.binaryImplementation};
   const {binary,token}=await verifyV3Deployment(cfg,provider);
+  check(await binary.poolDistributionVersion(at)===1n,'Hourly pool distribution is not active');
+  cfg.poolDistributionVersion=1;
+  cfg.rewardModel='hourly-global-pool-v2';
   check(await binary.memberCount(at)===31n,'Unexpected initial member count');
   const fields=['epochUnits','unitsSinceSettlement','pointPool','builderAccounted','totalPending','totalAuto','jobCount','rewardAccountCount','autoAccountCount'];
   for(const field of fields)check(await binary[field](at)===0n,'Nonzero fresh binary accounting: '+field);
@@ -195,7 +199,8 @@ export async function main(args=process.argv.slice(2)){
           onEvent:async e=>{fs.writeSync(journal,encode(e)+'\n');fs.fsyncSync(journal);}});
         saveNew(path.join(out,'deployment.json'),cfg);
         const result={result:'FTI_FRESH_TESTNET_DEPLOYED',chainId:cfg.chainId,sourceRevision:cfg.sourceRevision,addresses:plan.addresses,
-          deploymentFile:path.join(out,'deployment.json'),initialState:cfg.initialState,importedUsers:0,importedFunds:'0',servicesChanged:false};
+          deploymentFile:path.join(out,'deployment.json'),initialState:cfg.initialState,poolDistributionVersion:cfg.poolDistributionVersion,
+          rewardModel:cfg.rewardModel,importedUsers:0,importedFunds:'0',servicesChanged:false};
         saveNew(path.join(out,'result.json'),result);console.log(encode(result));
       }catch(e){saveNew(path.join(out,'failure.json'),{result:'FAILED_OR_PARTIAL_DEPLOYMENT',note:'Inspect journal.jsonl before any retry. Old contracts/services were not modified.'});throw e;}
       finally{fs.closeSync(journal);}

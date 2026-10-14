@@ -86,6 +86,7 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   assert.equal(await council.THRESHOLD(),5n);assert.equal(await timelock.getMinDelay(),259200n);
   for(let i=0;i<7;i++)assert.equal(await council.guardians(i),input.partners[i]);
   assert.equal(await binary.memberCount(),31n);assert.equal(await binary.hourlyCapFlushVersion(),1n);
+  assert.equal(await binary.poolDistributionVersion(),1n);
   for(const wallet of input.genesis)assert.equal((await binary.members(wallet)).units,0n);
   assert.equal(await token.totalSupply(),0n);assert.equal(await token.reserve(),0n);assert.equal(await token.supportReserve(),0n);
   await checkAccounting({binary,token});
@@ -94,6 +95,7 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   await assert.rejects(()=>finalizeMainnet({provider,plan:changed,transactions,confirmations:1}),/payload mismatch/);
   const cfg=await finalizeMainnet({provider,plan,transactions,confirmations:1});
   assert.equal(cfg.mode,'bnb-mainnet');assert.equal(cfg.importedUsers,0);
+  assert.equal(cfg.poolDistributionVersion,1);assert.equal(cfg.rewardModel,'hourly-global-pool-v2');
   assert(!('rpcUrl' in cfg));
   await verifyOperationalDeployment(cfg,provider);
   await assert.rejects(()=>verifyOperationalDeployment({...cfg,release:'FTI_CONTINUITY_TESTNET_20261009'},provider),/mainnet release/);
@@ -102,6 +104,7 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   process.env.RPC_URL='http://127.0.0.1:'+chainServer.address().port;process.env.PORT='0';process.env.HOST='127.0.0.1';
   web=await startWeb(sourceFile);const base='http://127.0.0.1:'+web.address().port;
   const publicCfg=await(await fetch(base+'/api/config')).json();assert.equal(publicCfg.network.chainId,56);assert.equal(publicCfg.network.testAssets,false);assert.equal(publicCfg.hourlyCapFlushVersion,1);assert.equal(publicCfg.referralPlacementEnabled,true);
+  assert.equal(publicCfg.poolDistributionVersion,1);
   const abi=await(await fetch(base+'/abi/Collateral')).json();assert(abi.every(x=>!String(x).includes('faucet')));
   assert.equal((await fetch(base+'/abi/MockUSD')).status,404);
   assert.equal((await fetch(base+'/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_sendTransaction',params:[]})})).status,400);
@@ -116,6 +119,35 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   const report=await inspectContinuity({binary,token,blockTag:await provider.getBlockNumber()});assert.equal(report.critical,false);assert.equal(report.submitted,false);
   await keeperStep(binary.connect(w[38]),provider,{batchedRewards:true});await checkAccounting({binary,token});
   const state=await(await fetch(base+'/api/state?wallet='+a[0])).json();assert.equal(state.wallet.units,'1');assert(BigInt(state.wallet.ftiBalance)>0n);
-  console.log('FTI_MAINNET_PAYLOAD_LOCAL_TEST_PASS',JSON.stringify({scope:'LOCAL_EVM_WITH_CHAIN_ID_56_NOT_MAINNET',transactions:7,existingCollateral:true,generatedKeys:0,importedUsers:0,verifiedRuntime:true,webMainnet:true,keeper:true,monitor:true,buySellTransfer:true}));
+  // Exercise the exact mainnet payload through a funded hourly close and
+  // direct wallet payment, including a repeated Keeper call. Local EVM only.
+  for(const i of [1,2]){
+   await sent(usd.mintTo(a[i],parseEther('100')));
+   await sent(usd.connect(w[i]).approve(binary.target,MaxUint256));
+   await sent(binary.connect(w[i]).addUnits(1));
+  }
+  const operator=binary.connect(w[38]);
+  for(let i=0;await binary.jobCursor()<await binary.jobCount()||await binary.totalPending()>0n;i++){
+   assert(i<30,'Keeper failed to drain pre-close work');await keeperStep(operator,provider,{batchedRewards:true});
+  }
+  const hourlyPool=await binary.pointPool(),hour=await binary.epoch(),walletCash=await usd.balanceOf(a[0]);
+  assert.equal(hourlyPool,parseEther('270'));
+  const now=(await provider.getBlock('latest')).timestamp,end=Number(await binary.epochEnd());
+  await engine.request({method:'evm_increaseTime',params:[end-now+1]});await engine.request({method:'evm_mine',params:[]});
+  for(let i=0;await binary.epoch()===hour;i++){
+   assert(i<30,'Keeper failed to finish the hourly snapshot');await keeperStep(operator,provider,{batchedRewards:true});
+  }
+  assert.equal(await binary.paidPoints(hour,a[0]),1n);
+  assert.equal(await binary.pointValue(),hourlyPool);
+  assert.equal(await binary.pointPool(),0n);
+  assert.equal(await binary.pendingReward(a[0]),hourlyPool);
+  for(let i=0;await binary.totalPending()>0n;i++){
+   assert(i<30,'Keeper failed to pay finalized rewards');await keeperStep(operator,provider,{batchedRewards:true});
+  }
+  assert.equal(await usd.balanceOf(a[0])-walletCash,hourlyPool);
+  await keeperStep(operator,provider,{batchedRewards:true});
+  assert.equal(await usd.balanceOf(a[0])-walletCash,hourlyPool,'No duplicate hourly payment');
+  await checkAccounting({binary,token});
+  console.log('FTI_MAINNET_PAYLOAD_LOCAL_TEST_PASS',JSON.stringify({scope:'LOCAL_EVM_WITH_CHAIN_ID_56_NOT_MAINNET',transactions:7,existingCollateral:true,generatedKeys:0,importedUsers:0,verifiedRuntime:true,webMainnet:true,keeper:true,monitor:true,buySellTransfer:true,poolDistributionVersion:1,fullHourlyPoolPaid:true,noDuplicatePayout:true}));
  }finally{if(web)await new Promise(resolve=>web.close(resolve));await chainServer.close();fs.rmSync(directory,{recursive:true,force:true});for(const[k,v]of Object.entries(previousEnv)){if(v===undefined)delete process.env[k];else process.env[k]=v;}}
 });

@@ -48,6 +48,7 @@ git checkout --detach FETCH_HEAD
 [[ "$(git rev-parse HEAD)" == "$rev" ]] || { echo 'Checkout identity mismatch.' >&2; exit 3; }
 stage=dependencies
 npm ci
+npm --prefix landing ci
 stage=compile
 npm run compile
 stage=storage
@@ -59,7 +60,7 @@ npm run build:web
 stage=landing
 npm --prefix landing run build
 stage=tests
-node --test --test-concurrency=2 test/fresh-testnet.test.mjs test/global-builder-controls.test.mjs test/global-frontend.test.mjs test/member-landing-theme.test.mjs test/hourly-cap-*.test.mjs test/referral-layout.test.mjs test/address-migration*.test.mjs test/mainnet-preparation.test.mjs
+node --test --test-concurrency=2 test/fresh-testnet.test.mjs test/global-builder-controls.test.mjs test/global-frontend.test.mjs test/member-landing-theme.test.mjs test/hourly-cap-*.test.mjs test/pool-*.test.mjs test/funded-keeper.test.mjs test/referral-layout.test.mjs test/address-migration*.test.mjs test/mainnet-preparation.test.mjs
 stage=complete; result=CANDIDATE_PREPARED
 printf 'FTI_FRESH_CANDIDATE_PREPARED: %s/source\n' "$work"
 echo 'NOT ACTIVATED: existing web/keeper, deployment config, proxy addresses and balances are unchanged.'
