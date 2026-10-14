@@ -4,6 +4,7 @@ import copy
 import hashlib
 import importlib.util
 import io
+import itertools
 import json
 import os
 from pathlib import Path
@@ -107,6 +108,7 @@ class ActivationTests(unittest.TestCase):
             stack.enter_context(patch.object(a, 'properties', side_effect=lambda r: copy.deepcopy(props[r])))
             stack.enter_context(patch.object(a, 'check_assets'))
             stack.enter_context(patch.object(a.time, 'sleep'))
+            stack.enter_context(patch.object(a.time, 'monotonic', side_effect=itertools.count(0, 100)))
             stack.enter_context(patch.object(a, 'capture', return_value={
                 'env': {'DEPLOYMENT_FILE': str(state / 'deployment.json')},
                 'properties': {'MainPID': '101'}}))
@@ -159,6 +161,95 @@ class ActivationTests(unittest.TestCase):
                 a.rollback(backup)
             self.assertEqual(calls, [])
             self.assertEqual(paths['web'].read_text(), 'new operator configuration')
+
+    def test_proxy_repair_preserves_routes_headers_auth_limits_and_uri(self):
+        original = '''# proxy_pass http://127.0.0.1:9999; comment must survive
+location ^~ /api/ {
+    auth_basic "Existing policy";
+    limit_req zone=api;
+    proxy_set_header Host $host;
+    proxy_pass http://127.0.0.1:3112/api/;
+}
+location = /rpc {
+    proxy_pass http://localhost:3108/rpc?$args; # preserve URI and comment
+}
+'''
+        expected = original.replace('127.0.0.1:3112/api/', '127.0.0.1:3110/api/').replace(
+            'localhost:3108/rpc?', '127.0.0.1:3110/rpc?')
+        self.assertEqual(a.repair_proxy_text(original), expected)
+        self.assertEqual(a.repair_proxy_text(expected), expected)
+
+    def test_proxy_repair_rejects_external_variable_or_mixed_targets(self):
+        for bad in ('https://other.example', 'http://$backend', 'http://127.0.0.1:$port',
+                    'http://127.0.0.1:80', 'http://192.0.2.10:3112'):
+            with self.subTest(bad=bad), self.assertRaises(a.CutoverError):
+                a.repair_proxy_text('location /api/ {\n proxy_pass ' + bad + ';\n}')
+        with self.assertRaises(a.CutoverError):
+            a.repair_proxy_text('proxy_pass http://127.0.0.1:3112;\nproxy_pass https://other.example;\n')
+
+    def test_api_include_must_be_used_only_by_known_fti_vhosts(self):
+        good = '# configuration file /etc/nginx/conf.d/fti-domain.conf:\ninclude ' + str(a.API_ROUTES) + ';\n'
+        a.validate_api_references(good)
+        with self.assertRaises(a.CutoverError):
+            a.validate_api_references(good + '# configuration file /etc/nginx/conf.d/another-site.conf:\ninclude '
+                                      + str(a.API_ROUTES) + ';\n')
+        with self.assertRaises(a.CutoverError):
+            a.validate_api_references('# configuration file /etc/nginx/nginx.conf:\n# include '
+                                      + str(a.API_ROUTES) + ';\n')
+
+    @contextlib.contextmanager
+    def api_fixture(self, backup):
+        api = backup.parent / 'fti-fresh-api-routes.conf'
+        before = 'location ^~ /api/ {\n proxy_pass http://127.0.0.1:3112;\n}\n'
+        after = a.repair_proxy_text(before)
+        api.write_text(before)
+        (backup / 'nginx-api.before.conf').write_text(before)
+        (backup / 'nginx-api.after.conf').write_text(after)
+        record = {'path': str(api), 'before': hashlib.sha256(before.encode()).hexdigest(),
+                  'after': hashlib.sha256(after.encode()).hexdigest(),
+                  'uid': os.getuid(), 'gid': os.getgid(), 'mode': 0o644}
+        with patch.object(a, 'API_ROUTES', api):
+            yield api, before, after, record
+
+    def test_api_repair_happens_before_public_gate_and_manual_rollback_restores_both(self):
+        with self.fake_services() as (release, state, backup, paths, props, saved, calls):
+            with self.api_fixture(backup) as (api, before, after, record):
+                def health(_cfg, base=None):
+                    if base:
+                        self.assertEqual(api.read_text(), after)
+                        self.assertIn(['nginx', '-t'], calls)
+                        self.assertIn(['systemctl', 'reload', 'nginx'], calls)
+                with patch.object(a, 'check_web', side_effect=health):
+                    a.switch(release, state, backup, saved, {}, record)
+                self.assertEqual(api.read_text(), after)
+                a.rollback(backup)
+                self.assertEqual(api.read_text(), before)
+                self.assertTrue(all(not p.exists() for p in paths.values()))
+                self.assertTrue(all(v['ActiveState'] == 'active' for v in props.values()))
+
+    def test_https_failure_after_api_repair_restores_nginx_and_both_services(self):
+        with self.fake_services() as (release, state, backup, paths, props, saved, calls):
+            with self.api_fixture(backup) as (api, before, after, record):
+                def health(_cfg, base=None):
+                    if base:
+                        self.assertEqual(api.read_text(), after)
+                        raise a.CutoverError('public route still wrong')
+                with patch.object(a, 'check_web', side_effect=health):
+                    with self.assertRaisesRegex(a.CutoverError, 'public route still wrong'):
+                        a.switch(release, state, backup, saved, {}, record)
+                self.assertEqual(api.read_text(), before)
+                self.assertTrue(all(not p.exists() for p in paths.values()))
+                self.assertTrue(all(v['ActiveState'] == 'active' for v in props.values()))
+                self.assertNotIn(['systemctl', 'start', a.UNITS['keeper']], calls)
+
+    def test_api_file_changed_during_preparation_is_preserved_without_stopping_services(self):
+        with self.fake_services() as (release, state, backup, paths, props, saved, calls):
+            with self.api_fixture(backup) as (api, before, after, record):
+                api.write_text('operator edit')
+                with self.assertRaisesRegex(a.CutoverError, 'edited after preparation'):
+                    a.switch(release, state, backup, saved, {}, record)
+                self.assertEqual(api.read_text(), 'operator edit')
+                self.assertEqual(calls, [])
 
 
 if __name__ == '__main__':

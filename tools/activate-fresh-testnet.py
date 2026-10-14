@@ -14,9 +14,11 @@ import pwd
 import re
 import shutil
 import signal
+import socket
 import stat
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 
@@ -33,6 +35,8 @@ ADDRESSES = {
 }
 UNITS = {role: 'fti-continuity-' + role + '.service' for role in ('web', 'keeper')}
 DROP_NAME = 'zz-fti-fresh-testnet.conf'
+API_ROUTES = Path('/etc/nginx/fti-fresh-api-routes.conf')
+FTI_VHOSTS = {'/etc/nginx/conf.d/fti-domain.conf', '/etc/nginx/conf.d/fti-workspaces.conf'}
 SETTINGS = {
     'web': ('RPC_URL', 'EVENT_RPC_URL', 'PORT', 'HOST', 'WALLETCONNECT_PROJECT_ID'),
     'keeper': ('RPC_URL', 'KEEPER_PRIVATE_KEY', 'KEEPER_INTERVAL_MS'),
@@ -218,7 +222,10 @@ def preflight(saved, env, release, account):
 
 
 def http_json(url):
-    with urllib.request.urlopen(url, timeout=20) as response:
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    request = urllib.request.Request(url + '?fti_check=' + str(time.time_ns()),
+                                     headers={'Cache-Control': 'no-cache'})
+    with opener.open(request, timeout=20) as response:
         return json.load(response)
 
 
@@ -227,7 +234,7 @@ def check_web(cfg, base='http://127.0.0.1:3110'):
     require(health.get('ok') is True and health.get('chainId') == 97, 'Web health/network mismatch.')
     actual = http_json(base + '/api/config')
     for key in (*ADDRESSES, 'sourceRevision', 'sourceFingerprint'):
-        require(actual.get(key) == cfg.get(key), 'Served deployment mismatch: ' + key)
+        require(actual.get(key) == cfg.get(key), 'Served deployment mismatch at ' + base + ': ' + key)
     require(actual.get('poolDistributionVersion') == 1 and actual.get('hourlyCapFlushVersion') == 1,
             'Web reward model mismatch.')
     state = http_json(base + '/api/state')
@@ -235,13 +242,16 @@ def check_web(cfg, base='http://127.0.0.1:3110'):
     return actual
 
 
-def check_assets(release):
+def check_assets(release, base='http://127.0.0.1:3110'):
     routes = {'/': 'landing/dist/index.html', '/app/': 'web/index.html',
               '/token/': 'web/index.html', '/admin/': 'web/index.html',
               '/app.js': 'landing/dist/app.js', '/app.css': 'landing/dist/app.css',
               '/app/app.js': 'web/app.js', '/vendor/walletconnect.js': 'web/vendor/walletconnect.js'}
     for route, file in routes.items():
-        with urllib.request.urlopen('http://127.0.0.1:3110' + route, timeout=20) as response:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        request = urllib.request.Request(base + route + '?fti_check=' + str(time.time_ns()),
+                                         headers={'Cache-Control': 'no-cache'})
+        with opener.open(request, timeout=20) as response:
             require(response.read() == (release / file).read_bytes(), 'Wrong served asset: ' + route)
 
 
@@ -256,8 +266,88 @@ def drop_path(role):
     return Path('/etc/systemd/system') / (UNITS[role] + '.d') / DROP_NAME
 
 
+def repair_proxy_text(original):
+    """Change only explicit loopback proxy destinations; retain routes/auth/limits/URIs."""
+    uncommented = re.sub(r'(?m)#.*$', '', original)
+    count = len(re.findall(r'\bproxy_pass\s+', uncommented))
+    pattern = re.compile(r'(?m)^(\s*proxy_pass\s+http://)(127\.0\.0\.1|localhost):(\d+)([^;\n]*;)')
+    matches = list(pattern.finditer(uncommented))
+    require(count > 0 and count == len(matches),
+            'API routes contain a non-loopback, variable or unsupported proxy destination; no change made.')
+    require(all(1024 <= int(m[3]) <= 65535 for m in matches), 'Unexpected API backend port.')
+    # Use spans in the original text: stripping comments must not shift offsets.
+    masked = re.sub(r'(?m)#.*$', lambda m: ' ' * len(m[0]), original)
+    edits = list(pattern.finditer(masked))
+    result = original
+    for match in reversed(edits):
+        begin, end = match.span(2)[0], match.span(3)[1]
+        result = result[:begin] + '127.0.0.1:3110' + result[end:]
+    return result
+
+
+def validate_api_references(dump):
+    users = set()
+    for part in re.split(r'(?m)^# configuration file ', dump)[1:]:
+        name, _, body = part.partition('\n')
+        body = re.sub(r'(?m)#.*$', '', body)
+        if re.search(r'\binclude\s+[\"\']?' + re.escape(str(API_ROUTES)) + r'[\"\']?\s*;', body):
+            users.add(name.rstrip(':'))
+    require(users and users.issubset(FTI_VHOSTS),
+            'The API include is not exclusively referenced by the known FTI vhosts.')
+
+
+def prepare_api_repair(backup):
+    addresses = {row[4][0] for row in socket.getaddrinfo('ftiprotocol.com', 443, type=socket.SOCK_STREAM)}
+    require(addresses == {'185.114.206.44'}, 'Main domain DNS does not match the approved VPS.')
+    file = API_ROUTES
+    require(file.is_file() and not file.is_symlink(), 'Expected the existing FTI API routes file.')
+    info = file.stat()
+    require(info.st_uid == 0 and not info.st_mode & 0o022,
+            'API routes must be root-owned and not writable by group/others.')
+    validate_api_references(run(['nginx', '-T']))
+    before = file.read_text()
+    after = repair_proxy_text(before)
+    require(before != after, 'API routes already use port 3110; inspect the HTTPS listener before retrying.')
+    write(backup / 'nginx-api.before.conf', before)
+    write(backup / 'nginx-api.after.conf', after)
+    return {'path': str(file), 'before': hashlib.sha256(before.encode()).hexdigest(),
+            'after': hashlib.sha256(after.encode()).hexdigest(),
+            'mode': stat.S_IMODE(info.st_mode), 'uid': info.st_uid, 'gid': info.st_gid}
+
+
+def api_file_state(record):
+    file = Path(record['path'])
+    require(file == API_ROUTES and file.is_file() and not file.is_symlink(), 'Unexpected API repair path.')
+    digest = hashlib.sha256(file.read_bytes()).hexdigest()
+    require(digest in (record['before'], record['after']),
+            'API routes were edited after preparation; preserve them for manual review.')
+    return digest
+
+
+def replace_api_file(backup, record, side):
+    content = (backup / ('nginx-api.' + side + '.conf')).read_bytes()
+    require(hashlib.sha256(content).hexdigest() == record[side], 'API backup hash mismatch.')
+    previous = api_file_state(record)
+    fd, name = tempfile.mkstemp(prefix='.fti-api-', dir=API_ROUTES.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+            os.fchown(stream.fileno(), record['uid'], record['gid'])
+            os.fchmod(stream.fileno(), record['mode'])
+        require(api_file_state(record) == previous, 'API routes changed during replacement.')
+        os.replace(temporary, API_ROUTES)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def rollback(backup):
     record = load(backup / 'switch.json')
+    api = record.get('apiRepair')
+    if api:
+        api_file_state(api)
     # Refuse to remove files subsequently edited by an operator.
     for role in UNITS:
         file = drop_path(role)
@@ -267,16 +357,21 @@ def rollback(backup):
     run(['systemctl', 'stop', *UNITS.values()])
     for role in UNITS:
         drop_path(role).unlink(missing_ok=True)
+    if api and api_file_state(api) != api['before']:
+        replace_api_file(backup, api, 'before')
+        run(['nginx', '-t'])
+        run(['systemctl', 'reload', 'nginx'])
     run(['systemctl', 'daemon-reload'])
     run(['systemctl', 'start', *UNITS.values()])
     require(all(properties(r).get('ActiveState') == 'active' for r in UNITS), 'Rollback services failed to start.')
     print('FTI_PREVIOUS_SERVICES_RESTORED', flush=True)
 
 
-def switch(release, state, backup, saved, cfg):
+def switch(release, state, backup, saved, cfg, api_repair=None):
     texts = {r: dropin(r, release, state, saved[r]['node']) for r in UNITS}
     record = {'release': str(release), 'state': str(state),
-              'dropHashes': {r: hashlib.sha256(t.encode()).hexdigest() for r, t in texts.items()}}
+              'dropHashes': {r: hashlib.sha256(t.encode()).hexdigest() for r, t in texts.items()},
+              'apiRepair': api_repair}
     write(backup / 'switch.json', json.dumps(record))
     print('ROLLBACK_COMMAND=python3 ' + str(backup / 'activate.py') + ' --rollback ' + str(backup), flush=True)
     changed = False
@@ -284,6 +379,8 @@ def switch(release, state, backup, saved, cfg):
         for role in UNITS:
             require(properties(role) == saved[role]['properties'], 'Service changed during preparation; retry.')
             require(not os.path.lexists(drop_path(role)), 'A fresh cutover drop-in already exists.')
+        if api_repair:
+            require(api_file_state(api_repair) == api_repair['before'], 'API routes changed before cutover.')
         # Disable the old settlement loop before attaching either service to the new deployment.
         changed = True
         run(['systemctl', 'stop', *UNITS.values()])
@@ -304,8 +401,27 @@ def switch(release, state, backup, saved, cfg):
                 require(time.monotonic() < deadline, 'New web service did not become healthy.')
                 time.sleep(2)
         check_assets(release)
+        print('LOCAL_WEB_AND_ASSETS_VERIFIED', flush=True)
+        if api_repair:
+            print('STAGE=align_existing_https_api_routes_to_3110', flush=True)
+            require(api_file_state(api_repair) == api_repair['before'], 'API routes changed before repair.')
+            replace_api_file(backup, api_repair, 'after')
+            run(['nginx', '-t'])
+            run(['systemctl', 'reload', 'nginx'])
         # Public HTTPS must agree before the new Keeper is allowed to run.
-        check_web(cfg, 'https://ftiprotocol.com')
+        deadline = time.monotonic() + (45 if api_repair else 0)
+        while True:
+            try:
+                check_web(cfg, 'https://ftiprotocol.com')
+                break
+            except (OSError, ValueError, CutoverError):
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(2)
+        print('PUBLIC_HTTPS_DEPLOYMENT_VERIFIED', flush=True)
+        if api_repair:
+            check_assets(release, 'https://ftiprotocol.com')
+            print('PUBLIC_HTTPS_FRONTEND_VERIFIED', flush=True)
         run(['systemctl', 'start', UNITS['keeper']])
         deadline = time.monotonic() + 20
         while True:
@@ -330,7 +446,7 @@ def switch(release, state, backup, saved, cfg):
         raise
 
 
-def activate(work):
+def activate(work, repair_api_routes=False):
     cfg = load(work / 'deployment/deployment.json')
     result = load(work / 'deployment/result.json')
     check_target(cfg, result)
@@ -353,6 +469,7 @@ def activate(work):
     os.chmod(backup, 0o700)
     shutil.copyfile(__file__, backup / 'activate.py')
     print('FTI_CUTOVER_BACKUP=' + str(backup), flush=True)
+    api_repair = prepare_api_repair(backup) if repair_api_routes else None
     for role in UNITS:
         write(backup / (role + '.unit.txt'), run(['systemctl', 'cat', UNITS[role]]))
         write(backup / (role + '.active-environment.json'), json.dumps(saved[role]['env']))
@@ -373,11 +490,12 @@ def activate(work):
     checks = {r: preflight(saved[r], environments[r], release, account) for r in UNITS}
     write(backup / 'preflight.json', json.dumps(checks, indent=2))
     print('STAGE=switch_web_then_keeper', flush=True)
-    switch(release, state, backup, saved, cfg)
+    switch(release, state, backup, saved, cfg, api_repair)
     report = {'result': 'FTI_FRESH_TESTNET_SERVICES_ACTIVE', 'chainId': 97,
               'sourceRevision': REVISION, 'token': cfg['token'], 'binary': cfg['binary'],
               'poolDistributionVersion': 1, 'rewardModel': cfg['rewardModel'],
               'publicHttpsVerified': True, 'keeperProcessStable': True,
+              'httpsApiRoutesRepaired': bool(api_repair),
               'hourlyPayoutTestCompleted': False, 'backup': str(backup)}
     write(backup / 'result.json', json.dumps(report, indent=2))
     print(json.dumps(report), flush=True)
@@ -388,6 +506,8 @@ def main():
     modes = parser.add_mutually_exclusive_group(required=True)
     modes.add_argument('--run-work', type=Path)
     modes.add_argument('--rollback', type=Path)
+    parser.add_argument('--repair-api-routes', action='store_true',
+                        help='Align existing /etc/nginx/fti-fresh-api-routes.conf loopback targets with port 3110.')
     args = parser.parse_args()
     require(os.geteuid() == 0, 'Run as root on the existing FTI VPS.')
     os.umask(0o077)
@@ -399,12 +519,13 @@ def main():
         def interrupted(*_):
             raise CutoverError('Interrupted.')
         signal.signal(signal.SIGTERM, interrupted)
+        signal.signal(signal.SIGHUP, interrupted)
         if args.rollback:
             require(args.rollback.resolve().parent == Path('/var/lib/fti-continuity/cutover-backups'),
                     'Unexpected backup directory.')
             rollback(args.rollback)
         else:
-            activate(args.run_work)
+            activate(args.run_work, args.repair_api_routes)
 
 
 if __name__ == '__main__':
