@@ -4,8 +4,8 @@ set -euo pipefail
 umask 077
 [[ $EUID == 0 && -t 0 && -t 1 ]] || { echo 'Run as root in an interactive server terminal.' >&2; exit 2; }
 candidate=bc2163070a6e79bcc129a6a788e61c4ace402bdf
-runner_rev=b3987fd6af036ae325acf95fc19cd11fe82d7a54
-runner_hash=8243d6546e8e32a44f7711cf9a77eb8e6b85d3673b95207b66a1622d7401a073
+runner_rev=1d3945617d785d18135ea7bf91df2b3f40adb1e0
+runner_hash=e3b2576a18528e3e6b734b417f98e528d6373cb013bb93587d1fa0b6ce3731c5
 marker="/root/fti-fresh-testnet-runner/$candidate/deployment-requested.json"
 [[ ! -e "$marker" ]] || { echo "A deployment was already requested. Inspect $marker and its journal; no repeat." >&2; exit 2; }
 

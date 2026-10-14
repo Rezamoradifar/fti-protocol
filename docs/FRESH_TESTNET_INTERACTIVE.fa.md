@@ -23,7 +23,7 @@ Python 3، Bash، Git، curl و Node 22+ مورد نیازند. runtime شناخ
     'https://raw.githubusercontent.com/Rezamoradifar/fti-protocol/feat/fti-hourly-pool-distribution-20261014/tools/deploy-fresh-testnet-complete.sh' \
     -o "$FTI_COMPLETE"
   printf '%s  %s\n' \
-    '8e79b567f9ca815c224d60dc907c5da6ccb508433f48e3795375cf84c54008e5' \
+    '66e76b181e72b5fa69a8f10f20aaee58606a8dc7732cb63ad6b7507eedfdb92b' \
     "$FTI_COMPLETE" | sha256sum -c -
   bash "$FTI_COMPLETE"
 )
@@ -43,7 +43,7 @@ Python 3، Bash، Git، curl و Node 22+ مورد نیازند. runtime شناخ
     "https://raw.githubusercontent.com/Rezamoradifar/fti-protocol/$REV/tools/start-fresh-testnet.py" \
     -o "$FILE"
   printf '%s  %s\n' \
-    '8243d6546e8e32a44f7711cf9a77eb8e6b85d3673b95207b66a1622d7401a073' \
+    'e3b2576a18528e3e6b734b417f98e528d6373cb013bb93587d1fa0b6ce3731c5' \
     "$FILE" | sha256sum -c -
   printf '\nRUNNER_SAVED=%s\n' "$FILE"
   python3 -I -u "$FILE"
@@ -58,6 +58,29 @@ Python 3، Bash، Git، curl و Node 22+ مورد نیازند. runtime شناخ
 
 قبل از هر ارسال، برنامهٔ کامل در plan.json نوشته و خلاصهٔ عمومی، آدرس‌های شورا، بودجه و digest نمایش داده می‌شوند. آدرس‌ها در این مرحله **پیش‌بینی‌شده و هنوز دیپلوی‌نشده** هستند. پس از بررسی برنامه، عبارت دقیق `DEPLOY 97` به‌علاوهٔ digest همان برنامه باید در ترمینال وارد شود. پاسخ دیگر به معنی لغو است. برنامهٔ اصلی هنگام اجرا نیز محتوا، nonce، امضاکننده و شبکه را دوباره بررسی می‌کند.
 
+## خطای پیش از نمایش سؤال RPC
+
+اگر دریافت و SHA-256 موفق بود ولی پیش از بنر خود runner و سؤال RPC پیام کلی `local file, process or network error` ظاهر شد، یکی از علت‌های محتمل بازماندن اجرای قبلی و قفل `runner.lock` است. این مسیر روی نسخهٔ قبلی محلی بازتولید شد؛ علت دقیق روی VPS باید با خروجی همان سرور تأیید شود. راه‌انداز اصلاح‌شده در این حالت `Another testnet runner is still active` چاپ می‌کند و هیچ درخواست شبکه، ورودی یا ارسال جدیدی را شروع نمی‌کند.
+
+این فرمان صرفاً وضعیت قفل، شناسه و ترمینال پردازش و وجود نشانگر را نمایش می‌دهد؛ محتوای کلید، محیط پردازش و آرگومان‌های آن را نمی‌خواند:
+
+```bash
+(
+  FTI_STATE=/root/fti-fresh-testnet-runner/bc2163070a6e79bcc129a6a788e61c4ace402bdf
+  if [ -e "$FTI_STATE/deployment-requested.json" ]; then
+    echo DEPLOYMENT_MARKER_PRESENT
+  else
+    echo NO_DEPLOYMENT_MARKER
+  fi
+  lslocks --notruncate --output PID,COMMAND,PATH |
+    awk 'NR == 1 || /fti-fresh-testnet-runner|fti-complete-testnet/'
+  ps -eo pid,tty,stat,etime,comm |
+    awk 'NR == 1 || /python3|tmux/'
+)
+```
+
+اگر اجرای قبلی هنوز در سؤال مسیر فایل کلید منتظر است، در همان پنجره `/root/.fti-private/testnet-deployer.key` را وارد کنید و همان اجرا را ادامه دهید. اگر در مرحلهٔ ساخت یا ارسال است، آن را قطع یا دوباره اجرا نکنید. وجود نشانگر مستلزم بررسی journal است. فایل قفل و نشانگر را حذف نکنید؛ حذف فایل قفل اجرای قبلی را متوقف نمی‌کند و می‌تواند حفاظت در برابر اجرای هم‌زمان را از بین ببرد.
+
 ## توقف، نتیجه و محدوده
 
 هفت ایجاد قرارداد و یک bind، هشت تراکنش جدا هستند. خطا یا قطع ارتباط می‌تواند قراردادهای تازهٔ نیمه‌تمام و گس مصرف‌شده باقی بگذارد؛ بنابراین ارسالِ دوباره خودکار نیست. نشانگر `deployment-requested.json` در `$HOME/fti-fresh-testnet-runner/bc2163070a6e79bcc129a6a788e61c4ace402bdf/` پیش از مرحلهٔ ارسال ثبت و پس از خطا یا موفقیت حفظ می‌شود. آن را برای تکرار کورکورانه پاک نکنید. مسیر دقیق خروجی و source در آن ثبت می‌شود؛ journal ابزار اصلی را بررسی کنید. فایل `deployment.started.json` اصلی نیز همچنان برقرار است.
@@ -68,7 +91,7 @@ Python 3، Bash، Git، curl و Node 22+ مورد نیازند. runtime شناخ
 
 ## شواهد و مراحل بعدی
 
-فایل راه‌انداز با SHA-256 فرمان بالا بررسی می‌شود و فقط commit ثابت `bc2163070a6e79bcc129a6a788e61c4ace402bdf` را می‌سازد. هفت تست بدون شبکه در `test/fresh-testnet-runner.test.py` نسخه و hash، رد شبکه اصلی، بودجه، nonce معلق، لغو و جلوگیری از ارسال دوباره را بررسی می‌کنند. هر نسخه پوشهٔ جدا دارد؛ journal نسخهٔ قبلی حفظ می‌شود.
+فایل راه‌انداز با SHA-256 فرمان بالا بررسی می‌شود و فقط commit ثابت `bc2163070a6e79bcc129a6a788e61c4ace402bdf` را می‌سازد. هشت تست بدون شبکه در `test/fresh-testnet-runner.test.py` نسخه و hash، رد شبکه اصلی، بودجه، nonce معلق، لغو، جلوگیری از ارسال دوباره و توقف روشن اجرای دوم در حضور قفل فعال را بررسی می‌کنند. هر نسخه پوشهٔ جدا دارد؛ journal نسخهٔ قبلی حفظ می‌شود.
 
 ۱۵ تست ادغام دیپلوی تازه و payload شبکه اصلی، و ۱۷ تست تکمیلی گزارش استخر، Keeper، شبکه و سیاست مهاجرت محلی موفق شده‌اند. این بررسی‌ها رسید شبکه عمومی نیستند. در تست محلی با chainId=56، خرید/فروش/انتقال، پرداخت کل استخر ساعتی از مسیر Keeper، بقای موجودی و جلوگیری از پرداخت تکراری بررسی شد. قوانین اقتصادی قرارداد در این مرحله تغییر نکردند.
 
