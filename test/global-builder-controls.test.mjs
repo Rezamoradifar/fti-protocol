@@ -94,17 +94,18 @@ test('Builder controls use hourly funded income, retain liabilities and close at
    await send(binary.beginEpochClose());while(await binary.phase()>0n)await send(binary.processEpoch(25));
    await send(binary.beginBuilderMonth());assert.equal(await binary.monthPhase(),1n);
    for(let i=0;i<4;i++){assert.equal(await binary.monthBalances(i),pools[i]);assert.equal(await binary.monthFunding(key,i),0n);}
-   const pendingAuto=await binary.totalAuto(),beforeMonthlyCash=await binary.totalPending();while(await binary.monthPhase()>0n)await send(binary.processBuilderMonth(25));
+   const pendingAuto=await binary.totalAuto(),beforeMonthlyCash=await binary.totalPending();while(await binary.monthPhase()>0n)await send(binary.processBuilderMonth(25,{gasLimit:6_000_000}));
    assert(await binary.totalPending()>beforeMonthlyCash); // Nonzero monthly award is paid as cash even with 100% hourly auto enabled.
    assert.equal(await binary.totalAuto(),pendingAuto); // Monthly Builder payouts are never auto-buy funding.
    assert.equal(await binary.nextBuilderMonth(),BigInt(key+1));await checkAccounting(suite);
   }));
   await t.test('month lengths include leap February and December rollover, never a rolling 30-day timer',()=>snapshot(async()=>{
-   // Exercise the compiled Calendar library through real business calls, advancing sequentially.
+   // Exercise the compiled Calendar through real transactions. An explicit gas
+   // limit avoids repeatedly simulating each full monthly scan during estimation.
    const boundaries=[['2026-02-01T00:00:00Z',2026*12],['2026-03-01T00:00:00Z',2026*12+1],['2027-01-01T00:00:00Z',2026*12+11],['2028-03-01T00:00:00Z',2028*12+1]];
    for(const [timestamp,lastMonth]of boundaries){
     await warp(unix(timestamp));await send(binary.beginEpochClose());while(await binary.phase()>0n)await send(binary.processEpoch(25));
-    while(await binary.nextBuilderMonth()<=BigInt(lastMonth)){await send(binary.beginBuilderMonth());while(await binary.monthPhase()>0n)await send(binary.processBuilderMonth(25));}
+    while(await binary.nextBuilderMonth()<=BigInt(lastMonth)){await send(binary.beginBuilderMonth());while(await binary.monthPhase()>0n)await send(binary.processBuilderMonth(25,{gasLimit:6_000_000}));}
     const next=await binary.nextBuilderMonth();await send(binary.beginBuilderMonth());assert.equal(await binary.nextBuilderMonth(),next);assert.equal(await binary.monthPhase(),0n);
    }
    await checkAccounting(suite);

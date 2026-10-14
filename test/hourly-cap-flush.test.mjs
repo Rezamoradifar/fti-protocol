@@ -83,7 +83,7 @@ test('pooled hourly settlement and reusable monthly pools conserve funded liabil
    await assert.rejects(()=>binary.addUnits.staticCall(1));await assert.rejects(()=>binary.setAutoBuyPercent.staticCall(true,100));await assert.rejects(()=>binary.beginEpochClose.staticCall());await assert.rejects(()=>binary.payRewards.staticCall(100));
    await send(binary.processEpoch(1));assert.equal(await binary.phase(),2n);assert.equal(await binary.totalPaidPoints(),5n);await send(binary.processEpoch(1));await books();await send(binary.processEpoch(1));assert.equal(await binary.phase(),0n);assert.equal(await binary.pointPool(),0n);await assert.rejects(()=>binary.processEpoch.staticCall(1));await books();
   }));
-  const closeMonth=async(date,batch=100)=>{await warp(date);await settle(suite,p,batch);await send(binary.beginBuilderMonth());while(await binary.monthPhase()>0n)await send(binary.processBuilderMonth(batch));await books();};
+  const closeMonth=async(date,batch=100)=>{await warp(date);await settle(suite,p,batch);await send(binary.beginBuilderMonth());while(await binary.monthPhase()>0n)await send(binary.processBuilderMonth(batch,{gasLimit:6_000_000}));await books();};
   for(const n of [0,1,4,5,6,31])await t.test(`all four monthly tiers: ${n} eligible wallets, 20% ceiling, exact carry`,()=>isolated(async()=>{
    for(let i=0;i<n;i++)for(let tier=0;tier<4;tier++)await rankAt(i,tier,Date.parse('2026-01-10T00:00:00Z')/1000);
    const pools=await Promise.all([0,1,2,3].map(i=>binary.monthFunding(2026*12,i)));await closeMonth('2026-02-01T00:00:00Z',n===6?7:100);
