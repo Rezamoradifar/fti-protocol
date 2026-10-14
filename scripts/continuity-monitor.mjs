@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import {verifyOperationalDeployment} from './operational-release.mjs';
 import {fileURLToPath} from 'node:url';
 import {JsonRpcProvider,Contract} from 'ethers';
+import {readPoolDistributionVersion} from '../core/pool-distribution-policy.mjs';
 
 export async function inspectContinuity({binary,token,blockTag}){
  const at={blockTag},read=async(c,n)=>c[n](at),alerts=[];
@@ -9,7 +10,13 @@ export async function inspectContinuity({binary,token,blockTag}){
  if(binaryBook[0]<binaryBook[1])alerts.push({severity:'critical',code:'BINARY_COLLATERAL_DEFICIT'});
  if(tokenBook[0]<tokenBook[1])alerts.push({severity:'critical',code:'TOKEN_COLLATERAL_DEFICIT'});
  if(credits[0]!==credits[1]||credits[2]!==credits[3])alerts.push({severity:'critical',code:'CREDIT_BOOK_MISMATCH'});
- if(phase===0n&&points>0n&&value<20n*10n**18n)alerts.push({severity:'critical',code:'SETTLED_POINT_BELOW_20'});
+ const pooled=await readPoolDistributionVersion(binary,at)===1;
+ if(phase===0n&&points>0n){
+  if(pooled){
+   const [pool,allocated]=await Promise.all([read(binary,'frozenPool'),read(binary,'allocated')]);
+   if(value!==pool/points||allocated>pool||pool-allocated>=points)alerts.push({severity:'critical',code:'HOURLY_POOL_DISTRIBUTION_MISMATCH'});
+  }else if(value<20n*10n**18n)alerts.push({severity:'critical',code:'SETTLED_POINT_BELOW_20'});
+ }
  if(pending>0n&&queue===0n)alerts.push({severity:'critical',code:'PAYOUT_QUEUE_MISSING'});
  if(price<ath)alerts.push({severity:'warning',code:support===0n?'SUPPORT_EXHAUSTED':'PRICE_REPAIR_NEEDED'});
  const proposals=[];

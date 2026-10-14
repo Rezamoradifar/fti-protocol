@@ -21,13 +21,13 @@ const send=async p=>{const r=await(await p).wait();assert.equal(r.status,1);retu
 
 test('migration build pins the reviewed referral layout and rejects unreviewed storage changes',()=>{
  const {layouts}=loadMigrationBuild(),binary=layouts[0];
- assert.deepEqual(binary.storage.slice(-2).map(s=>[s.label,s.slot,s.offset]),
+ assert.deepEqual(binary.storage.filter(s=>['directReferrer','directReferralCount'].includes(s.label)).map(s=>[s.label,s.slot,s.offset]),
   [['directReferrer','89',0],['directReferralCount','90',0]]);
  for(const change of [
   l=>{l.storage.pop();},
   l=>{l.storage.at(-1).slot='91';},
   l=>{l.storage.find(s=>s.label==='members').slot='999';},
-  l=>{const field=l.storage.at(-1);l.types[field.type].value='t_address';}
+  l=>{const field=l.storage.find(s=>s.label==='directReferralCount');l.types[field.type].value='t_address';}
  ]){
   const altered=structuredClone(binary);change(altered);
   assert.throws(()=>checkedLayout('FundedBinaryPlanUpgradeable',altered,binary),/Unreviewed storage layout/);

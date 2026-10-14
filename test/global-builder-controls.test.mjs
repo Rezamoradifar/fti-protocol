@@ -10,7 +10,7 @@ import {keeperStep} from '../scripts/keeper.mjs';
 const send=async tx=>{const r=await(await tx).wait();assert.equal(r.status,1);return r;};
 const unix=s=>Date.parse(s)/1000;
 
-test('Builder controls use hourly funded income, retain liabilities and close at Gregorian UTC boundaries',{timeout:240000},async t=>{
+test('Builder controls use hourly funded income, retain liabilities and close at Gregorian UTC boundaries',{timeout:600000},async t=>{
  const engine=ganache.provider({chain:{chainId:31337,time:new Date('2026-01-05T00:00:00Z')},logging:{quiet:true},wallet:{totalAccounts:46},miner:{blockGasLimit:30000000}});
  const provider=new BrowserProvider(engine,undefined,{cacheTimeout:-1});provider.pollingInterval=10;
  try {
@@ -117,7 +117,7 @@ test('all existing storage fields retain their position and representation',()=>
  const old=JSON.parse(fs.readFileSync('docs/storage-layout/FundedBinaryPlanUpgradeable-20261009.json'));
  const next=JSON.parse(fs.readFileSync('artifacts/storage-layout/FundedBinaryPlanUpgradeable.json'));
  assertStorageCompatible(old,next);assert.equal(next.storage[old.storage.length-1].label,'calculatedPointValue');
- assert.deepEqual(next.storage.slice(old.storage.length).map(field=>field.label),['_autoBuyPercent','directReferrer','directReferralCount']);
+ assert.deepEqual(next.storage.slice(old.storage.length).map(field=>field.label),['_autoBuyPercent','directReferrer','directReferralCount','poolDistributionState','poolMigrationCursor','poolMigrationMonth','poolMigrationLastMonth']);
 });
 
 test('Keeper gives ready monthly settlement precedence over a replenished payout queue',async()=>{

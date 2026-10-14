@@ -11,7 +11,7 @@ import {ReentrancyGuard} from '@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from '@openzeppelin/contracts/utils/Pausable.sol';
 import {Math} from '@openzeppelin/contracts/utils/math/Math.sol';
 import {IFTI, Calendar} from './BinaryPlan.sol';
-/// @notice Candidate with source-attributed funding; global carried funds cannot fund unrelated rewards.
+/// @notice Hourly pooled rewards and reusable monthly rank pools, paid only from funded books.
 contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,UUPSUpgradeable {
     using SafeERC20 for IERC20;
     error InvalidOperation();
@@ -22,7 +22,7 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     uint256 public constant MAX_POINT_VALUE=20e18;
     uint256 public constant TARGET_POINT_VALUE=20e18;
     bool public pointValueIsTarget;
-    bytes32 public constant rewardModel='FUNDED_POINT_FLOOR_V1';
+    bytes32 public constant rewardModel='HOURLY_POOL_SHARE_V2';
     uint256 public constant hourlyCapFlushVersion=1;
     IERC20 public usd;
     IFTI public token;
@@ -91,8 +91,7 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     function _authorizeUpgrade(address implementation) internal view override {
         ContinuityGovernance.validate(governance,guardian);
         require(msg.sender==governance,'governance');require(recoveryFrozen,'freeze first');
-        (bool frozenOk,bytes memory frozenData)=address(token).staticcall(abi.encodeWithSignature("recoveryFrozen()"));
-        if(!(frozenOk&&frozenData.length==32&&abi.decode(frozenData,(bool))))revert InvalidOperation();_backed();
+        _requireTokenFrozen();_backed();
         (bool ok,bytes memory data)=implementation.staticcall(abi.encodeWithSignature("COMPONENT_ID()"));
         require(ok&&data.length==32&&abi.decode(data,(bytes32))==COMPONENT_ID,'component');
     }
@@ -103,7 +102,7 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
         (bool targetOk,bytes memory targetData)=fti.staticcall(abi.encodeWithSignature("POINT_VALUE_TARGET()"));
         pointValueIsTarget=targetOk&&targetData.length==32&&abi.decode(targetData,(uint256))==TARGET_POINT_VALUE;
         if(!(pointValueIsTarget))revert InvalidOperation();
-        usd=IERC20(stable);token=IFTI(fti);governance=gov;guardian=emergency;development=dev;
+        usd=IERC20(stable);token=IFTI(fti);governance=gov;guardian=emergency;development=dev;poolDistributionState=3;
         epochEnd=(block.timestamp/1 hours+1)*1 hours;(nextBuilderMonth,)=Calendar.month(block.timestamp);
         for(uint256 i;i<31;i++){
             address who=genesis[i];if(!(who!=address(0)&&!members[who].exists))revert InvalidOperation();
@@ -127,24 +126,60 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     // For genesis / pre-upgrade members, directReferrerOf() falls back to parent.
     mapping(address=>address) public directReferrer;
     mapping(address=>uint256) public directReferralCount;
+    // Append-only transition state. Old proxies cannot use new economics until
+    // governance freezes both components and converts the unallocated credit books.
+    // 0 legacy, 1 point-credit conversion, 2 builder-credit conversion, 3 active.
+    uint8 public poolDistributionState;
+    uint256 public poolMigrationCursor;
+    uint256 public poolMigrationMonth;
+    uint256 public poolMigrationLastMonth;
+    event PoolDistributionActivated(uint256 pointFunds,uint256 builderFunds);
+    function poolDistributionVersion() external view returns(uint256){return poolDistributionState==3?1:0;}
+    function beginPoolDistribution() external {
+        require(msg.sender==governance,'governance');
+        if(!(recoveryFrozen&&poolDistributionState==0&&phase==0&&monthPhase==0&&jobCursor==jobs.length))revert InvalidOperation();
+        _requireTokenFrozen();_backed();
+        poolDistributionState=1;poolMigrationMonth=nextBuilderMonth;
+        (poolMigrationLastMonth,)=Calendar.month(block.timestamp);
+    }
+    /// @notice Bounded conversion of unallocated credits only; cash, auto-buy,
+    /// volume, ranks, claims and collateral are unchanged. No transfer is sent.
+    function processPoolMigration(uint256 batch) external nonReentrant {
+        if(!(recoveryFrozen&&poolDistributionState>0&&poolDistributionState<3&&batch>0&&batch<=MAX_BATCH))revert InvalidOperation();
+        for(uint256 i;i<batch&&poolDistributionState<3;i++){
+            if(poolDistributionState==1){
+                if(poolMigrationCursor<memberList.length){
+                    address who=memberList[poolMigrationCursor++];uint256 amount=creditL[who]+creditR[who];
+                    delete creditL[who];delete creditR[who];assignedPointCredit-=amount;retainedPointReserve+=amount;
+                }else{poolDistributionState=2;poolMigrationCursor=0;}
+            }else if(poolMigrationMonth<=poolMigrationLastMonth){
+                if(poolMigrationCursor<builderAccounts[poolMigrationMonth].length){
+                    address who=builderAccounts[poolMigrationMonth][poolMigrationCursor++];
+                    for(uint256 p;p<4;p++){uint256 amount=builderCredit[poolMigrationMonth][who][p];delete builderCredit[poolMigrationMonth][who][p];assignedBuilderCredit-=amount;retainedBuilderReserve+=amount;}
+                }else{poolMigrationMonth++;poolMigrationCursor=0;}
+            }else{
+                if(!(queuedPointCredit==0&&assignedPointCredit==0&&queuedBuilderCredit==0&&assignedBuilderCredit==0&&retainedPointReserve==pointPool&&retainedBuilderReserve==builderAccounted))revert InvalidOperation();
+                poolDistributionState=3;_backed();emit PoolDistributionActivated(pointPool,builderAccounted);
+            }
+        }
+    }
     event ReferralPlacement(address indexed wallet,address indexed referrer,address indexed placementParent,uint8 side);
     event AutoBuyPreference(address indexed wallet,bool enabled,uint8 percent);
     event BuilderMonthCloseRequested(uint256 indexed month,uint256 effectiveAt);
     function autoBuyPercent(address who) public view returns(uint8){uint8 p=_autoBuyPercent[who];return p==0?5:p;}
     event RecoveryFreezeChanged(bool frozen);
     event RecoveryCheckpoint(uint256 indexed serial,bytes32 indexed root,uint256 blockNumber,bytes32 blockHash);
-    modifier whenRecoveryOpen(){if(!(!recoveryFrozen))revert InvalidOperation();_;}
+    modifier whenRecoveryOpen(){if(!(poolDistributionState==3&&!recoveryFrozen))revert InvalidOperation();_;}
     function setRecoveryFrozen(bool frozen) external {
         if(frozen){if(!(msg.sender==guardian||msg.sender==governance))revert InvalidOperation();}
-        else {require(msg.sender==governance,'governance');_backed();}
+        else {require(msg.sender==governance,'governance');if(poolDistributionState!=3)revert InvalidOperation();_backed();}
         recoveryFrozen=frozen;emit RecoveryFreezeChanged(frozen);
     }
     // This attests an export only. It grants no right to drain or mint assets.
     function recordRecoveryCheckpoint(bytes32 root,uint256 snapshotBlock) external {
         require(msg.sender==governance,'governance');require(recoveryFrozen,'freeze first');
         if(!(root!=bytes32(0)&&snapshotBlock<block.number&&block.number-snapshotBlock<=256))revert InvalidOperation();
-        (bool ok,bytes memory data)=address(token).staticcall(abi.encodeWithSignature("recoveryFrozen()"));
-        if(!(ok&&data.length==32&&abi.decode(data,(bool))))revert InvalidOperation();
+        _requireTokenFrozen();
         _backed();recoverySnapshotRoot=root;recoveryCheckpointSerial++;
         emit RecoveryCheckpoint(recoveryCheckpointSerial,root,snapshotBlock,blockhash(snapshotBlock));
     }
@@ -171,10 +206,10 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
         external nonReentrant whenRecoveryOpen whenNotPaused
     {
         if(!(members[referrer].exists&&members[placementParent].exists))revert InvalidOperation();
-        address cursor=placementParent;
+        address ancestor=placementParent;
         // Depth is bounded by MAX_DEPTH, so ancestry verification is bounded.
-        for(uint256 i=0;i<=MAX_DEPTH&&cursor!=referrer;i++)cursor=members[cursor].parent;
-        if(cursor!=referrer)revert InvalidOperation();
+        for(uint256 i=0;i<=MAX_DEPTH&&ancestor!=referrer;i++)ancestor=members[ancestor].parent;
+        if(ancestor!=referrer)revert InvalidOperation();
         _registerWithReferral(referrer,placementParent,units);
     }
     function directReferrerOf(address who) external view returns(address){
@@ -204,10 +239,9 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
         pendingReward[development]+=units*1e18;totalPending+=units*1e18;_trackReward(development);
         (uint256 monthKey,)=Calendar.month(block.timestamp);uint256[4] memory portions=[uint256(16e17),12e17,8e17,4e17];
         for(uint256 i;i<4;i++)monthFunding[monthKey][i]+=units*portions[i];builderAccounted+=units*4e18;
-        address parent=members[who].parent;uint256 d=depth[who];uint256 pointShare=d==0?0:units*90e18/d;uint256[4] memory shares;
-        queuedPointCredit+=pointShare*d;retainedPointReserve+=units*90e18-pointShare*d;
-        for(uint256 i;i<4;i++){shares[i]=d==0?0:units*portions[i]/d;queuedBuilderCredit+=shares[i]*d;retainedBuilderReserve+=units*portions[i]-shares[i]*d;}
-        if(parent!=address(0))jobs.push(Job(who,parent,units,pointShare,shares,monthKey,fundingSerial));
+        address parent=members[who].parent;uint256[4] memory shares;
+        retainedPointReserve+=units*90e18;retainedBuilderReserve+=units*4e18;
+        if(parent!=address(0))jobs.push(Job(who,parent,units,0,shares,monthKey,fundingSerial));
         token.inject(units*5e18,newWallet);
         _backed();
     }
@@ -218,17 +252,10 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
             bool left=p.left==j.child;if(!(left||p.right==j.child))revert InvalidOperation();
             // Eligibility is fixed at purchase serial, not at an arbitrary keeper execution time.
             bool active=activatedAtSerial[j.ancestor]>0&&activatedAtSerial[j.ancestor]<=j.serial;
-            queuedPointCredit-=j.pointShare;
             if(active){
-                if(left){p.carryL+=j.units;p.lifetimeL+=j.units;creditL[j.ancestor]+=j.pointShare;}
-                else{p.carryR+=j.units;p.lifetimeR+=j.units;creditR[j.ancestor]+=j.pointShare;}
-                assignedPointCredit+=j.pointShare;_touch(j.ancestor);
-                if(!builderSeen[j.month][j.ancestor]){builderSeen[j.month][j.ancestor]=true;builderAccounts[j.month].push(j.ancestor);}
-            }else retainedPointReserve+=j.pointShare;
-            for(uint256 tier;tier<4;tier++){
-                uint256 amount=j.builderShares[tier];queuedBuilderCredit-=amount;
-                if(active){builderCredit[j.month][j.ancestor][tier]+=amount;assignedBuilderCredit+=amount;}
-                else retainedBuilderReserve+=amount;
+                if(left){p.carryL+=j.units;p.lifetimeL+=j.units;}
+                else{p.carryR+=j.units;p.lifetimeR+=j.units;}
+                _touch(j.ancestor);
             }
             j.child=j.ancestor;j.ancestor=p.parent;if(j.ancestor==address(0))jobCursor++;
         }
@@ -236,52 +263,40 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
     function cap(uint8 rank,uint8 level) public pure returns(uint256){if(!(rank<5&&level<4))revert InvalidOperation();uint8[5][4] memory c=[[5,10,15,20,25],[5,10,12,16,20],[5,10,10,12,15],[5,10,10,10,10]];return c[level][rank];}
     function beginEpochClose() external nonReentrant whenRecoveryOpen {
         if(!(phase==0&&block.timestamp>=epochEnd&&jobCursor==jobs.length))revert InvalidOperation();
-        if(unitsSinceSettlement<5&&dirtyCount==0){_nextEpoch();return;}
-        candidatePoints=0;candidateFunding=0;carriedDirtyCount=0;fundingShortfall=false;frozenMembers=dirtyCount;frozenLevel=protectionLevel;cursor=0;totalPaidPoints=0;allocated=0;matchedFunding=0;frozenPool=pointPool;phase=1;
+        _backed();candidatePoints=0;candidateFunding=pointPool;frozenMembers=dirtyCount;frozenLevel=protectionLevel;cursor=0;totalPaidPoints=0;allocated=0;frozenPool=pointPool;phase=1;
         if(frozenMembers==0)_finishEpoch();
     }
     function processEpoch(uint256 batch) external nonReentrant whenRecoveryOpen {
         if(!(batch>0&&batch<=MAX_BATCH&&phase>0))revert InvalidOperation();
         uint256 end=cursor+batch;if(end>frozenMembers)end=frozenMembers;
+        if(phase==1){
             for(;cursor<end;cursor++){
                 address who=dirtyMembers[cursor];Member storage m=members[who];uint256 raw=m.carryL<m.carryR?m.carryL:m.carryR;
                 uint256 paid=raw<cap(m.rank,frozenLevel)?raw:cap(m.rank,frozenLevel);
                 uint256 flushed=raw-paid;
-                uint256 takenL=raw==0?0:Math.mulDiv(creditL[who],raw,m.carryL);
-                uint256 takenR=raw==0?0:Math.mulDiv(creditR[who],raw,m.carryR);
-                uint256 taken=takenL+takenR;uint256 budget=raw==0?0:Math.mulDiv(taken,paid,raw);
-                candidatePoints+=paid;candidateFunding+=budget;
-                // Count only points backed by at least $20 of this wallet's credit.
-                // Only above-cap matches flush. Within-cap matches rejected by
-                // the funded floor retain the existing deferred-volume policy.
-                uint256 funded=budget/TARGET_POINT_VALUE;
-                if(funded<paid){paid=funded;fundingShortfall=true;}
-                uint256 reward=paid==0?0:budget;
-                uint256 spentL=taken==0?0:Math.mulDiv(reward,takenL,taken);
-                uint256 spentR=reward-spentL;
-                uint256 forfeited;
-                if(flushed>0){
-                    // Partition the matched credit before debiting either leg.
-                    // Forfeiture remains protected; it is not a new cash claim.
-                    uint256 budgetL=taken==0?0:Math.mulDiv(budget,takenL,taken);
-                    spentL+=takenL-budgetL;spentR+=takenR-(budget-budgetL);
-                    forfeited=taken-budget;retainedPointReserve+=forfeited;
-                    emit HourlyCapFlushed(epoch,who,flushed,forfeited);
-                }
-                creditL[who]-=spentL;creditR[who]-=spentR;assignedPointCredit-=reward+forfeited;
-                uint256 consumed=paid+flushed;
-                m.carryL-=consumed;m.carryR-=consumed;paidPoints[epoch][who]=paid;totalPaidPoints+=paid;matchedFunding+=reward;
+                if(flushed>0)emit HourlyCapFlushed(epoch,who,flushed,0);
+                // The entire smaller leg is consumed: capped points pay and
+                // excess matches flush. Unmatched stronger-leg volume survives.
+                m.carryL-=raw;m.carryR-=raw;paidPoints[epoch][who]=paid;totalPaidPoints+=paid;
                 autoSnapshot[epoch][who]=m.autoEnabled&&m.rank>0;
-                uint256 automatic=autoSnapshot[epoch][who]?Math.mulDiv(reward,autoBuyPercent(who),100):0;
-                pendingReward[who]+=reward-automatic;totalPending+=reward-automatic;_trackReward(who);pendingAuto[who]+=automatic;totalAuto+=automatic;
-                if(automatic>0)_trackAuto(who);allocated+=reward;pointPool-=reward;settled[epoch][who]=true;
-                dirty[who]=m.carryL>0&&m.carryR>0;
-                if(dirty[who])dirtyMembers[carriedDirtyCount++]=who;
-                emit RewardAllocated(epoch,who,reward-automatic,automatic);
+                dirty[who]=false;
                 uint256 lifetime=m.lifetimeL<m.lifetimeR?m.lifetimeL:m.lifetimeR;uint256[4] memory thresholds=[uint256(100),200,500,1000];
                 if(m.units>0)for(uint256 r=m.rank;r<4;r++){if(lifetime>=thresholds[r]){m.rank=uint8(r+1);rankReachedAt[who][r]=uint64(epochEnd);}else break;}
             }
+            if(cursor==frozenMembers){candidatePoints=totalPaidPoints;pointValue=totalPaidPoints==0?0:frozenPool/totalPaidPoints;cursor=0;phase=2;}
+        }else{
+            for(;cursor<end;cursor++){
+                address who=dirtyMembers[cursor];
+                // Divide once per wallet, rather than rounding every point.
+                // With eligible points, remaining dust is < one wei per recipient.
+                uint256 reward=totalPaidPoints==0?0:Math.mulDiv(frozenPool,paidPoints[epoch][who],totalPaidPoints);
+                uint256 automatic=autoSnapshot[epoch][who]?Math.mulDiv(reward,autoBuyPercent(who),100):0;
+                pendingReward[who]+=reward-automatic;totalPending+=reward-automatic;_trackReward(who);pendingAuto[who]+=automatic;totalAuto+=automatic;
+                if(automatic>0)_trackAuto(who);allocated+=reward;pointPool-=reward;retainedPointReserve-=reward;settled[epoch][who]=true;
+                emit RewardAllocated(epoch,who,reward-automatic,automatic);
+            }
             if(cursor==frozenMembers)_finishEpoch();
+        }
     }
     // Strictly below $16 increases protection; $16 through $20 holds it.
     // No candidate points means no price observation, not a zero-value point.
@@ -294,14 +309,12 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
         return level;
     }
     function _finishEpoch() private {
-        pointValue=totalPaidPoints==0?0:allocated/totalPaidPoints;
-        calculatedPointValue=candidatePoints==0?0:candidateFunding/candidatePoints;
+        pointValue=totalPaidPoints==0?0:frozenPool/totalPaidPoints;
+        calculatedPointValue=pointValue;
         protectionLevel=protectionForValue(protectionLevel,candidateFunding,candidatePoints);
-        if(totalPaidPoints>0){
-            unitsSinceSettlement=0;
-        }
+        unitsSinceSettlement=0;
         // Reuse indexed slots: deleting an unbounded storage array would itself be an O(N) close.
-        dirtyCount=carriedDirtyCount;emit EpochClosed(epoch,frozenPool,totalPaidPoints,pointValue,protectionLevel);_nextEpoch();
+        dirtyCount=0;emit EpochClosed(epoch,frozenPool,totalPaidPoints,pointValue,protectionLevel);_nextEpoch();
     }
     function _nextEpoch() private {lastClosedAt=(block.timestamp/1 hours)*1 hours;epoch++;epochEnd=(block.timestamp/1 hours+1)*1 hours;epochUnits=0;phase=0;cursor=0;}
     // Legacy ABI retained. Its former maximum-price argument is ignored, not repurposed.
@@ -365,29 +378,32 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
         // Keeper starts work at/after 00:00 UTC on the first of the next month,
         // once hourly settlement reaches that boundary. A request is not a payout.
         if(block.timestamp<end||lastClosedAt<end){emit BuilderMonthCloseRequested(nextBuilderMonth,end);return;}
-        monthMembers=builderAccounts[nextBuilderMonth].length;monthCursor=0;monthPhase=1;
-        for(uint256 p;p<4;p++){monthBalances[p]=monthFunding[nextBuilderMonth][p];monthFunding[nextBuilderMonth][p]=0;monthEligible[p]=0;monthPaid[p]=0;monthPay[p]=monthBalances[p]/5;}
-        if(monthMembers==0)_finishBuilderMonth();
+        if(phase!=0||jobCursor!=jobs.length)revert InvalidOperation();
+        monthMembers=memberList.length;monthCursor=0;monthPhase=1;
+        for(uint256 p;p<4;p++){monthBalances[p]=builderCarry[p]+monthFunding[nextBuilderMonth][p];monthFunding[nextBuilderMonth][p]=0;builderCarry[p]=0;monthEligible[p]=0;monthPaid[p]=0;monthPay[p]=0;}
     }
     function _eligible(address who,uint256 p,uint256 end) private view returns(bool){uint256 at=rankReachedAt[who][p];return at>0&&at<=end&&!builderClaimed[who][p];}
     function processBuilderMonth(uint256 batch) external nonReentrant whenRecoveryOpen {
         if(!(monthPhase>0&&batch>0&&batch<=MAX_BATCH))revert InvalidOperation();uint256 end=monthCursor+batch;if(end>monthMembers)end=monthMembers;uint256 cutoff=Calendar.endOf(nextBuilderMonth);
-        for(;monthCursor<end;monthCursor++){
-            address who=builderAccounts[nextBuilderMonth][monthCursor];
-            for(uint256 p;p<4;p++){
-                uint256 credit=builderCredit[nextBuilderMonth][who][p];delete builderCredit[nextBuilderMonth][who][p];assignedBuilderCredit-=credit;
-                uint256 pay;
-                if(credit>0&&_eligible(who,p,cutoff)){
-                    monthEligible[p]++;pay=credit<monthPay[p]?credit:monthPay[p];
-                    if(pay>0){builderClaimed[who][p]=true;pendingReward[who]+=pay;totalPending+=pay;_trackReward(who);builderAccounted-=pay;monthPaid[p]+=pay;}
+        if(monthPhase==1){
+            for(;monthCursor<end;monthCursor++)for(uint256 p;p<4;p++)if(_eligible(memberList[monthCursor],p,cutoff))monthEligible[p]++;
+            if(monthCursor==monthMembers){for(uint256 p;p<4;p++)monthPay[p]=monthBalances[p]/(monthEligible[p]>5?monthEligible[p]:5);monthCursor=0;monthPhase=2;}
+        }else{
+            for(;monthCursor<end;monthCursor++){
+                address who=memberList[monthCursor];
+                for(uint256 p;p<4;p++)if(_eligible(who,p,cutoff)&&monthPay[p]>0){
+                    uint256 pay=monthPay[p];builderClaimed[who][p]=true;pendingReward[who]+=pay;totalPending+=pay;_trackReward(who);builderAccounted-=pay;retainedBuilderReserve-=pay;monthPaid[p]+=pay;
                 }
-                retainedBuilderReserve+=credit-pay;
             }
+            if(monthCursor==monthMembers)_finishBuilderMonth();
         }
-        if(monthCursor==monthMembers)_finishBuilderMonth();
     }
     function _finishBuilderMonth() private {for(uint256 p;p<4;p++)builderCarry[p]+=monthBalances[p]-monthPaid[p];emit BuilderMonthClosed(nextBuilderMonth);nextBuilderMonth++;monthPhase=0;monthCursor=0;}
     function fundingAccounting() external view returns(uint256 pointCredits,uint256 pointBook,uint256 builderCredits,uint256 builderBook){return(queuedPointCredit+assignedPointCredit+retainedPointReserve,pointPool,queuedBuilderCredit+assignedBuilderCredit+retainedBuilderReserve,builderAccounted);}
+    function _requireTokenFrozen() private view {
+        (bool ok,bytes memory data)=address(token).staticcall(abi.encodeWithSignature('recoveryFrozen()'));
+        if(!(ok&&data.length==32&&abi.decode(data,(bool))))revert InvalidOperation();
+    }
     function _backed() private view {if(!(usd.balanceOf(address(this))>=pointPool+builderAccounted+totalPending+totalAuto))revert InvalidOperation();}
     function accounting() external view returns(uint256 actual,uint256 accounted){return(usd.balanceOf(address(this)),pointPool+builderAccounted+totalPending+totalAuto);}
     function rescue(address asset,address to,uint256 amount) external nonReentrant whenRecoveryOpen {if(!(msg.sender==governance&&asset!=address(usd)&&asset!=address(token)))revert InvalidOperation();IERC20(asset).safeTransfer(to,amount);}

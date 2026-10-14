@@ -4,6 +4,7 @@ import {readMarket} from './market-reader.mjs';
 import {readEvents} from './event-reader.mjs';
 import {networkPlacementIndexer} from './referral-placement-index.mjs';
 import {readHourlyCapFlushVersion} from '../core/hourly-cap-policy.mjs';
+import {readPoolDistributionVersion} from '../core/pool-distribution-policy.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -36,6 +37,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  }
  publicConfig.referralPlacementEnabled=referralPlacementEnabled;
  publicConfig.hourlyCapFlushVersion=await readHourlyCapFlushVersion(contracts.binary);
+ publicConfig.poolDistributionVersion=await readPoolDistributionVersion(contracts.binary);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data,(_,v)=>typeof v==='bigint'?v.toString():v));};
  const readMethods=new Set(['eth_chainId','eth_blockNumber','eth_call','eth_getBalance','eth_getStorageAt','eth_getCode','eth_getLogs','eth_getTransactionReceipt','eth_getTransactionByHash','eth_getBlockByNumber','eth_estimateGas','eth_gasPrice','eth_maxPriorityFeePerGas','eth_feeHistory','eth_getTransactionCount']);
  async function body(req){let raw='';for await(const c of req){raw+=c;if(raw.length>65536)throw Error('Request too large');}return JSON.parse(raw);}
@@ -74,7 +76,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
    if(tokenContract==='FTIReserveTokenUpgradeable'){[result.binaryRecoveryFrozen,result.tokenRecoveryFrozen,result.calculatedPointValue,result.candidatePoints,result.pointValue,result.totalPaidPoints]=await Promise.all([b.recoveryFrozen(),t.recoveryFrozen(),b.calculatedPointValue(),b.candidatePoints(),b.pointValue(),b.totalPaidPoints()]);result.paused=result.paused||result.binaryRecoveryFrozen;result.tokenPaused=result.tokenPaused||result.tokenRecoveryFrozen;}
    if(cfg.batchedRewards){result.rewardQueue=await b.rewardAccountCount();}
    if(reserveModel){result.totalSupply=supply;result.anchorSupply=await t.anchorSupply();result.supply=await t.circulatingSupply();result.pricingModel='real-reserve-v1';}
-   if(fundedModel){result.rewardModel=v3Model?'attributed-credit-target-v2':'attributed-credit-v1';[result.pointRetained,result.builderRetained,result.pointAssigned,result.dirtyMembers]=await Promise.all([b.retainedPointReserve(),b.retainedBuilderReserve(),b.assignedPointCredit(),b.dirtyCount()]);}
+   if(fundedModel){result.rewardModel=publicConfig.poolDistributionVersion===1?'hourly-global-pool-v2':v3Model?'attributed-credit-target-v2':'attributed-credit-v1';[result.pointRetained,result.builderRetained,result.pointAssigned,result.dirtyMembers]=await Promise.all([b.retainedPointReserve(),b.retainedBuilderReserve(),b.assignedPointCredit(),b.dirtyCount()]);}
    if(address){const m=await b.members(address);const [usdBalance,ftiBalance,unlocked,remaining,claimable,autoPending,locks]=await Promise.all([usd.balanceOf(address),t.balanceOf(address),(v3Model?t.balanceOf(address):(cfg.liquidityVersion===1?t.available(address):t.unlocked(address))),t.remainingAllowance(address),b.pendingReward(address),b.pendingAuto(address),(v3Model?[]:t.lockInfo(address))]);result.wallet={address,parent:m.parent,left:m.left,right:m.right,units:m.units,carryL:m.carryL,carryR:m.carryR,lifetimeL:m.lifetimeL,lifetimeR:m.lifetimeR,rank:m.rank,exists:m.exists,autoEnabled:m.autoEnabled,maxAutoPrice:m.maxAutoPrice,usdBalance,ftiBalance,unlocked,remaining,claimable,autoPending,locks:locks.map(l=>({amount:l.amount,clock:l.clock,deadline:l.deadline})),lockCount:cfg.lockVersion===2?await t.lockCount(address):locks.length};if(fundedModel){result.wallet.depth=await b.depth(address);result.wallet.creditL=await b.creditL(address);result.wallet.creditR=await b.creditR(address);if(referralPlacementEnabled){result.wallet.referrer=await b.directReferrerOf(address);result.wallet.directReferrals=await b.directReferralCount(address);}}}
    if(address&&publicConfig.selectableHourlyAutoBuy)result.wallet.autoBuyPercent=await contracts.binary.autoBuyPercent(address);
    return json(res,200,result);
