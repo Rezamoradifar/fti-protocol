@@ -1,5 +1,6 @@
 """No public network or signing: deployment runner input and retry boundaries."""
 import hashlib
+import fcntl
 import importlib.util
 from pathlib import Path
 import subprocess
@@ -16,6 +17,34 @@ spec.loader.exec_module(runner)
 
 
 class RunnerTests(unittest.TestCase):
+    def test_second_runner_reports_active_lock_without_prompt_network_or_journal_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            parent = runner.private_dir(home / 'fti-fresh-testnet-runner')
+            base = runner.private_dir(parent / runner.BASE_REV)
+            marker = base / 'deployment-requested.json'
+            runner.write_new(marker, {'source': 'existing deployment'})
+            original = marker.read_bytes()
+            with (base / 'runner.lock').open('a+b') as held:
+                fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                with patch.object(runner.Path, 'home', return_value=home), \
+                        patch.object(runner.sys.stdin, 'isatty', return_value=True), \
+                        patch.object(runner, 'request_bytes') as network, \
+                        patch.object(runner, 'run_checked') as execute, \
+                        patch.object(runner.getpass, 'getpass') as hidden_input, \
+                        patch('builtins.input') as prompt:
+                    with self.assertRaisesRegex(runner.SetupError, 'Another testnet runner is still active'):
+                        runner.main([])
+                    network.assert_not_called()
+                    execute.assert_not_called()
+                    hidden_input.assert_not_called()
+                    prompt.assert_not_called()
+                self.assertEqual(marker.read_bytes(), original)
+                # The rejected second runner must not remove or release the first lock.
+                with (base / 'runner.lock').open('rb') as contender:
+                    with self.assertRaises(BlockingIOError):
+                        fcntl.flock(contender, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
     def test_release_and_preparation_are_pinned_to_the_same_committed_bytes(self):
         source = subprocess.check_output(['git', 'show', runner.BASE_REV + ':tools/prepare-fresh-testnet.sh'], cwd=ROOT)
         self.assertEqual(hashlib.sha256(source).hexdigest(), runner.PREP_SHA256)

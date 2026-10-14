@@ -220,7 +220,12 @@ def main(argv=None):
     base = private_dir(base / BASE_REV)
     lock = os.open(base / 'runner.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SetupError('Another testnet runner is still active for this release. '
+                             'Return to its original terminal; inspect its stage before stopping it. '
+                             'Do not delete runner.lock or deployment-requested.json.') from None
         marker = base / 'deployment-requested.json'
         require(not marker.exists(), 'A deployment was already requested. Inspect deployment-requested.json and its journal; no automatic repeat.')
         print('BNB TESTNET 97 ONLY — new contracts; no old users/funds imported.', flush=True)
