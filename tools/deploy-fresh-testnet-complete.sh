@@ -4,8 +4,8 @@ set -euo pipefail
 umask 077
 [[ $EUID == 0 && -t 0 && -t 1 ]] || { echo 'Run as root in an interactive server terminal.' >&2; exit 2; }
 candidate=bc2163070a6e79bcc129a6a788e61c4ace402bdf
-runner_rev=1d3945617d785d18135ea7bf91df2b3f40adb1e0
-runner_hash=e3b2576a18528e3e6b734b417f98e528d6373cb013bb93587d1fa0b6ce3731c5
+runner_rev=79431df426284bebdecd1625dffcd596ffbbb5fd
+runner_hash=59077700a083c427ace57e2f4355e41a1a7ffb0a4072da49799e268714480db5
 marker="/root/fti-fresh-testnet-runner/$candidate/deployment-requested.json"
 [[ ! -e "$marker" ]] || { echo "A deployment was already requested. Inspect $marker and its journal; no repeat." >&2; exit 2; }
 
@@ -75,11 +75,11 @@ else:
     helpers['write_new'](keyfile, ('0x' + raw + '\n').encode())
     helpers['check_key_path'](str(keyfile))
     print('SAVED_PRIVATE_KEY_FILE=' + str(keyfile))
-print('When asked for PRIVATE KEY FILE PATH, enter: ' + str(keyfile))
+print('This protected file is selected automatically; no private-key path prompt follows.')
 PY
 
 echo 'BNB TESTNET 97: enter your public deployer, seven council addresses and chosen gas budget.'
 echo 'The runner builds/tests the pinned candidate, shows the full plan, and then requests its exact confirmation.'
-python3 -I -u "$runner" --node "$node_bin"
+python3 -I -u "$runner" --node "$node_bin" --key-file /root/.fti-private/testnet-deployer.key
 echo 'CONTRACT DEPLOYMENT FINISHED. Use the printed VERIFIED_RESULT file for the web/Keeper activation step.'
 echo 'Keep the bootstrap directory and all deployment journals. No website, Keeper or mainnet switch was performed.'
