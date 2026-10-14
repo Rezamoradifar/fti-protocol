@@ -6,6 +6,7 @@ on:
       - 'test/fresh-testnet.test.mjs'
       - 'tools/prepare-fresh-testnet.sh'
       - 'tools/start-fresh-testnet.py'
+      - 'tools/deploy-fresh-testnet-complete.sh'
       - 'test/fresh-testnet-runner.test.py'
       - 'core/hourly-settlement-audit.mjs'
       - 'tools/testnet-continuity-*.mjs'
@@ -32,5 +33,6 @@ jobs:
       - run: npm run build:web
       - run: npm --prefix landing run build
       - run: bash -n tools/prepare-fresh-testnet.sh
+      - run: bash -n tools/deploy-fresh-testnet-complete.sh
       - run: python3 -B test/fresh-testnet-runner.test.py
       - run: node --test --test-concurrency=2 test/fresh-testnet.test.mjs test/global-builder-controls.test.mjs test/global-frontend.test.mjs test/member-landing-theme.test.mjs test/pool-settlement-audit.test.mjs
