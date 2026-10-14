@@ -45,6 +45,10 @@ export async function runJourney({cfg,p,owner,dir,limits,tick=()=>new Promise(r=
  const {usd,token,binary}=contracts;
  assert.equal(await binary.poolDistributionVersion(),1n);assert.equal(await binary.hourlyCapFlushVersion(),1n);
  assert(!await binary.paused()&&!await token.paused()&&!await binary.recoveryFrozen()&&!await token.recoveryFrozen(),'Paused/frozen deployment');
+ const evidenceTopics=['EpochClosed','RewardAllocated','Claimed','AutoExecuted'].map(n=>binary.interface.getEvent(n).topicHash);
+ const historyHead=await p.getBlockNumber();
+ try{await p.getLogs({address:binary.target,fromBlock:Math.max(0,historyHead-99),toBlock:historyHead,topics:[evidenceTopics]});}
+ catch{assert.fail('History RPC unavailable before test funding; use a working testnet log endpoint');}
  fs.mkdirSync(dir,{recursive:true,mode:0o700});assert(!fs.lstatSync(dir).isSymbolicLink());assert.equal(fs.statSync(dir).mode&0o077,0,'Private state directory required');
  const file=path.join(dir,'journal.json'),reportFile=path.join(dir,'report.json');
  let j;
@@ -151,9 +155,8 @@ export async function runJourney({cfg,p,owner,dir,limits,tick=()=>new Promise(r=
  // A repeat cannot manufacture a second withdrawal. eth_call does not spend gas.
  await rejection('duplicate-claim',()=>binary.connect(a).claim.staticCall());
  const end=await accounting(),logs=[];
- const topics=[binary.interface.getEvent('EpochClosed').topicHash,binary.interface.getEvent('RewardAllocated').topicHash,binary.interface.getEvent('Claimed').topicHash,binary.interface.getEvent('AutoExecuted').topicHash];
- for(let from=j.startBlock;from<=end;from+=500){
-  const rows=await p.getLogs({address:binary.target,fromBlock:from,toBlock:Math.min(end,from+499),topics:[topics]});
+ for(let from=j.startBlock;from<=end;from+=100){
+  const rows=await p.getLogs({address:binary.target,fromBlock:from,toBlock:Math.min(end,from+99),topics:[evidenceTopics]});
   for(const l of rows){const e=binary.interface.parseLog(l);logs.push({event:e.name,args:Array.from(e.args),hash:l.transactionHash,block:l.blockNumber});}
  }
  const closures=[];

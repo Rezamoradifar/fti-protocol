@@ -15,7 +15,7 @@ BINARY = '0x40e727e15b65461D52e92907aa96E27017Ea70fE'
 STATE = Path('/root/.fti-fresh-journey') / BINARY.lower()
 KEY = Path('/root/.fti-private/testnet-deployer.key')
 UNIT = 'fti-testnet-journey'
-RUNNER_HASH = '644468f66db010e838836bd0d524a92d9e83d806508d9568a0b46535de882c08'
+RUNNER_HASH = 'd0fd6574e43e58162263a70f96280350f0e865a9198d11de1828551080ab079f'
 
 
 def require(ok, message):
@@ -50,7 +50,7 @@ def private_regular(file):
     require(stat.S_ISREG(st.st_mode) and st.st_uid == 0 and st.st_mode & 0o077 == 0, 'Private root-owned file required: ' + str(file))
 
 
-def prepare():
+def prepare(rpc_file=None):
     require(os.geteuid() == 0, 'Run as root on the existing FTI server')
     script = Path(__file__).resolve().with_name('fresh-testnet-journey.mjs')
     require(hashlib.sha256(script.read_bytes()).hexdigest() == RUNNER_HASH, 'Test runner hash mismatch')
@@ -64,6 +64,13 @@ def prepare():
     keeper_cfg = json.loads(Path(keeper['DEPLOYMENT_FILE']).read_text())
     require(keeper_cfg == cfg, 'Keeper and web deployment differ')
     require(settings.get('RPC_URL', '').startswith('https://'), 'Existing HTTPS RPC required')
+    rpc_url = settings['RPC_URL']
+    if rpc_file:
+        selected = Path(rpc_file)
+        require(selected.is_absolute(), 'RPC file path must be absolute')
+        private_regular(selected)
+        rpc_url = selected.read_text().strip()
+        require(rpc_url.startswith('https://') and not any(c.isspace() for c in rpc_url), 'HTTPS RPC URL required in private file')
     require(keeper.get('KEEPER_PRIVATE_KEY'), 'Cannot establish separate Keeper signer')
     private_regular(KEY)
     # Secret input stays on this server and is never a command-line argument.
@@ -75,7 +82,7 @@ def prepare():
     require(addresses[1].lower() == cfg['deployer'].lower(), 'Wrong test funder')
     env = {'PATH': str(node.parent) + ':/usr/local/bin:/usr/bin:/bin', 'LANG': 'C.UTF-8',
            'FTI_SOURCE_REVISION': REVISION, 'FTI_JOURNEY_SOURCE': str(source),
-           'FTI_JOURNEY_DEPLOYMENT': str(deployment), 'FTI_JOURNEY_RPC': settings['RPC_URL'],
+           'FTI_JOURNEY_DEPLOYMENT': str(deployment), 'FTI_JOURNEY_RPC': rpc_url,
            'FTI_JOURNEY_KEY_FILE': str(KEY), 'FTI_JOURNEY_KEEPER_ADDRESS': addresses[0],
            'FTI_JOURNEY_BUDGET': '0.03', 'FTI_JOURNEY_GAS_GWEI': '0.1', 'FTI_JOURNEY_STATE': str(STATE)}
     STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -86,8 +93,9 @@ def prepare():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--worker', action='store_true')
+    parser.add_argument('--rpc-file', help='Absolute private RPC URL file; never put the URL in chat or command arguments')
     args = parser.parse_args()
-    script, source, node, env, owner = prepare()
+    script, source, node, env, owner = prepare(args.rpc_file)
     if args.worker:
         fd = os.open(STATE / 'runner.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -106,9 +114,12 @@ def main():
                       'waitForRealHourlySettlement': True, 'resumeUsesSamePrivateJournal': True}, indent=2), flush=True)
     print('Existing hourly pool will be shared with eligible test wallets under the deployed rules. No new contracts or service cutover.', flush=True)
     require(input('To run these test transactions, type TEST 97: ').strip() == 'TEST 97', 'Cancelled; no transactions sent')
+    worker = ['/usr/bin/python3', str(Path(__file__).resolve()), '--worker']
+    if args.rpc_file:
+        worker += ['--rpc-file', args.rpc_file]
     run(['systemd-run', '--unit=' + UNIT, '--collect', '--property=Type=exec',
          '--property=UMask=0077', '--property=TimeoutStopSec=150',
-         '/usr/bin/python3', str(Path(__file__).resolve()), '--worker'])
+         *worker])
     print('FTI_TEST_STARTED; SSH can disconnect safely.')
     print('journalctl -u ' + UNIT + ' -n 40 --no-pager')
     print('PUBLIC_REPORT=' + str(STATE / 'report.json'))

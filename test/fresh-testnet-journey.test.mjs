@@ -38,6 +38,11 @@ test('same journey executes registration, repeat purchase, burn, sale and exact 
    while(await binary.phase()>0n)await sent(binary.processEpoch(100,{gasLimit:3000000}));
   };
   const args={cfg,p,owner,dir,limits:{budget:E('0.03'),price:10000000000n},verify:false,tick,log:(kind,label)=>console.log('LOCAL_JOURNEY',kind,label)};
+  const getLogs=p.getLogs.bind(p),nonce=await p.getTransactionCount(owner.address);
+  p.getLogs=async()=>{throw Error('simulated history outage');};
+  await assert.rejects(()=>runJourney(args),/History RPC unavailable before test funding/);
+  assert.equal(await p.getTransactionCount(owner.address),nonce);assert(!fs.existsSync(path.join(dir,'journal.json')));
+  p.getLogs=getLogs;
   // Interrupt after a signed transaction has been persisted and before broadcast.
   const broadcast=p.broadcastTransaction.bind(p);let injected=false;
   p.broadcastTransaction=async raw=>{if(!injected){injected=true;throw Error('simulated lost network');}return broadcast(raw);};
