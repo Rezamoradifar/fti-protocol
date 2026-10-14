@@ -22,8 +22,8 @@ import tempfile
 import urllib.parse
 import urllib.request
 
-BASE_REV = '81aae37e2ad3abcbe46d27ad48c8f89ba54610d5'
-PREP_SHA256 = '494ba1dde0b4d391244a0d4cca7041b95c972b3be0d2160e8f7e748d7bef4917'
+BASE_REV = 'bc2163070a6e79bcc129a6a788e61c4ace402bdf'
+PREP_SHA256 = 'e396c543fd10afc742304bfce6e6be85a9cb633348c59d5d0425b17f168d6482'
 DEFAULT_RPC = 'https://bsc-testnet-dataseed.bnbchain.org'
 PREP_URL = ('https://raw.githubusercontent.com/Rezamoradifar/fti-protocol/'
             + BASE_REV + '/tools/prepare-fresh-testnet.sh')
@@ -216,12 +216,15 @@ def main(argv=None):
     require(sys.stdin.isatty(), 'Run interactively in the server terminal, not curl | python or a heredoc.')
     os.umask(0o077)
     base = private_dir(Path.home() / 'fti-fresh-testnet-runner')
+    # A new reviewed release gets its own one-shot journal. Old runs remain intact.
+    base = private_dir(base / BASE_REV)
     lock = os.open(base / 'runner.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         marker = base / 'deployment-requested.json'
         require(not marker.exists(), 'A deployment was already requested. Inspect deployment-requested.json and its journal; no automatic repeat.')
         print('BNB TESTNET 97 ONLY — new contracts; no old users/funds imported.', flush=True)
+        print('REVIEWED_SOURCE=' + BASE_REV, flush=True)
         print('Needs a test-gas wallet and seven explicitly chosen public council addresses.')
         print('Never paste a private key here. Only the PATH of its protected local file is requested.')
         endpoint = rpc_url(getpass.getpass('Testnet HTTPS RPC (hidden; Enter = official public endpoint): ') or DEFAULT_RPC)
@@ -249,7 +252,7 @@ def main(argv=None):
         log = work / 'prepare.log'
         print('FTI_PREPARE_LOG=' + str(log), flush=True)
         print('Building and testing the pinned release in a NEW private directory. Keep this session open.', flush=True)
-        run_checked(['/bin/bash', str(prep_file), BASE_REV], work, env, 2400, log)
+        run_checked(['/bin/bash', str(prep_file), BASE_REV], work, env, 5400, log)
         entries = list(candidates.iterdir())
         require(len(entries) == 1, 'Unexpected preparation directory count.')
         candidate = entries[0]
@@ -295,7 +298,9 @@ catch { console.error('KEY_FILE_INVALID'); process.exitCode=1; }'''
         confirm_and_deploy(answer, digest, marker, out, node, keyfile, budget, ceiling, root, env)
         final = json.loads((out / 'result.json').read_text())
         require(final.get('result') == 'FTI_FRESH_TESTNET_DEPLOYED' and final.get('chainId') == 97
-                and final.get('sourceRevision') == BASE_REV and final.get('importedUsers') == 0,
+                and final.get('sourceRevision') == BASE_REV and final.get('importedUsers') == 0
+                and final.get('poolDistributionVersion') == 1
+                and final.get('rewardModel') == 'hourly-global-pool-v2',
                 'No verified deployment result; preserve the journal.')
         print('VERIFIED_RESULT=' + str(out / 'result.json'), flush=True)
         print('Keep the source checkout and private output. Share ONLY result.json, never test-genesis-keys.json.', flush=True)
