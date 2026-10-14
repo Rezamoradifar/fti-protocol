@@ -209,10 +209,141 @@ def confirm_and_deploy(answer, digest, marker, out, node, keyfile, budget, ceili
     run_checked(deploy_command(node, out, digest, keyfile, budget, ceiling), root, env, 1800)
 
 
+def private_json(path):
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(fd, 'r') as stream:
+        info = os.fstat(stream.fileno())
+        require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == os.geteuid()
+                and info.st_mode & 0o077 == 0 and info.st_size < 5_000_000,
+                'Saved input must be a private regular file owned by this user.')
+        return json.load(stream)
+
+
+def require_unsent(base, out):
+    files = [base / 'deployment-requested.json'] + [out / name for name in
+             ['deployment.started.json', 'journal.jsonl', 'failure.json', 'result.json', 'deployment.json']]
+    require(not any(os.path.lexists(p) for p in files),
+            'A deployment attempt or result already exists. Preserve its journal; no repeat.')
+
+
+def load_resume(base, work, digest):
+    require(re.fullmatch(r'[a-f0-9]{64}', digest or ''), 'Explicit reviewed --plan-digest is required.')
+    require(work.is_absolute() and work.parent == base and work.name.startswith('run-') and work.is_dir(),
+            'Resume only an existing run directory belonging to this pinned release.')
+    private_dir(work)
+    out = work / 'deployment'
+    require_unsent(base, out)
+    require(out.is_dir(), 'Saved deployment plan directory is missing.')
+    private_dir(out)
+    candidates = work / 'candidates'
+    require(candidates.is_dir(), 'Prepared candidate directory is missing.')
+    private_dir(candidates)
+    entries = list(candidates.iterdir())
+    require(len(entries) == 1 and entries[0].is_dir(), 'Unexpected preparation directory count.')
+    candidate = private_dir(entries[0])
+    result = private_json(candidate / 'result.json')
+    require(result.get('commit') == BASE_REV and result.get('result') == 'CANDIDATE_PREPARED'
+            and result.get('stage') == 'complete' and result.get('exitCode') == 0,
+            'Saved build/tests did not complete successfully for this release.')
+    root = candidate / 'source'
+    require(root.is_dir() and (work / 'tmp').is_dir(), 'Saved source or temporary directory is missing.')
+    private_dir(root)
+    private_dir(work / 'tmp')
+    plan = private_json(out / 'plan.json')
+    require(plan.get('digest') == digest and plan.get('chainId') == 97
+            and plan.get('manifest', {}).get('sourceRevision') == BASE_REV
+            and plan.get('testGenesis') is True and len(plan.get('genesis', [])) == 31
+            and type(plan.get('nonce')) is int and plan['nonce'] >= 0
+            and len(plan.get('transactions', [])) == 8,
+            'Saved plan does not match the reviewed digest, release or testnet.')
+    public_address(plan.get('deployer'))
+    council_addresses(plan.get('partners'))
+    return root, out, plan
+
+
+def confirmation(digest):
+    expected = 'DEPLOY 97 ' + digest
+    while True:
+        answer = input('Confirmation (Enter repeats; other text cancels): ').strip()
+        if answer:
+            require(answer == expected, 'Cancelled: confirmation did not match the reviewed testnet plan.')
+            return answer
+        print('Nothing entered. Paste this exact line, or type CANCEL to stop: ' + expected, flush=True)
+
+
+def finish_deployment(plan, base, out, node, keyfile, budget, ceiling, root, env, endpoint):
+    digest = plan['digest']
+    require_unsent(base, out)
+    print(json.dumps({'planFile': str(out / 'plan.json'), 'chainId': 97, 'deployer': plan['deployer'],
+                      'newCouncil': plan['partners'], 'bootstrapPositions': 31, 'importedUsers': 0,
+                      'predictedAddresses_NOT_DEPLOYED': plan['addresses'], 'planDigest': digest,
+                      'maximumGasBudget_tBNB': decimal_units(budget),
+                      'maximumGasPrice_gwei': decimal_units(ceiling, 9)}, indent=2), flush=True)
+    print('Eight separate transactions: an interruption can leave PARTIAL new contracts and spent test gas.')
+    print('Review the full plan file above. Old sites/contracts stay unchanged; no automatic service cutover.')
+    print('To send, type exactly: DEPLOY 97 ' + digest, flush=True)
+    answer = confirmation(digest)
+    check_key_path(str(keyfile))
+    preflight = read_preflight(endpoint, plan['deployer'], budget, ceiling)
+    require(preflight['nonce'] == plan['nonce'], 'Deployment nonce changed. Preserve this plan; no send.')
+    require_unsent(base, out)
+    print('FTI_DEPLOYMENT_JOURNAL=' + str(out / 'journal.jsonl'), flush=True)
+    confirm_and_deploy(answer, digest, base / 'deployment-requested.json', out,
+                       node, keyfile, budget, ceiling, root, env)
+    final = private_json(out / 'result.json')
+    require(final.get('result') == 'FTI_FRESH_TESTNET_DEPLOYED' and final.get('chainId') == 97
+            and final.get('sourceRevision') == BASE_REV and final.get('importedUsers') == 0
+            and final.get('poolDistributionVersion') == 1
+            and final.get('rewardModel') == 'hourly-global-pool-v2',
+            'No verified deployment result; preserve the journal.')
+    print('VERIFIED_RESULT=' + str(out / 'result.json'), flush=True)
+    print('Keep the source checkout and private output. Share ONLY result.json, never test-genesis-keys.json.', flush=True)
+
+
+def resume_prepared(args, base):
+    work = Path(args.resume_work)
+    root, out, plan = load_resume(base, work, args.plan_digest)
+    require(args.key_file, 'Resume requires an explicit --key-file PATH.')
+    keyfile = check_key_path(args.key_file)
+    budget = atomic_units(args.budget_tbnb, 18)
+    ceiling = atomic_units(args.gas_price_gwei, 9)
+    node = select_node(args.node)
+    env = clean_environment(work, node)
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, env=env, timeout=10).decode().strip()
+    require(head == BASE_REV, 'Checkout identity changed.')
+    run_checked(['git', 'diff', '--exit-code', 'HEAD', '--'], root, env, 15)
+    # Revalidate all saved transaction bytes, built artifacts, source fingerprint,
+    # digest and signing address locally. This probe performs no RPC or signing.
+    probe = '''import fs from 'node:fs';
+import {Wallet} from 'ethers';
+import {validateFreshPlan} from './scripts/fresh-testnet.mjs';
+import {readPrivateKey} from './scripts/address-migration-policy.mjs';
+try { const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));
+await validateFreshPlan(p);
+console.log(JSON.stringify({digest:p.digest,address:new Wallet(readPrivateKey(process.argv[2])).address})); }
+catch { console.error('SAVED_PLAN_OR_KEY_INVALID'); process.exitCode=1; }'''
+    checked = json.loads(subprocess.check_output([str(node), '--input-type=module', '-e', probe,
+                         str(out / 'plan.json'), str(keyfile)], cwd=root, env=env, timeout=30,
+                         stderr=subprocess.DEVNULL))
+    require(checked.get('digest') == args.plan_digest
+            and checked.get('address', '').lower() == plan['deployer'].lower(),
+            'Saved plan or signing wallet does not match the reviewed plan.')
+    print('SAVED_BUILD_AND_PLAN_VERIFIED=' + str(out / 'plan.json'), flush=True)
+    endpoint = rpc_url(getpass.getpass('Testnet HTTPS RPC (hidden; Enter = official public endpoint): ') or DEFAULT_RPC)
+    preflight = read_preflight(endpoint, plan['deployer'], budget, ceiling)
+    require(preflight['nonce'] == plan['nonce'], 'Deployment nonce changed. Preserve this plan; no send.')
+    env = clean_environment(work, node, endpoint)
+    finish_deployment(plan, base, out, node, keyfile, budget, ceiling, root, env, endpoint)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node', help='Absolute Node 22+ executable; does not replace the service runtime.')
     parser.add_argument('--key-file', help='Absolute private key FILE PATH, never the key. Skips only the path prompt.')
+    parser.add_argument('--resume-work', help='Existing private run directory; only an unsent prepared plan can resume.')
+    parser.add_argument('--plan-digest', help='Exact previously reviewed digest; required with --resume-work.')
+    parser.add_argument('--budget-tbnb', help='Explicit total gas budget for the resumed plan, in tBNB.')
+    parser.add_argument('--gas-price-gwei', help='Explicit gas price ceiling for the resumed plan, in gwei.')
     args = parser.parse_args(argv)
     require(sys.stdin.isatty(), 'Run interactively in the server terminal, not curl | python or a heredoc.')
     os.umask(0o077)
@@ -229,6 +360,10 @@ def main(argv=None):
                              'Do not delete runner.lock or deployment-requested.json.') from None
         marker = base / 'deployment-requested.json'
         require(not marker.exists(), 'A deployment was already requested. Inspect deployment-requested.json and its journal; no automatic repeat.')
+        if args.resume_work:
+            return resume_prepared(args, base)
+        require(all(v is None for v in [args.plan_digest, args.budget_tbnb, args.gas_price_gwei]),
+                'Resume options require --resume-work; no defaults are inferred.')
         keyfile = check_key_path(args.key_file) if args.key_file is not None else None
         print('BNB TESTNET 97 ONLY — new contracts; no old users/funds imported.', flush=True)
         print('REVIEWED_SOURCE=' + BASE_REV, flush=True)
@@ -293,27 +428,7 @@ catch { console.error('KEY_FILE_INVALID'); process.exitCode=1; }'''
                 and plan.get('deployer', '').lower() == deployer.lower()
                 and [p.lower() for p in plan.get('partners', [])] == [p.lower() for p in partners]
                 and len(plan.get('transactions', [])) == 8, 'Unexpected plan; no send.')
-        print(json.dumps({'planFile': str(out / 'plan.json'), 'chainId': 97, 'deployer': deployer,
-                          'newCouncil': partners, 'bootstrapPositions': 31, 'importedUsers': 0,
-                          'predictedAddresses_NOT_DEPLOYED': plan['addresses'], 'planDigest': digest,
-                          'maximumGasBudget_tBNB': decimal_units(budget),
-                          'maximumGasPrice_gwei': decimal_units(ceiling, 9)}, indent=2), flush=True)
-        print('Eight separate transactions: an interruption can leave PARTIAL new contracts and spent test gas.')
-        print('Review the full plan file above. Old sites/contracts stay unchanged; no automatic service cutover.')
-        print('To send, type exactly: DEPLOY 97 ' + digest, flush=True)
-        answer = input('Confirmation (anything else cancels): ').strip()
-        check_key_path(str(keyfile))
-        read_preflight(endpoint, deployer, budget, ceiling)
-        print('FTI_DEPLOYMENT_JOURNAL=' + str(out / 'journal.jsonl'), flush=True)
-        confirm_and_deploy(answer, digest, marker, out, node, keyfile, budget, ceiling, root, env)
-        final = json.loads((out / 'result.json').read_text())
-        require(final.get('result') == 'FTI_FRESH_TESTNET_DEPLOYED' and final.get('chainId') == 97
-                and final.get('sourceRevision') == BASE_REV and final.get('importedUsers') == 0
-                and final.get('poolDistributionVersion') == 1
-                and final.get('rewardModel') == 'hourly-global-pool-v2',
-                'No verified deployment result; preserve the journal.')
-        print('VERIFIED_RESULT=' + str(out / 'result.json'), flush=True)
-        print('Keep the source checkout and private output. Share ONLY result.json, never test-genesis-keys.json.', flush=True)
+        finish_deployment(plan, base, out, node, keyfile, budget, ceiling, root, env, endpoint)
     finally:
         os.close(lock)
 
