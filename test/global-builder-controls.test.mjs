@@ -11,7 +11,9 @@ const send=async tx=>{const r=await(await tx).wait();assert.equal(r.status,1);re
 const unix=s=>Date.parse(s)/1000;
 
 test('Builder controls use hourly funded income, retain liabilities and close at Gregorian UTC boundaries',{timeout:600000},async t=>{
- const engine=ganache.provider({chain:{chainId:31337,time:new Date('2026-01-05T00:00:00Z')},logging:{quiet:true},wallet:{totalAccounts:46},miner:{blockGasLimit:30000000}});
+ // Wall-clock mining can cross 23:59:59 between estimation and inclusion,
+ // changing the short-circuit branch/gas cost. Boundary tests control time.
+ const engine=ganache.provider({chain:{chainId:31337,time:new Date('2026-01-05T00:00:00Z')},logging:{quiet:true},wallet:{totalAccounts:46},miner:{blockGasLimit:30000000,timestampIncrement:0}});
  const provider=new BrowserProvider(engine,undefined,{cacheTimeout:-1});provider.pollingInterval=10;
  try {
   const signers=await Promise.all(Array.from({length:46},(_,i)=>provider.getSigner(i))),a=await Promise.all(signers.map(s=>s.getAddress()));
@@ -84,6 +86,7 @@ test('Builder controls use hourly funded income, retain liabilities and close at
    const pools=await Promise.all([0,1,2,3].map(i=>binary.monthFunding(key,i))),book=await binary.builderAccounted(),cash=await binary.totalPending();
    for(const time of ['2026-01-10T12:00:00Z','2026-01-20T12:00:00Z','2026-01-31T23:59:59Z']){
     await warp(unix(time));const receipt=await send(binary.connect(signers[40]).beginBuilderMonth());
+    assert.equal((await provider.getBlock(receipt.blockNumber)).timestamp,unix(time),'Test transaction must stay at the requested boundary');
     const scheduled=receipt.logs.map(l=>{try{return binary.interface.parseLog(l)}catch{return null}}).find(e=>e?.name==='BuilderMonthCloseRequested');
     assert.equal(scheduled.args.effectiveAt,BigInt(cutoff));
     assert.deepEqual(await Promise.all([0,1,2,3].map(i=>binary.monthFunding(key,i))),pools);
