@@ -13,7 +13,12 @@ export async function keeperStep(binary,provider,{batchedRewards=true,maxAutoAmo
  // Calendar-due Builder work cannot be starved by a continuously replenished cash queue.
  if(await binary.monthPhase()>0n){await(await binary.processBuilderMonth(batch)).wait();return 'builder batch';}
  const key=Number(await binary.nextBuilderMonth());const monthEnd=Date.UTC(Math.floor(key/12),key%12+1,1)/1000;
- if(now>=monthEnd&&Number(await binary.lastClosedAt())>=monthEnd){await(await binary.beginBuilderMonth()).wait();return 'builder close';}
+ if(now>=monthEnd&&Number(await binary.lastClosedAt())>=monthEnd){
+  // Purchases after the boundary can queue new volume before monthly close.
+  // Drain it first: the pooled contract refuses to snapshot an unsettled queue.
+  if(await binary.jobCursor()<await binary.jobCount()){await(await binary.processVolume(batch)).wait();return 'volume batch';}
+  await(await binary.beginBuilderMonth()).wait();return 'builder close';
+ }
  // Finalized cash must not starve behind a continuously growing volume queue.
  if(batchedRewards&&binary.interface?.hasFunction('rewardAccountCount')&&await binary.monthPhase()===0n&&await binary.rewardAccountCount()>0n){await(await binary.payRewards(100)).wait();return 'reward payout batch';}
  if(await binary.jobCursor()<await binary.jobCount()){await(await binary.processVolume(batch)).wait();return 'volume batch';}

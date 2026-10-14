@@ -99,6 +99,22 @@ test('Builder controls use hourly funded income, retain liabilities and close at
    assert.equal(await binary.totalAuto(),pendingAuto); // Monthly Builder payouts are never auto-buy funding.
    assert.equal(await binary.nextBuilderMonth(),BigInt(key+1));await checkAccounting(suite);
   }));
+  await t.test('Keeper closes the prior month after processing new-month purchases without stranding cash',()=>snapshot(async()=>{
+   await warp(unix('2026-02-01T00:00:00Z'));await settle(suite,provider);
+   await send(binary.connect(signers[1]).addUnits(1));
+   assert(await binary.jobCursor()<await binary.jobCount());
+   await assert.rejects(()=>binary.beginBuilderMonth.staticCall());
+   const feb=await Promise.all([0,1,2,3].map(i=>binary.monthFunding(2026*12+1,i)));
+   assert.equal(await keeperStep(binary,provider),'volume batch');
+   assert.equal(await binary.jobCursor(),await binary.jobCount());
+   assert.equal(await keeperStep(binary,provider),'builder close');
+   while(await binary.monthPhase()>0n)assert.equal(await keeperStep(binary,provider),'builder batch');
+   assert.equal(await binary.nextBuilderMonth(),BigInt(2026*12+1));
+   assert.deepEqual(await Promise.all([0,1,2,3].map(i=>binary.monthFunding(2026*12+1,i))),feb);
+   const pending=await binary.pendingReward(a[0]),balance=await usd.balanceOf(a[0]);assert(pending>0n);
+   assert.equal(await keeperStep(binary,provider),'reward payout batch');
+   assert.equal(await usd.balanceOf(a[0]),balance+pending);assert.equal(await binary.pendingReward(a[0]),0n);await checkAccounting(suite);
+  }));
   await t.test('month lengths include leap February and December rollover, never a rolling 30-day timer',()=>snapshot(async()=>{
    // Exercise the compiled Calendar through real transactions. An explicit gas
    // limit avoids repeatedly simulating each full monthly scan during estimation.
@@ -123,7 +139,7 @@ test('all existing storage fields retain their position and representation',()=>
 
 test('Keeper gives ready monthly settlement precedence over a replenished payout queue',async()=>{
  let closed=false;const timestamp=unix('2026-02-01T00:00:00Z');
- const b={interface:{hasFunction:()=>true},recoveryFrozen:async()=>false,phase:async()=>0n,monthPhase:async()=>0n,nextBuilderMonth:async()=>BigInt(2026*12),lastClosedAt:async()=>BigInt(timestamp),
+ const b={interface:{hasFunction:()=>true},recoveryFrozen:async()=>false,phase:async()=>0n,monthPhase:async()=>0n,jobCursor:async()=>0n,jobCount:async()=>0n,nextBuilderMonth:async()=>BigInt(2026*12),lastClosedAt:async()=>BigInt(timestamp),
   beginBuilderMonth:async()=>({wait:async()=>{closed=true}}),rewardAccountCount:async()=>100n,payRewards:async()=>{throw Error('Monthly work starved');}};
  assert.equal(await keeperStep(b,{getBlock:async()=>({timestamp})}),'builder close');assert(closed);
 });

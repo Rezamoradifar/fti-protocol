@@ -43,3 +43,19 @@ test('keeper splits oversized auto balances into bounded batches without losing 
  for(let i=0;i<3;i++)assert.equal(await keeperStep(b,provider,{maxAutoAmount:64n}),'auto-buy executed');
  assert.deepEqual(amounts,[64n,64n,2n]);assert.equal(pending,0n);
 });
+
+test('due month drains bounded new-month volume before closing, then pays queued cash',async()=>{
+ const b=stub(),timestamp=Date.UTC(2026,1,1)/1000,p={getBlock:async()=>({timestamp})};
+ let cursor=0n,month=2026n*12n,phase=0n,queuedCash=true;const actions=[];
+ b.interface.hasFunction=()=>true;b.lastClosedAt=async()=>BigInt(timestamp);
+ b.nextBuilderMonth=async()=>month;b.monthPhase=async()=>phase;
+ b.jobCursor=async()=>cursor;b.jobCount=async()=>30n;b.epochEnd=async()=>BigInt(timestamp+3600);
+ b.rewardAccountCount=async()=>queuedCash?1n:0n;
+ b.processVolume=async size=>{assert.equal(size,25);return{wait:async()=>{cursor=cursor+25n>30n?30n:cursor+25n;actions.push('volume');}};};
+ b.beginBuilderMonth=async()=>{assert.equal(cursor,30n,'contract requires volume drained');return{wait:async()=>{phase=1n;actions.push('month');}};};
+ b.processBuilderMonth=async size=>{assert.equal(size,25);return{wait:async()=>{phase=0n;month++;actions.push('settle');}};};
+ b.payRewards=async size=>{assert.equal(size,100);assert.equal(month,2026n*12n+1n);return{wait:async()=>{queuedCash=false;actions.push('cash');}};};
+ const observed=[];for(let i=0;i<5;i++)observed.push(await keeperStep(b,p));
+ assert.deepEqual(observed,['volume batch','volume batch','builder close','builder batch','reward payout batch']);
+ assert.deepEqual(actions,['volume','volume','month','settle','cash']);assert.equal(await keeperStep(b,p),'idle');
+});
