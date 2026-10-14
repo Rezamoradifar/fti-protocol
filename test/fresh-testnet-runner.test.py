@@ -2,6 +2,7 @@
 import hashlib
 import fcntl
 import importlib.util
+import io
 from pathlib import Path
 import subprocess
 import sys
@@ -17,6 +18,48 @@ spec.loader.exec_module(runner)
 
 
 class RunnerTests(unittest.TestCase):
+    def test_preselected_key_path_skips_only_path_prompt_and_keeps_budget_and_genesis_inputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            key = home / 'test-only.key'
+            runner.write_new(key, ('0' * 63 + '1').encode())
+            original = key.read_bytes()
+            addresses = ['0x' + format(i, '040x') for i in range(1, 9)]
+            with patch.object(runner.Path, 'home', return_value=home), \
+                    patch.object(runner.sys.stdin, 'isatty', return_value=True), \
+                    patch.object(runner.sys, 'stdout', new_callable=io.StringIO), \
+                    patch.object(runner.getpass, 'getpass', return_value=''), \
+                    patch('builtins.input', side_effect=addresses + ['0.1', '10', 'TEST-GENESIS']) as prompt, \
+                    patch.object(runner, 'read_preflight', side_effect=runner.SetupError('TEST_STOP_BEFORE_NETWORK')) as preflight, \
+                    patch.object(runner, 'request_bytes') as network, \
+                    patch.object(runner, 'run_checked') as execute:
+                with self.assertRaisesRegex(runner.SetupError, 'TEST_STOP_BEFORE_NETWORK'):
+                    runner.main(['--key-file', str(key)])
+                self.assertEqual(prompt.call_count, 11)
+                self.assertFalse(any('PRIVATE KEY FILE PATH' in call.args[0] for call in prompt.call_args_list))
+                preflight.assert_called_once_with(runner.DEFAULT_RPC, addresses[0], 10 ** 17, 10 ** 10)
+                network.assert_not_called()
+                execute.assert_not_called()
+            self.assertEqual(key.read_bytes(), original)
+            self.assertFalse((home / 'fti-fresh-testnet-runner' / runner.BASE_REV / 'deployment-requested.json').exists())
+
+    def test_preselected_key_still_rejects_insecure_file_before_inputs_or_network(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            key = home / 'test-only.key'
+            key.write_text('0' * 63 + '1')
+            key.chmod(0o644)
+            with patch.object(runner.Path, 'home', return_value=home), \
+                    patch.object(runner.sys.stdin, 'isatty', return_value=True), \
+                    patch.object(runner.getpass, 'getpass') as hidden, \
+                    patch('builtins.input') as prompt, \
+                    patch.object(runner, 'request_bytes') as network:
+                with self.assertRaisesRegex(runner.SetupError, 'Key file must be private'):
+                    runner.main(['--key-file', str(key)])
+                hidden.assert_not_called()
+                prompt.assert_not_called()
+                network.assert_not_called()
+
     def test_second_runner_reports_active_lock_without_prompt_network_or_journal_change(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)

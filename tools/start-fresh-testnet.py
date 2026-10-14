@@ -212,6 +212,7 @@ def confirm_and_deploy(answer, digest, marker, out, node, keyfile, budget, ceili
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node', help='Absolute Node 22+ executable; does not replace the service runtime.')
+    parser.add_argument('--key-file', help='Absolute private key FILE PATH, never the key. Skips only the path prompt.')
     args = parser.parse_args(argv)
     require(sys.stdin.isatty(), 'Run interactively in the server terminal, not curl | python or a heredoc.')
     os.umask(0o077)
@@ -228,14 +229,18 @@ def main(argv=None):
                              'Do not delete runner.lock or deployment-requested.json.') from None
         marker = base / 'deployment-requested.json'
         require(not marker.exists(), 'A deployment was already requested. Inspect deployment-requested.json and its journal; no automatic repeat.')
+        keyfile = check_key_path(args.key_file) if args.key_file is not None else None
         print('BNB TESTNET 97 ONLY — new contracts; no old users/funds imported.', flush=True)
         print('REVIEWED_SOURCE=' + BASE_REV, flush=True)
         print('Needs a test-gas wallet and seven explicitly chosen public council addresses.')
         print('Never paste a private key here. Only the PATH of its protected local file is requested.')
+        if keyfile is not None:
+            print('PRIVATE_KEY_FILE=' + str(keyfile), flush=True)
         endpoint = rpc_url(getpass.getpass('Testnet HTTPS RPC (hidden; Enter = official public endpoint): ') or DEFAULT_RPC)
         deployer = public_address(input('Public deployer address (0x...): ').strip())
         partners = council_addresses([input('Public council address ' + str(i + 1) + '/7: ').strip() for i in range(7)])
-        keyfile = check_key_path(input('Absolute PRIVATE KEY FILE PATH (not the key): ').strip())
+        if keyfile is None:
+            keyfile = check_key_path(input('Absolute PRIVATE KEY FILE PATH (not the key): ').strip())
         budget = atomic_units(input('Approved TOTAL gas budget in tBNB (decimal; no default): ').strip(), 18)
         ceiling = atomic_units(input('Approved maximum gas price in gwei (decimal; no default): ').strip(), 9)
         require(input('Type TEST-GENESIS to accept 31 NEW unpurchased test positions: ').strip() == 'TEST-GENESIS',
