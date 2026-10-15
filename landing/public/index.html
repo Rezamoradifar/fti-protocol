@@ -1,1 +1,46 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080d0b"><meta name="description" content="پنل یکپارچه FTI در شبکه آزمایشی BNB: عضویت، پاداش ساعتی، خرید و فروش توکن و حاکمیت پنج از هفت."><title>FTI Protocol — عضویت، توکن و حاکمیت</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/app.css"></head><body><div id="root"></div><script type="module" src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080d0b">
+  <meta name="description" content="پنل یکپارچه FTI در شبکه آزمایشی BNB: عضویت، پاداش ساعتی، خرید و فروش توکن و حاکمیت پنج از هفت.">
+  <title>FTI Protocol — عضویت، توکن و حاکمیت</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/app.css?v=20261015-landing2">
+  <style>
+    #fti-boot{min-height:100vh;display:grid;place-items:center;background:#080d0b;color:#eaf6ee;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:32px;text-align:center}
+    #fti-boot div{max-width:560px}
+    #fti-boot b{display:block;font-size:32px;letter-spacing:.08em;margin-bottom:12px}
+    #fti-boot p{opacity:.8;line-height:1.8}
+    #fti-boot a{display:inline-block;margin-top:16px;color:#b2ffd0}
+  </style>
+</head>
+<body>
+  <div id="fti-boot" role="status" aria-live="polite">
+    <div>
+      <b>FTI</b>
+      <p>در حال بارگذاری FTI Protocol…</p>
+      <a href="/app/">ورود مستقیم به پنل اعضا</a>
+    </div>
+  </div>
+  <div id="root"></div>
+  <script>
+    // Small compatibility shims used before the React bundle starts. They keep
+    // the public landing usable on older mobile browsers without affecting the
+    // member workspace or contract logic.
+    if(!Object.hasOwn)Object.hasOwn=function(object,key){return Object.prototype.hasOwnProperty.call(Object(object),key)};
+    if(!Object.fromEntries)Object.fromEntries=function(entries){var result={};for(var i=0;i<entries.length;i++)result[entries[i][0]]=entries[i][1];return result};
+    if(!String.prototype.replaceAll)String.prototype.replaceAll=function(search,replacement){return this.split(search).join(replacement)};
+    window.addEventListener('error',function(){
+      var message=document.querySelector('#fti-boot p');
+      if(message)message.textContent='بارگذاری صفحه اصلی کامل نشد. پنل اعضا همچنان در دسترس است.';
+    });
+    window.addEventListener('unhandledrejection',function(){
+      var message=document.querySelector('#fti-boot p');
+      if(message)message.textContent='بارگذاری صفحه اصلی کامل نشد. پنل اعضا همچنان در دسترس است.';
+    });
+  </script>
+  <script type="module" src="/app.js?v=20261015-landing2"></script>
+</body>
+</html>

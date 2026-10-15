@@ -321,10 +321,14 @@ contract FTIReserveTokenUpgradeable is ERC20, ReentrancyGuard, Pausable, Initial
     }
 
     function _checkSellProtection(uint256 gross, uint256 payout, uint256 currentReserve) internal {
-        // Inclusive USD gross threshold. minUSD/deadline still protect every sale.
-        if (gross <= SMALL_SELL_EXEMPTION) return;
-        uint256 maxSingle = Math.mulDiv(currentReserve, MAX_SINGLE_SELL_BPS, 10000);
-        require(gross <= maxSingle, "single sell protection");
+        // Small sells remain exempt from the per-transaction 5% reserve cap,
+        // but every non-final sale contributes to the hourly outflow window.
+        // This prevents bypassing the hourly protection by splitting a large
+        // exit into many transactions at or below SMALL_SELL_EXEMPTION.
+        if (gross > SMALL_SELL_EXEMPTION) {
+            uint256 maxSingle = Math.mulDiv(currentReserve, MAX_SINGLE_SELL_BPS, 10000);
+            require(gross <= maxSingle, "single sell protection");
+        }
 
         if (
             sellWindowStart == 0 ||
