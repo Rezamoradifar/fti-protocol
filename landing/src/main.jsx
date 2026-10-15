@@ -8,4 +8,6 @@ import {InitialLanding} from './initial-landing.jsx';
 import '../../frontend/glass-interface.css';
 import './glass-landing.css';
 initializeLanguage();
-createRoot(document.getElementById('root')).render(['/token-site/','/whitepaper/','/roadmap/'].includes(location.pathname)?<PublicSite/>:<InitialLanding/>);
+const root=document.getElementById('root');
+createRoot(root).render(['/token-site/','/whitepaper/','/roadmap/'].includes(location.pathname)?<PublicSite/>:<InitialLanding/>);
+requestAnimationFrame(()=>document.getElementById('fti-boot')?.remove());
