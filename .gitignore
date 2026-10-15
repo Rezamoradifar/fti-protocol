@@ -26,3 +26,9 @@ deployments/funded-testnet*.json
 # FTI V3 testnet deployment outputs and generated test-only keys
 deployments/v3-testnet*.json
 deployments/v3-*-secrets*.json
+
+# Landing build and browser verification outputs
+/landing/dist/
+/landing/test-results/
+/landing/playwright-report/
+__pycache__/
