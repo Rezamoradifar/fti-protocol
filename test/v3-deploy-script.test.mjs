@@ -8,6 +8,7 @@ import ganache from 'ganache';
 import {JsonRpcProvider,Contract,ZeroHash,hexlify,randomBytes} from 'ethers';
 import {artifact} from '../scripts/lib.mjs';
 import {RELEASE,verifyV3Deployment} from '../scripts/v3-release.mjs';
+import {loadWallets} from '../scripts/v3-wallets.mjs';
 import {startWeb} from '../scripts/server.mjs';
 
 function runNode(args, env) {
@@ -71,7 +72,7 @@ test('dedicated V3 deployment script deploys only the new stack and verifies zer
 
     assert.match(stdout, /FTI_V3_OWNER_DECISIONS_20261008/);
     assert(fs.existsSync(deploymentFile));
-    assert(fs.existsSync(secretsFile));
+    assert.equal(fs.existsSync(secretsFile),false);
 
     const d = JSON.parse(fs.readFileSync(deploymentFile, 'utf8'));
     assert.equal(d.release, RELEASE);
@@ -89,8 +90,10 @@ test('dedicated V3 deployment script deploys only the new stack and verifies zer
       assert.match(d[key], /^0x[0-9a-fA-F]{40}$/);
     }
 
-    const s = JSON.parse(fs.readFileSync(secretsFile, 'utf8'));
-    assert.equal(s.genesisHelpers.length, 30);
+    const approved=loadWallets();
+    assert.deepEqual(d.genesis,approved.genesis);
+    assert.equal(d.owner,approved.owner);
+    assert.equal(d.development,approved.development);
     assert.equal(d.tradeFeeBps,300);
     assert.equal(d.reserveFeeBps,300);
     assert.equal(d.transferFeeBps,300);
@@ -98,12 +101,16 @@ test('dedicated V3 deployment script deploys only the new stack and verifies zer
     assert.equal(d.charityEnabled,false);
     assert.equal('charityWalletA' in d,false);
     assert.equal('charityWalletB' in d,false);
-    assert.equal('charityWalletA' in s,false);
-    assert.equal('charityWalletB' in s,false);
 
     const provider=new JsonRpcProvider(`http://127.0.0.1:${port}`,undefined,{cacheTimeout:-1});provider.pollingInterval=10;
     try{
       const stack=await verifyV3Deployment(d,provider);
+      for(const role of [approved.owner,approved.development]) assert.equal(await stack.binary.registered(role),false);
+      for(let i=0;i<31;i++){
+        const m=await stack.binary.members(approved.genesis[i]);
+        assert.equal(m.units,0n);assert.equal(await stack.binary.activatedAtSerial(approved.genesis[i]),0n);
+        assert.equal(m.parent.toLowerCase(),i===0?'0x0000000000000000000000000000000000000000':approved.genesis[Math.floor((i-1)/2)].toLowerCase());
+      }
       assert.equal(await stack.token.TRANSFER_FEE_BPS(),300n);
       await assert.rejects(()=>verifyV3Deployment({...d,transferFeeBps:0},provider),/Fee configuration mismatch/);
       await assert.rejects(()=>verifyV3Deployment({...d,transferFeeMode:'reserve'},provider),/Fee configuration mismatch/);

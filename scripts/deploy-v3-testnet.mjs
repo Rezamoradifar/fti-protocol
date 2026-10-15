@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import path from 'node:path';
+import {loadWallets} from './v3-wallets.mjs';
 import {
   JsonRpcProvider,
   Wallet,
@@ -10,6 +10,7 @@ import {
 import {deployOne} from './lib.mjs';
 import {RELEASE, releaseManifest, verifyV3Deployment} from './v3-release.mjs';
 const manifest=releaseManifest();
+const wallets=loadWallets();
 
 const rpc = process.env.RPC_URL;
 const privateKey = process.env.DEPLOYER_PRIVATE_KEY;
@@ -61,46 +62,9 @@ if (
   throw new Error('Provide exactly 7 unique nonzero Partner DAO addresses.');
 }
 
-// Testnet helpers are intentionally generated at deployment time.
-// The deployer is genesis root so the deployment owner can test immediately.
-// Private keys are written only to a local gitignored file with mode 0600.
-const generated = Array.from({length: 30}, () => Wallet.createRandom());
-const genesisHelpers = generated;
-
-const genesis = [
-  deployer,
-  ...genesisHelpers.map(w => w.address)
-];
-
-if (new Set(genesis.map(x => x.toLowerCase())).size !== 31) {
-  throw new Error('Genesis addresses must be unique.');
-}
-
+// Ordered, user-approved positions: unpaid until each wallet funds normally.
+const {owner, development, genesis}=wallets;
 fs.mkdirSync('deployments', {recursive: true});
-
-const secretsPath =
-  process.env.V3_TESTNET_SECRETS ||
-  'deployments/v3-testnet-secrets.json';
-
-const secretPayload = {
-  warning: 'TESTNET ONLY. Never fund these wallets on mainnet.',
-  chainId,
-  generatedAt: new Date().toISOString(),
-  genesisHelpers: genesisHelpers.map((w, index) => ({
-    index: index + 1,
-    address: w.address,
-    privateKey: w.privateKey
-  }))
-};
-
-fs.writeFileSync(
-  secretsPath,
-  JSON.stringify(secretPayload, null, 2),
-  {mode: 0o600}
-);
-try {
-  fs.chmodSync(secretsPath, 0o600);
-} catch {}
 
 console.log(
   `FTI V3 test deployment: chain=${chainId}, deployer=${deployer}, gas=${formatEther(nativeBalance)}`
@@ -133,7 +97,7 @@ const binary = await deployOne(
     token.target,
     timelock.target,      // 72-hour normal governance
     council.target,       // 5/7 emergency guardian
-    deployer,             // testnet development wallet
+    development,          // independent development recipient
     genesis
   ],
   signer
@@ -189,7 +153,8 @@ const result = {
   governance: timelock.target,
   timelock: timelock.target,
   governanceDelay: 259200,
-  development: deployer,
+  owner, // role metadata; governance remains the existing council/timelock
+  development,
   usd: usd.target,
   council: council.target,
   token: token.target,
@@ -215,8 +180,7 @@ const result = {
     price: '0'
   },
   transactions: deploymentTxs,
-  constructorArgs:{usd:[],council:[daoConfig.partners],timelock:[council.target],token:[usd.target,timelock.target,council.target],binary:[usd.target,token.target,timelock.target,council.target,deployer,genesis]},
-  secretsFile: path.basename(secretsPath),
+  constructorArgs:{usd:[],council:[daoConfig.partners],timelock:[council.target],token:[usd.target,timelock.target,council.target],binary:[usd.target,token.target,timelock.target,council.target,development,genesis]},
   note: 'TESTNET ONLY. MockUSD has no monetary value. Mainnet deployment is not approved.'
 };
 
@@ -228,6 +192,13 @@ for(const [name,hash] of Object.entries(deploymentTxs)){
  if(name!=='bind')result.codeHashes[name]=keccak256(await provider.getCode(result[name]));
 }
 await verifyV3Deployment(result,provider);
+for (const role of [owner, development]) {
+  if (await binary.registered(role)) throw Error('Role wallet unexpectedly has a binary position');
+}
+for (let i=0;i<31;i++) {
+  if ((await binary.memberList(i)).toLowerCase()!==genesis[i].toLowerCase()) throw Error('Genesis order mismatch');
+  if (await binary.unitsOf(genesis[i])!==0n || await binary.activatedAtSerial(genesis[i])!==0n) throw Error('Genesis must start unpaid and inactive');
+}
 
 const output =
   process.env.V3_DEPLOYMENT_FILE ||

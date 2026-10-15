@@ -39,7 +39,6 @@ export FTI_STATE FTI_CONFIG FTI_DEPLOYMENT FTI_SHA
 export FTI_SOURCE_REVISION="$FTI_SHA"
 export DEPLOYMENT_FILE="$FTI_DEPLOYMENT"
 export V3_DEPLOYMENT_FILE="$FTI_DEPLOYMENT"
-export V3_TESTNET_SECRETS="$FTI_STATE/genesis-secrets.json"
 export DAO_CONFIG="$FTI_STATE/dao.json"
 
 # Prepare the new immutable checkout; never reuse contracts from the earlier economic release.
@@ -84,7 +83,7 @@ try {
   const partners=(process.env.FTI_PARTNERS||'').split(',').map(x=>x.trim());
   if(partners.length!==7||partners.some(a=>!isAddress(a)||a.toLowerCase()===ZeroAddress)||new Set(partners.map(a=>a.toLowerCase())).size!==7)throw Error('Enter seven distinct nonzero council addresses.');
   fs.writeFileSync(process.env.DAO_CONFIG,JSON.stringify({threshold:5,partners},null,2),{mode:0o600});
-  console.log('Deployer/development/genesis-root address:',deployer.address);
+  console.log('Gas deployer address (not a genesis role):',deployer.address);
   console.log('Council addresses:',partners.join(', '));
  }
  console.log('Network preflight passed: chain 97.');
