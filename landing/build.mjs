@@ -2,34 +2,15 @@ import {build} from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-
-const sharedModules=fileURLToPath(new URL('../node_modules/',import.meta.url));
-const reactPath=path.join(sharedModules,'react');
-const reactDomClientPath=path.join(sharedModules,'react-dom','client.js');
-if(!fs.existsSync(reactPath)||!fs.existsSync(reactDomClientPath)){
- throw new Error('Install the repository root dependencies before building the landing page.');
-}
-
-fs.rmSync('dist',{recursive:true,force:true});
-fs.mkdirSync('dist',{recursive:true});
-fs.cpSync('public','dist',{recursive:true});
-const result=await build({
- entryPoints:['src/main.jsx'],
- bundle:true,
- minify:true,
- outdir:'dist',
- entryNames:'app',
- loader:{'.jsx':'jsx'},
- define:{'process.env.NODE_ENV':'"production"','__FTI_APP_URL__':JSON.stringify(process.env.FTI_APP_URL||'')},
- target:['es2020'],
- alias:{react:reactPath,'react-dom/client':reactDomClientPath},
- metafile:true
-});
-const reactRoots=new Set(Object.keys(result.metafile.inputs)
- .map(file=>file.replaceAll('\\','/'))
- .filter(file=>file.includes('/node_modules/react/'))
- .map(file=>file.split('/node_modules/react/')[0]));
-if(reactRoots.size!==1){
- throw new Error(`Expected one React module root in the landing bundle; found ${reactRoots.size}.`);
-}
-console.log('Landing bundle built with a single shared React runtime.');
+const dir=path.dirname(fileURLToPath(import.meta.url));
+const dist=path.join(dir,'dist');
+fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});
+const result=await build({absWorkingDir:dir,entryPoints:['src/main.jsx'],bundle:true,minify:true,outdir:dist,entryNames:'assets/app-[hash]',assetNames:'assets/[name]-[hash]',metafile:true,define:{'process.env.NODE_ENV':'"production"','__FTI_APP_URL__':JSON.stringify(process.env.FTI_APP_URL||'/app/')},target:['es2020'],alias:{react:path.join(dir,'node_modules/react'),'react-dom':path.join(dir,'node_modules/react-dom')}});
+const roots=new Set(Object.keys(result.metafile.inputs).map(x=>path.resolve(dir,x).replaceAll('\\','/')).filter(x=>x.includes('/node_modules/react/')).map(x=>x.split('/node_modules/react/')[0]));
+if(roots.size!==1)throw new Error('Expected exactly one React runtime');
+const outputs=Object.keys(result.metafile.outputs);const js=outputs.find(x=>x.endsWith('.js'));const css=outputs.find(x=>x.endsWith('.css'));
+if(!js||!css)throw new Error('Missing application assets');
+const url=x=>'/'+path.relative(dist,path.resolve(dir,x)).split(path.sep).join('/');
+let html=fs.readFileSync(path.join(dir,'public/index.html'),'utf8').replace('__APP_JS__',url(js)).replace('__APP_CSS__',url(css));
+fs.writeFileSync(path.join(dist,'index.html'),html);
+console.log('PASS: isolated React runtime; hashed JS/CSS assets; landing built.');
