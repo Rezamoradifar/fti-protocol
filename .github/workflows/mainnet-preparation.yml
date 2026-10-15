@@ -6,6 +6,7 @@ on:
       - 'scripts/**'
       - 'frontend/**'
       - 'landing/src/**'
+      - 'landing/build.mjs'
       - 'test/mainnet-*.test.mjs'
       - 'tools/prepare-mainnet-candidate.sh'
       - 'config/mainnet*'
