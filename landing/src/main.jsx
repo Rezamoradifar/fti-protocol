@@ -5,5 +5,7 @@ import {PublicSite} from './public-site.jsx';
 import './style.css';
 import '../../frontend/global-interface.css';
 import {InitialLanding} from './initial-landing.jsx';
+import '../../frontend/glass-interface.css';
+import './glass-landing.css';
 initializeLanguage();
 createRoot(document.getElementById('root')).render(['/token-site/','/whitepaper/','/roadmap/'].includes(location.pathname)?<PublicSite/>:<InitialLanding/>);
