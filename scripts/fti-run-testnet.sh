@@ -3,13 +3,18 @@
 set +x
 set -euo pipefail
 umask 077
-FTI_SHA=b1c2ea914dee1e05d55f761ad3b1804aa6ada6b4
+fail(){ printf '%s\n' "$*" >&2; exit 1; }
+FTI_SHA=${FTI_RELEASE_SHA:-}
+if [[ -z "$FTI_SHA" ]]; then
+ FTI_SCRIPT_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+ FTI_SHA=$(git -C "$FTI_SCRIPT_ROOT" rev-parse HEAD) || fail 'Run from a verified checkout or set FTI_RELEASE_SHA to its full commit SHA.'
+fi
+[[ "$FTI_SHA" =~ ^[a-f0-9]{40}$ ]] || fail 'FTI_RELEASE_SHA must be a full lowercase commit SHA.'
 FTI_DIR=/opt/fti/releases/$FTI_SHA
 FTI_STATE=/var/lib/fti-v3/$FTI_SHA
 FTI_CONFIG=/etc/fti-v3
 FTI_DEPLOYMENT=$FTI_STATE/deployment.json
 FTI_PORT=3108
-fail(){ printf '%s\n' "$*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || fail 'Run this script as root.'
 case "$(uname -m)" in
  x86_64) FTI_ARCH=x64 ;;

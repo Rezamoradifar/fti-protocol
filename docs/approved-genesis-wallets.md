@@ -10,4 +10,6 @@ All initial positions start with zero units and no activation serial. Each walle
 
 This applies to a NEW V3 deployment. Existing immutable contracts cannot have their genesis list rewritten by a frontend update. No live deployment or migration was performed. The script remains restricted to chain 97/31337.
 
-Checks: `npm run compile`; `node --test test/v3-wallets.test.mjs test/v3-deploy-script.test.mjs test/funded-economics.test.mjs`.
+The testnet launcher resolves the selected checkout revision (or an explicit full `FTI_RELEASE_SHA`) instead of silently deploying an older hardcoded release.
+
+Checks: `npm run build:web`; `npm run compile`; `node --test test/v3-wallets.test.mjs test/v3-approved-activation.test.mjs test/v3-deploy-script.test.mjs test/funded-economics.test.mjs`.
