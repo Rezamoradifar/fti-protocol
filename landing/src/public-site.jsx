@@ -56,7 +56,7 @@ export function PublicSite(){
   currentSections[0][2]='FTI connects membership, funded binary rewards and a reserve token. The verified application configuration identifies the active network. Independent auditing is not complete.';
   currentSections[0][3]='FTI عضویت، پاداش باینری تأمین‌شده و توکن مبتنی بر ذخیره را متصل می‌کند. تنظیمات بررسی‌شده برنامه شبکه فعال را مشخص می‌کند. حسابرسی مستقل کامل نشده است.';
   currentSections[1][2]=currentSections[1][2].replace('test USD','USD');currentSections[1][3]=currentSections[1][3].replace('دلار آزمایشی','دلار');
-  const last=currentSections.at(-1);last[2]='Observed prices and recent volume are not forecasts. Mainnet uses the selected real collateral and BNB for gas. Collateral value, support and repayment are not guaranteed. Software, issuer, liquidity and governance risks remain.';last[3]='قیمت‌های مشاهده‌شده و حجم اخیر پیش‌بینی نیستند. شبکه اصلی از دارایی پشتوانه منتخب و BNB برای کارمزد استفاده می‌کند. ارزش پشتوانه، حمایت و بازپرداخت تضمین نشده‌اند. ریسک نرم‌افزار، ناشر، نقدشوندگی و حاکمیت باقی است.';
+  const last=currentSections[currentSections.length-1];last[2]='Observed prices and recent volume are not forecasts. Mainnet uses the selected real collateral and BNB for gas. Collateral value, support and repayment are not guaranteed. Software, issuer, liquidity and governance risks remain.';last[3]='قیمت‌های مشاهده‌شده و حجم اخیر پیش‌بینی نیستند. شبکه اصلی از دارایی پشتوانه منتخب و BNB برای کارمزد استفاده می‌کند. ارزش پشتوانه، حمایت و بازپرداخت تضمین نشده‌اند. ریسک نرم‌افزار، ناشر، نقدشوندگی و حاکمیت باقی است.';
  }
  const format=v=>v===undefined?'—':(Number(v)/1e18).toLocaleString('en-US',{maximumFractionDigits:6});
  return <div className="public-site"><SiteHeader token/>
