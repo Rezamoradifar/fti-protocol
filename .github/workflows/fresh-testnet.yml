@@ -5,6 +5,13 @@ on:
       - 'scripts/fresh-testnet.mjs'
       - 'test/fresh-testnet.test.mjs'
       - 'tools/prepare-fresh-testnet.sh'
+      - 'tools/start-fresh-testnet.py'
+      - 'tools/deploy-fresh-testnet-complete.sh'
+      - 'test/fresh-testnet-runner.test.py'
+      - 'tools/recover-fresh-testnet-runner.py'
+      - 'test/fresh-testnet-recovery.test.py'
+      - 'core/hourly-settlement-audit.mjs'
+      - 'tools/testnet-continuity-*.mjs'
       - 'contracts/**'
       - '.github/workflows/fresh-testnet.yml'
 permissions:
@@ -17,13 +24,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: npm --prefix landing ci
       - run: npm run compile
       - run: npm run build:web
       - run: npm --prefix landing run build
       - run: bash -n tools/prepare-fresh-testnet.sh
-      - run: node --test --test-concurrency=2 test/fresh-testnet.test.mjs test/global-builder-controls.test.mjs test/global-frontend.test.mjs test/member-landing-theme.test.mjs
+      - run: bash -n tools/deploy-fresh-testnet-complete.sh
+      - run: python3 -B test/fresh-testnet-runner.test.py
+      - run: python3 -B test/fresh-testnet-recovery.test.py
+      - run: node --test --test-concurrency=2 test/fresh-testnet.test.mjs test/global-builder-controls.test.mjs test/global-frontend.test.mjs test/member-landing-theme.test.mjs test/pool-settlement-audit.test.mjs

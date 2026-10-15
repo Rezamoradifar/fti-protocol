@@ -52,7 +52,14 @@ const rpc=new JsonRpcProvider(location.origin+'/rpc',undefined,{cacheTimeout:-1,
 const names={binary:cfg.binaryContract||'BinaryPlan',token:cfg.tokenContract||'FTIToken',usd:networkProfile.testAssets?'MockUSD':'Collateral',council:v3Model?'SevenGuardianCouncil':'Council',...(cfg.timelock?{timelock:'FTITimelock'}:{})},read={};
 await Promise.all(Object.entries(names).map(async([key,name])=>{read[key]=new Contract(cfg[key],await json('/abi/'+name),rpc);}));
 if(cfg.hourlyCapFlushVersion===1)document.getElementById('point-policy').textContent=t('Above-cap matched volume is flushed each hour; only the unmatched stronger-leg balance is saved when the capped points are fully funded. Within-cap volume deferred by the $20 funding floor remains. Flushed credit stays in the protected reserve.','تعادل بالاتر از سقف ساعتی فلش می‌شود؛ با تأمین کامل پوینت‌های مجاز، فقط اختلاف دست بزرگ ذخیره می‌شود. حجم داخل سقف که به علت کمبود پشتوانه ۲۰ پرداخت نشده، باقی می‌ماند. اعتبار فلش‌شده در ذخیره محافظت‌شده قرارداد می‌ماند.');
-initNetworkTree(read.binary,rpc,cfg.hourlyCapFlushVersion);
+if(cfg.poolDistributionVersion===1){
+ text('point-value-label',t('Hourly pool / eligible points · USD','استخر ساعتی ÷ پوینت‌های واجد شرایط · دلار'));
+ text('point-policy',t('The entire hourly point pool is shared in proportion to eligible capped points. Above-cap matches flush; only unmatched stronger-leg volume remains. Only integer rounding carries to the next hour when points are eligible.','کل استخر ساعتی به نسبت پوینت‌های واجد شرایط پس از اعمال سقف تقسیم می‌شود. تعادل مازاد سقف می‌سوزد و فقط اختلاف دست بزرگ باقی می‌ماند. با وجود پوینت واجد شرایط، تنها اختلاف گردکردن به ساعت بعد می‌رود.'));
+ text('point-protection-policy',t('Below $16, protection increases for the next hour; above $20 it eases one level. Protection changes rank point caps, never withholds eligible rewards. With no eligible points the pool carries forward.','زیر ۱۶ دلار، حفاظت برای ساعت بعد یک سطح بیشتر و بالای ۲۰ دلار یک سطح کمتر می‌شود. حفاظت سقف تعداد پوینت رنک را تغییر می‌دهد و مانع پرداخت سهم واجد شرایط نیست. اگر هیچ پوینت واجد شرایطی نباشد، کل استخر باقی می‌ماند.'));
+ text('builder-pool-policy',t('Each rank pool includes its previous monthly remainder. Eligible ranks share equally, with the existing 20% per-wallet limit and one payment per rank. Unpaid funds and rounding remain available for later months.','مانده ماه قبل به صندوق همان رنک اضافه می‌شود. واجدین شرایط سهم برابر با سقف قبلی ۲۰٪ صندوق و یک‌بار پرداخت هر رنک دارند. مبلغ پرداخت‌نشده و گردکردن برای ماه‌های بعد قابل استفاده است.'));
+ document.getElementById('wallet-credits-row').hidden=true;
+}
+initNetworkTree(read.binary,rpc,cfg.hourlyCapFlushVersion,cfg.poolDistributionVersion);
 if(v3Model)initLiveMarket(read.token,rpc,cfg);
 let signer,address,state,busy=false,connecting=false,transactionAddress,refreshSequence=0,autoDirty=false,councilOwner=false;
 let lockOffset=0;

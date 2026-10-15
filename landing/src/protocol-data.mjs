@@ -5,7 +5,8 @@ export const RANKS=[
  {name:'Builder III',short:'III',threshold:500,buyLimit:800,pool:.8},
  {name:'Builder IV',short:'IV',threshold:1000,buyLimit:1000,pool:.4}
 ];
-export const CAPS=[[5,10,15,20,25],[5,10,12,16,20],[5,10,10,12,15],[5,10,10,10,10]];
+import {CAPS} from '../../frontend/hourly-caps.js';
+export {CAPS};
 export const LEGACY_CONTRACTS=[
  {name:'FTI Token',role:'Curve pricing, reserve accounting and token movement.',address:'0x127bEEe5c89fDf42Bb056BBD5D4491982880eE91',source:'contracts/FTIToken.sol'},
  {name:'Binary Plan',role:'Membership placement, points and funded reward allocation.',address:'0x8838a88b34219119D14092DEC9A9070809F3456e',source:'contracts/BinaryPlan.sol'},

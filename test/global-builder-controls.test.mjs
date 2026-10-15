@@ -10,8 +10,10 @@ import {keeperStep} from '../scripts/keeper.mjs';
 const send=async tx=>{const r=await(await tx).wait();assert.equal(r.status,1);return r;};
 const unix=s=>Date.parse(s)/1000;
 
-test('Builder controls use hourly funded income, retain liabilities and close at Gregorian UTC boundaries',{timeout:240000},async t=>{
- const engine=ganache.provider({chain:{chainId:31337,time:new Date('2026-01-05T00:00:00Z')},logging:{quiet:true},wallet:{totalAccounts:46},miner:{blockGasLimit:30000000}});
+test('Builder controls use hourly funded income, retain liabilities and close at Gregorian UTC boundaries',{timeout:600000},async t=>{
+ // Wall-clock mining can cross 23:59:59 between estimation and inclusion,
+ // changing the short-circuit branch/gas cost. Boundary tests control time.
+ const engine=ganache.provider({chain:{chainId:31337,time:new Date('2026-01-05T00:00:00Z')},logging:{quiet:true},wallet:{totalAccounts:46},miner:{blockGasLimit:30000000,timestampIncrement:0}});
  const provider=new BrowserProvider(engine,undefined,{cacheTimeout:-1});provider.pollingInterval=10;
  try {
   const signers=await Promise.all(Array.from({length:46},(_,i)=>provider.getSigner(i))),a=await Promise.all(signers.map(s=>s.getAddress()));
@@ -84,6 +86,7 @@ test('Builder controls use hourly funded income, retain liabilities and close at
    const pools=await Promise.all([0,1,2,3].map(i=>binary.monthFunding(key,i))),book=await binary.builderAccounted(),cash=await binary.totalPending();
    for(const time of ['2026-01-10T12:00:00Z','2026-01-20T12:00:00Z','2026-01-31T23:59:59Z']){
     await warp(unix(time));const receipt=await send(binary.connect(signers[40]).beginBuilderMonth());
+    assert.equal((await provider.getBlock(receipt.blockNumber)).timestamp,unix(time),'Test transaction must stay at the requested boundary');
     const scheduled=receipt.logs.map(l=>{try{return binary.interface.parseLog(l)}catch{return null}}).find(e=>e?.name==='BuilderMonthCloseRequested');
     assert.equal(scheduled.args.effectiveAt,BigInt(cutoff));
     assert.deepEqual(await Promise.all([0,1,2,3].map(i=>binary.monthFunding(key,i))),pools);
@@ -94,17 +97,34 @@ test('Builder controls use hourly funded income, retain liabilities and close at
    await send(binary.beginEpochClose());while(await binary.phase()>0n)await send(binary.processEpoch(25));
    await send(binary.beginBuilderMonth());assert.equal(await binary.monthPhase(),1n);
    for(let i=0;i<4;i++){assert.equal(await binary.monthBalances(i),pools[i]);assert.equal(await binary.monthFunding(key,i),0n);}
-   const pendingAuto=await binary.totalAuto(),beforeMonthlyCash=await binary.totalPending();while(await binary.monthPhase()>0n)await send(binary.processBuilderMonth(25));
+   const pendingAuto=await binary.totalAuto(),beforeMonthlyCash=await binary.totalPending();while(await binary.monthPhase()>0n)await send(binary.processBuilderMonth(25,{gasLimit:6_000_000}));
    assert(await binary.totalPending()>beforeMonthlyCash); // Nonzero monthly award is paid as cash even with 100% hourly auto enabled.
    assert.equal(await binary.totalAuto(),pendingAuto); // Monthly Builder payouts are never auto-buy funding.
    assert.equal(await binary.nextBuilderMonth(),BigInt(key+1));await checkAccounting(suite);
   }));
+  await t.test('Keeper closes the prior month after processing new-month purchases without stranding cash',()=>snapshot(async()=>{
+   await warp(unix('2026-02-01T00:00:00Z'));await settle(suite,provider);
+   await send(binary.connect(signers[1]).addUnits(1));
+   assert(await binary.jobCursor()<await binary.jobCount());
+   await assert.rejects(()=>binary.beginBuilderMonth.staticCall());
+   const feb=await Promise.all([0,1,2,3].map(i=>binary.monthFunding(2026*12+1,i)));
+   assert.equal(await keeperStep(binary,provider),'volume batch');
+   assert.equal(await binary.jobCursor(),await binary.jobCount());
+   assert.equal(await keeperStep(binary,provider),'builder close');
+   while(await binary.monthPhase()>0n)assert.equal(await keeperStep(binary,provider),'builder batch');
+   assert.equal(await binary.nextBuilderMonth(),BigInt(2026*12+1));
+   assert.deepEqual(await Promise.all([0,1,2,3].map(i=>binary.monthFunding(2026*12+1,i))),feb);
+   const pending=await binary.pendingReward(a[0]),balance=await usd.balanceOf(a[0]);assert(pending>0n);
+   assert.equal(await keeperStep(binary,provider),'reward payout batch');
+   assert.equal(await usd.balanceOf(a[0]),balance+pending);assert.equal(await binary.pendingReward(a[0]),0n);await checkAccounting(suite);
+  }));
   await t.test('month lengths include leap February and December rollover, never a rolling 30-day timer',()=>snapshot(async()=>{
-   // Exercise the compiled Calendar library through real business calls, advancing sequentially.
+   // Exercise the compiled Calendar through real transactions. An explicit gas
+   // limit avoids repeatedly simulating each full monthly scan during estimation.
    const boundaries=[['2026-02-01T00:00:00Z',2026*12],['2026-03-01T00:00:00Z',2026*12+1],['2027-01-01T00:00:00Z',2026*12+11],['2028-03-01T00:00:00Z',2028*12+1]];
    for(const [timestamp,lastMonth]of boundaries){
     await warp(unix(timestamp));await send(binary.beginEpochClose());while(await binary.phase()>0n)await send(binary.processEpoch(25));
-    while(await binary.nextBuilderMonth()<=BigInt(lastMonth)){await send(binary.beginBuilderMonth());while(await binary.monthPhase()>0n)await send(binary.processBuilderMonth(25));}
+    while(await binary.nextBuilderMonth()<=BigInt(lastMonth)){await send(binary.beginBuilderMonth());while(await binary.monthPhase()>0n)await send(binary.processBuilderMonth(25,{gasLimit:6_000_000}));}
     const next=await binary.nextBuilderMonth();await send(binary.beginBuilderMonth());assert.equal(await binary.nextBuilderMonth(),next);assert.equal(await binary.monthPhase(),0n);
    }
    await checkAccounting(suite);
@@ -117,12 +137,12 @@ test('all existing storage fields retain their position and representation',()=>
  const old=JSON.parse(fs.readFileSync('docs/storage-layout/FundedBinaryPlanUpgradeable-20261009.json'));
  const next=JSON.parse(fs.readFileSync('artifacts/storage-layout/FundedBinaryPlanUpgradeable.json'));
  assertStorageCompatible(old,next);assert.equal(next.storage[old.storage.length-1].label,'calculatedPointValue');
- assert.deepEqual(next.storage.slice(old.storage.length).map(field=>field.label),['_autoBuyPercent','directReferrer','directReferralCount']);
+ assert.deepEqual(next.storage.slice(old.storage.length).map(field=>field.label),['_autoBuyPercent','directReferrer','directReferralCount','poolDistributionState','poolMigrationCursor','poolMigrationMonth','poolMigrationLastMonth']);
 });
 
 test('Keeper gives ready monthly settlement precedence over a replenished payout queue',async()=>{
  let closed=false;const timestamp=unix('2026-02-01T00:00:00Z');
- const b={interface:{hasFunction:()=>true},recoveryFrozen:async()=>false,phase:async()=>0n,monthPhase:async()=>0n,nextBuilderMonth:async()=>BigInt(2026*12),lastClosedAt:async()=>BigInt(timestamp),
+ const b={interface:{hasFunction:()=>true},recoveryFrozen:async()=>false,phase:async()=>0n,monthPhase:async()=>0n,jobCursor:async()=>0n,jobCount:async()=>0n,nextBuilderMonth:async()=>BigInt(2026*12),lastClosedAt:async()=>BigInt(timestamp),
   beginBuilderMonth:async()=>({wait:async()=>{closed=true}}),rewardAccountCount:async()=>100n,payRewards:async()=>{throw Error('Monthly work starved');}};
  assert.equal(await keeperStep(b,{getBlock:async()=>({timestamp})}),'builder close');assert(closed);
 });

@@ -1,0 +1,29 @@
+name: Hourly pool distribution and monthly carry
+on:
+  pull_request:
+    paths:
+      - 'contracts/**'
+      - 'core/**'
+      - 'scripts/**'
+      - 'frontend/**'
+      - 'test/**'
+      - 'docs/storage-layout/**'
+      - '.github/workflows/pool-distribution.yml'
+permissions:
+  contents: read
+jobs:
+  pooled-financial-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run compile
+      - run: npm run build:web
+      - run: node --test --test-concurrency=2 test/hourly-cap-flush.test.mjs test/pool-*.test.mjs test/global-builder-controls.test.mjs test/funded-keeper.test.mjs test/referral-layout.test.mjs test/continuity-upgrade.test.mjs test/continuity-monitor.test.mjs test/address-migration*.test.mjs test/mainnet-*.test.mjs test/fresh-testnet.test.mjs

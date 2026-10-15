@@ -40,8 +40,11 @@ test('untranslated detailed prose is not represented as a completed translation'
  assert.equal(translate('Not in the catalogue.','ar'),'Not in the catalogue.');
  assert(read('frontend/global-components.jsx').includes('Some detailed explanations are still shown in English.'));
 });
-test('no guessed social accounts; each configured URL must match its exact platform',()=>{
- assert.deepEqual(validatedSocialLinks(JSON.parse(read('config/social-links.json'))),[]);
+test('owner-supplied social accounts are exact and each URL matches its platform',()=>{
+ assert.deepEqual(validatedSocialLinks(JSON.parse(read('config/social-links.json'))),[
+  {id:'telegram',name:'Telegram',href:'https://t.me/FTIProtocol'},
+  {id:'x',name:'X',href:'https://x.com/FTIProtocol'}
+ ]);
  const rows=validatedSocialLinks({telegram:'https://t.me/fti_demo',x:'https://x.com/fti_demo',instagram:'https://instagram.com/fti_demo',youtube:'https://youtube.com/@fti_demo',linkedin:'https://linkedin.com/company/fti_demo',discord:'https://discord.gg/test'});
  assert.equal(rows.length,6);assert(rows.every(r=>r.href.startsWith('https://')));
 });

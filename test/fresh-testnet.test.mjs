@@ -73,6 +73,7 @@ test('fresh deployment uses new addresses/zero books, leaves a funded previous n
   const events=[];
   const cfg=await deployFresh({provider,signer:w[8],plan,confirmPlan:plan.digest,budget:budget(),confirmations:1,onEvent:async e=>events.push(e)});
   assert.equal(cfg.importedUsers,0);assert.equal(cfg.importedFunds,'0');assert.equal(cfg.initialState.memberCount,31);
+  assert.equal(cfg.poolDistributionVersion,1);assert.equal(cfg.rewardModel,'hourly-global-pool-v2');
   assert.equal(cfg.initialState.price,'0');assert.equal(cfg.initialState.bootstrapQuotePrice,'100000000000000000');
   assert.equal(events.filter(e=>e.status==='SUBMITTED').length,8);
   assert.equal(events.filter(e=>e.status==='CONFIRMED').length,8);
@@ -97,6 +98,7 @@ test('fresh deployment uses new addresses/zero books, leaves a funded previous n
   process.env.RPC_URL='http://127.0.0.1:'+engine.address().port;process.env.PORT='0';process.env.HOST='127.0.0.1';
   web=await startWeb(deployment);const base='http://127.0.0.1:'+web.address().port;
   const api=await(await fetch(base+'/api/config')).json();assert.equal(api.binary,cfg.binary);assert.equal(api.selectableHourlyAutoBuy,true);assert.equal(api.hourlyCapFlushVersion,1);
+  assert.equal(api.poolDistributionVersion,1);
   const state=await(await fetch(base+'/api/state?wallet='+a[8])).json();assert.equal(state.wallet.autoBuyPercent,'100');assert.equal(state.count,'31');
   for(const route of ['/health','/app/','/token/','/admin/','/abi/FundedBinaryPlanUpgradeable'])assert.equal((await fetch(base+route)).status,200,route);
   await t.test('real CLI writes private plan/deployment records and refuses a repeated deployment',async()=>{
@@ -121,6 +123,7 @@ test('fresh deployment uses new addresses/zero books, leaves a funded previous n
     const args=['deploy','--out',target,'--send','--confirm-plan',summary.digest,'--key-file',keyFile,'--max-fee-wei',parseEther('1').toString(),'--max-gas-price-wei','10000000000','--confirmations','1'];
     const deployed=await run(args);assert.equal(deployed.code,0,deployed.stderr);
     assert.equal(JSON.parse(deployed.stdout.trim()).result,'FTI_FRESH_TESTNET_DEPLOYED');
+    assert.equal(JSON.parse(deployed.stdout.trim()).poolDistributionVersion,1);
     assert(!deployed.stdout.includes(secret));assert(!deployed.stdout.includes('privateKey'));
     const saved=fs.readFileSync(path.join(target,'deployment.json'),'utf8');
     const journal=fs.readFileSync(path.join(target,'journal.jsonl'),'utf8').trim().split('\n').map(JSON.parse);

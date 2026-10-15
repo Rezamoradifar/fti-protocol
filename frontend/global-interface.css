@@ -1,3 +1,4 @@
+@import './glass-interface.css';
 /* Shared interface controls; neither transactions nor wallet data are styled away. */
 .fti-language{display:inline-flex;align-items:center;gap:8px;max-width:100%;font-size:13px}
 .fti-language select{min-height:44px;max-width:180px;border:1px solid var(--line,#29342d);border-radius:8px;background:var(--panel,#101c14);color:var(--text,#eaf1ed);padding:8px 12px;font:inherit}

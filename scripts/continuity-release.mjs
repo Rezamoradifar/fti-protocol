@@ -73,6 +73,7 @@ export async function verifyV3Deployment(cfg,provider){
  if(await binary.TARGET_POINT_VALUE()!==20n*10n**18n||await binary.PROTECTION_TRIGGER()!==16n*10n**18n||await token.BUY_STEP()!==500n*10n**18n)throw Error('Continuity economic configuration mismatch');
  if(mainnet){
   if(await binary.hourlyCapFlushVersion()!==1n)throw Error('Mainnet cap-flush implementation required');
+  if(await binary.poolDistributionVersion()!==1n)throw Error('Mainnet hourly pool distribution must be active');
   const [b,t,c]=await Promise.all([binary.accounting(),token.accounting(),binary.fundingAccounting()]);
   if(b[0]<b[1]||t[0]<t[1]||c[0]!==c[1]||c[2]!==c[3])throw Error('Mainnet accounting mismatch');
  }

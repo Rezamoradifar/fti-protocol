@@ -77,6 +77,7 @@ function validateInventory(r) {
  if(![97,31337].includes(Number(r.chainId)))throw Error('Testnet/local only');
  if(!r.global?.binary?.recoveryFrozen||!r.global?.token?.recoveryFrozen)throw Error('Freeze both sources first');
  const b=r.global.binary;
+ if(b.poolDistributionState!==undefined&&BigInt(b.poolDistributionState)!==3n)throw Error('Finish pool-distribution conversion first');
  if(BigInt(b.phase)!==0n||BigInt(b.monthPhase)!==0n||BigInt(b.jobCursor)!==BigInt(b.jobCount))throw Error('Finish all settlement/volume first');
  for(const key of ['holders','allowances','epochs','months','logs'])if(!Array.isArray(r.ledger?.[key]))throw Error('Missing ledger '+key);
  if(new Set(r.ledger.holders.map(h=>h.wallet.toLowerCase())).size!==r.ledger.holders.length)throw Error('Duplicate holder');

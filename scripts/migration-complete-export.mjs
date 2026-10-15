@@ -6,6 +6,7 @@ export async function completeExport(inventory,{provider,binary,token,cfg,chunk=
  if(!Number.isSafeInteger(chunk)||chunk<1||chunk>1000)throw Error('Log chunk must be 1..1000');
  const first=await provider.getBlock(cfg.deployedBlock);if(!first)throw Error('Deployment block unavailable');
  if(inventory.global.binary.phase!==0n||inventory.global.binary.monthPhase!==0n||inventory.global.binary.jobCursor!==inventory.global.binary.jobCount)throw Error('Finish settlement/volume before complete export');
+ if(inventory.global.binary.poolDistributionState!==undefined&&inventory.global.binary.poolDistributionState!==3n)throw Error('Finish pool-distribution conversion before complete export');
  const addresses=new Set(inventory.users.map(u=>u.wallet.toLowerCase())),pairs=new Map(),logs=[];
  for(let from=cfg.deployedBlock;from<=blockTag;from+=chunk){
   const rows=await provider.getLogs({address:token.target,fromBlock:from,toBlock:Math.min(blockTag,from+chunk-1),topics:[[id('Transfer(address,address,uint256)'),id('Approval(address,address,uint256)')]]});

@@ -13,7 +13,16 @@ const mainnetCopy={
 };
 export function landingDeploymentCopy(text,cfg){
  if(!cfg)return text;
- if(cfg.hourlyCapFlushVersion===1){
+ if(cfg.poolDistributionVersion===1){
+  if(text==='Unpaid matches')return 'Flushed above-cap matches';
+  const pooled={
+   'Unpaid matched points are retained. This cap illustration excludes attributed funding and is not a payout quote. Protection activates below 16 USD; paid points require 20 USD gross backing.':'Eligible capped points share the entire hourly pool proportionally, even below 20 USD per point. Only rounding carries when points are eligible; with no eligible points the entire pool remains. Protection below 16 USD reduces next-hour rank caps.',
+   'Allocation uses eligible points, attributed branch credit and available funding. Rank caps and the 20 USD gross backing requirement bound paid points.':'Hourly point value is the entire point pool divided by all eligible capped points. Each wallet receives its proportional share; only integer rounding remains. Protection changes the next-hour point caps.',
+   'Attributed reward funding':'Hourly pooled rewards and monthly carry'
+  };
+  if(pooled[text])text=pooled[text];
+  text=text.replace('Unpaid matched points are retained.','Eligible capped points share the entire hourly pool. Above-cap matches flush; unmatched volume remains.').replace('Unpaid matched volume is retained for later settlement.','Eligible capped points share the entire hourly pool. Above-cap matches flush; unmatched volume remains.');
+ }else if(cfg.hourlyCapFlushVersion===1){
   if(text==='Unpaid matches')return 'Flushed above-cap matches';
   text=text.replace('Unpaid matched points are retained.','Above-cap matched volume is flushed; within-cap volume deferred by funding remains.')
    .replace('Unpaid matched volume is retained for later settlement.','Above-cap matches are flushed. Within-cap volume deferred by funding remains.');
