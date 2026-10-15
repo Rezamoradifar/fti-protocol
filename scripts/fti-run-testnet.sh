@@ -3,13 +3,18 @@
 set +x
 set -euo pipefail
 umask 077
-FTI_SHA=b1c2ea914dee1e05d55f761ad3b1804aa6ada6b4
+fail(){ printf '%s\n' "$*" >&2; exit 1; }
+FTI_SHA=${FTI_RELEASE_SHA:-}
+if [[ -z "$FTI_SHA" ]]; then
+ FTI_SCRIPT_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+ FTI_SHA=$(git -C "$FTI_SCRIPT_ROOT" rev-parse HEAD) || fail 'Run from a verified checkout or set FTI_RELEASE_SHA to its full commit SHA.'
+fi
+[[ "$FTI_SHA" =~ ^[a-f0-9]{40}$ ]] || fail 'FTI_RELEASE_SHA must be a full lowercase commit SHA.'
 FTI_DIR=/opt/fti/releases/$FTI_SHA
 FTI_STATE=/var/lib/fti-v3/$FTI_SHA
 FTI_CONFIG=/etc/fti-v3
 FTI_DEPLOYMENT=$FTI_STATE/deployment.json
 FTI_PORT=3108
-fail(){ printf '%s\n' "$*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || fail 'Run this script as root.'
 case "$(uname -m)" in
  x86_64) FTI_ARCH=x64 ;;
@@ -39,7 +44,6 @@ export FTI_STATE FTI_CONFIG FTI_DEPLOYMENT FTI_SHA
 export FTI_SOURCE_REVISION="$FTI_SHA"
 export DEPLOYMENT_FILE="$FTI_DEPLOYMENT"
 export V3_DEPLOYMENT_FILE="$FTI_DEPLOYMENT"
-export V3_TESTNET_SECRETS="$FTI_STATE/genesis-secrets.json"
 export DAO_CONFIG="$FTI_STATE/dao.json"
 
 # Prepare the new immutable checkout; never reuse contracts from the earlier economic release.
@@ -84,7 +88,7 @@ try {
   const partners=(process.env.FTI_PARTNERS||'').split(',').map(x=>x.trim());
   if(partners.length!==7||partners.some(a=>!isAddress(a)||a.toLowerCase()===ZeroAddress)||new Set(partners.map(a=>a.toLowerCase())).size!==7)throw Error('Enter seven distinct nonzero council addresses.');
   fs.writeFileSync(process.env.DAO_CONFIG,JSON.stringify({threshold:5,partners},null,2),{mode:0o600});
-  console.log('Deployer/development/genesis-root address:',deployer.address);
+  console.log('Gas deployer address (not a genesis role):',deployer.address);
   console.log('Council addresses:',partners.join(', '));
  }
  console.log('Network preflight passed: chain 97.');
