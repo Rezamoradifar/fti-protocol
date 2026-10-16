@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import pwd
 import re
+import shlex
 import shutil
 import signal
 import sys
@@ -28,6 +29,41 @@ h.REVISION = 'ba82373a83d63fba0643332371cfb6d62903c849'
 h.COPY_DIRS = (*h.COPY_DIRS, 'config')
 DEPLOYMENT = HERE.parent / 'deployments/mainnet-20261016.json'
 DIGEST = '0ec3a7d93f5e1225cbd4f5671f4ee6b92423718898f1734c42390337467f7480'
+
+
+def choose_drop_name(paths):
+    names = []
+    for value in paths.split():
+        file = Path(value)
+        h.require(file.is_absolute() and re.fullmatch(r'[A-Za-z0-9_.-]+\.conf', file.name),
+                  'Unsupported systemd override path; inspect DropInPaths.')
+        names.append(file.name)
+    name = max(['zzz-fti-mainnet-web.conf', *names]) + '.fti-mainnet.conf'
+    h.require(len(name.encode()) <= 240, 'Override filename too long.')
+    return name
+
+
+def rollback(backup):
+    record = h.load(backup / 'switch.json')
+    name = record.get('dropName', 'zzz-fti-mainnet-web.conf')
+    h.require(re.fullmatch(r'[A-Za-z0-9_.-]+\.conf', name), 'Invalid saved override name.')
+    h.DROP_NAME = name
+    h.rollback(backup)
+
+
+def read_saved_env(file):
+    st = file.lstat()
+    h.require(file.is_file() and not file.is_symlink() and st.st_uid == 0 and
+              not st.st_mode & 0o022, 'Unsafe saved environment permissions.')
+    text = file.read_text()
+    env = {}
+    for line in text.splitlines():
+        key, value = line.split('=', 1)
+        fields = shlex.split(value)
+        h.require(len(fields) == 1 and key not in env, 'Invalid saved environment.')
+        env[key] = fields[0]
+    h.require(h.env_text(env) == text, 'Saved environment format changed.')
+    return env
 
 
 def check_target(cfg):
@@ -84,8 +120,13 @@ def check_assets(release, base):
 
 
 def switch(release, state, backup, saved, cfg):
+    paths = h.run(['systemctl', '--no-pager', '--full', 'show', h.UNITS['web'],
+                   '--property=DropInPaths', '--value']).strip()
+    h.DROP_NAME = choose_drop_name(paths)
     text = h.dropin('web', release, state, saved['node'])
-    h.write(backup / 'switch.json', json.dumps({'dropHashes': {'web': hashlib.sha256(text.encode()).hexdigest()}}))
+    h.write(backup / 'switch.json', json.dumps({'dropName': h.DROP_NAME,
+            'release': str(release), 'state': str(state),
+            'dropHashes': {'web': hashlib.sha256(text.encode()).hexdigest()}}))
     print('ROLLBACK_COMMAND=python3 ' + str(backup / 'activate-mainnet-web.py') + ' --rollback ' + str(backup), flush=True)
     changed = False
     try:
@@ -96,7 +137,8 @@ def switch(release, state, backup, saved, cfg):
         h.drop_path('web').parent.mkdir(mode=0o755, exist_ok=True)
         h.write(h.drop_path('web'), text, 0o644)
         h.run(['systemctl', 'daemon-reload'])
-        h.require(h.properties('web').get('WorkingDirectory') == str(release), 'Override superseded.')
+        actual = h.properties('web').get('WorkingDirectory')
+        h.require(actual == str(release), 'Override superseded; effective WorkingDirectory=' + str(actual))
         h.run(['systemctl', 'start', h.UNITS['web']])
         deadline = time.monotonic() + 180
         while True:
@@ -111,7 +153,7 @@ def switch(release, state, backup, saved, cfg):
         check_assets(release, 'https://ftiprotocol.com')
     except BaseException:
         if changed:
-            h.rollback(backup)
+            rollback(backup)
         raise
 
 
@@ -169,11 +211,56 @@ def activate(source):
     print(json.dumps(report), flush=True)
 
 
+def resume(previous):
+    h.require(previous.is_absolute() and previous.resolve() == previous and
+              previous.parent == Path('/var/lib/fti-continuity/cutover-backups') and
+              re.fullmatch(r'mainnet-web-\d{8}T\d{6}Z-\d+', previous.name), 'Unexpected previous backup.')
+    h.load(previous / 'switch.json')
+    # These directories were created together by the original installer.
+    release = Path('/opt/fti/releases') / previous.name
+    state = Path('/var/lib/fti-continuity') / previous.name
+    h.require(release.is_dir() and release.resolve() == release and state.resolve() == state,
+              'Original staged release/state missing or linked.')
+    cfg = h.load(state / 'deployment.json')
+    check_target(cfg)
+    h.require(cfg == h.load(DEPLOYMENT), 'Saved deployment differs from verified receipts.')
+    saved = h.capture('web')
+    current = Path(saved['env']['DEPLOYMENT_FILE'])
+    if not current.is_absolute():
+        current = Path(saved['properties']['WorkingDirectory']) / current
+    if h.load(current).get('mainnetPlanDigest') == DIGEST:
+        check_web(cfg, 'https://ftiprotocol.com')
+        check_assets(release, 'https://ftiprotocol.com')
+        print('FTI_MAINNET_WEB_ALREADY_ACTIVE; KEEPER_NOT_VERIFIED')
+        return
+    env = read_saved_env(state / 'web.env')
+    h.require(env == environment(saved, state, env.get('RPC_URL', '')),
+              'Saved environment differs from the expected web-only configuration.')
+    account = pwd.getpwnam('fti-v3')
+    h.PREFLIGHT = h.PREFLIGHT.replace('97n', '56n').replace('chainId:97', 'chainId:56')
+    print('STAGE=recheck_existing_mainnet_build_and_contracts', flush=True)
+    h.preflight(saved, env, release, account)
+    stamp = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()) + '-' + str(os.getpid())
+    backup = previous.parent / ('mainnet-web-resume-' + stamp)
+    backup.mkdir(mode=0o700)
+    for file in ('activate-mainnet-web.py', 'activate-fresh-testnet.py'):
+        shutil.copyfile(HERE / file, backup / file)
+    h.write(backup / 'web.unit.txt', h.run(['systemctl', 'cat', h.UNITS['web']]))
+    h.write(backup / 'web.active-environment.json', json.dumps(saved['env']))
+    switch(release, state, backup, saved, cfg)
+    report = {'result': 'FTI_MAINNET_WEB_ACTIVE', 'chainId': 56, 'token': cfg['token'],
+              'binary': cfg['binary'], 'publicHttpsVerified': True, 'keeperActivated': False,
+              'browserVerified': False, 'backup': str(backup)}
+    h.write(backup / 'result.json', json.dumps(report))
+    print(json.dumps(report), flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--source', type=Path)
     group.add_argument('--rollback', type=Path)
+    group.add_argument('--resume-backup', type=Path)
     args = parser.parse_args()
     h.require(os.geteuid() == 0, 'Run on the FTI VPS as root.')
     os.umask(0o077)
@@ -185,7 +272,9 @@ def main():
         signal.signal(signal.SIGHUP, interrupted)
         if args.rollback:
             h.require(args.rollback.resolve().parent == Path('/var/lib/fti-continuity/cutover-backups'), 'Unexpected backup path.')
-            h.rollback(args.rollback)
+            rollback(args.rollback)
+        elif args.resume_backup:
+            resume(args.resume_backup)
         else:
             activate(args.source)
 

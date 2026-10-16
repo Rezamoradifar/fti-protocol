@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('mainnet_web', ROOT / 'tools/activate-mainnet-web.py')
@@ -12,6 +12,37 @@ spec.loader.exec_module(m)
 
 
 class MainnetWebTests(unittest.TestCase):
+    def test_new_override_sorts_after_existing_late_overrides(self):
+        names = ['90-frontend.conf', 'zz-fti-fresh-testnet.conf', 'zzzz-domain-hotfix.conf']
+        chosen = m.choose_drop_name(' '.join('/etc/systemd/system/example.service.d/' + n for n in names))
+        self.assertEqual(sorted([*names, chosen])[-1], chosen)
+        with self.assertRaises(m.h.CutoverError):
+            m.choose_drop_name('/etc/systemd/system/bad\\x20name.conf')
+
+    def test_saved_env_round_trip_without_shell_expansion(self):
+        env = {'RPC_URL': 'https://example.invalid/a$b`c`?x=1&y=2', 'PORT': '3110'}
+        file = Mock()
+        file.lstat.return_value = Mock(st_uid=0, st_mode=0o100640)
+        file.is_file.return_value = True
+        file.is_symlink.return_value = False
+        file.read_text.return_value = m.h.env_text(env)
+        self.assertEqual(m.read_saved_env(file), env)
+        file.lstat.return_value.st_mode = 0o100666
+        with self.assertRaises(m.h.CutoverError):
+            m.read_saved_env(file)
+
+    def test_dynamic_override_name_survives_rollback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            (base / 'switch.json').write_text(json.dumps({'dropName': 'zzzz-hotfix.conf.fti-mainnet.conf'}))
+            with patch.object(m.h, 'rollback') as restore:
+                m.rollback(base)
+                self.assertEqual(m.h.DROP_NAME, 'zzzz-hotfix.conf.fti-mainnet.conf')
+                restore.assert_called_once_with(base)
+            (base / 'switch.json').write_text(json.dumps({'dropName': '../unsafe.conf'}))
+            with self.assertRaises(m.h.CutoverError):
+                m.rollback(base)
+
     def test_pins_verified_deployment(self):
         cfg = json.loads(m.DEPLOYMENT.read_text())
         m.check_target(cfg)
@@ -40,7 +71,7 @@ class MainnetWebTests(unittest.TestCase):
                     raise m.h.CutoverError('Wrong live deployment')
             with patch.object(m.h, 'drop_path', return_value=drop), \
                  patch.object(m.h, 'properties', return_value=saved['properties']), \
-                 patch.object(m.h, 'run') as run, \
+                 patch.object(m.h, 'run', return_value='') as run, \
                  patch.object(m, 'check_web', side_effect=check), \
                  patch.object(m, 'check_assets'), patch.object(m.h, 'rollback') as rollback:
                 with self.assertRaises(m.h.CutoverError):
