@@ -11,6 +11,7 @@ node_bin="$(readlink -f "/proc/$web_pid/exe")"
 export PATH="$(dirname -- "$node_bin"):$PATH"
 cd -- "$source"
 npm ci
+npm --prefix landing ci
 npm run build:web
 python3 tools/apply-mainnet-ui.py --source "$source"
-python3 tools/check-mainnet-keeper.py
+

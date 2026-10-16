@@ -14,7 +14,9 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: landing/package-lock.json
+      - run: npm ci
       - run: npm ci --prefix landing
+      - run: npm run build:web
       - run: npm run build --prefix landing
       - run: bash -n landing/install-dist.sh
       - run: sudo env PATH="$PATH" npm run test:install --prefix landing

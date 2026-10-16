@@ -39,3 +39,6 @@ __pycache__/
 
 /web/vendor/walletconnect.js
 /web/vendor/walletconnect.js.LEGAL.txt
+
+/web/fonts/
+/web/panel-identity.css

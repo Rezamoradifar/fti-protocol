@@ -1,0 +1,50 @@
+@font-face{font-family:'FTI Manrope';font-style:normal;font-weight:200 800;font-display:swap;src:url('../landing/node_modules/@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2') format('woff2')}
+@font-face{font-family:'FTI Vazirmatn';font-style:normal;font-weight:100 900;font-display:swap;src:url('../landing/node_modules/@fontsource-variable/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2') format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+200C-200E,U+FB50-FDFF,U+FE70-FEFF}
+body[data-surface]{--bg:#080e10;--panel:#10191c;--panel2:#152125;--line:#273236;--text:#eff4ef;--muted:#9ba9aa;--accent:#c9fca2;--ink:#142016;--member-border:#273236;--member-header:#080e10;--member-art:#324335;--member-font:'FTI Manrope',Arial,sans-serif;--member-heading:var(--member-font);background:var(--bg)!important;color:var(--text);font-family:var(--member-font);color-scheme:dark}
+body[data-surface].light{--bg:#f4f6f0;--panel:#ffffff;--panel2:#e8eee4;--line:#ccd7cc;--text:#152b25;--muted:#53675f;--accent:#386a37;--ink:#fff;--member-border:#ccd7cc;--member-header:#f4f6f0;--member-art:#ccdbc4;color-scheme:light}
+html[dir=rtl] body[data-surface]{--member-font:'FTI Vazirmatn','FTI Manrope',Tahoma,sans-serif;--member-heading:var(--member-font)}
+body[data-surface] :is(button,input,select,textarea,h1,h2,h3){font-family:var(--member-font)}
+body[data-surface] .sidebar .brand::before{content:none!important;display:none!important}
+body[data-surface] .sidebar .brand{direction:ltr;justify-content:flex-start;gap:11px;color:var(--text);font-family:'FTI Manrope',Arial,sans-serif;letter-spacing:-1px;font-size:29px}
+body[data-surface] .sidebar .brand .fti-brand-mark{width:43px;height:43px;color:var(--accent)}
+body[data-surface] .sidebar .brand small{font-family:'FTI Manrope',Arial,sans-serif;font-size:8px;letter-spacing:3px;margin-top:7px;color:var(--muted)}
+body[data-surface] :is(main,.page,.panel,.welcome,.rank-card,.connection){min-width:0}
+body[data-surface] :is(.panel,.rank-card,.metrics article){border-color:var(--line);border-radius:16px}
+body[data-surface] .sidebar{background:var(--bg)!important}
+body[data-surface] .global-tabs{display:flex;gap:8px;flex-wrap:wrap}
+body[data-surface] :is(.contract-list a,.contract-list code){overflow-wrap:anywhere;white-space:normal}
+body[data-surface] :is(button,a,input,select){touch-action:manipulation}
+@media(max-width:900px){
+ body[data-surface] .sidebar{position:relative;inset:auto;width:100%;height:auto;overflow:visible;padding:16px;border-width:0 0 1px}
+ body[data-surface] main,html[dir=rtl] body[data-surface] main{margin:0;padding:20px 16px 0;width:auto}
+ body[data-surface] .sidebar .brand{font-size:25px}
+ body[data-surface] .sidebar .brand .fti-brand-mark{width:38px;height:38px}
+ body[data-surface] .sidebar nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:16px 0 0}
+ body[data-surface] .sidebar nav button{min-width:0;min-height:60px;flex-direction:column;justify-content:center;gap:5px;padding:8px 3px;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+ body[data-surface] .sidebar nav button svg{width:19px;height:19px}
+ body[data-surface] :is(.side-label,.side-guide,.surface-links,.workspace-resources){display:none}
+ body[data-surface] .side-foot{position:static;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0 0;padding:0;font-size:11px}
+ body[data-surface] .side-foot small{display:none}
+ body[data-surface] .workspace-header{display:flex;flex-direction:column;gap:14px;align-items:stretch}
+ body[data-surface] .workspace-header h1{font-size:27px;line-height:1.5}
+ body[data-surface] .connection{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,44px);gap:8px;max-width:none;width:100%}
+ body[data-surface] .connection>*{min-width:0;max-width:100%;margin:0}
+ body[data-surface] .connection :is(button,select){min-height:44px;font-size:14px;padding:8px}
+ body[data-surface] .connection .fti-language{display:flex;width:100%}
+ body[data-surface] .connection .fti-language>span{display:none}
+ body[data-surface] .connection .fti-language select{width:100%;max-width:none}
+ body[data-surface] .connection #connect{grid-column:1/-1;width:100%;min-height:48px;font-weight:700}
+ body[data-surface] .connection .wallet-menu{grid-column:1/-1}
+ body[data-surface] .global-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ body[data-surface] .global-tabs a{text-align:center;min-width:0;padding:10px 5px;font-size:11px;line-height:1.6;overflow-wrap:break-word}
+ body[data-surface] .priority-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ body[data-surface] .priority-actions :is(a,button){font-size:12px;min-height:44px;padding:10px;white-space:normal}
+ body[data-surface] :is(.welcome-grid,.split){grid-template-columns:minmax(0,1fr);gap:16px}
+ body[data-surface] .welcome{min-height:0;padding:24px 20px}
+ body[data-surface] .welcome h2{font-size:28px}
+ body[data-surface] .panel{padding:20px 16px}
+ body[data-surface] .notice{font-size:12px;line-height:1.8;flex-wrap:wrap;padding:15px}
+ body[data-surface] :is(.inline,.actions){flex-wrap:wrap}
+ body[data-surface] :is(input,select,textarea){font-size:16px;min-width:0;max-width:100%}
+}
+@media(max-width:360px){body[data-surface] .connection{grid-template-columns:minmax(0,1fr) repeat(3,40px);gap:5px}body[data-surface] .sidebar nav button{font-size:10px}body[data-surface] .global-tabs{grid-template-columns:minmax(0,1fr)}body[data-surface] .metrics{grid-template-columns:minmax(0,1fr)}}

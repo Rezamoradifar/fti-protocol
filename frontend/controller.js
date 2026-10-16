@@ -157,8 +157,6 @@ function navigate(page,focus=false){
 }
 document.querySelectorAll('[data-page],[data-go]').forEach(button=>button.onclick=()=>navigate(button.dataset.page||button.dataset.go,true));
 window.addEventListener('hashchange',()=>navigate(location.hash.slice(1)));
-$('#theme').onclick=()=>{document.body.classList.toggle('light');try{localStorage.setItem('fti-theme',document.body.classList.contains('light')?'light':'dark');}catch{}};
-try{if(localStorage.getItem('fti-theme')==='light')document.body.classList.add('light');}catch{}
 async function refresh(){
  const sequence=++refreshSequence,requestedAddress=address;
  const [d,isOwner]=await Promise.all([json('/api/state'+(requestedAddress?'?wallet='+encodeURIComponent(requestedAddress):'')),requestedAddress&&surface==='admin'?(v3Model?read.council.isGuardian(requestedAddress):read.council.isOwner(requestedAddress)):Promise.resolve(false)]);

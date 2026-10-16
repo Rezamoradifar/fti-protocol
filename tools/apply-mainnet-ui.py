@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import signal
@@ -29,8 +30,19 @@ sha = lambda data: hashlib.sha256(data).hexdigest()
 
 def render(before, prefix):
     text = before.decode()
-    g.require(text.count('src="./app.js"') == 1, 'Unexpected installed HTML; preserve existing overlay.')
-    text = text.replace('src="./app.js"', 'src="/' + prefix + '/app.js"')
+    g.require(re.fullmatch(r'fti-mainnet-ui-[a-f0-9]{16}', prefix), 'Invalid UI version.')
+    previous = r'(?:\./|/fti-mainnet-ui-[a-f0-9]{16}/)'
+    pattern = r'src="' + previous + r'app\.js"'
+    g.require(len(re.findall(pattern, text)) == 1, 'Unexpected installed script URL.')
+    text = re.sub(pattern, 'src="/' + prefix + '/app.js"', text)
+    for name in ('style.css', 'member-landing-theme.css', 'global-interface.css'):
+        pattern = r'href="' + previous + re.escape(name) + r'"'
+        g.require(len(re.findall(pattern, text)) == 1, 'Unexpected stylesheet: ' + name)
+        text = re.sub(pattern, 'href="/' + prefix + '/' + name + '"', text)
+    pattern = r'<link rel="stylesheet" href="' + previous + r'panel-identity\.css">'
+    text = re.sub(pattern, '', text)
+    g.require(text.count('</head>') == 1, 'Unexpected HTML head.')
+    text = text.replace('</head>', '<link rel="stylesheet" href="/' + prefix + '/panel-identity.css"></head>')
     return text.replace('FTI Protocol testnet workspace.', 'FTI Protocol on-chain workspace.').encode()
 
 
@@ -58,11 +70,13 @@ def apply(source):
     cfg = w.h.http_json('http://127.0.0.1:3110/api/config')
     w.check_target(cfg)
     w.check_web(cfg, 'https://ftiprotocol.com')
-    prefix = 'fti-mainnet-ui-' + manifest['files']['web/app.js'][:16]
+    assets = {p[4:]: digest for p, digest in manifest['files'].items() if p.startswith('web/') and p != 'web/index.html'}
+    prefix = 'fti-mainnet-ui-' + sha(json.dumps(assets, sort_keys=True).encode())[:16]
     target = g.child(root, 'web/index.html')
     before, info = g.regular(target)
     if ('src="/' + prefix + '/app.js"').encode() in before:
-        g.require(g.fetch('https://ftiprotocol.com/' + prefix + '/app.js')[0] == (source / 'web/app.js').read_bytes(), 'Installed bundle mismatch.')
+        for name in assets:
+            g.require(g.fetch('https://ftiprotocol.com/' + prefix + '/' + name)[0] == (source / 'web' / name).read_bytes(), 'Installed asset mismatch.')
         print('FTI_MAINNET_UI_ALREADY_INSTALLED')
         return
     after = render(before, prefix)
@@ -82,9 +96,11 @@ def apply(source):
     if not destination.exists():
         destination.mkdir(mode=0o755)
         destination.chmod(0o755)
-    for name in ('app.js', 'app.js.LEGAL.txt'):
+    for name in assets:
         data = g.regular(source / 'web' / name)[0]
         file = g.child(destination, name)
+        file.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+        file.parent.chmod(0o755)
         if file.exists():
             g.require(g.regular(file)[0] == data, 'Versioned asset already differs.')
         else:

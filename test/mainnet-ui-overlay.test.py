@@ -12,14 +12,17 @@ spec.loader.exec_module(m)
 
 
 class OverlayTests(unittest.TestCase):
-    def test_changes_only_script_url_and_stale_metadata(self):
-        before = b'<meta content="FTI Protocol testnet workspace."><script src="./app.js"></script><link href="./style.css">'
-        after = m.render(before, 'fti-mainnet-ui-123')
-        self.assertIn(b'src="/fti-mainnet-ui-123/app.js"', after)
-        self.assertIn(b'./style.css', after)
-        self.assertNotIn(b'testnet workspace', after)
+    def test_versioned_styles_fonts_and_safe_upgrade(self):
+        before = (ROOT / 'web/index.html').read_bytes()
+        prefix = 'fti-mainnet-ui-1234567890abcdef'
+        after = m.render(before, prefix)
+        for name in ('app.js', 'style.css', 'member-landing-theme.css', 'global-interface.css', 'panel-identity.css'):
+            self.assertIn(('/' + prefix + '/' + name).encode(), after)
+        upgraded = m.render(after, 'fti-mainnet-ui-abcdef0123456789')
+        self.assertNotIn(prefix.encode(), upgraded)
+        self.assertEqual(upgraded.count(b'panel-identity.css'), 1)
         with self.assertRaises(RuntimeError):
-            m.render(after, 'second')
+            m.render(before.replace(b'./app.js', b'/custom-app.js'), prefix)
 
     def test_rollback_refuses_concurrent_edit(self):
         with tempfile.TemporaryDirectory() as tmp:
