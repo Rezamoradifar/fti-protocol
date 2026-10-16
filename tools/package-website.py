@@ -6,7 +6,7 @@ root=Path(__file__).resolve().parent.parent
 out=Path(sys.argv[1]).resolve();out.mkdir(parents=True,exist_ok=False)
 for name in ('frontend','core','web','landing/src','landing/public','landing/dist'):
     shutil.copytree(root/name,out/name,ignore=shutil.ignore_patterns('node_modules','__pycache__'))
-for name in ('landing/build.mjs','landing/package.json','landing/package-lock.json','landing/install_dist.py','scripts/build-web.mjs','tools/install-delivery.py'):
+for name in ('config/social-links.json','landing/build.mjs','landing/package.json','landing/package-lock.json','landing/install_dist.py','scripts/build-web.mjs','tools/install-delivery.py'):
     (out/name).parent.mkdir(parents=True,exist_ok=True);shutil.copy2(root/name,out/name)
 shutil.copy2(root/'delivery/README.fa.md',out/'README.md')
 pkg=json.loads((root/'package.json').read_text())
