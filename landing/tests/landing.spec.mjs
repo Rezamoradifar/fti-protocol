@@ -80,3 +80,23 @@ for(const route of ['token-site','whitepaper','roadmap'])test(`preserves public 
   await page.goto('/'+route+'/');await expect(page.locator('h1')).toBeVisible();
   expect(await page.locator('body').innerText()).toContain('FTI');expect(errors).toEqual([]);
 });
+
+test('3D controls, reduced motion and educational binary calculations',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.goto('/');
+ await expect(page.locator('.token-solid')).toHaveCSS('animation-name','none');
+ const initial=await page.locator('.token-axis').getAttribute('style');
+ await page.getByRole('button',{name:'Rotate token',exact:true}).click();
+ expect(await page.locator('.token-axis').getAttribute('style')).not.toBe(initial);
+ await page.getByRole('button',{name:'Pause motion',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Resume motion',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByLabel('Left points',{exact:true}).fill('15');
+ await page.getByLabel('Right points',{exact:true}).fill('20');
+ await page.getByLabel('Hourly point cap',{exact:true}).fill('5');
+ await expect(page.locator('.lab-results strong')).toHaveText(['5','10','5']);
+ await page.getByLabel('Hourly point cap',{exact:true}).fill('0');
+ await expect(page.locator('.lab-results strong')).toHaveText(['0','15','5']);
+ for(const id of ['binary','architecture','roadmap','resources'])await expect(page.locator('#'+id)).toHaveCount(1);
+ for(const route of ['/whitepaper/','/roadmap/','/token-site/'])await expect(page.locator('.resource-links a[href="'+route+'"]').first()).toBeAttached();
+});
