@@ -7,6 +7,7 @@ import {parseArgs} from 'node:util';
 import {execFileSync} from 'node:child_process';
 import {Contract,ContractFactory,FetchRequest,JsonRpcProvider,getAddress,getCreateAddress,keccak256} from 'ethers';
 import {artifact} from './lib.mjs';
+import {assertApprovedMainnetProfile} from './approved-mainnet-profile.mjs';
 import {releaseManifest} from './continuity-release.mjs';
 import {loadMigrationBuild} from './address-migration-operator.mjs';
 import {layoutDigest} from './address-migration-manifest.mjs';
@@ -25,16 +26,21 @@ export function validateMainnetInput(input){
  check(input?.schema==='FTI_MAINNET_INPUT_V1'&&input.chainId===56,'Explicit BNB mainnet input with chainId 56 required');
  check(input.deploymentKind==='new-contracts','This planner only supports new contracts; migration needs a source snapshot');
  check(input.daoThreshold===5,'Council threshold must remain 5');
+ if(input.walletProfile!==undefined)assertApprovedMainnetProfile(input);
+ const owner=input.owner===undefined?undefined:publicAddress(input.owner,'owner');
  const addresses={};for(const key of ['deployer','development','usd'])addresses[key]=publicAddress(input[key],key);
  const lists={};for(const [key,count]of [['partners',7],['genesis',31]]){
   check(Array.isArray(input[key])&&input[key].length===count,'Provide exactly '+count+' '+key+' addresses');
   lists[key]=input[key].map((x,i)=>publicAddress(x,key+'['+i+']'));
   check(new Set(lists[key].map(x=>x.toLowerCase())).size===count,'Duplicate '+key+' address');
  }
+ check(!same(addresses.development,owner),'Owner and development must remain distinct');
+ check(!lists.genesis.some(x=>same(x,addresses.development)||same(x,owner)),'Owner/development cannot occupy genesis positions');
+ check(!same(addresses.usd,owner),'Collateral cannot be the owner');
  check(!same(addresses.usd,addresses.deployer)&&!same(addresses.usd,addresses.development)
   &&![...lists.partners,...lists.genesis].some(x=>same(x,addresses.usd)),'Collateral contract cannot be a participant wallet');
  check(/^0x[0-9a-f]{64}$/i.test(input.usdCodeHash||'')&&!/^0x0{64}$/i.test(input.usdCodeHash),'Reviewed collateral runtime code hash required');
- return {schema:input.schema,chainId:56,deploymentKind:'new-contracts',daoThreshold:5,...addresses,...lists,usdCodeHash:input.usdCodeHash.toLowerCase()};
+ return {schema:input.schema,chainId:56,deploymentKind:'new-contracts',daoThreshold:5,...(owner?{owner}:{}),...(input.walletProfile?{walletProfile:input.walletProfile}:{}),...addresses,...lists,usdCodeHash:input.usdCodeHash.toLowerCase()};
 }
 export async function mainnetPayloads(rawInput,nonce){
  const input=validateMainnetInput(rawInput);
@@ -71,7 +77,7 @@ export async function prepareMainnet({provider,input}){
  const manifest=releaseManifest();check(/^[a-f0-9]{40}$/.test(manifest.sourceRevision||''),'Pinned source revision required');
  const build=loadMigrationBuild();
  const {addresses,constructorArgs,transactions}=await mainnetPayloads(input,nonce);
- const selected=[input.deployer,input.development,input.usd,...input.partners,...input.genesis];
+ const selected=[...(input.owner?[input.owner]:[]),input.deployer,input.development,input.usd,...input.partners,...input.genesis];
  for(const address of Object.values(addresses)){
   check(!selected.some(x=>same(x,address)),'Predicted contract collides with a configured wallet');
   check(await provider.getCode(address)==='0x','Predicted contract address already occupied');
@@ -95,7 +101,7 @@ export async function prepareMainnet({provider,input}){
 const HELP=`FTI mainnet contract preparation — READ ONLY, no signing or broadcasting.
 Usage: node scripts/prepare-mainnet.mjs --config REVIEWED_PUBLIC_ADDRESSES.json --out NEW_PLAN.json
 RPC: FTI_MAINNET_RPC_URL (explicit; no default or existing service configuration).
-Input template: config/mainnet-input.example.json. All addresses and collateral hash require review.
+Input template: config/mainnet-approved-input.REQUIRED.json. Approved owner/development and exact 31-wallet order are enforced by the CLI. All addresses and collateral hash require review.
 Use a clean, pinned checkout after npm ci, npm run compile and npm run build:web.
 Creates seven UNSIGNED transactions. Does not deploy, import balances, generate keys or start services.
 The output is preparation evidence, not a mainnet readiness approval or a broadcast command.
@@ -110,7 +116,7 @@ export async function main(args=process.argv.slice(2)){
  const {values:v,positionals}=parseArgs({args,strict:true,allowPositionals:true,options:{config:{type:'string'},out:{type:'string'},help:{type:'boolean'}}});
  if(v.help){console.log(HELP);return;}
  check(positionals.length===0&&v.config&&v.out,'Use --config and --out; see --help');
- const input=validateMainnetInput(JSON.parse(fs.readFileSync(v.config,'utf8')));
+ const input=validateMainnetInput(assertApprovedMainnetProfile(JSON.parse(fs.readFileSync(v.config,'utf8'))));
  assertPinnedMainnetCheckout();
  const out=path.resolve(v.out),parent=fs.realpathSync(path.dirname(out)),root=fs.realpathSync(process.cwd());
  check(parent!==root&&!parent.startsWith(root+path.sep),'Write plans outside the source checkout');

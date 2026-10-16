@@ -7,6 +7,9 @@ on:
       - 'frontend/**'
       - 'landing/src/**'
       - 'test/mainnet-*.test.mjs'
+      - 'test/v3-wallets.test.mjs'
+      - 'contracts/**'
+      - 'config/v3-wallets.json'
       - 'tools/prepare-mainnet-candidate.sh'
       - 'config/mainnet*'
       - '.github/workflows/mainnet-preparation.yml'
@@ -30,4 +33,4 @@ jobs:
       - run: npm run build:web
       - run: npm --prefix landing run build
       - run: bash -n tools/prepare-mainnet-candidate.sh
-      - run: node --test --test-concurrency=2 test/mainnet-*.test.mjs test/wallet-discovery.test.mjs test/continuity-monitor.test.mjs test/funded-keeper.test.mjs test/fresh-testnet.test.mjs test/global-frontend.test.mjs test/site-routing.test.mjs test/v3-server.test.mjs test/event-server.test.mjs
+      - run: node --test --test-concurrency=2 test/mainnet-*.test.mjs test/v3-wallets.test.mjs test/wallet-discovery.test.mjs test/continuity-monitor.test.mjs test/funded-keeper.test.mjs test/fresh-testnet.test.mjs test/global-frontend.test.mjs test/site-routing.test.mjs test/v3-server.test.mjs test/event-server.test.mjs

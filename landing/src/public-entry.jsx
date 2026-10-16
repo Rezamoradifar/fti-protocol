@@ -1,0 +1,11 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {initializeLanguage} from '../../frontend/locale.js';
+import {PublicSite} from './public-site.jsx';
+import '@fontsource-variable/manrope';
+import '@fontsource-variable/vazirmatn';
+import './public-style.css';
+import '../../frontend/global-interface.css';
+import '../../frontend/glass-interface.css';
+initializeLanguage();
+createRoot(document.getElementById('root')).render(<PublicSite/>);
