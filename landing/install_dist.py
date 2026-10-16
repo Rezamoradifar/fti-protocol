@@ -74,7 +74,8 @@ def verify(target, files, origin, resolve):
                    '--output', str(output), '--write-out', '%{http_code} %{content_type}', '--max-redirs', '0']
             if resolve:
                 cmd += ['--resolve', resolve]
-            url = origin.rstrip('/') + '/' + ('' if name == 'index.html' else name)
+            route = '' if name == 'index.html' else name.removesuffix('index.html') if name.endswith('/index.html') else name
+            url = origin.rstrip('/') + '/' + route
             status, content_type = subprocess.check_output(cmd + [url + '?release=' + str(time.time_ns())], text=True).split(' ', 1)
             mime = content_type.split(';')[0].strip()
             allowed = {'text/html'} if name.endswith('.html') else {'text/css'} if name.endswith('.css') else {'text/javascript', 'application/javascript'} if name.endswith('.js') else {'font/woff2', 'application/font-woff2', 'application/octet-stream'}

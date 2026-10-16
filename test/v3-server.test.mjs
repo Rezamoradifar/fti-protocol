@@ -46,9 +46,18 @@ test('new V3 deployment is readable by the panel API without legacy locks or tim
   }
   if(fs.existsSync('landing/dist/index.html')){
     const home=await fetch(origin+'/');assert.equal(home.status,200);assert.equal(await home.text(),fs.readFileSync('landing/dist/index.html','utf8'));
-    for(const file of ['app.js','app.css','protocol-ring.webp']){
-      const asset=await fetch(origin+'/'+file);assert.equal(asset.status,200);assert.deepEqual(Buffer.from(await asset.arrayBuffer()),fs.readFileSync('landing/dist/'+file));
+    const release=JSON.parse(fs.readFileSync('landing/dist/release.json','utf8'));
+    assert(Object.keys(release.files).some(name=>name.endsWith('.js')));
+    assert(Object.keys(release.files).some(name=>name.endsWith('.css')));
+    for(const file of Object.keys(release.files)){
+      const route=file==='index.html'?'/':'/'+(file.endsWith('/index.html')?file.slice(0,-10):file);
+      const asset=await fetch(origin+route);assert.equal(asset.status,200,'Built asset: '+file);
+      assert.deepEqual(Buffer.from(await asset.arrayBuffer()),fs.readFileSync('landing/dist/'+file));
+      if(file.endsWith('.js'))assert.match(asset.headers.get('content-type'),/javascript/);
+      if(file.endsWith('.css'))assert.match(asset.headers.get('content-type'),/text\/css/);
+      if(file.endsWith('.woff2'))assert.equal(asset.headers.get('content-type'),'font/woff2');
     }
+    assert.equal((await fetch(origin+'/assets/nonexistent.js')).status,404);
   }
   const stateResponse=await fetch(origin+'/api/state?wallet='+addresses[0]);assert.equal(stateResponse.status,200);const state=await stateResponse.json();
   assert.equal(state.cycle,'1');assert.equal(state.cycleStartPrice,E('0.1').toString());assert.equal(state.development,addresses[38]);assert.equal(state.rewardModel,'attributed-credit-target-v2');
