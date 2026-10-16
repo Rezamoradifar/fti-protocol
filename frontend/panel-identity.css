@@ -1,3 +1,4 @@
+@import './hologram.css';
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @font-face{font-family:'FTI Manrope';font-style:normal;font-weight:200 800;font-display:swap;src:url('../landing/node_modules/@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2') format('woff2')}
 @font-face{font-family:'FTI Vazirmatn';font-style:normal;font-weight:100 900;font-display:swap;src:url('../landing/node_modules/@fontsource-variable/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2') format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+200C-200E,U+FB50-FDFF,U+FE70-FEFF}
