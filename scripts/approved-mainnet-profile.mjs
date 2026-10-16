@@ -1,6 +1,6 @@
 // Public role/placement policy. No RPC, signing, random wallets or economic changes.
 import {loadWallets} from './v3-wallets.mjs';
-export const APPROVED_MAINNET_PROFILE='FTI_APPROVED_FRESH_MAINNET_20261016';
+export const APPROVED_MAINNET_PROFILE='FTI_APPROVED_FRESH_MAINNET_20261016_LAYOUT_V2';
 const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.toLowerCase()===b.toLowerCase();
 export function assertApprovedMainnetProfile(input){
  const approved=loadWallets('config/v3-wallets.json');

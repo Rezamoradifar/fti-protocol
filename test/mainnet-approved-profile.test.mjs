@@ -16,7 +16,7 @@ test('release profile pins exact 31-wallet order and external roles without any 
  assert.equal(input.walletProfile,APPROVED_MAINNET_PROFILE);
  assert.equal(input.owner,approved.owner);assert.equal(input.development,approved.development);
  assert.deepEqual(input.genesis,approved.genesis);
- for(const change of [x=>x.genesis.reverse(),x=>x.genesis.pop(),x=>{x.genesis[1]=x.genesis[0]},x=>{x.owner=x.deployer},x=>{x.development=x.deployer},x=>{delete x.walletProfile},x=>{x.chainId=97},x=>{x.deploymentKind='migration'}]){
+ for(const change of [x=>x.genesis.reverse(),x=>x.genesis.pop(),x=>{x.genesis[1]=x.genesis[0]},x=>{x.owner=x.deployer},x=>{x.development=x.deployer},x=>{delete x.walletProfile},x=>{x.walletProfile='FTI_APPROVED_FRESH_MAINNET_20261016'},x=>{x.chainId=97},x=>{x.deploymentKind='migration'}]){
   const changed=sample();change(changed);assert.throws(()=>assertApprovedMainnetProfile(changed));
  }
 });

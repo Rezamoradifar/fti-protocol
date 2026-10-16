@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
 import {createHash} from 'node:crypto';
 import {Contract, ContractFactory, FetchRequest, JsonRpcProvider, Wallet, getAddress, getCreateAddress, keccak256} from 'ethers';
+import {assertFreshGenesisLayout} from './approved-genesis-layout.mjs';
 import {artifact} from './lib.mjs';
 import {RELEASE, releaseManifest, verifyV3Deployment} from './continuity-release.mjs';
 import {createBudget, readPrivateKey} from './address-migration-policy.mjs';
@@ -127,6 +128,7 @@ export async function deployFresh({provider,signer,plan,confirmPlan,budget,confi
   cfg.poolDistributionVersion=1;
   cfg.rewardModel='hourly-global-pool-v2';
   check(await binary.memberCount(at)===31n,'Unexpected initial member count');
+  cfg.genesisLayout=await assertFreshGenesisLayout(binary,plan.genesis,at.blockTag);
   const fields=['epochUnits','unitsSinceSettlement','pointPool','builderAccounted','totalPending','totalAuto','jobCount','rewardAccountCount','autoAccountCount'];
   for(const field of fields)check(await binary[field](at)===0n,'Nonzero fresh binary accounting: '+field);
   for(const wallet of plan.genesis)check((await binary.members(wallet,at)).units===0n,'Bootstrap position has purchased units');

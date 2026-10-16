@@ -107,7 +107,14 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
         for(uint256 i;i<31;i++){
             address who=genesis[i];if(!(who!=address(0)&&!members[who].exists))revert InvalidOperation();
             members[who].exists=true;memberList.push(who);
-            if(i>0){address parent=genesis[(i-1)/2];members[who].parent=parent;depth[who]=depth[parent]+1;if(i%2==1)members[parent].left=who;else members[parent].right=who;}
+            if(i>0){
+                // Six rows: 1/2/4/8/8/8, preserving the supplied wallet order.
+                // Here 1 <= i < 31; the second branch has i >= 15. Both
+                // subtractions are safe and always select an earlier parent.
+                uint256 parentIndex;unchecked{parentIndex=i<15?(i-1)/2:i-8;}
+                address parent=genesis[parentIndex];members[who].parent=parent;depth[who]=depth[parent]+1;
+                if(i%2==1)members[parent].left=who;else members[parent].right=who;
+            }
         }
         usd.forceApprove(fti,type(uint256).max);
     }
@@ -219,7 +226,7 @@ contract FundedBinaryPlanUpgradeable is ReentrancyGuard,Pausable,Initializable,U
         if(!(!members[msg.sender].exists&&members[referrer].exists&&members[placementParent].exists&&
              referrer!=msg.sender&&placementParent!=msg.sender))revert InvalidOperation();
         Member storage p=members[placementParent];
-        if(!(p.right==address(0)&&depth[placementParent]<MAX_DEPTH))revert InvalidOperation();
+        if(!((p.left==address(0)||p.right==address(0))&&depth[placementParent]<MAX_DEPTH))revert InvalidOperation();
         uint8 side=p.left==address(0)?0:1;
         depth[msg.sender]=depth[placementParent]+1;
         members[msg.sender].exists=true;members[msg.sender].parent=placementParent;memberList.push(msg.sender);

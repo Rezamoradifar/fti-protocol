@@ -3,7 +3,7 @@ import http from 'node:http';
 import {rootForHost,PUBLIC_ROUTES} from './site-routing.mjs';
 import {readMarket} from './market-reader.mjs';
 import {readEvents} from './event-reader.mjs';
-import {networkPlacementIndexer} from './referral-placement-index.mjs';
+import {networkPlacementIndexer,detectGenesisPlacementLayout} from './referral-placement-index.mjs';
 import {readHourlyCapFlushVersion} from '../core/hourly-cap-policy.mjs';
 import {readPoolDistributionVersion} from '../core/pool-distribution-policy.mjs';
 import fs from 'node:fs';
@@ -32,8 +32,11 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  // function. ABI presence by itself does NOT imply a completed DAO upgrade.
  let referralPlacementEnabled=false,referralIndexer;
  if(binaryContract==='FundedBinaryPlanUpgradeable'&&Array.isArray(cfg.genesis)&&cfg.genesis.length===31){
-  try{await contracts.binary.directReferrerOf(cfg.genesis[0]);referralPlacementEnabled=true;
-   referralIndexer=networkPlacementIndexer({genesis:cfg.genesis,binary:contracts.binary,provider:eventProvider,startBlock:cfg.deployedBlock});
+  try{await contracts.binary.directReferrerOf(cfg.genesis[0]);
+   const genesisLayout=await detectGenesisPlacementLayout(cfg.genesis,contracts.binary);
+   if(cfg.genesisLayout&&cfg.genesisLayout!==genesisLayout)throw Error('Genesis layout configuration mismatch');
+   publicConfig.genesisLayout=genesisLayout;
+   referralIndexer=networkPlacementIndexer({genesis:cfg.genesis,genesisLayout,binary:contracts.binary,provider:eventProvider,startBlock:cfg.deployedBlock});referralPlacementEnabled=true;
   }catch{/* The active implementation is still the original V1. */}
  }
  publicConfig.referralPlacementEnabled=referralPlacementEnabled;

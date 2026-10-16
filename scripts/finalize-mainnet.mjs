@@ -9,6 +9,7 @@ import {mainnetRpcUrl} from './mainnet-rpc.mjs';
 import {assertSelectedMainnetCouncil} from './mainnet-council.mjs';
 import {assertSelectedMainnetCollateral} from './mainnet-collateral.mjs';
 import {assertApprovedMainnetProfile} from './approved-mainnet-profile.mjs';
+import {assertFreshGenesisLayout} from './approved-genesis-layout.mjs';
 import {MAINNET_RELEASE} from '../core/deployment-network.mjs';
 import {releaseManifest,verifyV3Deployment} from './continuity-release.mjs';
 import {mainnetPayloads,validateMainnetInput,assertPinnedMainnetCheckout} from './prepare-mainnet.mjs';
@@ -58,6 +59,7 @@ export async function finalizeMainnet({provider,plan,transactions,confirmations=
  const binary=new Contract(cfg.binary,JSON.parse(fs.readFileSync('artifacts/FundedBinaryPlanUpgradeable.json')).abi,provider);
  const token=new Contract(cfg.token,JSON.parse(fs.readFileSync('artifacts/FTIReserveTokenUpgradeable.json')).abi,provider);
  const at={blockTag:head.number};
+ cfg.genesisLayout=await assertFreshGenesisLayout(binary,input.genesis,head.number);
  check(await binary.memberCount(at)===31n,'Fresh deployment must contain exactly 31 initial positions');
  for(let i=0;i<31;i++){
   check(same(await binary.memberList(i,at),input.genesis[i]),'Initial wallet order mismatch');

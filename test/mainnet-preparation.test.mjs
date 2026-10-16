@@ -16,6 +16,7 @@ import {artifact,checkAccounting} from '../scripts/lib.mjs';
 import {validateMainnetInput,prepareMainnet} from '../scripts/prepare-mainnet.mjs';
 import {loadWallets} from '../scripts/v3-wallets.mjs';
 import {APPROVED_MAINNET_PROFILE} from '../scripts/approved-mainnet-profile.mjs';
+import {assertFreshGenesisLayout} from '../scripts/approved-genesis-layout.mjs';
 import {freshDigest} from '../scripts/fresh-testnet.mjs';
 
 const address=n=>'0x'+n.toString(16).padStart(40,'0');
@@ -92,6 +93,7 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   assert.equal(await binary.governance(),timelock.target);assert.equal(await token.governance(),timelock.target);
   assert.equal(await council.THRESHOLD(),5n);assert.equal(await timelock.getMinDelay(),259200n);
   for(let i=0;i<7;i++)assert.equal(await council.guardians(i),input.partners[i]);
+  assert.equal(await assertFreshGenesisLayout(binary,input.genesis),'FTI_GENESIS_1_2_4_8_8_8_20261016');
   assert.equal(await binary.memberCount(),31n);assert.equal(await binary.hourlyCapFlushVersion(),1n);
   assert.equal(await binary.poolDistributionVersion(),1n);
   for(let i=0;i<31;i++){
@@ -125,6 +127,8 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
    }
   }
   assert.equal((await fetch(base+'/assets/missing.js')).status,404);
+  const suggestion=await(await fetch(base+'/api/placement?referrer='+a[0])).json();
+  assert.equal(suggestion.placementParent,a[7]);assert.equal(suggestion.side,'right');
   const publicCfg=await(await fetch(base+'/api/config')).json();assert.equal(publicCfg.network.chainId,56);assert.equal(publicCfg.network.testAssets,false);assert.equal(publicCfg.hourlyCapFlushVersion,1);assert.equal(publicCfg.referralPlacementEnabled,true);
   assert.equal(publicCfg.poolDistributionVersion,1);
   const abi=await(await fetch(base+'/abi/Collateral')).json();assert(abi.every(x=>!String(x).includes('faucet')));
