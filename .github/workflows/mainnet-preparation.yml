@@ -12,6 +12,11 @@ on:
       - 'config/v3-wallets.json'
       - 'tools/prepare-mainnet-candidate.sh'
       - 'tools/mainnet-metamask/**'
+      - 'tools/activate-mainnet-web.py'
+      - 'tools/activate-fresh-testnet.py'
+      - 'tools/connect-mainnet-web.sh'
+      - 'test/mainnet-web-activation.test.py'
+      - 'deployments/mainnet-20261016.json'
       - 'config/mainnet*'
       - '.github/workflows/mainnet-preparation.yml'
 permissions:
@@ -35,6 +40,7 @@ jobs:
       - run: npm --prefix landing run build
       - run: bash -n tools/prepare-mainnet-candidate.sh
       - run: sudo python3 -m unittest discover -s tools/mainnet-metamask -p 'test_*.py' -v
+      - run: python3 -B test/mainnet-web-activation.test.py -v
       - run: cd landing && npx playwright install --with-deps chromium
       - run: node tools/mainnet-metamask/test_browser.mjs
       - run: node --test --test-concurrency=2 test/mainnet-*.test.mjs test/v3-wallets.test.mjs test/wallet-discovery.test.mjs test/continuity-monitor.test.mjs test/funded-keeper.test.mjs test/fresh-testnet.test.mjs test/global-frontend.test.mjs test/site-routing.test.mjs test/v3-server.test.mjs test/event-server.test.mjs
