@@ -29,3 +29,16 @@ deployments/v3-testnet*.json
 deployments/v3-*-secrets*.json
 
 /web/global-interface.css
+
+# Unified release build and test outputs
+/landing/dist/
+/landing/test-results/
+/landing/playwright-report/
+__pycache__/
+/mainnet-private/
+
+/web/vendor/walletconnect.js
+/web/vendor/walletconnect.js.LEGAL.txt
+
+/web/fonts/
+/web/panel-identity.css

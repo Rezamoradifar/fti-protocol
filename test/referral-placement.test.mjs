@@ -74,3 +74,14 @@ test('stale placement never returns a different actual on-chain position',async(
  const idx=networkPlacementIndexer({genesis:g,binary,provider,startBlock:1});
  await assert.rejects(idx.choose(g[15]),/STALE_PLACEMENT_RETRY/);
 });
+
+test('six-row network index replays registration into an empty left side without overwriting the right chain',async()=>{
+ const {approvedGenesisLayout}=await import('../scripts/approved-genesis-layout.mjs');
+ const g=genesis(),first=address(400),logs=[{wallet:first,sponsor:g[8],blockNumber:101}];
+ const binary={target:address(900),interface:{getEvent:()=>({topicHash:'0xfake'}),parseLog:l=>({name:'Registered',args:l})},
+  members:async a=>a===g[8]?{exists:true,left:first,right:g[16]}:{exists:true,left:ZERO_ADDRESS,right:ZERO_ADDRESS}};
+ const provider={getBlockNumber:async()=>105,getLogs:async()=>logs};
+ const idx=networkPlacementIndexer({genesis:g,genesisLayout:approvedGenesisLayout().id,binary,provider,startBlock:100,chunkSize:100});
+ const graph=await idx.sync();assert.equal((await graph.getMember(g[8])).right,g[16]);assert.equal((await graph.getMember(g[8])).left,first);
+ const q=await idx.choose(g[8]);assert.equal(q.placementParent,first);assert.equal(q.side,'left');assert.equal(q.indexedMembers,32);
+});

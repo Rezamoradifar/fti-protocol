@@ -1,8 +1,10 @@
+import {contentSecurityPolicy} from './content-security-policy.mjs';
+import {operationalRpcUrl} from './mainnet-rpc.mjs';
 import http from 'node:http';
 import {rootForHost,PUBLIC_ROUTES} from './site-routing.mjs';
 import {readMarket} from './market-reader.mjs';
 import {readEvents} from './event-reader.mjs';
-import {networkPlacementIndexer} from './referral-placement-index.mjs';
+import {networkPlacementIndexer,detectGenesisPlacementLayout} from './referral-placement-index.mjs';
 import {readHourlyCapFlushVersion} from '../core/hourly-cap-policy.mjs';
 import {readPoolDistributionVersion} from '../core/pool-distribution-policy.mjs';
 import fs from 'node:fs';
@@ -17,7 +19,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  const cfg=JSON.parse(fs.readFileSync(configPath));
  assertOperationalConfig(cfg);
  const network=deploymentNetwork(cfg);
- const rpc=process.env.RPC_URL||cfg.rpcUrl;const transport=new FetchRequest(rpc);transport.timeout=15000;const provider=new JsonRpcProvider(transport,undefined,{cacheTimeout:-1,batchMaxCount:1});
+ const rpc=operationalRpcUrl(cfg);const transport=new FetchRequest(rpc);transport.timeout=15000;const provider=new JsonRpcProvider(transport,undefined,{cacheTimeout:-1,batchMaxCount:1});
  try{await verifyOperationalDeployment(cfg,provider);}catch(e){provider.destroy();throw e;}
  const eventTransport=new FetchRequest(process.env.EVENT_RPC_URL||rpc);eventTransport.timeout=15000;
  const eventProvider=process.env.EVENT_RPC_URL?new JsonRpcProvider(eventTransport,undefined,{cacheTimeout:-1,batchMaxCount:1}):provider;
@@ -31,8 +33,11 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  // function. ABI presence by itself does NOT imply a completed DAO upgrade.
  let referralPlacementEnabled=false,referralIndexer;
  if(binaryContract==='FundedBinaryPlanUpgradeable'&&Array.isArray(cfg.genesis)&&cfg.genesis.length===31){
-  try{await contracts.binary.directReferrerOf(cfg.genesis[0]);referralPlacementEnabled=true;
-   referralIndexer=networkPlacementIndexer({genesis:cfg.genesis,binary:contracts.binary,provider:eventProvider,startBlock:cfg.deployedBlock});
+  try{await contracts.binary.directReferrerOf(cfg.genesis[0]);
+   const genesisLayout=await detectGenesisPlacementLayout(cfg.genesis,contracts.binary);
+   if(cfg.genesisLayout&&cfg.genesisLayout!==genesisLayout)throw Error('Genesis layout configuration mismatch');
+   publicConfig.genesisLayout=genesisLayout;
+   referralIndexer=networkPlacementIndexer({genesis:cfg.genesis,genesisLayout,binary:contracts.binary,provider:eventProvider,startBlock:cfg.deployedBlock});referralPlacementEnabled=true;
   }catch{/* The active implementation is still the original V1. */}
  }
  publicConfig.referralPlacementEnabled=referralPlacementEnabled;
@@ -44,7 +49,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  let eventCache,eventFlight,marketCache,marketFlight;
  const server=http.createServer(async(req,res)=>{try{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');
-  res.setHeader('Content-Security-Policy',`default-src 'self'; script-src 'self'; style-src 'self' ${walletConnectProjectId?"'unsafe-inline'":''}; connect-src 'self' ${walletConnectProjectId?"https://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.com wss://*.walletconnect.org https://*.reown.com https://api.web3modal.org":''}; img-src 'self' data: ${walletConnectProjectId?"https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com https://api.web3modal.org":''}; font-src 'self' ${walletConnectProjectId?'https://fonts.reown.com':''}; frame-src 'self' ${walletConnectProjectId?'https://verify.walletconnect.com https://verify.walletconnect.org':''}; frame-ancestors 'none'; base-uri 'none'`);
+  res.setHeader('Content-Security-Policy',contentSecurityPolicy(walletConnectProjectId));
   const url=new URL(req.url,'http://localhost');
   if(req.method==='GET'&&url.pathname==='/'&&rootForHost(req.headers.host)){res.writeHead(302,{Location:rootForHost(req.headers.host)+url.search});return res.end();}
   if(req.method==='POST'){
@@ -100,8 +105,8 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
    try{return json(res,200,await eventFlight);}catch{return json(res,503,{error:'Activity RPC unavailable. Retry later; no events have been fabricated.'});}
   }
   if(url.pathname.startsWith('/abi/')){const name=url.pathname.slice(5);if(name==='Collateral')return json(res,200,COLLATERAL_ABI);if(!network.testAssets&&name==='MockUSD')return json(res,404,{error:'Test ABI unavailable on mainnet'});if(!['BinaryPlan','FundedBinaryPlan','FTIToken','FTIReserveToken','FTIReserveTokenV3','MockUSD','Council','SevenGuardianCouncil','FTITimelock','FundedBinaryPlanUpgradeable','FTIReserveTokenUpgradeable'].includes(name))throw Error('Unknown ABI');return json(res,200,artifact(name).abi);}
-  let file;if(url.pathname==='/vendor/ethers.js')file=path.join(root,'node_modules/ethers/dist/ethers.min.js');else {const entry=url.pathname.match(/^\/(app|token|admin)$/);if(entry){res.writeHead(301,{Location:url.pathname+'/'+url.search});return res.end();}const landingReady=fs.existsSync(path.join(root,'landing/dist/index.html'));const landingRoute=landingReady&&['/','/app.js','/app.css','/protocol-ring.webp',...PUBLIC_ROUTES].includes(url.pathname);const staticRoot=path.join(root,landingRoute?'landing/dist':'web');const staticPath=url.pathname.replace(/^\/(app|token|admin)\//,'/');const route=staticPath==='/'||PUBLIC_ROUTES.includes(url.pathname)?'index.html':staticPath.slice(1);file=path.resolve(staticRoot,route);if(!file.startsWith(staticRoot+path.sep))return json(res,403,{error:'Denied'});}
-  if(!fs.existsSync(file)||!fs.statSync(file).isFile())return json(res,404,{error:'Not found'});const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.webp':'image/webp'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
+  let file;if(url.pathname==='/vendor/ethers.js')file=path.join(root,'node_modules/ethers/dist/ethers.min.js');else {const entry=url.pathname.match(/^\/(app|token|admin)$/);if(entry){res.writeHead(301,{Location:url.pathname+'/'+url.search});return res.end();}const landingReady=fs.existsSync(path.join(root,'landing/dist/index.html'));const landingRoute=landingReady&&(url.pathname.startsWith('/assets/')||['/','/app.js','/app.css','/protocol-ring.webp',...PUBLIC_ROUTES].includes(url.pathname));const staticRoot=path.join(root,landingRoute?'landing/dist':'web');const staticPath=url.pathname.replace(/^\/(app|token|admin)\//,'/');const route=PUBLIC_ROUTES.includes(url.pathname)?url.pathname.slice(1)+'index.html':staticPath==='/'?'index.html':staticPath.slice(1);file=path.resolve(staticRoot,route);if(!file.startsWith(staticRoot+path.sep))return json(res,403,{error:'Denied'});}
+  if(!fs.existsSync(file)||!fs.statSync(file).isFile())return json(res,404,{error:'Not found'});const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.webp':'image/webp','.woff2':'font/woff2'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
  }catch(e){json(res,400,{error:e.shortMessage||e.message});}});
  server.once('close',()=>{provider.destroy();if(eventProvider!==provider)eventProvider.destroy();});
  await new Promise((resolve,reject)=>server.once('error',reject).listen(port,host,resolve));console.log(`FTI ${cfg.mode}: http://${host}:${port}`);return server;

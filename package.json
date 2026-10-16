@@ -27,7 +27,10 @@
     "test:funded": "npm run compile && node --test --test-concurrency=1 test/funded-*.test.mjs",
     "simulate:funded": "node scripts/simulate-funded.mjs 300000 docs/funded-simulation-300000.json",
     "deploy:v3:testnet": "npm run compile && node scripts/deploy-v3-testnet.mjs",
-    "dev": "node scripts/design-preview.mjs"
+    "dev": "node scripts/design-preview.mjs",
+    "prepare:mainnet": "node scripts/prepare-mainnet.mjs",
+    "verify:mainnet": "node scripts/finalize-mainnet.mjs",
+    "config:mainnet": "node scripts/create-mainnet-input.mjs"
   },
   "keywords": [],
   "author": "",

@@ -44,13 +44,15 @@ stage=web
 npm run build:web
 npm --prefix landing run build
 stage=tests
-node --test --test-concurrency=2 test/mainnet-*.test.mjs test/wallet-discovery.test.mjs test/continuity-monitor.test.mjs test/funded-keeper.test.mjs test/fresh-testnet.test.mjs test/global-frontend.test.mjs test/site-routing.test.mjs test/v3-server.test.mjs test/event-server.test.mjs
+python3 -m unittest discover -s tools/mainnet-metamask -p test_install.py -v
+node --test --test-concurrency=2 test/mainnet-*.test.mjs test/v3-wallets.test.mjs test/wallet-discovery.test.mjs test/continuity-monitor.test.mjs test/funded-keeper.test.mjs test/fresh-testnet.test.mjs test/global-frontend.test.mjs test/site-routing.test.mjs test/v3-server.test.mjs test/event-server.test.mjs
 stage=templates
-cp config/mainnet-input.example.json "$work/mainnet-input.REQUIRED.json"
+cp config/mainnet-approved-input.REQUIRED.json "$work/mainnet-input.REQUIRED.json"
 cp config/mainnet-transactions.example.json "$work/mainnet-transactions.REQUIRED.json"
 cp config/mainnet-services.env.example "$work/mainnet-services.REQUIRED.env"
 stage=complete; result=MAINNET_CANDIDATE_PREPARED
 printf 'FTI_MAINNET_CANDIDATE_PREPARED=%s\n' "$work"
 echo 'Local rehearsal complete. No public RPC, private keys, transactions or service switches.'
-echo 'Existing-user mainnet launch still requires an explicit financial migration policy and matching funded importer.'
+echo 'Fresh mainnet policy: 31 approved unpaid positions; no testnet users, balances, ranks, carry or debts imported.'
+echo 'Public deployer, BNB USDT and seven council addresses are configured. Load the operator GetBlock RPC from a private file before read-only planning; verify nonce, gas and signing in the secure operator environment.'
 PREPARE

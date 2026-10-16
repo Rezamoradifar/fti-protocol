@@ -1,34 +1,61 @@
-# FTI Protocol landing page
+# FTI landing — React redesign
 
-Independent, English React landing page. The existing protocol application and smart contracts are not modified. Includes responsive navigation, a unit-allocation calculator, binary point-matching lab, a connected five-rank/protection explorer and comparison table, settlement and builder-pool explanations, conceptual buy/sell curves, fee-operation tabs, a vesting timeline, a five-step testnet guide, searchable FAQ, a five-contract directory and source/research resources.
+Standalone React 19 landing. English/Persian RTL, dark/light themes, responsive navigation, token tabs and FAQ. Fonts and hashed JS/CSS are bundled locally for the existing CSP. No wallet transactions, contracts or economic rules are changed.
 
-## Build
+## Build and test
 
-Node 22 or later:
-
-```sh
-npm ci
-npm run build
-```
-
-The complete deployable site is in `dist/`. Serve that folder with Nginx, any static host, or a static HTTP server. No database, wallet private key or backend is required. The page does not connect wallets or submit blockchain transactions. Google Fonts is optional; system fonts remain available if it is blocked.
-
-External links are defined at the top of `src/main.jsx`. The default test application URL points to the requested new server, `http://185.114.206.44:3080`. Override it at build time with `FTI_APP_URL=https://your-app-domain npm run build`. Endpoint availability is not inferred from the configured URL. This landing is not a replacement for that application.
-
-## Linux preview on a separate port
+Use Node.js 22+, Python 3.10+, and a Linux host for installer tests:
 
 ```sh
-python3 -m http.server 3090 --bind 127.0.0.1 --directory dist
+npm ci --prefix landing
+npm run build --prefix landing
+npm run test:install --prefix landing # root required only for CLI/lock integration test
+cd landing
+npx playwright install --with-deps chromium
+npm test
 ```
 
-This binds to localhost for use behind your existing reverse proxy. Do not change the running application's port. For production, configure an HTTPS domain with the static document root set to `dist/`.
+Browser tests cover 320/390/768/1440px, FA/EN, dark/light, JavaScript/console errors, failed resources, fonts under production CSP, horizontal overflow, anchor targets, mobile menu/Escape, tabs, FAQ and preference persistence. PNGs are written to `landing/test-results`. The static test server intentionally returns 404 for `/app/` and `/token/`: those separate workspaces are **not** included in the landing build. The tests check link destinations and same-page navigation; test workspace availability separately on production.
 
-## Content boundaries
+`FTI_CHROMIUM_PATH` can point tests at an installed Chromium. CI installs standard Playwright Chromium. `FTI_TEST_ORIGIN` can run these tests against a separate staging origin instead of starting the local server. Tests change local browser preferences only and do not sign wallet transactions.
 
-Parameter values describe the existing source, not live market data. Matching results show points only; no projected earnings are presented. The curve chart is explicitly conceptual. The scheduled exit/support-budget candidate is identified as separate and not active in the current testnet deployment. Known economic limitations and independent-audit status remain visible.
+## Safe server installation
 
-The hero is a generated decorative artwork, not a token product photograph. No user keys, balances, testimonials, performance metrics or income claims have been invented.
+**Build in a separate checkout/release directory, never in `/opt/fti-protocol/landing`.** That directory contains the active docroot; building there would delete live files before an installer could back them up. The build rejects this known live location; the installer rejects source/target overlap. Do not use `scripts/update-unified-site.sh` for this landing-only release.
 
-## Extended content
+From a verified, built checkout outside the live directory:
 
-Rank, cap and contract data live in `src/protocol-data.mjs`. Extended sections are in `src/sections.jsx`. Values describe the current legacy contracts, with the experimental candidate explicitly marked. No artificial return projections or claims of audit completion are used. The visual curve is conceptual.
+```sh
+sudo bash landing/install-dist.sh
+```
+
+Prerequisites: Linux `renameat2(RENAME_EXCHANGE)` support, Python 3.10+, `curl`, a working TLS certificate, and `nginx -t`. Defaults are the existing `/opt/fti-protocol/landing/dist` docroot and `https://ftiprotocol.com`, resolved directly to `127.0.0.1`. No service restart, configuration edit or contract deployment is performed. No private keys are needed.
+
+The installer:
+
+- Locks the docroot's parent against concurrent installations.
+- Validates a build-generated SHA-256 `release.json`, HTML references and absence of symlinks.
+- Stages on the same filesystem, sets public read permissions and retains previous immutable assets. Conflicting same-name asset contents fail closed.
+- Atomically exchanges the complete directories; requests never see a missing docroot. The old directory remains intact for rollback.
+- Checks exact HTTP response bytes and MIME types for HTML, JS, CSS and fonts. Redirects, TLS failures, HTML fallbacks and incorrect bytes fail verification. Proxy environment variables are bypassed for these local checks; TLS verification remains enabled.
+- Restores the previous directory on errors or handled INT/TERM/HUP. A failed first install removes the candidate. Failed candidates are retained as `dist.failed.*` for inspection. Success retains `dist.backup.*`; nothing prunes backups automatically.
+
+For an isolated staging server, `--source PATH --target PATH --origin http://127.0.0.1:PORT --resolve ''` overrides the defaults. The target must be a real directory, not a symlink. Unsupported atomic exchange fails before moving the live directory. SIGKILL, power loss, a failed filesystem or interference from another deployment tool cannot be handled by a process trap: keep the reported backup and inspect the directory state before recovery. Coordinate other deployment tooling separately; only this installer honors its lock.
+
+For manual rollback, replace the backup path below with the **exact** successful install output. Stop other deployments first. This atomically swaps the previous directory back and retains the current candidate at the backup path:
+
+```sh
+sudo python3 - /opt/fti-protocol/landing/dist /opt/fti-protocol/landing/dist.backup.EXACT_ID <<'PY'
+import ctypes, os, sys
+live, backup = sys.argv[1:]
+assert os.path.isdir(live) and os.path.isdir(backup)
+assert not os.path.islink(live) and not os.path.islink(backup)
+libc = ctypes.CDLL(None, use_errno=True)
+if libc.renameat2(-100, os.fsencode(live), -100, os.fsencode(backup), 2):
+    raise OSError(ctypes.get_errno(), 'Atomic rollback failed')
+PY
+```
+
+After install or rollback, independently check the public domain in a fresh browser, including mobile, Persian/RTL, both themes, navigation and resource errors. Confirm `/app/`, `/token/`, and the council link reach their existing workspaces. Compare the served assets to this build. **An installer success is local HTTP verification, not proof that the public site has launched.**
+
+Default member link: `/app/`; build-time `FTI_APP_URL` overrides it. Token link: `/token/`; council: `https://council.ftiprotocol.com/`. Telegram/X: `FTIProtocol`; email: `Support@FTIProtocol.com`.

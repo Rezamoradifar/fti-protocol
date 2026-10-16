@@ -1,1 +1,25 @@
-{"name":"fti-landing","version":"1.0.0","private":true,"type":"module","scripts":{"build":"node build.mjs"},"dependencies":{"react":"19.2.0","react-dom":"19.2.0"},"devDependencies":{"esbuild":"0.25.10"},"engines":{"node":">=22"}}
+{
+  "name": "fti-landing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "playwright test",
+    "test:install": "python3 -m unittest discover -s tests -p \"test_*.py\" -v"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "5.3.0",
+    "@fontsource-variable/vazirmatn": "5.3.0",
+    "@fontsource/orbitron": "5.2.8",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "esbuild": "0.25.10"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
