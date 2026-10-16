@@ -10,6 +10,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import time
 
 ROUTES = Path('/etc/nginx/fti-fresh-api-routes.conf')
 PUBLIC = Path('/var/www')
@@ -106,6 +107,7 @@ location ^~ /{slug}/ {{
     wrote = False
     try:
         destination.mkdir(mode=0o755)
+        os.chmod(destination, 0o755)  # setup uses umask 077; Nginx needs traversal
         for name in ('index.html', 'operator.js', 'plan.json'):
             shutil.copyfile(source / name, destination / name)
             os.chmod(destination / name, 0o644)
@@ -114,10 +116,19 @@ location ^~ /{slug}/ {{
         wrote = True
         run(['nginx', '-t'])
         run(['systemctl', 'reload', 'nginx'])
-        # Origin-local HTTPS checks use the real hostname/certificate and require no DNS change.
+        # Reload is asynchronous: old workers may briefly serve the previous routes.
+        # Never use an inherited HTTP proxy for an origin-local verification.
         for name in ('index.html', 'operator.js', 'plan.json'):
-            received = run(['curl', '--fail', '--silent', '--show-error', '--max-time', '15', '--resolve', HOST + ':443:127.0.0.1', 'https://' + HOST + '/' + slug + '/' + name])
-            require(received.encode() == (destination / name).read_bytes(), 'Installed HTTPS content mismatch: ' + name)
+            for attempt in range(5):
+                try:
+                    received = run(['curl', '--noproxy', '*', '--fail', '--silent', '--show-error', '--max-time', '5', '--resolve', HOST + ':443:127.0.0.1', 'https://' + HOST + '/' + slug + '/' + name])
+                    require(received.encode() == (destination / name).read_bytes(), 'Installed HTTPS content mismatch: ' + name)
+                    break
+                except (subprocess.CalledProcessError, RuntimeError) as error:
+                    if attempt == 4:
+                        detail = (error.stdout or '').strip() if isinstance(error, subprocess.CalledProcessError) else str(error)
+                        raise RuntimeError('HTTPS verification failed for ' + name + ': ' + detail) from error
+                    time.sleep(1)
         result = {'result': 'FTI_METAMASK_HTTPS_PAGE_INSTALLED', 'url': 'https://' + HOST + '/' + slug + '/', 'digest': digest, 'sourceRevision': plan['manifest']['sourceRevision'], 'planFile': str(destination / 'plan.json'), 'backup': str(backup), 'submitted': False, 'mainnetActivated': False}
         (backup / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
         return result

@@ -3,6 +3,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
@@ -31,11 +32,15 @@ class InstallTests(unittest.TestCase):
         self.commands = []
         self.fail_check = False
         self.fail_content = False
+        self.old_sleep = module.time.sleep
+        module.time.sleep = lambda seconds: None
+        self.transient_failures = 0
         self.old_run = module.run
         module.run = self.run_fake
 
     def tearDown(self):
         module.run = self.old_run
+        module.time.sleep = self.old_sleep
         self.tmp.cleanup()
 
     def run_fake(self, args):
@@ -46,6 +51,10 @@ class InstallTests(unittest.TestCase):
             self.fail_check = False
             raise RuntimeError('syntax failure')
         if args[0] == 'curl':
+            self.assertEqual(args[1:3], ['--noproxy', '*'])
+            if self.transient_failures:
+                self.transient_failures -= 1
+                raise subprocess.CalledProcessError(22, args, output='curl: (22) HTTP 404')
             if self.fail_content:
                 return 'wrong upstream'
             return (self.source / args[-1].rsplit('/', 1)[1]).read_text()
@@ -60,6 +69,29 @@ class InstallTests(unittest.TestCase):
         self.assertEqual((Path(result['backup']) / 'before.conf').read_bytes(), self.before)
         module.rollback(Path(result['backup']))
         self.assertEqual(module.ROUTES.read_bytes(), self.before)
+
+    def test_reload_delay_retries_then_checks_every_asset(self):
+        self.transient_failures = 2
+        result = module.install(self.source, self.digest)
+        self.assertEqual(len([x for x in self.commands if x[0] == 'curl']), 5)
+        self.assertFalse(result['submitted'])
+
+    def test_persistent_http_failure_reports_status_and_rolls_back(self):
+        self.transient_failures = 10
+        with self.assertRaisesRegex(RuntimeError, 'HTTP 404'):
+            module.install(self.source, self.digest)
+        self.assertEqual(len([x for x in self.commands if x[0] == 'curl']), 5)
+        self.assertEqual(module.ROUTES.read_bytes(), self.before)
+
+    def test_restrictive_umask_still_allows_static_directory_traversal(self):
+        previous = os.umask(0o077)
+        try:
+            result = module.install(self.source, self.digest)
+        finally:
+            os.umask(previous)
+        folder = Path(result['planFile']).parent
+        self.assertEqual(folder.stat().st_mode & 0o777, 0o755)
+        self.assertEqual((folder / 'plan.json').stat().st_mode & 0o777, 0o644)
 
     def test_syntax_failure_restores_exact_previous_routes(self):
         self.fail_check = True
