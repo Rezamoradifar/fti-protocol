@@ -1,3 +1,4 @@
+import {contentSecurityPolicy} from './content-security-policy.mjs';
 import {operationalRpcUrl} from './mainnet-rpc.mjs';
 import http from 'node:http';
 import {rootForHost,PUBLIC_ROUTES} from './site-routing.mjs';
@@ -48,7 +49,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  let eventCache,eventFlight,marketCache,marketFlight;
  const server=http.createServer(async(req,res)=>{try{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');
-  res.setHeader('Content-Security-Policy',`default-src 'self'; script-src 'self'; style-src 'self' ${walletConnectProjectId?"'unsafe-inline'":''}; connect-src 'self' ${walletConnectProjectId?"https://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.com wss://*.walletconnect.org https://*.reown.com https://api.web3modal.org":''}; img-src 'self' data: ${walletConnectProjectId?"https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com https://api.web3modal.org":''}; font-src 'self' ${walletConnectProjectId?'https://fonts.reown.com':''}; frame-src 'self' ${walletConnectProjectId?'https://verify.walletconnect.com https://verify.walletconnect.org':''}; frame-ancestors 'none'; base-uri 'none'`);
+  res.setHeader('Content-Security-Policy',contentSecurityPolicy(walletConnectProjectId));
   const url=new URL(req.url,'http://localhost');
   if(req.method==='GET'&&url.pathname==='/'&&rootForHost(req.headers.host)){res.writeHead(302,{Location:rootForHost(req.headers.host)+url.search});return res.end();}
   if(req.method==='POST'){
