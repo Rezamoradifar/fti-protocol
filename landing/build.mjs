@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 const dir=path.dirname(fileURLToPath(import.meta.url)),dist=path.join(dir,'dist');
 if(fs.realpathSync(dir)==='/opt/fti-protocol/landing')throw new Error('Build in an isolated checkout, never inside the live docroot');
 fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});
-const result=await build({absWorkingDir:dir,entryPoints:['src/main.jsx','src/public-entry.jsx'],bundle:true,minify:true,outdir:dist,entryNames:'assets/[name]-[hash]',assetNames:'assets/[name]-[hash]',metafile:true,define:{'process.env.NODE_ENV':'"production"','__FTI_APP_URL__':JSON.stringify(process.env.FTI_APP_URL||'/app/')},target:['es2020'],loader:{'.woff2':'file'},alias:{react:path.join(dir,'node_modules/react'),'react-dom':path.join(dir,'node_modules/react-dom')}});
+const result=await build({absWorkingDir:dir,entryPoints:['src/main.jsx','src/public-entry.jsx'],bundle:true,minify:true,outdir:dist,entryNames:'assets/[name]-[hash]',assetNames:'assets/[name]-[hash]',publicPath:'/',metafile:true,define:{'process.env.NODE_ENV':'"production"','__FTI_APP_URL__':JSON.stringify(process.env.FTI_APP_URL||'/app/')},target:['es2020'],loader:{'.woff2':'file','.webp':'file'},alias:{react:path.join(dir,'node_modules/react'),'react-dom':path.join(dir,'node_modules/react-dom')}});
 const roots=new Set(Object.keys(result.metafile.inputs).map(x=>path.resolve(dir,x).replaceAll('\\','/')).filter(x=>x.includes('/node_modules/react/')).map(x=>x.split('/node_modules/react/')[0]));
 if(roots.size!==1)throw new Error('Expected exactly one React runtime');
 const url=x=>'/'+path.relative(dist,path.resolve(dir,x)).split(path.sep).join('/');

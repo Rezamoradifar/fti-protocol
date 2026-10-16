@@ -78,7 +78,7 @@ def verify(target, files, origin, resolve):
             url = origin.rstrip('/') + '/' + route
             status, content_type = subprocess.check_output(cmd + [url + '?release=' + str(time.time_ns())], text=True).split(' ', 1)
             mime = content_type.split(';')[0].strip()
-            allowed = {'text/html'} if name.endswith('.html') else {'text/css'} if name.endswith('.css') else {'text/javascript', 'application/javascript'} if name.endswith('.js') else {'font/woff2', 'application/font-woff2', 'application/octet-stream'}
+            allowed = {'text/html'} if name.endswith('.html') else {'text/css'} if name.endswith('.css') else {'text/javascript', 'application/javascript'} if name.endswith('.js') else {'image/webp'} if name.endswith('.webp') else {'font/woff2', 'application/font-woff2', 'application/octet-stream'}
             if status != '200' or mime not in allowed or output.read_bytes() != (target / name).read_bytes():
                 raise RuntimeError('HTTP content/type mismatch: ' + name)
 

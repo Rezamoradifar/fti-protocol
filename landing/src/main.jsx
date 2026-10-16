@@ -5,6 +5,7 @@ import '@fontsource-variable/vazirmatn';
 import './style.css';
 import {TokenScene,ProtocolExperience} from './experience.jsx';
 import './mobile.css';
+import './orbital-design.css';
 import {BrandMark} from '../../frontend/brand.jsx';
 const app=__FTI_APP_URL__||'/app/';
 const content={
