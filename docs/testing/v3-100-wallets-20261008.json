@@ -1,0 +1,34 @@
+{
+  "mode": "local-real-V3-contracts",
+  "wallets": 100,
+  "buys": 200,
+  "sells": 200,
+  "transfers": 100,
+  "transferFrom": 100,
+  "epochs": 4,
+  "cashBatches": 7,
+  "registrations": 69,
+  "activatedGenesis": 31,
+  "autoRetry": true,
+  "autoCashRelease": true,
+  "monthlyBuilder": true,
+  "normalTimelock": true,
+  "emergencyRedeems": 100,
+  "firstExit": {
+    "sellerPayout": "1823.497968103135171051",
+    "developmentSweep": "1590.744219396864828949"
+  },
+  "secondExit": {
+    "sellerPayout": "999.655350036311859291",
+    "developmentSweep": "0.344649963688140709"
+  },
+  "accountingChecks": 720,
+  "confirmedTransactions": 1238,
+  "expectedReverts": 13,
+  "success": true,
+  "publicTransactionsSent": 0,
+  "productionCreationHashes": {
+    "token": "0x4b827e5d8cadea884416ebdfc2771dd7788eac2c764a6a03f0d0d719885df374",
+    "binary": "0x62d661fea019c8d11625ea252dc1cb31a87385dfc7c971bad452cd709d965d7e"
+  }
+}
