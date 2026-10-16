@@ -9,3 +9,4 @@
 
 .pillars-grid>div>span{min-width:0}
 @media(max-width:350px){.pillars strong{overflow-wrap:anywhere}.flow-panel{padding:18px}.flow-art{gap:12px}.actions{flex-wrap:wrap}.hero .eyebrow{letter-spacing:.6px}}
+.brand .fti-brand-mark{color:var(--accent);flex:none;display:block}

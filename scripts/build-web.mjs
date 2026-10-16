@@ -5,3 +5,5 @@ await build({entryPoints:['frontend/member-landing-theme.css'],outfile:'web/memb
 console.log('React workspace built: web/app.js; member landing theme built locally.');
 
 await build({entryPoints:['frontend/global-interface.css'],bundle:true,minify:true,outfile:'web/global-interface.css'});
+
+await build({entryPoints:['frontend/panel-identity.css'],bundle:true,minify:true,outfile:'web/panel-identity.css',loader:{'.woff2':'file'},assetNames:'fonts/[name]-[hash]'});
