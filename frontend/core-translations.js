@@ -2,6 +2,7 @@
 // TranslationNotice makes that boundary visible instead of claiming full coverage.
 const languages=['fa','ar','tr','zh-CN','ru','es'];
 const rows=`
+Connect your wallet to see your balances, manage membership and trade FTI.|برای مشاهده موجودی، مدیریت جایگاه و معامله توکن، ولت خود را متصل کنید.|اربط محفظتك لعرض أرصدتك وإدارة العضوية وتداول FTI.|Bakiyelerinizi görmek, üyeliğinizi yönetmek ve FTI alıp satmak için cüzdanınızı bağlayın.|连接钱包以查看余额、管理会员资格并交易 FTI。|Подключите кошелёк, чтобы просматривать баланс, управлять участием и торговать FTI.|Conecta tu cartera para ver tus saldos, gestionar tu membresía y operar con FTI.
 Language|زبان|اللغة|Dil|语言|Язык|Idioma
 Choose language|انتخاب زبان|اختر اللغة|Dil seçin|选择语言|Выберите язык|Elegir idioma
 Change language|تغییر زبان|تغيير اللغة|Dili değiştir|切换语言|Сменить язык|Cambiar idioma

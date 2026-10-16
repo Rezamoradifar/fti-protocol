@@ -16,6 +16,10 @@ on:
       - 'tools/activate-fresh-testnet.py'
       - 'tools/connect-mainnet-web.sh'
       - 'test/mainnet-web-activation.test.py'
+      - 'tools/apply-mainnet-ui.py'
+      - 'tools/update-mainnet-ui.sh'
+      - 'tools/check-mainnet-keeper.py'
+      - 'test/mainnet-ui-overlay.test.py'
       - 'deployments/mainnet-20261016.json'
       - 'config/mainnet*'
       - '.github/workflows/mainnet-preparation.yml'
@@ -41,6 +45,8 @@ jobs:
       - run: bash -n tools/prepare-mainnet-candidate.sh
       - run: sudo python3 -m unittest discover -s tools/mainnet-metamask -p 'test_*.py' -v
       - run: python3 -B test/mainnet-web-activation.test.py -v
+      - run: python3 -B test/mainnet-ui-overlay.test.py -v
+      - run: bash -n tools/update-mainnet-ui.sh
       - run: cd landing && npx playwright install --with-deps chromium
       - run: node tools/mainnet-metamask/test_browser.mjs
       - run: node --test --test-concurrency=2 test/mainnet-*.test.mjs test/v3-wallets.test.mjs test/wallet-discovery.test.mjs test/continuity-monitor.test.mjs test/funded-keeper.test.mjs test/fresh-testnet.test.mjs test/global-frontend.test.mjs test/site-routing.test.mjs test/v3-server.test.mjs test/event-server.test.mjs
