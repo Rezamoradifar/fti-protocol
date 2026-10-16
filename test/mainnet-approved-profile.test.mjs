@@ -32,7 +32,7 @@ test('shipped profile validates the supplied deployer, approved council, roles a
  const input=JSON.parse(fs.readFileSync('config/mainnet-approved-input.REQUIRED.json'));
  assert.equal(assertApprovedMainnetProfile(input),input);
  const checked=validateMainnetInput(input);
- assert.equal(checked.deployer,'0x8F18Ba93C3792037A7eb59485Ad79726615419a0');
+ assert.equal(checked.deployer,'0x7c637226510E0998624adf3ad1743199eb38A45d');
  assert(![checked.owner,checked.development,...checked.partners,...checked.genesis].some(a=>a.toLowerCase()===checked.deployer.toLowerCase()));
  assert.deepEqual(createApprovedMainnetInput({deployer:checked.deployer}),checked);
  for(const deployer of ['REQUIRED_PUBLIC_DEPLOYER_ADDRESS','0x'+'0'.repeat(40)])assert.throws(()=>validateMainnetInput({...input,deployer}));
