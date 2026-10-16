@@ -17,7 +17,7 @@ npm run compile
 npm run build:web
 npm --prefix landing run build
 node --test --test-concurrency=2 test/mainnet-approved-profile.test.mjs test/mainnet-metamask.test.mjs test/continuity-public-1000-policy.test.mjs
-python3 -m unittest discover -s tools/mainnet-metamask -p test_install.py -v
+python3 -m unittest discover -s tools/mainnet-metamask -p 'test_*.py' -v
 work="$(mktemp -d /var/tmp/fti-metamask-operator.XXXXXXXX)"
 rpc_created=''
 cleanup(){ if [[ -n "$rpc_created" ]]; then rm -f -- "$rpc_created"; fi; }
@@ -26,8 +26,10 @@ if [[ -z "${FTI_MAINNET_RPC_FILE:-}" ]]; then
  [[ -z "${FTI_MAINNET_RPC_URL:-}" ]] || { echo 'Use a private RPC file for this setup' >&2; exit 2; }
  rpc_created="$work/operator.rpc"
  python3 - "$rpc_created" <<'RPC'
-import getpass, os, sys
-with open('/dev/tty', 'w+') as tty:
+import getpass, os, sys, warnings
+# Fail closed if hidden input is unavailable; never fall back to echoed input.
+warnings.simplefilter('error', getpass.GetPassWarning)
+with open('/dev/tty', 'w') as tty:
     value = getpass.getpass('GetBlock mainnet RPC (hidden; not a wallet key): ', stream=tty).strip()
 if not value:
     raise SystemExit('Empty RPC')
