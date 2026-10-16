@@ -51,11 +51,11 @@ test('language/theme persistence, mobile menu, anchors, tabs and FAQ',async({pag
   await menu.click();await page.locator('#navigation a[href="#token"]').click();
   await expect(page).toHaveURL(/#token$/);await expect(menu).toHaveAttribute('aria-expanded','false');
   await page.getByRole('tab',{name:'فروش',exact:true}).click();
-  await expect(page.getByRole('tabpanel')).toContainText('بازخرید FTI');
+  await expect(page.locator('#flow-content')).toContainText('بازخرید FTI');
   await page.getByRole('tab',{name:'فروش',exact:true}).press('ArrowRight');
   await expect(page.getByRole('tab',{name:'انتقال',exact:true})).toBeFocused();
   await expect(page.getByRole('tab',{name:'انتقال',exact:true})).toHaveAttribute('aria-selected','true');
-  await page.locator('summary').first().click();await expect(page.locator('details').first()).toHaveAttribute('open','');
+  await page.locator('#faq summary').first().click();await expect(page.locator('#faq details').first()).toHaveAttribute('open','');
 });
 
 test('font files are local and static paths fail honestly',async({page,request})=>{
