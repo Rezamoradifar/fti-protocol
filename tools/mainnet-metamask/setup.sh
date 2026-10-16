@@ -9,7 +9,7 @@ case "$(uname -m)" in x86_64) arch=x64;; aarch64) arch=arm64;; *) arch=unknown;;
 node_bin="${FTI_NODE_BINARY:-/opt/fti/runtime/node-v22.23.3-$arch/bin/node}"
 if [[ ! -x "$node_bin" && -z "${FTI_NODE_BINARY:-}" ]]; then node_bin="$(type -P node || true)"; fi
 [[ "$node_bin" = /* && -x "$node_bin" && "$(basename "$node_bin")" == node ]] || { echo 'Node 22+ required; set FTI_NODE_BINARY' >&2; exit 2; }
-export PATH="$(dirname -- "$node_bin"):/usr/local/bin:/usr/bin:/bin"
+export PATH="$(dirname -- "$node_bin"):/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 node -e 'if(Number(process.versions.node.split(".")[0])<22)process.exit(2)'
 npm ci
 npm --prefix landing ci
