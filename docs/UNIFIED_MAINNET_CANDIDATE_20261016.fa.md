@@ -13,7 +13,7 @@
 
 ## ورودی‌های عمومی باقی‌مانده
 
-در این گفت‌وگو آدرس نهایی توکن پشتوانه واقعی و هش کد آن، دیپلوی‌کننده و تأیید نهایی هفت عضو شورا احراز نشده‌اند؛ جای آن‌ها عمداً مقدار فرضی قرار نگرفته است. فایل قدیمی `config/v3-partner-dao.json` حاوی هفت آدرس است، ولی این آماده‌سازی آن را خودکار به‌عنوان انتخاب نهایی mainnet قبول نمی‌کند. گس BNB و نقش Keeper نیز در محیط امن سرور باید بررسی شوند. RPC دارای کلید و کلیدهای امضا نباید در GitHub یا چت ذخیره شوند.
+کاربر USDT شبکه اصلی BNB را انتخاب کرد. آدرس 0x55d398326f99059fF775485246999027B3197955، نماد USDT و اعشار ۱۸ روی chain 56 خوانده شد؛ هش runtime و بلاک مشاهده در config/mainnet-usdt-collateral.json ثبت است. آدرس دیپلوی‌کننده و انتخاب نهایی هفت عضو شورا هنوز احراز نشده‌اند و فرضی پر نشده‌اند. فایل قدیمی `config/v3-partner-dao.json` حاوی هفت آدرس است، ولی این آماده‌سازی آن را خودکار به‌عنوان انتخاب نهایی mainnet قبول نمی‌کند. گس BNB و نقش Keeper نیز در محیط امن سرور باید بررسی شوند. RPC دارای کلید و کلیدهای امضا نباید در GitHub یا چت ذخیره شوند.
 
 ## ساخت ورودی و برنامه بدون ارسال تراکنش
 
@@ -22,21 +22,21 @@
 ```sh
 node scripts/create-mainnet-input.mjs \
   --deployer PUBLIC_DEPLOYER_ADDRESS \
-  --collateral REVIEWED_18_DECIMAL_COLLATERAL_ADDRESS \
-  --collateral-code-hash REVIEWED_RUNTIME_KECCAK256 \
   --council-config /PRIVATE/REVIEWED_COUNCIL.json \
   --out /PRIVATE/mainnet-input.json
 ```
 
+بدون دو گزینه اختیاری collateral، همان USDT و هش پین‌شده نسخه انتخاب می‌شود. مقدار متفاوت در CLI رد می‌شود.
+
 فایل شورا باید `threshold:5` و دقیقاً هفت آدرس غیرتکراری در `partners` داشته باشد. ابزار، ۳۱ آدرس و دو نقش مستقل را از همین نسخه می‌گیرد؛ ولت تصادفی نمی‌سازد. خروجی قبلی را بازنویسی نمی‌کند. سپس RPC شبکه اصلی را فقط در ترمینال امن وارد کنید:
 
 ```sh
-read -r -s -p 'BNB mainnet RPC (hidden): ' FTI_MAINNET_RPC_URL
-export FTI_MAINNET_RPC_URL
+# File contains only the operator GetBlock endpoint; keep it private (mode 0600).
+export FTI_MAINNET_RPC_FILE=/etc/fti/mainnet/getblock.rpc
 node scripts/prepare-mainnet.mjs \
   --config /PRIVATE/mainnet-input.json \
   --out /PRIVATE/mainnet-plan.json
-unset FTI_MAINNET_RPC_URL
+unset FTI_MAINNET_RPC_FILE
 ```
 
 این مرحله فقط شبکه، بلاک، وثیقه ۱۸ اعشار، کد و nonce را می‌خواند و payload می‌سازد. امضا یا ارسال انجام نمی‌دهد؛ خروجی `readyToBroadcast:false` است. مبلغ گس واقعی به شرایط شبکه و برنامه نهایی بستگی دارد.
@@ -53,3 +53,9 @@ unset FTI_MAINNET_RPC_URL
 ## مرز نتیجه
 
 تست محلی chain ID 56، تراکنش واقعی BNB Mainnet نیست. اتصال RPC عمومی سایت در بررسی قبلی هنوز 97 بود. بدون اجرای برنامه نهایی، رسیدهای شبکه اصلی، راه‌اندازی Keeper، نصب نسخه و بررسی مرورگر روی دامنه، سایت راه‌اندازی‌شده یا mainnet فعال اعلام نمی‌شود. گواه ممیزی مستقل امنیتی هم در این آماده‌سازی صادر نمی‌شود.
+
+## انتخاب USDT و RPC
+
+آدرس و هش کد USDT در CLI ساخت ورودی، برنامه‌ریزی و تأیید نهایی پین شده‌اند. هش در زمان برنامه‌ریزی با کد شبکه دوباره مقایسه می‌شود. سند مشاهده از RPC عمومی BNB تهیه شده و اثبات اتصال به GetBlock کاربر نیست. URL قبلی GetBlock در زمینه بازیابی‌شده ماسک شده بود؛ اتصال واقعی تا قرارگرفتن آن در فایل خصوصی سرور تأیید نشده است. فایل نمونه محیط سرور، Keeper و مانیتور همگی از FTI_MAINNET_RPC_FILE پشتیبانی می‌کنند؛ تنظیمات تست‌نت خودکار به شبکه اصلی منتقل نمی‌شوند.
+
+طبق تصمیم قبلی کاربر، پس از تکمیل ورودی‌ها ابتدا تمرین نهایی عمومی تست‌نت و سپس همان SHA بدون تغییر برای شبکه اصلی لازم است. تست محلی جای آن مرحله را نمی‌گیرد.

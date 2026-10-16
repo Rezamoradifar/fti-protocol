@@ -1,3 +1,4 @@
+import {operationalRpcUrl} from './mainnet-rpc.mjs';
 import http from 'node:http';
 import {rootForHost,PUBLIC_ROUTES} from './site-routing.mjs';
 import {readMarket} from './market-reader.mjs';
@@ -17,7 +18,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  const cfg=JSON.parse(fs.readFileSync(configPath));
  assertOperationalConfig(cfg);
  const network=deploymentNetwork(cfg);
- const rpc=process.env.RPC_URL||cfg.rpcUrl;const transport=new FetchRequest(rpc);transport.timeout=15000;const provider=new JsonRpcProvider(transport,undefined,{cacheTimeout:-1,batchMaxCount:1});
+ const rpc=operationalRpcUrl(cfg);const transport=new FetchRequest(rpc);transport.timeout=15000;const provider=new JsonRpcProvider(transport,undefined,{cacheTimeout:-1,batchMaxCount:1});
  try{await verifyOperationalDeployment(cfg,provider);}catch(e){provider.destroy();throw e;}
  const eventTransport=new FetchRequest(process.env.EVENT_RPC_URL||rpc);eventTransport.timeout=15000;
  const eventProvider=process.env.EVENT_RPC_URL?new JsonRpcProvider(eventTransport,undefined,{cacheTimeout:-1,batchMaxCount:1}):provider;

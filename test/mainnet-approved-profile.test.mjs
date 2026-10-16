@@ -9,7 +9,7 @@ import {loadWallets} from '../scripts/v3-wallets.mjs';
 import {assertApprovedMainnetProfile,APPROVED_MAINNET_PROFILE} from '../scripts/approved-mainnet-profile.mjs';
 import {validateMainnetInput} from '../scripts/prepare-mainnet.mjs';
 const approved=loadWallets();
-const sample=()=>({...JSON.parse(fs.readFileSync('config/mainnet-approved-input.REQUIRED.json')),deployer:'0x'+'1'.repeat(40),usd:'0x'+'2'.repeat(40),usdCodeHash:'0x'+'a'.repeat(64),partners:Array.from({length:7},(_,i)=>'0x'+(100+i).toString(16).padStart(40,'0'))});
+const sample=()=>({...JSON.parse(fs.readFileSync('config/mainnet-approved-input.REQUIRED.json')),deployer:'0x'+'1'.repeat(40),partners:Array.from({length:7},(_,i)=>'0x'+(100+i).toString(16).padStart(40,'0'))});
 test('release profile pins exact 31-wallet order and external roles without any testnet migration',()=>{
  const input=validateMainnetInput(assertApprovedMainnetProfile(sample()));
  assert.equal(input.walletProfile,APPROVED_MAINNET_PROFILE);
@@ -27,12 +27,13 @@ test('generic planner refuses owner/development role membership and overlap',()=
  const input=sample();delete input.walletProfile;input.owner=input.development;
  assert.throws(()=>validateMainnetInput(input),/remain distinct/);
 });
-test('shipped profile is deliberately incomplete instead of inventing collateral, deployer or council',()=>{
+test('shipped profile pins selected USDT and leaves unprovided deployer/council incomplete',()=>{
  const input=JSON.parse(fs.readFileSync('config/mainnet-approved-input.REQUIRED.json'));
  assert.equal(assertApprovedMainnetProfile(input),input);
  assert.throws(()=>validateMainnetInput(input),/Invalid public address/);
  assert.equal(input.partners.length,0);
- assert.match(input.usd,/REQUIRED_REVIEWED/);
+ assert.equal(input.usd,'0x55d398326f99059fF775485246999027B3197955');
+ assert.match(input.usdCodeHash,/^0x[a-f0-9]{64}$/);
 });
 
 test('testnet wallet-config environment cannot replace pinned mainnet roles/order',()=>{

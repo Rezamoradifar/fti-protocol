@@ -4,8 +4,8 @@
   "deploymentKind": "new-contracts",
   "deployer": "REQUIRED_PUBLIC_DEPLOYER_ADDRESS",
   "development": "0x450AE539f93E10f748247D82822CcF0414dbE607",
-  "usd": "REQUIRED_REVIEWED_18_DECIMAL_COLLATERAL_ADDRESS",
-  "usdCodeHash": "REQUIRED_REVIEWED_RUNTIME_KECCAK256",
+  "usd": "0x55d398326f99059fF775485246999027B3197955",
+  "usdCodeHash": "0x97a48aa4c129657440dafdacd4c836389734d28cc4a0ca7403e68da660a74a59",
   "daoThreshold": 5,
   "partners": [],
   "genesis": [

@@ -1,3 +1,4 @@
+import {operationalRpcUrl} from './mainnet-rpc.mjs';
 import fs from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {JsonRpcProvider,Wallet,Contract} from 'ethers';
@@ -37,7 +38,7 @@ export function startKeeper(binary,provider,interval=5000,options={}){
 if(process.argv[1]===fileURLToPath(import.meta.url)){
  const cfg=JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_FILE||'deployments/local.json'));
  assertOperationalConfig(cfg);
- const p=new JsonRpcProvider(process.env.RPC_URL||cfg.rpcUrl,undefined,{cacheTimeout:-1});
+ const p=new JsonRpcProvider(operationalRpcUrl(cfg),undefined,{cacheTimeout:-1});
  if(!process.env.KEEPER_PRIVATE_KEY)throw Error('KEEPER_PRIVATE_KEY is required; it needs gas only and has no admin authority');
  await verifyOperationalDeployment(cfg,p);
  if((await p.getNetwork()).chainId!==BigInt(cfg.chainId))throw Error('Wrong keeper network');

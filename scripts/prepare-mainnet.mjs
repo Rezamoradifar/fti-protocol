@@ -7,6 +7,8 @@ import {parseArgs} from 'node:util';
 import {execFileSync} from 'node:child_process';
 import {Contract,ContractFactory,FetchRequest,JsonRpcProvider,getAddress,getCreateAddress,keccak256} from 'ethers';
 import {artifact} from './lib.mjs';
+import {mainnetRpcUrl} from './mainnet-rpc.mjs';
+import {assertSelectedMainnetCollateral} from './mainnet-collateral.mjs';
 import {assertApprovedMainnetProfile} from './approved-mainnet-profile.mjs';
 import {releaseManifest} from './continuity-release.mjs';
 import {loadMigrationBuild} from './address-migration-operator.mjs';
@@ -100,7 +102,7 @@ export async function prepareMainnet({provider,input}){
 }
 const HELP=`FTI mainnet contract preparation — READ ONLY, no signing or broadcasting.
 Usage: node scripts/prepare-mainnet.mjs --config REVIEWED_PUBLIC_ADDRESSES.json --out NEW_PLAN.json
-RPC: FTI_MAINNET_RPC_URL (explicit; no default or existing service configuration).
+RPC: FTI_MAINNET_RPC_URL or private FTI_MAINNET_RPC_FILE (operator GetBlock; no embedded endpoint).
 Input template: config/mainnet-approved-input.REQUIRED.json. Approved owner/development and exact 31-wallet order are enforced by the CLI. All addresses and collateral hash require review.
 Use a clean, pinned checkout after npm ci, npm run compile and npm run build:web.
 Creates seven UNSIGNED transactions. Does not deploy, import balances, generate keys or start services.
@@ -116,13 +118,12 @@ export async function main(args=process.argv.slice(2)){
  const {values:v,positionals}=parseArgs({args,strict:true,allowPositionals:true,options:{config:{type:'string'},out:{type:'string'},help:{type:'boolean'}}});
  if(v.help){console.log(HELP);return;}
  check(positionals.length===0&&v.config&&v.out,'Use --config and --out; see --help');
- const input=validateMainnetInput(assertApprovedMainnetProfile(JSON.parse(fs.readFileSync(v.config,'utf8'))));
+ const input=validateMainnetInput(assertSelectedMainnetCollateral(assertApprovedMainnetProfile(JSON.parse(fs.readFileSync(v.config,'utf8')))));
  assertPinnedMainnetCheckout();
  const out=path.resolve(v.out),parent=fs.realpathSync(path.dirname(out)),root=fs.realpathSync(process.cwd());
  check(parent!==root&&!parent.startsWith(root+path.sep),'Write plans outside the source checkout');
  check(!fs.existsSync(out),'Output already exists; never overwrite a reviewed plan');
- check(process.env.FTI_MAINNET_RPC_URL,'FTI_MAINNET_RPC_URL required');
- const request=new FetchRequest(process.env.FTI_MAINNET_RPC_URL);request.timeout=15000;
+ const request=new FetchRequest(mainnetRpcUrl());request.timeout=15000;
  const provider=new JsonRpcProvider(request,undefined,{cacheTimeout:-1,batchMaxCount:1});
  try{
   const plan=await prepareMainnet({provider,input});

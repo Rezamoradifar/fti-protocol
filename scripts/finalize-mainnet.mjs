@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import {parseArgs} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {Contract,JsonRpcProvider,FetchRequest,keccak256} from 'ethers';
+import {mainnetRpcUrl} from './mainnet-rpc.mjs';
+import {assertSelectedMainnetCollateral} from './mainnet-collateral.mjs';
 import {assertApprovedMainnetProfile} from './approved-mainnet-profile.mjs';
 import {MAINNET_RELEASE} from '../core/deployment-network.mjs';
 import {releaseManifest,verifyV3Deployment} from './continuity-release.mjs';
@@ -71,14 +73,13 @@ export async function finalizeMainnet({provider,plan,transactions,confirmations=
 export async function main(args=process.argv.slice(2)){
  const {values:v,positionals}=parseArgs({args,strict:true,allowPositionals:true,options:Object.fromEntries(
   [...['plan','transactions','out','confirmations'].map(k=>[k,{type:'string'}]),['help',{type:'boolean'}]])});
- if(v.help){console.log('READ ONLY: node scripts/finalize-mainnet.mjs --plan REVIEWED_PLAN.json --transactions HASHES.json --out NEW_DEPLOYMENT.json [--confirmations 12]\nFTI_MAINNET_RPC_URL required. Checks all seven transactions. Never submits or activates services.');return;}
+ if(v.help){console.log('READ ONLY: node scripts/finalize-mainnet.mjs --plan REVIEWED_PLAN.json --transactions HASHES.json --out NEW_DEPLOYMENT.json [--confirmations 12]\nFTI_MAINNET_RPC_URL or private FTI_MAINNET_RPC_FILE required. Checks all seven transactions. Never submits or activates services.');return;}
  check(!positionals.length&&v.plan&&v.transactions&&v.out,'Plan, transaction hashes and new output required');
  assertPinnedMainnetCheckout();
- check(process.env.FTI_MAINNET_RPC_URL,'Explicit FTI_MAINNET_RPC_URL required');
- const request=new FetchRequest(process.env.FTI_MAINNET_RPC_URL);request.timeout=15000;
+ const request=new FetchRequest(mainnetRpcUrl());request.timeout=15000;
  const provider=new JsonRpcProvider(request,undefined,{cacheTimeout:-1,batchMaxCount:1});
  try{
-  const plan=JSON.parse(fs.readFileSync(v.plan));assertApprovedMainnetProfile(plan.input);
+  const plan=JSON.parse(fs.readFileSync(v.plan));assertSelectedMainnetCollateral(assertApprovedMainnetProfile(plan.input));
   const cfg=await finalizeMainnet({provider,plan,transactions:JSON.parse(fs.readFileSync(v.transactions)),confirmations:Number(v.confirmations||12)});
   const fd=fs.openSync(v.out,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW,0o600);
   try{fs.writeFileSync(fd,JSON.stringify(cfg,null,2)+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}

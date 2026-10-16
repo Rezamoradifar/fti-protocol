@@ -53,5 +53,5 @@ stage=complete; result=MAINNET_CANDIDATE_PREPARED
 printf 'FTI_MAINNET_CANDIDATE_PREPARED=%s\n' "$work"
 echo 'Local rehearsal complete. No public RPC, private keys, transactions or service switches.'
 echo 'Fresh mainnet policy: 31 approved unpaid positions; no testnet users, balances, ranks, carry or debts imported.'
-echo 'Complete deployer, reviewed 18-decimal collateral/hash and seven council addresses before read-only mainnet planning.'
+echo 'BNB USDT is pinned. Complete deployer and seven council addresses; load the operator GetBlock RPC from a private file before planning.'
 PREPARE

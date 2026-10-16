@@ -20,7 +20,7 @@ export function releaseManifest(){
  for(const dir of ['contracts','frontend','scripts','core','landing/src'])for(const name of fs.readdirSync(dir).sort()){
   const file=dir+'/'+name;if(fs.statSync(file).isFile()&&/\.(sol|mjs|jsx|js|css)$/.test(name))sources[file]=hash(fs.readFileSync(file));
  }
- for(const file of ['config/v3-wallets.json','config/mainnet-approved-input.REQUIRED.json','package.json','package-lock.json','web/app.js','web/vendor/walletconnect.js','core/hourly-cap-policy.mjs'])sources[file]=hash(fs.readFileSync(file));
+ for(const file of ['config/mainnet-usdt-collateral.json','config/v3-wallets.json','config/mainnet-approved-input.REQUIRED.json','package.json','package-lock.json','web/app.js','web/vendor/walletconnect.js','core/hourly-cap-policy.mjs'])sources[file]=hash(fs.readFileSync(file));
  const sourceFingerprint=hash(JSON.stringify(sources));
  let sourceRevision=process.env.FTI_SOURCE_REVISION||process.env.GITHUB_SHA||null;
  if(!sourceRevision)try{sourceRevision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim();}catch{}

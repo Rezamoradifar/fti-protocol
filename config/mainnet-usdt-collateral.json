@@ -1,0 +1,16 @@
+{
+  "chainId": 56,
+  "address": "0x55d398326f99059fF775485246999027B3197955",
+  "decimals": 18,
+  "symbol": "USDT",
+  "usdCodeHash": "0x97a48aa4c129657440dafdacd4c836389734d28cc4a0ca7403e68da660a74a59",
+  "blockNumber": 127881152,
+  "blockHash": "0x6ca4d4aecf02d4dfa564b2b466cbd5e40dbb5677ad54d8684fe4dc44b2e05c09",
+  "readOnly": true,
+  "source": "BNB public RPC; not user GetBlock",
+  "name": "Binance-Peg USDT (BSC-USD)",
+  "explorer": "https://bscscan.com/token/0x55d398326f99059ff775485246999027b3197955",
+  "selectedByUser": "2026-10-16",
+  "rpcProviderForDeployment": "GetBlock",
+  "note": "Read-only identity snapshot from BNB public RPC. Recheck code and decimals against the operator GetBlock RPC before planning; no stablecoin price/backing guarantee."
+}
