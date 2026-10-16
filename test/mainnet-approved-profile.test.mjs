@@ -78,3 +78,13 @@ test('production council pins all seven user-approved addresses and rejects memb
   assert.throws(()=>createApprovedMainnetInput({deployer:input.deployer,council:{threshold:changed.daoThreshold,partners:changed.partners}}),/council/);
  }
 });
+
+
+test('council-only wallets are excluded from all 31 initial positions, including generic planning',()=>{
+ const input=sample();
+ assert.equal(input.genesis.filter(a=>input.partners.some(p=>p.toLowerCase()===a.toLowerCase())).length,0);
+ for(const member of input.partners){
+  const changed=sample();delete changed.walletProfile;changed.genesis[0]=member;
+  assert.throws(()=>validateMainnetInput(changed),/Council wallets cannot occupy genesis positions/);
+ }
+});

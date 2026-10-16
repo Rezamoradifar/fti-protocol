@@ -39,6 +39,7 @@ export function validateMainnetInput(input){
  }
  check(!same(addresses.development,owner),'Owner and development must remain distinct');
  check(!lists.genesis.some(x=>same(x,addresses.development)||same(x,owner)),'Owner/development cannot occupy genesis positions');
+ check(!lists.genesis.some(x=>lists.partners.some(member=>same(x,member))),'Council wallets cannot occupy genesis positions');
  check(!same(addresses.usd,owner),'Collateral cannot be the owner');
  check(!same(addresses.usd,addresses.deployer)&&!same(addresses.usd,addresses.development)
   &&![...lists.partners,...lists.genesis].some(x=>same(x,addresses.usd)),'Collateral contract cannot be a participant wallet');
