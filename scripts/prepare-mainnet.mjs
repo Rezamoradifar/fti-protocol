@@ -8,6 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {Contract,ContractFactory,FetchRequest,JsonRpcProvider,getAddress,getCreateAddress,keccak256} from 'ethers';
 import {artifact} from './lib.mjs';
 import {mainnetRpcUrl} from './mainnet-rpc.mjs';
+import {assertSelectedMainnetCouncil} from './mainnet-council.mjs';
 import {assertSelectedMainnetCollateral} from './mainnet-collateral.mjs';
 import {assertApprovedMainnetProfile} from './approved-mainnet-profile.mjs';
 import {releaseManifest} from './continuity-release.mjs';
@@ -118,7 +119,7 @@ export async function main(args=process.argv.slice(2)){
  const {values:v,positionals}=parseArgs({args,strict:true,allowPositionals:true,options:{config:{type:'string'},out:{type:'string'},help:{type:'boolean'}}});
  if(v.help){console.log(HELP);return;}
  check(positionals.length===0&&v.config&&v.out,'Use --config and --out; see --help');
- const input=validateMainnetInput(assertSelectedMainnetCollateral(assertApprovedMainnetProfile(JSON.parse(fs.readFileSync(v.config,'utf8')))));
+ const input=validateMainnetInput(assertSelectedMainnetCollateral(assertApprovedMainnetProfile(JSON.parse(fs.readFileSync(v.config,'utf8')))));assertSelectedMainnetCouncil(input);
  assertPinnedMainnetCheckout();
  const out=path.resolve(v.out),parent=fs.realpathSync(path.dirname(out)),root=fs.realpathSync(process.cwd());
  check(parent!==root&&!parent.startsWith(root+path.sep),'Write plans outside the source checkout');

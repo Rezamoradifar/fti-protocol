@@ -6,6 +6,7 @@ import {parseArgs} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {Contract,JsonRpcProvider,FetchRequest,keccak256} from 'ethers';
 import {mainnetRpcUrl} from './mainnet-rpc.mjs';
+import {assertSelectedMainnetCouncil} from './mainnet-council.mjs';
 import {assertSelectedMainnetCollateral} from './mainnet-collateral.mjs';
 import {assertApprovedMainnetProfile} from './approved-mainnet-profile.mjs';
 import {MAINNET_RELEASE} from '../core/deployment-network.mjs';
@@ -79,7 +80,7 @@ export async function main(args=process.argv.slice(2)){
  const request=new FetchRequest(mainnetRpcUrl());request.timeout=15000;
  const provider=new JsonRpcProvider(request,undefined,{cacheTimeout:-1,batchMaxCount:1});
  try{
-  const plan=JSON.parse(fs.readFileSync(v.plan));assertSelectedMainnetCollateral(assertApprovedMainnetProfile(plan.input));
+  const plan=JSON.parse(fs.readFileSync(v.plan));assertSelectedMainnetCollateral(assertApprovedMainnetProfile(plan.input));assertSelectedMainnetCouncil(plan.input);
   const cfg=await finalizeMainnet({provider,plan,transactions:JSON.parse(fs.readFileSync(v.transactions)),confirmations:Number(v.confirmations||12)});
   const fd=fs.openSync(v.out,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW,0o600);
   try{fs.writeFileSync(fd,JSON.stringify(cfg,null,2)+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
