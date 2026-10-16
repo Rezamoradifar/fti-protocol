@@ -24,9 +24,14 @@ test('1000 public-chain schedule is funded; actual continuity proxies enforces c
   await sent(token.bind(binary.target));const contracts={usd,token,binary};
   for(let i=31;i<=33;i++){
    const w=signers[i];await sent(usd.connect(w).faucet());await sent(usd.connect(w).approve(binary.target,MaxUint256));await sent(usd.connect(w).approve(token.target,MaxUint256));
-   if(i===31)await assert.rejects(()=>binary.connect(w).register.staticCall(addresses[15],0));
-   await sent(binary.connect(w).register(addresses[i===33?16:15],i===31?1:20));
+   // Positions 24 and 25 are leaves in the approved six-row genesis. Position
+   // 16 already owns child 24 and cannot accept both of the first two entrants.
+   if(i===31)await assert.rejects(()=>binary.connect(w).register.staticCall(addresses[23],0));
+   await sent(binary.connect(w).register(addresses[i===33?24:23],i===31?1:20));
   }
+  assert.equal((await binary.members(addresses[23])).left,addresses[31]);
+  assert.equal((await binary.members(addresses[23])).right,addresses[32]);
+  assert.equal((await binary.members(addresses[24])).left,addresses[33]);
   assert.equal(await token.supportReserve(),E('205'));assert.equal(await token.reserve(),0n);
   assert.equal(await binary.pointPool(),E('3690'));assert.equal(await binary.builderAccounted(),E('164'));assert.equal(await binary.pendingReward(addresses[39]),E('41'));
   const deadline=(await p.getBlock('latest')).timestamp+1200;

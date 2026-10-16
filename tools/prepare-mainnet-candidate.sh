@@ -44,6 +44,7 @@ stage=web
 npm run build:web
 npm --prefix landing run build
 stage=tests
+python3 -m unittest discover -s tools/mainnet-metamask -p test_install.py -v
 node --test --test-concurrency=2 test/mainnet-*.test.mjs test/v3-wallets.test.mjs test/wallet-discovery.test.mjs test/continuity-monitor.test.mjs test/funded-keeper.test.mjs test/fresh-testnet.test.mjs test/global-frontend.test.mjs test/site-routing.test.mjs test/v3-server.test.mjs test/event-server.test.mjs
 stage=templates
 cp config/mainnet-approved-input.REQUIRED.json "$work/mainnet-input.REQUIRED.json"
