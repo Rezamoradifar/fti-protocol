@@ -49,3 +49,8 @@ body[data-surface] :is(button,a,input,select){touch-action:manipulation}
  body[data-surface] :is(input,select,textarea){font-size:16px;min-width:0;max-width:100%}
 }
 @media(max-width:360px){body[data-surface] .connection{grid-template-columns:minmax(0,1fr) repeat(3,40px);gap:5px}body[data-surface] .sidebar nav button{font-size:10px}body[data-surface] .global-tabs{grid-template-columns:minmax(0,1fr)}body[data-surface] .metrics{grid-template-columns:minmax(0,1fr)}}
+@font-face{font-family:'FTI Orbitron';font-style:normal;font-weight:600;font-display:swap;src:url('../landing/node_modules/@fontsource/orbitron/files/orbitron-latin-600-normal.woff2') format('woff2')}
+html:not([dir=rtl]) body[data-surface] :is(h1,h2,h3,button){font-family:'FTI Orbitron','FTI Manrope',sans-serif;letter-spacing:0;line-height:1.5}
+body[data-surface] .sidebar .brand{font-family:'FTI Orbitron',sans-serif;font-size:24px}
+body[data-surface] .fti-header-mark{border-radius:50%;background:#050908;flex:none}
+@media(max-width:900px){body[data-surface] .sidebar .brand{font-size:22px}html:not([dir=rtl]) body[data-surface] .sidebar nav button{font-size:10px}}

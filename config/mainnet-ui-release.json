@@ -2,20 +2,23 @@
   "schema": "FTI_MAINNET_UI_OVERLAY_V2",
   "files": {
     "frontend/brand.jsx": "30a17120796065355502307a7b29f637caeea6a45e87feed1c09332986d7857e",
-    "frontend/panel-identity.css": "6752fa4dd41768b1fe6263182e694c6c300e6f5bd8b486ed02d9efd69f2e3cc0",
+    "frontend/panel-identity.css": "3a834926ca3db2990abc257d6d2f6bc7067c57066dc069474bd349572789a89b",
     "scripts/build-web.mjs": "45c835565eb1de1415d259a1fcc762f0023c62985cfbbb7e6a058ebf0975c871",
     "web/index.html": "3cc73698ba82bbc1fd249fc2b87d168d3017561ec82f002a01ba490d4b2ffcd7",
-    "web/app.js": "ed1fb2f95fd4c4986ab91fe368d1840adaae01baff1860d70e294114f61b87b6",
+    "web/app.js": "7f8ed40c64918fb1116daaf02ff90b7bf69cbebd2e89ff546d834d42a95bc581",
     "web/app.js.LEGAL.txt": "573cc95a6417c69a6ca44804f440f00965283c8cdcc50025305a7a50f53940ac",
     "web/style.css": "373a39681dd415c339a117034c7d5d5d9fc976b28730b1967e25dd4afb117190",
     "web/member-landing-theme.css": "4a66ac54bbbd1282c61536ec6889f07047bdaeda1a54b6b431910da9b31d0198",
     "web/global-interface.css": "08c083262991d5387882b6d86b1930e69b5a7a3e67a998191017625caae2516b",
-    "web/panel-identity.css": "eef8b0e2a498104fbf07efcde519033f1b2d1c7eedf0a9bc82348602ff86b490",
+    "web/panel-identity.css": "90788884ba73f557c89ac620c4d9aa3a4edcff906ecef5d16a3dca019e91260e",
     "package-lock.json": "2f89db62ee68166894b78b51684033b2391e3fb73889cf4fcae52e7e8b614fbe",
-    "landing/package-lock.json": "6a5c1eb7d16f7826a422ce112e53d20a92f6196da3f7ecc991a91cd7aaa6f15a",
+    "landing/package-lock.json": "6ccfd147949cdf55d37cd8ff9a131759ff6f02de19a3000ca9593fc1d0ef3c7f",
     "web/fonts/vazirmatn-arabic-wght-normal-GZN7WEUV.woff2": "84a382e46c30fb4f73d0e3800c16d0af15888e2731e57fa5f93e2c29a2c6a957",
     "web/fonts/manrope-latin-wght-normal-73PUZEUA.woff2": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972",
-    "frontend/main.jsx": "dacc2da56aaa308fa9fffc43c1d83beb704cad08e7e11753544e62827591ecd4",
-    "frontend/controller.js": "6d0a5ce95a4074a07ba6a45e5ba6e3ed47074817cab35b57ffbd5d09d4f33bdc"
+    "frontend/main.jsx": "69c7902a49111efb602664409afea7646c46823746486a202810a46696f787f9",
+    "frontend/controller.js": "6d0a5ce95a4074a07ba6a45e5ba6e3ed47074817cab35b57ffbd5d09d4f33bdc",
+    "frontend/header-mark.jsx": "18d0e035ae923816cf0c28b4d77d97575996b7fc70a15b7ee43a8a6e4134d891",
+    "landing/package.json": "28b7334274ed8e6cf2fd78b8907f4988787828a75fa7efc7fad0b95bbb13d881",
+    "web/fonts/orbitron-latin-600-normal-CEBIPJEJ.woff2": "585062e775d70397653192777533f65f3afb707320fcc2a4bc510470e03762e6"
   }
 }
