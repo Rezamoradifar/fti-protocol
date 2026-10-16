@@ -20,3 +20,18 @@
 @media print{.public-site,.public-site,.public-site .public-site,.public-site .document-content{background:white!important;color:black!important}.public-site .public-site p,.public-site .public-site h1,.public-site .public-site h2,.public-site .public-site .kicker,.public-site .document-content p{color:black!important}}
 
 body{margin:0;background:#080d0b}
+
+/* Public documents share the same small-screen containment rules. */
+@media(max-width:900px){
+ .public-site .wrap{width:calc(100% - 32px)}
+ .public-site .header-inner{height:auto;min-height:76px;gap:10px;flex-wrap:wrap;padding-block:10px}
+ .public-site .header-actions{gap:8px;flex-wrap:wrap;min-width:0}
+ .public-site .header-actions button,.public-site .header-actions a{min-height:44px}
+ .public-site :is(.document-layout,.public-feature-grid,.token-public-hero){grid-template-columns:minmax(0,1fr);gap:24px}
+ .public-site :is(h1,h2,h3,p,a,code){overflow-wrap:anywhere}
+ .public-site .contracts article{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0}
+ .public-site .address{max-width:100%;white-space:normal;font-size:12px;direction:ltr}
+ .public-site .document-content{min-width:0}
+ .public-site .document-content table{display:block;max-width:100%;overflow-x:auto}
+ .public-site footer,.public-site footer nav{flex-wrap:wrap;gap:15px}
+}
