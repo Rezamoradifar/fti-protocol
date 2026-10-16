@@ -1,52 +1,28 @@
 {
   "name": "fti-protocol",
   "version": "0.2.0",
-  "description": "FTI independent local/testnet release candidate \u2014 not audited",
+  "description": "FTI website source handoff; uses the existing mainnet backend",
   "main": "index.js",
   "directories": {
     "doc": "docs",
     "test": "test"
   },
   "scripts": {
-    "compile": "node scripts/compile.mjs",
-    "test": "npm run compile && node --test --test-concurrency=4 test/*.test.mjs",
-    "start": "node scripts/server.mjs",
-    "demo": "npm run compile && node scripts/local.mjs",
-    "keeper": "node scripts/keeper.mjs",
-    "deploy": "npm run compile && node scripts/deploy.mjs",
-    "simulate": "node scripts/simulate.mjs",
-    "launch": "node scripts/launch-server.mjs",
-    "import:deployment": "node scripts/import-browser-deployment.mjs",
     "build:web": "node scripts/build-web.mjs",
-    "prestart": "npm run build:web",
-    "predemo": "npm run build:web",
-    "demo:reserve": "npm run build:web && npm run compile && node scripts/local.mjs --reserve-token",
-    "test:reserve": "npm run compile && node --test --test-concurrency=1 test/reserve-*.test.mjs",
-    "simulate:reserve": "node scripts/simulate-reserve.mjs 300000 docs/reserve-simulation-300000.json",
-    "demo:funded": "npm run build:web && npm run compile && node scripts/local.mjs --funded-plan",
-    "test:funded": "npm run compile && node --test --test-concurrency=1 test/funded-*.test.mjs",
-    "simulate:funded": "node scripts/simulate-funded.mjs 300000 docs/funded-simulation-300000.json",
-    "deploy:v3:testnet": "npm run compile && node scripts/deploy-v3-testnet.mjs",
-    "dev": "node scripts/design-preview.mjs",
-    "prepare:mainnet": "node scripts/prepare-mainnet.mjs",
-    "verify:mainnet": "node scripts/finalize-mainnet.mjs",
-    "config:mainnet": "node scripts/create-mainnet-input.mjs"
+    "build:landing": "npm --prefix landing run build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@openzeppelin/contracts": "5.4.0",
     "@walletconnect/ethereum-provider": "2.26.0",
     "ethers": "6.17.0",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },
   "devDependencies": {
-    "esbuild": "0.25.10",
-    "ganache": "7.9.2",
-    "solc": "0.8.30"
+    "esbuild": "0.25.10"
   },
   "private": true,
   "engines": {

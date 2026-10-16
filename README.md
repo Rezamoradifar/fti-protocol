@@ -1,106 +1,45 @@
-# FTI Protocol
+# تحویل وب‌سایت FTI — ۱۶ اکتبر ۲۰۲۶
 
-**New funded-plan candidate:** `FundedBinaryPlan` fixes unrelated carried-pool capture with source-attributed credits and a hard 20 USD/point ceiling. This materially changes compensation: unused amounts are protected, nonclaimable reserves. The token now supports more than 64 live lock tranches and the keeper uses sparse queues. Read [FUNDED-PLAN](docs/FUNDED-PLAN.md) and its validation record. `npm run demo:funded` runs a separate private demo on **3083**. No existing testnet contract or live service has been replaced.
+این بسته، سورس رابط سایت و نسخه ساخته‌شده لندینگ را برای تیم ادامه‌دهنده فراهم می‌کند؛ پوشه‌های تست، سناریوهای آزمایشی، گزارش‌های قدیمی، تاریخچه Git و کلید خصوصی داخل ZIP نیستند.
 
-**New real-reserve candidate:** `FTIReserveToken` implements 3% buy/sell fees, a 3% transfer burn and an internally nondecreasing reserve/share price with a funded permanent anchor. Read [RESERVE-TOKEN](docs/RESERVE-TOKEN.md) for the proof, 100-user EVM tests, 300,000-wallet arithmetic simulation, exact limitations and separate deployment commands. Start it with `npm run demo:reserve` on private port **3082**. The existing public deployment remains the legacy curve model; the instructions below continue to describe that model unless marked otherwise.
+## نصب لندینگ روی سرور فعلی FTI
 
-Complete independent **local / BNB Testnet** development package: binary rewards, FTI curve token, 3-of-5 governance, 72-hour timelock, English web panel, browser-signed deployment launcher, settlement keeper, reference simulator and EVM tests.
+ZIP را در پوشه‌ای جدا از `/opt/fti/releases` باز کنید. با root از پوشه بسته اجرا کنید:
 
-**Not independently audited. Mainnet deployment is disabled. Test USD has no dollar value.** Economic interpretations and changes from the supplied specification are recorded in [DECISIONS](docs/DECISIONS.md).
+```bash
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+python3 tools/install-delivery.py
+```
 
-**Contract-core review candidate:** this branch adds auto-buy execution protections and reserve tests. Existing testnet contracts have not been upgraded. Read [CORE-REVIEW](docs/CORE-REVIEW.md) for confirmed fixes, open economic findings and the separate-deployment requirement. Some diagnostic tests intentionally pass when an unresolved weakness is reproduced.
+نیازمند سرویس فعال `fti-continuity-web.service`، Nginx، Python 3 و curl است. نصب از فایل‌های ساخته‌شده داخل ZIP انجام می‌شود و npm، تست، دیپلوی قرارداد یا کلید خصوصی لازم ندارد. نصب‌کننده شبکه ۵۶ و دو قرارداد مورد انتظار را بررسی می‌کند؛ فقط `landing/dist` نسخه فعال را اتمی عوض می‌کند. در خطا نسخه قبلی خودکار برمی‌گردد. مسیر backup چاپ می‌شود. سورس دارای fingerprint و سرویس تغییر نمی‌کند.
 
-See [GitHub publishing and server installation](docs/GITHUB.md) for uploading this package.
-
-## Requirements
-
-Node.js 22 or newer, npm, and Git. A browser wallet is required for public testnet transactions. Use BNB Smart Chain **testnet, chain ID 97**.
-
-## Run locally
+اگر بسته را از ZIP خودکار GitHub دریافت می‌کنید، ابتدا با Node 22 یا بالاتر بسازید:
 
 ```bash
 npm ci
-npm test
-npm run demo
+npm --prefix landing ci
+npm --prefix landing run build
+python3 tools/install-delivery.py
 ```
 
-Open http://localhost:3000. A fresh in-memory EVM, 45 test accounts, test USD, contracts, English dashboard and keeper start together. Each restart resets the local chain. Keep this unlocked-account demo private; its default bind address is localhost.
+پس از نصب، صفحه را در مرورگر خصوصی گوشی باز کنید؛ منو، زبان، حالت رنگ، چرخش توکن و لینک ورود را بررسی کنید. نصب دامنه اصلی توسط تهیه‌کننده این بسته انجام نشده است.
 
-For a remote server, use an SSH tunnel from your computer:
+## ادامه توسعه
 
-```bash
-ssh -L 3000:127.0.0.1:3000 USER@SERVER
-```
+- `landing/src/`: لندینگ سه‌بعدی، معرفی توکن، نقشه راه و وایت‌پیپر.
+- `frontend/`: سورس پنل اعضا، توکن و شورا؛ `web/`: پوسته و فایل‌های ساخته‌شده پنل در ZIP.
+- `core/`: ماژول‌های مشترک رابط.
+- `scripts/build-web.mjs`: ساخت پنل با `npm run build:web`.
+- `landing/build.mjs`: ساخت صفحات عمومی با نام‌های هش‌شده و فونت محلی.
 
-Then open http://localhost:3000 on your computer. Docker users can run `docker compose up --build`; its published port also binds to localhost.
+نصب‌کننده این تحویل **لندینگ و صفحات عمومی** را به‌روزرسانی می‌کند. سورس و build پنل برای ادامه توسعه ارائه شده‌اند؛ آن‌ها را مستقیم روی `web/app.js` نسخه فعال کپی نکنید، چون کنترل fingerprint سرور دارد. برای انتشار تغییرات پنل باید overlay نسخه‌بندی‌شده یا انتشار سازگار با manifest تهیه شود.
 
-## Deploy using your wallet, without putting its key on a server
+این بسته جایگزین backend یا قراردادهای اصلی نیست و برای نصب یک سرور مستقل از صفر کافی نیست. backend فعال، RPC خصوصی، تنظیمات Nginx، ABIها و فایل deployment را باید اپراتور فعلی از مسیر امن تحویل دهد. داده یا کلید ساختگی در بسته وجود ندارد. قراردادها دوباره دیپلوی نشوند.
 
-```bash
-npm ci
-npm run launch
-```
+مخزن مرجع قراردادها و runtime:
+https://github.com/Rezamoradifar/fti-protocol
 
-Open http://localhost:3000, or serve `launcher/` over HTTPS on your domain. The launcher is configured for the requested primary owner:
+توکن: `0x43755B1E813b2d41F669ea08bcf859De07195eA1`
+باینری: `0x13aC3Af4FE3e72DccfFd52AB67E4d884B6D97dF9`
 
-`0x63c5B98AEfd69658B652d5F35FFda3C6c06847E3`
-
-1. Connect that wallet and accept switching to BNB Testnet.
-2. Generate the 30 helper accounts. They are generated **in your browser**. Download the encrypted backup, keep its password, and confirm that you saved it.
-3. Click **Start / resume deployment**. Review and approve six transactions: test USD, council, timelock, FTI, binary plan, then contract binding.
-4. Download the deployment JSON. Progress can resume after interruptions. Keep both the deployment JSON and encrypted helper-account backup.
-5. Open **Test the protocol**. The primary wallet plus 30 helpers have Genesis positions but initially no units. Request test USD and add units. For a simple binary test, fund helper 1 and 2 with test gas, give each two units, and give the root one unit. After the hour boundary, process volume and settlement.
-
-The test council uses the primary wallet plus four helper accounts controlled through the encrypted backup. This is suitable for single-person testing, **not independent production governance**. Passwords and helper keys are never uploaded. Never enter your primary wallet seed or private key in the launcher. The browser page is not a continuously running keeper.
-
-## Connect the full panel to the browser deployment
-
-Copy the non-secret deployment JSON to the server, then run:
-
-```bash
-npm run compile
-node scripts/import-browser-deployment.mjs FTI-Testnet-Deployment.json
-DEPLOYMENT_FILE=deployments/testnet.json npm start
-```
-
-The importer verifies chain ID, transaction sender, deployment bytecode, receipts and token binding. The full panel uses connected wallets for signatures; it does not hold user keys.
-
-For a continuous keeper, configure a **separate gas-only wallet** in the server environment:
-
-```bash
-DEPLOYMENT_FILE=deployments/testnet.json node --env-file=.env scripts/keeper.mjs
-```
-
-See [.env.example](.env.example). Do not add keys to Git. The keeper has no admin privileges.
-
-## CLI testnet deployment
-
-Alternatively, fill `deployments/testnet-input.json` from its example with 31 distinct Genesis addresses, five distinct council addresses, and a development address. Configure `RPC_URL` and `DEPLOYER_PRIVATE_KEY` locally in a protected environment file, then run:
-
-```bash
-npm run compile
-node --env-file=.env scripts/deploy.mjs
-```
-
-The supplied deploy script accepts only chain 97 or 31337 and deploys an explicitly test-only collateral token.
-
-## Tests and simulation
-
-```bash
-npm test
-npm run simulate -- 2000 42
-```
-
-The original checked-in report records **28 successful math/EVM tests** and a 2,000-member integrated cash-flow simulation. The latest contract-core run is recorded separately in [core-validation.json](docs/core-validation.json), with scope and open findings in [CORE-REVIEW](docs/CORE-REVIEW.md). The original simulation ends new inflows and redeems all real tokens, assuming lock deadlines have elapsed. It checks exact integer accounting and the reserve inequality, not investment returns or million-member gas performance.
-
-## Repository layout
-
-- `contracts/` — binary plan, token, council, timelock and test collateral.
-- `web/` — English full dashboard for local or deployed contracts.
-- `launcher/` — standalone HTTPS browser deployment and testing page.
-- `scripts/` — compiler, deployment, server, keeper and simulation tools.
-- `core/` — independent BigInt mathematical reference.
-- `test/` — math and EVM integration tests.
-- `docs/` — decisions, operations, reports. The original supplied Word specification is excluded from the public repository.
-
-See [operations](docs/OPERATIONS.md), [validation](docs/VALIDATION.md) and the optional [Persian guide](README.fa.md). A public testnet deployment is complete only after wallet transactions are confirmed; downloading or cloning this repository does not deploy contracts.
+این نسخه برای تحویل سورس و نصب رابط آماده شده است؛ تأیید تمام عملکردهای مالی و راه‌اندازی کامل شبکه اصلی محسوب نمی‌شود.
