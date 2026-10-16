@@ -11,6 +11,7 @@ for(const width of [320,390,844,1280])for(const lang of ['en','fa'])for(const th
  await expect(page.locator('.sidebar .brand svg')).toHaveCount(1);
  await expect(page.locator('#theme')).toBeVisible();
  await page.evaluate(()=>document.fonts.ready);
+ if(width<=900)await expect(page.locator('.fti-language select')).toHaveCSS('font-size','16px');
  await expect.poll(()=>page.locator('body').evaluate(el=>el.classList.contains('light'))).toBe(theme==='light');
  expect(await page.locator('.sidebar .brand').evaluate(el=>getComputedStyle(el,'::before').content)).toBe('none');
  expect(await page.locator('body').evaluate(el=>getComputedStyle(el).getPropertyValue('--accent').trim())).toBe(theme==='light'?'#386a37':'#c9fca2');

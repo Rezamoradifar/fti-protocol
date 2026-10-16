@@ -1,9 +1,9 @@
 name: Landing release checks
 on:
   push:
-    paths: ['landing/**', '.github/workflows/landing.yml']
+    paths: ['landing/**', 'frontend/**', 'web/**', 'scripts/build-web.mjs', '.github/workflows/landing.yml']
   pull_request:
-    paths: ['landing/**', '.github/workflows/landing.yml']
+    paths: ['landing/**', 'frontend/**', 'web/**', 'scripts/build-web.mjs', '.github/workflows/landing.yml']
 jobs:
   landing:
     runs-on: ubuntu-latest
@@ -20,8 +20,9 @@ jobs:
       - run: npm run build --prefix landing
       - run: bash -n landing/install-dist.sh
       - run: sudo env PATH="$PATH" npm run test:install --prefix landing
-      - run: cd landing && npx playwright install --with-deps chromium
+      - run: cd landing && npx playwright install --with-deps chromium webkit
       - run: npm test --prefix landing
+      - run: cd landing && FTI_BROWSER=webkit npx playwright test tests/mobile-handoff.spec.mjs tests/panel-identity.spec.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
