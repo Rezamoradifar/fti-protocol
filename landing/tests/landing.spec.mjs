@@ -13,7 +13,8 @@ for(const width of [320,390,768,1440]){
         page.on('response',r=>{if(r.status()>=400)failed.push(`${r.status()} ${r.url()}`)});
         await page.goto('/');
         await expect(page.locator('h1')).toBeVisible();
-        await expect.poll(()=>page.locator('.orbital-hero-art').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
+        await expect(page.locator('.hero-hud .fti-header-mark')).toBeVisible();
+        expect(await page.locator('.hero-hud image').evaluate(el=>new Promise(resolve=>{const img=new Image();img.onload=()=>resolve(img.naturalWidth===1254);img.onerror=()=>resolve(false);img.src=el.getAttribute('href')}))).toBe(true);
         await expect(page.locator('html')).toHaveAttribute('lang',lang);
         await expect(page.locator('html')).toHaveAttribute('dir',lang==='fa'?'rtl':'ltr');
         await expect(page.locator('html')).toHaveAttribute('data-theme',theme);

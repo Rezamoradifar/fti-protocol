@@ -22,3 +22,22 @@ html[lang=en] :is(h1,h2,h3,.button,.eyebrow,.tabs button){font-family:'FTI Orbit
 html[lang=en] .hero h1{font-size:clamp(32px,3.9vw,56px)}html[lang=en] h2{font-size:clamp(27px,3.2vw,44px)}html[lang=en] h3{font-size:21px}
 .fti-header-mark{border-radius:50%;background:#050908;flex:none}.header .brand{font-family:'FTI Orbitron',sans-serif;font-size:24px}
 @media(max-width:900px){html[lang=en] .hero h1{font-size:clamp(27px,6.8vw,40px)}.header .brand{font-size:22px}.header .fti-header-mark{width:44px;height:44px}}
+
+/* Live brand projection: original supplied mark, CSS glass and orbital geometry. */
+.hero-hud{overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#184d3266,transparent 54%),#050908;perspective:850px}
+.hud-grid{position:absolute;inset:45% -30% -65%;background-image:linear-gradient(#77efac15 1px,transparent 1px),linear-gradient(90deg,#77efac15 1px,transparent 1px);background-size:40px 40px;transform:rotateX(65deg);mask-image:radial-gradient(ellipse,#000,transparent 65%)}
+.hud-emblem{position:absolute;inset:0;display:grid;place-items:center;transform:translateY(-5%)}
+.hud-emblem>.fti-hologram{width:48%!important;height:auto!important;aspect-ratio:1;box-shadow:inset 0 0 45px #7dfbb325,0 0 80px #5bee9830;background:radial-gradient(circle at 30% 20%,#9effbd22,#03180c70);border-color:#9effbd66}
+.hud-emblem .fti-header-mark{animation-duration:28s;filter:drop-shadow(0 0 12px #78ffab66)}
+.hud-ring{position:absolute;left:15%;top:15%;width:70%;height:70%;border:1px solid #b5ffbb80;border-radius:50%;box-shadow:0 0 12px #8affab22,inset 0 0 12px #8affab11;transform:rotateX(65deg) rotateZ(-28deg);animation:hud-orbit 24s linear infinite}
+.hud-ring::after{content:'';position:absolute;left:14%;top:14%;width:6px;height:6px;background:#d4ffa0;border-radius:50%;box-shadow:0 0 16px #b4ffb1}
+.hud-ring.ring-b{transform:rotateY(64deg) rotateZ(32deg);animation-name:hud-orbit-b;animation-duration:32s;border-color:#7bf8b042}
+.hud-ring.ring-c{left:8%;top:8%;width:84%;height:84%;border-style:dashed;opacity:.22;animation:none;transform:rotateX(28deg) rotateY(-25deg)}
+.hud-beam{position:absolute;inset:0;background:conic-gradient(from 155deg at 70% -20%,transparent,#aaffbc15 12deg,transparent 28deg);pointer-events:none}
+.hud-platform{position:absolute;left:22%;bottom:9%;width:56%;height:8%;border:1px solid #a3ffc555;border-radius:50%;background:radial-gradient(ellipse,#9bffc32b,transparent 65%);box-shadow:0 0 30px #77ffb01a}
+.hud-caption{position:absolute;bottom:4%;width:100%;text-align:center;font:10px 'FTI Orbitron',sans-serif;letter-spacing:4px;color:#b5e9c4}
+.token-face>.fti-hologram{margin:auto;width:65%!important;height:auto!important;aspect-ratio:1}.token-face .fti-header-mark{animation:none}
+.sculpture.paused .hero-hud *,.sculpture.paused .fti-header-mark{animation-play-state:paused!important}
+@keyframes hud-orbit{from{transform:rotateX(65deg) rotateZ(-28deg)}to{transform:rotateX(65deg) rotateZ(332deg)}}
+@keyframes hud-orbit-b{from{transform:rotateY(64deg) rotateZ(32deg)}to{transform:rotateY(64deg) rotateZ(392deg)}}
+@media(prefers-reduced-motion:reduce){.hero-hud *{animation:none!important}}
