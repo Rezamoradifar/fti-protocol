@@ -28,10 +28,14 @@ test('generic planner refuses owner/development role membership and overlap',()=
  const input=sample();delete input.walletProfile;input.owner=input.development;
  assert.throws(()=>validateMainnetInput(input),/remain distinct/);
 });
-test('shipped profile pins selected USDT and pins approved council and leaves unprovided deployer incomplete',()=>{
+test('shipped profile validates the supplied deployer, approved council, roles and USDT',()=>{
  const input=JSON.parse(fs.readFileSync('config/mainnet-approved-input.REQUIRED.json'));
  assert.equal(assertApprovedMainnetProfile(input),input);
- assert.throws(()=>validateMainnetInput(input),/Invalid public address/);
+ const checked=validateMainnetInput(input);
+ assert.equal(checked.deployer,'0x8F18Ba93C3792037A7eb59485Ad79726615419a0');
+ assert(![checked.owner,checked.development,...checked.partners,...checked.genesis].some(a=>a.toLowerCase()===checked.deployer.toLowerCase()));
+ assert.deepEqual(createApprovedMainnetInput({deployer:checked.deployer}),checked);
+ for(const deployer of ['REQUIRED_PUBLIC_DEPLOYER_ADDRESS','0x'+'0'.repeat(40)])assert.throws(()=>validateMainnetInput({...input,deployer}));
  assert.deepEqual(input.partners,selectedMainnetCouncil().partners);
  assert.equal(input.usd,'0x55d398326f99059fF775485246999027B3197955');
  assert.match(input.usdCodeHash,/^0x[a-f0-9]{64}$/);
