@@ -9,6 +9,7 @@ import {t,language,displayNumber,displayUTC,withLanguage} from './locale.js';
 import {readBuilderMode,builderMonthState,autoPercent} from './builder-view.js';
 import {chooseWallet,requestWalletAccounts} from './wallet-selector.js';
 import {JsonRpcProvider,BrowserProvider,Contract,parseEther,formatEther,ZeroAddress,ZeroHash,randomBytes,hexlify,isAddress} from '/vendor/ethers.js';
+import {disconnectSession} from './wallet-session.js';
 import {siteLinks} from './site-links.js';
 const sites=siteLinks(location.href);
 import {surface,surfacePages,defaultPage,pagePath} from './surfaces.js';
@@ -90,6 +91,7 @@ function syncActions(){
  if(!notice){notice=document.createElement('p');notice.id='membership-availability';notice.setAttribute('role','status');$('#register-form').prepend(notice);$('#register-button').setAttribute('aria-describedby',notice.id);}
  notice.hidden=!blocked;notice.textContent=t(blocked);
  $('#language-select').disabled=busy||connecting;$('#connect').disabled=busy||connecting;$('#local-accounts').disabled=busy||connecting;
+ $('#disconnect').hidden=!address;$('#disconnect').disabled=busy||connecting;
  $('#copy-address').disabled=!address;$('#copy-referral').disabled=!w?.exists;
  $('#max-sell').disabled=busy||!enabled.unlocked;
  $('#locks-prev').disabled=busy||lockOffset===0;$('#locks-next').disabled=busy||lockOffset+64>=Number(w?.lockCount||0);
@@ -138,7 +140,7 @@ async function approve(spender,amount){
  const current=await read.usd.allowance(address,spender);
  if(current<amount){status(networkProfile.testAssets?'Approve test USD spending in your wallet.':'Approve collateral spending in your wallet.');if(current>0n)await send(()=>write('usd').approve(spender,0));await send(()=>write('usd').approve(spender,amount));}
 }
-let walletProvider,providerListeners;
+let walletProvider,providerListeners,selectedWallet;
 function clearWallet(){$('#unknown-send-form').hidden=true;signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
 function detachWallet(){if(providerListeners){walletProvider?.removeListener?.('accountsChanged',providerListeners.accounts);walletProvider?.removeListener?.('chainChanged',providerListeners.chain);walletProvider?.removeListener?.('disconnect',providerListeners.disconnect);}providerListeners=null;walletProvider=null;}
 function observeWallet(provider){
@@ -158,12 +160,21 @@ async function connect({silent=false}={}){
    const accounts=await requestWalletAccounts(selected,silent);if(!accounts.length)return;
    const chain=Number(await injected.request({method:'eth_chainId'}));
    if(chain!==cfg.chainId){if(silent)throw Error('Switch your wallet to '+networkProfile.name+' and connect again.');try{await injected.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]});}catch{throw Error('Switch your wallet to '+networkProfile.name+' (chain ID '+cfg.chainId+'), then connect again.');}}
-   const provider=new BrowserProvider(injected);if(Number((await provider.getNetwork()).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');nextSigner=await provider.getSigner();observeWallet(injected);
+   const provider=new BrowserProvider(injected);if(Number((await provider.getNetwork()).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');nextSigner=await provider.getSigner();observeWallet(injected);selectedWallet=selected;
   }
   const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}await refresh();status('Wallet connected. Contract data loaded.');
  }catch(error){status(reason(error),true);}finally{connecting=false;syncActions();}
 }
 $('#connect').onclick=()=>connect();
+$('#disconnect').onclick=async()=>{
+ if(busy||connecting)return;
+ connecting=true;const selected=selectedWallet;selectedWallet=null;
+ detachWallet();clearWallet();
+ let storage;try{storage=sessionStorage;}catch{}
+ const remoteClosed=await disconnectSession(selected,storage);
+ connecting=false;syncActions();
+ status(remoteClosed?'Wallet disconnected.':'Disconnected from this site. Close the WalletConnect session in your wallet.',!remoteClosed);
+};
 
 
 if(cfg.mode==='local'){

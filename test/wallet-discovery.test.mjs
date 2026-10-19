@@ -19,10 +19,11 @@ test('rejects malformed announcements and preserves legacy provider fallback',()
  const registry=discoverWallets(target);announce(target,{});announce(target,provider(),null);
  assert.equal(registry.list().length,1);assert.equal(registry.list()[0].provider,legacy);
 });
-test('uses announced wallets before window.ethereum to avoid extension collisions',()=>{
+test('keeps both announced and legacy wallets available without duplicates',()=>{
  const target=new EventTarget(),legacy=provider(),selected=provider();target.ethereum=legacy;
  const registry=discoverWallets(target);announce(target,selected);
- assert.equal(registry.list()[0].provider,selected);assert.equal(registry.list().length,1);
+ assert.equal(registry.list()[0].provider,selected);assert.equal(registry.list().length,2);
+ announce(target,legacy,'Legacy','com.legacy');assert.equal(registry.list().length,2);
 });
 test('WalletConnect starts pairing through enable and silent reconnect never opens pairing',async()=>{
  let pairing=0,method;

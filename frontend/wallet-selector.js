@@ -12,9 +12,8 @@ export function discoverWallets(target=window,onChange=()=>{}) {
  const request=()=>target.dispatchEvent(new Event('eip6963:requestProvider'));
  request();
  return {request,list(){
-  if(wallets.length)return [...wallets];
   const providers=target.ethereum?.providers||[target.ethereum];
-  return [...new Set(providers)].filter(p=>typeof p?.request==='function').map((provider,i)=>({provider,id:'legacy-'+i,name:provider.isTrust?'Trust Wallet':provider.isCoinbaseWallet?'Coinbase Wallet':provider.isMetaMask?'MetaMask':t('Browser wallet','ولت مرورگر')+' '+(i+1)}));
+  return [...wallets,...[...new Set(providers)].filter(p=>typeof p?.request==='function'&&!wallets.some(w=>w.provider===p)).map((provider,i)=>({provider,id:'legacy-'+i,name:provider.isTrust?'Trust Wallet':provider.isCoinbaseWallet?'Coinbase Wallet':provider.isMetaMask?'MetaMask':t('Browser wallet','ولت مرورگر')+' '+(i+1)}))];
  }};
 }
 
@@ -46,7 +45,7 @@ export function chooseWallet({silent=false,projectId,chainId}={}) {
    if(!wallets.length){const empty=document.createElement('p');empty.textContent=t('No wallet detected. Install a wallet extension or use your wallet’s browser, then retry.','ولتی شناسایی نشد. افزونه ولت را نصب کنید یا از مرورگر داخل ولت استفاده کنید و دوباره تلاش کنید.');list.append(empty);}
   };
   const mobile=document.createElement('button');mobile.type='button';mobile.className='primary';mobile.textContent=t('WalletConnect · QR / mobile','WalletConnect · QR / موبایل');mobile.disabled=!configured;
-  mobile.onclick=async()=>{mobile.disabled=true;try{const selected=await wc();try{sessionStorage.setItem('fti-selected-wallet',selected.id);}catch{}finish(selected);}catch(error){info.textContent=t('WalletConnect could not start. Try again.','اتصال WalletConnect شروع نشد؛ دوباره تلاش کنید.')+' '+(error.shortMessage||error.message);mobile.disabled=false;}};
+  mobile.onclick=async()=>{mobile.disabled=true;try{const selected=await wc();if(finished)return;try{sessionStorage.setItem('fti-selected-wallet',selected.id);}catch{}finish(selected);}catch(error){info.textContent=t('WalletConnect could not start. Try again.','اتصال WalletConnect شروع نشد؛ دوباره تلاش کنید.')+' '+(error.shortMessage||error.message);mobile.disabled=false;}};
   dialog.append(title,info,list,mobile,close);document.body.append(dialog);render();dialog.showModal();
  });return pending;
 }

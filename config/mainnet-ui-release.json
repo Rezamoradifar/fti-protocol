@@ -5,7 +5,7 @@
     "frontend/panel-identity.css": "b8f15edaa3315337ed10a8c425dad58df5bf6e99eac0615d377a3d8c8c449838",
     "scripts/build-web.mjs": "5c4344e6e9940f5da10bd59fafbe468600dea334081a9124c2905f6d1a60efcb",
     "web/index.html": "3cc73698ba82bbc1fd249fc2b87d168d3017561ec82f002a01ba490d4b2ffcd7",
-    "web/app.js": "2660c7ee98c399c99aae72aeab8a85423076f5f5639e3630cd2c2e772bab4157",
+    "web/app.js": "3e77250b204801a391f9437163a4625f59bc0c4a5c476f2361db99c26473abff",
     "web/app.js.LEGAL.txt": "573cc95a6417c69a6ca44804f440f00965283c8cdcc50025305a7a50f53940ac",
     "web/style.css": "373a39681dd415c339a117034c7d5d5d9fc976b28730b1967e25dd4afb117190",
     "web/member-landing-theme.css": "4a66ac54bbbd1282c61536ec6889f07047bdaeda1a54b6b431910da9b31d0198",
@@ -15,8 +15,8 @@
     "landing/package-lock.json": "6c0505095c6022ab77230577aa4f0d4881c36b65db823b553187ad1e53a7383b",
     "web/fonts/vazirmatn-arabic-wght-normal-GZN7WEUV.woff2": "84a382e46c30fb4f73d0e3800c16d0af15888e2731e57fa5f93e2c29a2c6a957",
     "web/fonts/manrope-latin-wght-normal-73PUZEUA.woff2": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972",
-    "frontend/main.jsx": "3ec6401b26ae8bb1a5115a696f61c4f4b8fb609f0c4d37d9a2a23358cd600a56",
-    "frontend/controller.js": "c22782d05bac93dfbba9566bb968443469fc9446c558dcc22fd9fb0481567f83",
+    "frontend/main.jsx": "de61888af09ca49bad60920f47fcf6b199336d3dc11c5c4a680332fcdd5fc8f9",
+    "frontend/controller.js": "a50e7fe21e987758346569acced5cb7203e34ebb516c04a167dfdb6cc9a55404",
     "frontend/header-mark.jsx": "3441f4ba0855a18b6d31e6a845819cf79d7629db064ee6a82f47c373586528a9",
     "landing/package.json": "c8245ec16e7d443a66edf237aa13dbcdee6a9dd21047d06a320d6e041501e249",
     "web/fonts/orbitron-latin-600-normal-CEBIPJEJ.woff2": "585062e775d70397653192777533f65f3afb707320fcc2a4bc510470e03762e6",
@@ -132,6 +132,9 @@
     "scripts/audit-installed.mjs": "2de5da5ab0dd6ec7db24c6ba10f18c94ae293b3a7d1b5143a6cf1b05aa3c39e9",
     "web/vendor/ethers.js": "b016b0c3898c78fd8156466eb1ff1f42c9df951c2f0d64c9bdf799fe745b0a6c",
     "web/vendor/walletconnect.js": "7db67e1a3c4f79ce9067b6f858be663b9ac8a482ac5c8c09ad49ef374b78278a",
-    "web/vendor/walletconnect.js.LEGAL.txt": "0df4d6aadb8d044c2c292fedf68aeb66b6506cf1bce5dee0ccb35e7193dcf0d1"
+    "web/vendor/walletconnect.js.LEGAL.txt": "0df4d6aadb8d044c2c292fedf68aeb66b6506cf1bce5dee0ccb35e7193dcf0d1",
+    "frontend/wallet-selector.js": "bf679cf48b38c52593392db189dae1f8b3dee76983fcd65ab37a28e33e5a8dac",
+    "frontend/wallet-session.js": "ba859ce236db509c975c0d3d50473d2ad508dd6dee574bd117a97161b6168f5d",
+    "frontend/core-translations.js": "fb2eb87d2a8833dcc9c5994bdd26fffa85fe7d75b1ed360878b91f9fa4c41e00"
   }
 }
