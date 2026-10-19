@@ -534,7 +534,13 @@ export const completeTranslations = {
     "CONNECTED BY DESIGN": "مترابط بالتصميم",
     "MEMBERSHIP / TOKEN / DAO": "العضوية / الرمز / DAO",
     "FTI / DIGITAL ARCHITECTURE": "FTI / البنية الرقمية",
-    "FTI / CONSOLE": "FTI / لوحة التحكم"
+    "FTI / CONSOLE": "FTI / لوحة التحكم",
+    "Transaction confirmation is pending. Check wallet activity before retrying.": "تأكيد المعاملة قيد الانتظار. تحقق من نشاط المحفظة قبل المحاولة مجدداً.",
+    "Previous transaction confirmed. Refresh and review your balances before another request.": "تم تأكيد المعاملة السابقة. حدّث الأرصدة وراجعها قبل طلب آخر.",
+    "Transaction confirmed on-chain. Balance refresh failed; refresh the page before another request.": "تم تأكيد المعاملة على الشبكة، لكن تحديث الرصيد فشل. حدّث الصفحة قبل طلب آخر.",
+    "Transaction reverted on-chain.": "فشلت المعاملة على الشبكة.",
+    "Transaction cancelled or replaced. Review wallet activity before continuing.": "أُلغيت المعاملة أو استُبدلت. راجع نشاط المحفظة قبل المتابعة.",
+    "Membership changed. Refresh and review before trying again.": "تغيرت حالة العضوية. حدّث البيانات وراجعها قبل المحاولة مجدداً."
   },
   "tr": {
     "Journey": "Yolculuk",
@@ -1071,7 +1077,13 @@ export const completeTranslations = {
     "CONNECTED BY DESIGN": "TASARIMIYLA BAĞLI",
     "MEMBERSHIP / TOKEN / DAO": "ÜYELİK / TOKEN / DAO",
     "FTI / DIGITAL ARCHITECTURE": "FTI / DİJİTAL MİMARİ",
-    "FTI / CONSOLE": "FTI / KONSOL"
+    "FTI / CONSOLE": "FTI / KONSOL",
+    "Transaction confirmation is pending. Check wallet activity before retrying.": "İşlem onayı bekleniyor. Tekrar denemeden önce cüzdan etkinliğini kontrol edin.",
+    "Previous transaction confirmed. Refresh and review your balances before another request.": "Önceki işlem onaylandı. Yeni bir istekten önce bakiyeleri yenileyip inceleyin.",
+    "Transaction confirmed on-chain. Balance refresh failed; refresh the page before another request.": "İşlem zincirde onaylandı. Bakiye yenilenemedi; yeni bir istekten önce sayfayı yenileyin.",
+    "Transaction reverted on-chain.": "İşlem zincirde geri alındı.",
+    "Transaction cancelled or replaced. Review wallet activity before continuing.": "İşlem iptal edildi veya değiştirildi. Devam etmeden önce cüzdan etkinliğini inceleyin.",
+    "Membership changed. Refresh and review before trying again.": "Üyelik durumu değişti. Tekrar denemeden önce bilgileri yenileyip inceleyin."
   },
   "zh-CN": {
     "Journey": "旅程",
@@ -1608,6 +1620,20 @@ export const completeTranslations = {
     "CONNECTED BY DESIGN": "为互联而设计",
     "MEMBERSHIP / TOKEN / DAO": "会员 / 代币 / DAO",
     "FTI / DIGITAL ARCHITECTURE": "FTI / 数字架构",
-    "FTI / CONSOLE": "FTI / 控制台"
+    "FTI / CONSOLE": "FTI / 控制台",
+    "Transaction confirmation is pending. Check wallet activity before retrying.": "交易确认仍在等待中。重试前请检查钱包活动。",
+    "Previous transaction confirmed. Refresh and review your balances before another request.": "上一笔交易已确认。再次请求前请刷新并检查余额。",
+    "Transaction confirmed on-chain. Balance refresh failed; refresh the page before another request.": "交易已在链上确认，但余额刷新失败。再次请求前请刷新页面。",
+    "Transaction reverted on-chain.": "交易在链上执行失败。",
+    "Transaction cancelled or replaced. Review wallet activity before continuing.": "交易已取消或替换。继续前请检查钱包活动。",
+    "Membership changed. Refresh and review before trying again.": "会员状态已更改。重试前请刷新并检查。"
+  },
+  "fa": {
+    "Transaction confirmation is pending. Check wallet activity before retrying.": "تأیید تراکنش هنوز مشخص نیست. پیش از تلاش دوباره، فعالیت ولت را بررسی کنید.",
+    "Previous transaction confirmed. Refresh and review your balances before another request.": "تراکنش قبلی تأیید شد. پیش از درخواست جدید، صفحه را تازه و موجودی‌ها را بررسی کنید.",
+    "Transaction confirmed on-chain. Balance refresh failed; refresh the page before another request.": "تراکنش روی شبکه تأیید شد؛ تازه‌سازی موجودی ناموفق بود. پیش از درخواست جدید، صفحه را تازه کنید.",
+    "Transaction reverted on-chain.": "تراکنش روی شبکه ناموفق شد.",
+    "Transaction cancelled or replaced. Review wallet activity before continuing.": "تراکنش لغو یا جایگزین شد. پیش از ادامه، فعالیت ولت را بررسی کنید.",
+    "Membership changed. Refresh and review before trying again.": "وضعیت عضویت تغییر کرده است. پیش از تلاش دوباره، اطلاعات را تازه و بررسی کنید."
   }
 };

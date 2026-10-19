@@ -5,7 +5,7 @@
     "frontend/panel-identity.css": "b8f15edaa3315337ed10a8c425dad58df5bf6e99eac0615d377a3d8c8c449838",
     "scripts/build-web.mjs": "45c835565eb1de1415d259a1fcc762f0023c62985cfbbb7e6a058ebf0975c871",
     "web/index.html": "3cc73698ba82bbc1fd249fc2b87d168d3017561ec82f002a01ba490d4b2ffcd7",
-    "web/app.js": "a1f08bc760a9de077ef78a0d75b6478e8e5c4adc0d80e182bea044a2bed4b172",
+    "web/app.js": "91c1d088c3ef3b977921fc80fa0e0a174344df1ceec78fba6f895b107fae0e7c",
     "web/app.js.LEGAL.txt": "573cc95a6417c69a6ca44804f440f00965283c8cdcc50025305a7a50f53940ac",
     "web/style.css": "373a39681dd415c339a117034c7d5d5d9fc976b28730b1967e25dd4afb117190",
     "web/member-landing-theme.css": "4a66ac54bbbd1282c61536ec6889f07047bdaeda1a54b6b431910da9b31d0198",
@@ -16,13 +16,13 @@
     "web/fonts/vazirmatn-arabic-wght-normal-GZN7WEUV.woff2": "84a382e46c30fb4f73d0e3800c16d0af15888e2731e57fa5f93e2c29a2c6a957",
     "web/fonts/manrope-latin-wght-normal-73PUZEUA.woff2": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972",
     "frontend/main.jsx": "69c7902a49111efb602664409afea7646c46823746486a202810a46696f787f9",
-    "frontend/controller.js": "2abf581ca5a3785e33e4814f5e31e119b03b5345bf2816712bce7a26cad66f80",
+    "frontend/controller.js": "687d3362c6b373377378abe67b25ded356d08ee2183ec9f71b857d5778d45790",
     "frontend/header-mark.jsx": "3441f4ba0855a18b6d31e6a845819cf79d7629db064ee6a82f47c373586528a9",
     "landing/package.json": "c8245ec16e7d443a66edf237aa13dbcdee6a9dd21047d06a320d6e041501e249",
     "web/fonts/orbitron-latin-600-normal-CEBIPJEJ.woff2": "585062e775d70397653192777533f65f3afb707320fcc2a4bc510470e03762e6",
     "frontend/hologram.css": "694d9f658c8bbd6a9363ef381108f33407072bf550886abbda3ba569d208ed4a",
     "frontend/membership-availability.js": "d47512a62ec30145dbf8564762ce9f0d6908403836be5f1d685e2367e13f3b4c",
-    "frontend/complete-translations.js": "6393517a8a4b689df6279729124205ec8d6c14aae1417f80c01ccba7cbb12590",
+    "frontend/complete-translations.js": "20eb7e7a85c0264316155a932b9a8c87838350229455d693fda204cb51e25b71",
     "frontend/locale.js": "7ed55c5db124c57b5a177995864c1b8b5f2e46a5e90103809b4850aaab5edd01",
     "frontend/global-components.jsx": "f2fc3e4cbf8296c31575723f7c429ab0e60a06c9043d5232c39e060cba41bfaf",
     "frontend/language-policy.js": "0b555f0e056ad62ce8e50d5018a92d8c22eae8f8814553bb9275bb73f8cf63fa",
@@ -126,6 +126,7 @@
     "web/fonts/noto-sans-sc-61-wght-normal-FOBMM34K.woff2": "21c21d2375925f742573edc50e3bca85a63350bf1d5d566d2d762f8ce2b259d9",
     "web/fonts/noto-sans-sc-119-wght-normal-TF6XL32I.woff2": "09b9fa5a9521fbeccb8267a5abe7443c83cbe25b32eb15b00de316d913235525",
     "web/fonts/noto-sans-sc-35-wght-normal-A3SBVNOQ.woff2": "68413e3f3e5b912efd25702281aae9acb37c9920bb7bb941404506ab520add49",
-    "web/fonts/noto-sans-sc-30-wght-normal-GOZBFLN3.woff2": "12acd771479c93c76f064a81447266c349d6a33d2f1893d5413c6303b1156fef"
+    "web/fonts/noto-sans-sc-30-wght-normal-GOZBFLN3.woff2": "12acd771479c93c76f064a81447266c349d6a33d2f1893d5413c6303b1156fef",
+    "frontend/transaction-state.js": "58ba265dbf01d0b1c2f9e3d0095f3d6c6dba713786ac43f3336be1e09c6d663a"
   }
 }
