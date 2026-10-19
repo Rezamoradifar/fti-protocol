@@ -78,3 +78,36 @@ body[data-surface] .wallet-dialog>button{margin-top:8px}
  body[data-surface] .workspace-header{margin-bottom:20px}
  body[data-surface] .wallet-dialog{padding:20px}
 }
+
+/* Shared page rhythm and intrinsic form sizing across all workspaces. */
+body[data-surface] :is(.panel-head,.section-heading){flex-wrap:wrap;align-items:flex-start;gap:12px}
+body[data-surface] :is(.panel-head,.section-heading)>h2{margin-bottom:0}
+body[data-surface] .page-intro{margin-block:24px}
+body[data-surface] .page-intro p{max-width:70ch;line-height:1.9}
+body[data-surface] :is(.panel,.rank-card) form{min-width:0}
+body[data-surface] form label{min-width:0;line-height:1.8}
+body[data-surface] form :is(input,select,textarea){width:100%;max-width:100%;min-width:0}
+body[data-surface] :is(.actions,.inline){gap:10px;align-items:center}
+body[data-surface] .candle-toolbar{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+body[data-surface] .candle-toolbar button{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;min-height:44px;flex:1 1 120px}
+body[data-surface] .fti-social nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+body[data-surface] .fti-social nav a{min-width:0;overflow-wrap:anywhere;justify-content:space-between}
+body[data-surface] main>footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding-block:24px;line-height:1.8}
+body[data-surface] main>footer a{display:inline-flex;align-items:center;min-height:44px}
+@media(max-width:600px){
+ body[data-surface] .candle-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ body[data-surface] .candle-toolbar button{padding:10px 6px;font-size:11px}
+ body[data-surface] .panel .actions{display:flex;flex-wrap:wrap}
+ body[data-surface] .panel .actions>button{flex:1 1 140px;white-space:normal}
+ body[data-surface] .fti-social nav{grid-template-columns:minmax(0,1fr)}
+ body[data-surface] main>footer{flex-direction:column;align-items:stretch;text-align:center}
+ body[data-surface] main>footer>div{justify-content:center;gap:16px}
+ body[data-surface] .page-intro{margin-block:20px}
+}
+body[data-surface] .priority-actions :is(a,button){background:var(--panel2)!important;color:var(--text)!important;border:1px solid var(--line)}
+@media(max-width:900px){
+ body[data-surface=token] .sidebar nav{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));width:100%!important;gap:8px;padding:0!important}
+ body[data-surface=token] .sidebar nav button{width:100%;min-width:0;white-space:normal}
+ body[data-surface=admin] .sidebar nav{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body[data-surface] .market-chart{height:auto!important;min-height:180px!important;max-height:260px!important;aspect-ratio:780/400}
+}

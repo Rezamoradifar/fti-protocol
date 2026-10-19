@@ -71,3 +71,18 @@ h1,h2,h3,p,a,summary{overflow-wrap:break-word}
 }
 @media(max-width:360px){.header .brand{font-size:22px;gap:8px}.header .brand-sub{font-size:7px;letter-spacing:2px}.header .nav-tools{gap:0}.header .mark{width:34px;height:34px}.hero .sculpture{height:265px}.experience-index{grid-template-columns:minmax(0,1fr)}.experience-index a{min-height:48px}.pillars-grid>div{padding-inline:5px}.pillars small{font-size:10px}.pillars strong{font-size:15px}}
 @media(max-height:500px) and (orientation:landscape){.hero .sculpture{height:240px}.hero .token-axis{top:10%}.header .navigation{max-height:65vh;max-height:65dvh}}
+
+/* Consistent reading rhythm without changing orbital artwork or section order. */
+.section-heading h2,.section-heading p{min-width:0}
+.feature-card{display:flex;flex-direction:column}
+.feature-card .card-link{margin-top:auto;padding-top:16px;min-height:44px}
+.footer-top>div>a:not(.brand){display:flex;align-items:center;min-height:44px}
+.footer-bottom{gap:16px;flex-wrap:wrap}
+@media(max-width:600px){
+ .section-heading h2{line-height:1.45}
+ .questions summary{padding-block:16px}
+ .footer-top{gap:24px}
+ .footer-bottom{padding-block:20px}
+ .resource-section .actions{display:flex;flex-wrap:wrap;gap:10px}
+ .resource-section .actions a{flex:1 1 160px;justify-content:center;text-align:center;min-height:48px}
+}
