@@ -2,7 +2,7 @@
   "schema": "FTI_MAINNET_UI_OVERLAY_V2",
   "files": {
     "frontend/brand.jsx": "30a17120796065355502307a7b29f637caeea6a45e87feed1c09332986d7857e",
-    "frontend/panel-identity.css": "b8f15edaa3315337ed10a8c425dad58df5bf6e99eac0615d377a3d8c8c449838",
+    "frontend/panel-identity.css": "87e710a5b5c97e212af1bf3de2facfc0ee3eed96d3c7c6b170b96a7d99af1169",
     "scripts/build-web.mjs": "5c4344e6e9940f5da10bd59fafbe468600dea334081a9124c2905f6d1a60efcb",
     "web/index.html": "3cc73698ba82bbc1fd249fc2b87d168d3017561ec82f002a01ba490d4b2ffcd7",
     "web/app.js": "3e77250b204801a391f9437163a4625f59bc0c4a5c476f2361db99c26473abff",
@@ -10,7 +10,7 @@
     "web/style.css": "373a39681dd415c339a117034c7d5d5d9fc976b28730b1967e25dd4afb117190",
     "web/member-landing-theme.css": "4a66ac54bbbd1282c61536ec6889f07047bdaeda1a54b6b431910da9b31d0198",
     "web/global-interface.css": "08c083262991d5387882b6d86b1930e69b5a7a3e67a998191017625caae2516b",
-    "web/panel-identity.css": "68b015582a8b18e97b57868c3a1d8d06ef8354b52bdb46916e731cfabcec9249",
+    "web/panel-identity.css": "dd990a9c8d990ce4d9df27aa458edbe82601a0628a7ba5b42dda12314d747c6e",
     "package-lock.json": "551f9ed0be01cb4efee84c0c9f63ce63738ed00d0483e47ff2f5787a6f9e54b9",
     "landing/package-lock.json": "6c0505095c6022ab77230577aa4f0d4881c36b65db823b553187ad1e53a7383b",
     "web/fonts/vazirmatn-arabic-wght-normal-GZN7WEUV.woff2": "84a382e46c30fb4f73d0e3800c16d0af15888e2731e57fa5f93e2c29a2c6a957",

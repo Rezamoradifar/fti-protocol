@@ -58,3 +58,23 @@ body[data-surface] .fti-header-mark{border-radius:50%;background:#050908;flex:no
 @media(max-width:900px){body[data-surface] .sidebar .brand{font-size:22px}html:not([dir=rtl]) body[data-surface] .sidebar nav button{font-size:10px}}
 
 html[lang=zh-CN] body[data-surface]{--member-font:'Noto Sans SC Variable',sans-serif;--member-heading:var(--member-font)}
+
+/* Keep wallet actions aligned in both reading directions and connection states. */
+body[data-surface] .workspace-header{gap:20px;flex-wrap:wrap}
+body[data-surface] .workspace-header>div:first-child{min-width:0}
+body[data-surface] .connection{flex-wrap:wrap;justify-content:flex-end;gap:8px;max-width:100%}
+body[data-surface] .connection :is(#connect,#disconnect){min-height:44px;white-space:normal;overflow-wrap:anywhere;padding-inline:16px}
+body[data-surface] #connect-label{unicode-bidi:plaintext}
+body[data-surface] #disconnect{border-color:var(--line);background:var(--panel2);color:var(--text)}
+body[data-surface] .wallet-dialog{width:min(440px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto;padding:24px;border:1px solid var(--line);border-radius:20px;box-sizing:border-box}
+body[data-surface] .wallet-dialog h2{margin:0 0 12px;line-height:1.5}
+body[data-surface] .wallet-dialog p{overflow-wrap:anywhere;line-height:1.8}
+body[data-surface] .wallet-options{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-block:16px}
+body[data-surface] .wallet-dialog button{width:100%;min-height:48px;white-space:normal;overflow-wrap:anywhere}
+body[data-surface] .wallet-dialog>button{margin-top:8px}
+@media(max-width:900px){
+ body[data-surface] .connection #disconnect{grid-column:1/-1;width:100%;min-height:44px}
+ body[data-surface] .connection #local-accounts{grid-column:1/-1;width:100%;max-width:none}
+ body[data-surface] .workspace-header{margin-bottom:20px}
+ body[data-surface] .wallet-dialog{padding:20px}
+}
