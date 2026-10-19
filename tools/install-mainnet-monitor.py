@@ -1,10 +1,24 @@
 #!/usr/bin/env python3
 """Install an isolated read-only timer. Never restarts web or Keeper."""
-import argparse,fcntl,hashlib,json,os,shutil,subprocess,tempfile
+import argparse,fcntl,hashlib,json,os,pwd,shutil,subprocess,tempfile
 from pathlib import Path
 NAMES=['fti-health-monitor.service','fti-health-monitor.timer']
 MARK='# FTI_READ_ONLY_MONITOR_V1\n'
+MONITOR_USER='fti-health-check'
+MONITOR_COMMENT='FTI read-only health monitor'
 def run(*args):return subprocess.run(args,check=True,text=True,capture_output=True).stdout.strip()
+def ensure_monitor_user():
+ try:account=pwd.getpwnam(MONITOR_USER)
+ except KeyError:
+  run('useradd','--system','--user-group','--no-create-home','--home-dir','/nonexistent','--shell','/usr/sbin/nologin','--comment',MONITOR_COMMENT,MONITOR_USER)
+  account=pwd.getpwnam(MONITOR_USER)
+ if account.pw_uid==0 or account.pw_gid==0 or account.pw_shell!='/usr/sbin/nologin' or account.pw_dir!='/nonexistent' or account.pw_gecos!=MONITOR_COMMENT:
+  raise RuntimeError('Existing monitor account does not match managed service identity')
+ # No credentials, group privileges, policy exceptions or restart rights are granted.
+ state=run('runuser','-u',MONITOR_USER,'--','systemctl','--system','show','fti-continuity-keeper.service','--property=ActiveState','--value')
+ if state not in {'active','inactive','failed','activating','deactivating','reloading','maintenance','refreshing'}:
+  raise RuntimeError('Monitor cannot read Keeper state; no unit changed')
+ print('FTI_MONITOR_SERVICE_QUERY_PREFLIGHT='+state,flush=True)
 def units(script):
  return {NAMES[0]:MARK+f'''[Unit]
 Description=FTI read-only mainnet health monitor
@@ -12,6 +26,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/python3 {script}
+User={MONITOR_USER}
 DynamicUser=yes
 StateDirectory=fti-monitor
 StateDirectoryMode=0700
@@ -55,6 +70,7 @@ def install():
   text=p.read_text() if p.exists() else None
   if text is not None and not text.startswith(MARK):raise RuntimeError('Unmanaged monitor unit exists')
   before[name]=text
+ ensure_monitor_user()
  source=Path(__file__).with_name('mainnet-monitor.py');data=source.read_bytes();release=Path('/opt/fti-monitor')/hashlib.sha256(data).hexdigest()[:16];release.mkdir(parents=True,exist_ok=True)
  if release.is_symlink() or release.parent.is_symlink():raise RuntimeError('Refusing symlink release')
  release.parent.chmod(0o755);release.chmod(0o755)
