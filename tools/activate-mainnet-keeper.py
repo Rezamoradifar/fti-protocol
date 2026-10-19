@@ -11,6 +11,7 @@ import shlex
 import tempfile
 import subprocess
 import urllib.error
+import urllib.parse
 import time
 
 HERE = Path(__file__).resolve().parent
@@ -77,7 +78,12 @@ def restore(backup):
     h.run(['systemctl', 'start', UNIT])
     print('FTI_PREVIOUS_KEEPER_RESTORED; confirmed transactions are not reversed')
 
-def activate(enabled):
+def validate_rpc(url):
+    parsed=urllib.parse.urlsplit(url)
+    h.require(parsed.scheme=='https' and bool(parsed.hostname) and not parsed.username and not parsed.password and not parsed.fragment and not any(ord(c)<33 for c in url), 'RPC override must be an HTTPS URL without userinfo or fragment')
+    return url
+
+def activate(enabled, rpc_override=None):
     stage('capture_web_service')
     web = h.capture('web')
     stage('capture_existing_keeper')
@@ -91,6 +97,8 @@ def activate(enabled):
     release = Path(web['properties']['WorkingDirectory'])
     h.require(release.parent == Path('/opt/fti/releases') and release.resolve() == release, 'Unexpected release')
     env = {k: web['env'][k] for k in ('RPC_URL','DEPLOYMENT_FILE','FTI_SOURCE_REVISION','PATH')}
+    if rpc_override:
+        env['RPC_URL']=validate_rpc(rpc_override)
     env.update(KEEPER_PRIVATE_KEY=old['env']['KEEPER_PRIVATE_KEY'],KEEPER_INTERVAL_MS='5000',LANG='C.UTF-8',NODE_ENV='production')
     account = pwd.getpwnam('fti-v3')
     stage('verify_onchain_deployment_and_gas')
@@ -149,11 +157,12 @@ def deposit_window_open(state):
 def main():
     p=argparse.ArgumentParser();g=p.add_mutually_exclusive_group()
     g.add_argument('--activate',action='store_true');g.add_argument('--rollback',type=Path)
+    p.add_argument('--rpc-url',help='HTTPS Keeper RPC; web RPC is unchanged')
     args=p.parse_args();h.require(os.geteuid()==0,'Run as root on the FTI VPS')
     with open('/run/lock/fti-service-cutover.lock','a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         if args.rollback: restore(args.rollback)
-        else: activate(args.activate)
+        else: activate(args.activate,args.rpc_url)
 
 if __name__=='__main__':
     try: main()

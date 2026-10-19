@@ -10,6 +10,10 @@ class Activation(unittest.TestCase):
   self.assertEqual(a.safe_failure(Exception('secret-private-key https://rpc.invalid/token')), 'UNEXPECTED_LOCAL_ERROR')
   self.assertEqual(a.safe_failure(KeyError('secret')), 'REQUIRED_CONFIGURATION_FIELD_MISSING')
   self.assertEqual(a.safe_failure(PermissionError('secret')), 'LOCAL_PERMISSION_DENIED')
+ def test_rpc_override_requires_https(self):
+  self.assertEqual(a.validate_rpc('https://bsc-dataseed.bnbchain.org'),'https://bsc-dataseed.bnbchain.org')
+  for url in ['http://rpc.example','https://u:p@rpc.example','https://rpc.example/#secret','https://rpc.example/\n']:
+   with self.assertRaises(a.h.CutoverError): a.validate_rpc(url)
  def test_deposit_boundary(self):
   self.assertFalse(a.deposit_window_open({'phase':0,'epochEnd':100,'timestamp':100}))
   self.assertFalse(a.deposit_window_open({'phase':1,'epochEnd':101,'timestamp':100}))
