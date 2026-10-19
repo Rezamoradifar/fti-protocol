@@ -9,6 +9,8 @@ from pathlib import Path
 import pwd
 import shlex
 import tempfile
+import subprocess
+import urllib.error
 import time
 
 HERE = Path(__file__).resolve().parent
@@ -22,10 +24,28 @@ def module(name, path):
 h = module('keeper_cutover', HERE / 'activate-fresh-testnet.py')
 w = module('keeper_mainnet_target', HERE / 'activate-mainnet-web.py')
 UNIT = h.UNITS['keeper']
+STAGE = 'initialization'
+def stage(value):
+    global STAGE
+    STAGE = value
+    print('STAGE=' + value, flush=True)
+
+def safe_failure(error):
+    if isinstance(error, subprocess.TimeoutExpired): return 'CHECK_TIMEOUT'
+    if isinstance(error, PermissionError): return 'LOCAL_PERMISSION_DENIED'
+    if isinstance(error, FileNotFoundError): return 'REQUIRED_LOCAL_FILE_MISSING'
+    if isinstance(error, KeyError): return 'REQUIRED_CONFIGURATION_FIELD_MISSING'
+    if isinstance(error, urllib.error.HTTPError): return 'HTTP_STATUS_' + str(error.code)
+    if isinstance(error, urllib.error.URLError): return 'HTTP_CONNECTION_FAILED'
+    if isinstance(error, json.JSONDecodeError): return 'INVALID_JSON_RESULT'
+    if isinstance(error, h.CutoverError) or isinstance(error, w.h.CutoverError):
+        return str(error)
+    return 'UNEXPECTED_LOCAL_ERROR'
+
 PROBE = r'''
 import fs from 'node:fs';
 import {JsonRpcProvider,Wallet} from 'ethers';
-import {verifyOperationalDeployment} from './scripts/operational-release.mjs';
+const {verifyOperationalDeployment}=await import('./scripts/operational-release.mjs');
 const p=new JsonRpcProvider(process.env.RPC_URL,undefined,{batchMaxCount:1,cacheTimeout:-1});
 try {
  const cfg=JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_FILE));
@@ -36,6 +56,13 @@ try {
  const balance=await p.getBalance(address);
  if(balance===0n){console.log(JSON.stringify({ready:false,address,balanceWei:'0',reason:'Fund this Keeper with BNB on chain 56 first.'}));}
  else console.log(JSON.stringify({ready:true,address,balanceWei:String(balance)}));
+} catch(error) {
+ const message=String(error?.shortMessage||error?.message||'');
+ const checks=['Deployment/build release mismatch','Source revision mismatch','Wrong deployment network','Wrong network','Keeper must be separate','Mainnet accounting mismatch'];
+ const prefixes=['Deployed code mismatch:','Implementation mismatch:','Creation input mismatch:','Mainnet creation chain/block mismatch:','Stale ABI/artifact:'];
+ const match=checks.find(x=>message===x)||prefixes.find(x=>message.startsWith(x));
+ const code=['CALL_EXCEPTION','NETWORK_ERROR','SERVER_ERROR','TIMEOUT','BAD_DATA','UNKNOWN_ERROR','ENOENT'].includes(error?.code)?error.code:'PREFLIGHT_FAILED';
+ console.log(JSON.stringify({ready:false,check:match||code}));
 } finally {p.destroy();}
 '''
 
@@ -51,22 +78,30 @@ def restore(backup):
     print('FTI_PREVIOUS_KEEPER_RESTORED; confirmed transactions are not reversed')
 
 def activate(enabled):
-    web, old = h.capture('web'), h.capture('keeper')
+    stage('capture_web_service')
+    web = h.capture('web')
+    stage('capture_existing_keeper')
+    old = h.capture('keeper')
+    stage('verify_mainnet_config')
     cfg = h.load(Path(web['env']['DEPLOYMENT_FILE']))
     w.check_target(cfg)
+    stage('verify_local_web')
     w.check_web(cfg, 'http://127.0.0.1:3110')
+    stage('prepare_existing_credentials')
     release = Path(web['properties']['WorkingDirectory'])
     h.require(release.parent == Path('/opt/fti/releases') and release.resolve() == release, 'Unexpected release')
     env = {k: web['env'][k] for k in ('RPC_URL','DEPLOYMENT_FILE','FTI_SOURCE_REVISION','PATH')}
     env.update(KEEPER_PRIVATE_KEY=old['env']['KEEPER_PRIVATE_KEY'],KEEPER_INTERVAL_MS='5000',LANG='C.UTF-8',NODE_ENV='production')
     account = pwd.getpwnam('fti-v3')
+    stage('verify_onchain_deployment_and_gas')
     result = json.loads(h.run([str(web['node']), '--input-type=module'], input=PROBE.encode(),
         env=env,cwd=release,user=account.pw_uid,group=account.pw_gid,extra_groups=[],timeout=120))
     print(json.dumps(result),flush=True)
-    h.require(result.get('ready'), 'Keeper not funded; no service changed')
+    h.require(result.get('ready'), 'Preflight failed; no service changed')
     if not enabled:
         print('READ_ONLY; use --activate to start mainnet transactions')
         return
+    stage('prepare_service_override')
     h.require(h.properties('web') == web['properties'] and h.properties('keeper') == old['properties'], 'Services changed during preflight')
     base = Path('/var/backups/fti-mainnet-keeper')
     base.mkdir(mode=0o700,exist_ok=True)
@@ -85,6 +120,7 @@ def activate(enabled):
     print('ROLLBACK_COMMAND=python3 '+shlex.quote(str(backup/'activate-mainnet-keeper.py'))+' --rollback '+shlex.quote(str(backup)),flush=True)
     h.write(drop,content,0o644)
     try:
+        stage('start_mainnet_keeper')
         h.run(['systemctl','daemon-reload'])
         h.run(['systemctl','restart',UNIT])
         observed = False
@@ -121,5 +157,6 @@ def main():
 
 if __name__=='__main__':
     try: main()
-    except Exception:
-        raise SystemExit('FTI_KEEPER_ACTIVATION_STOPPED; inspect the safe result above. No credentials are printed.')
+    except Exception as error:
+        print(json.dumps({'result':'FTI_KEEPER_ACTIVATION_STOPPED','stage':STAGE,'reason':safe_failure(error)}),flush=True)
+        raise SystemExit(1)
