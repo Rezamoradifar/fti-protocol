@@ -1,4 +1,4 @@
-import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown} from './transaction-state.js';
+import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest} from './transaction-state.js';
 import {membershipBlock,walletError} from './membership-availability.js';
 import {deploymentConfiguration} from './deployment.js';
 import {deploymentNetwork} from '../core/deployment-network.mjs';
@@ -126,6 +126,13 @@ async function send(request){
  if(explorer){$('#transaction-link').href=explorer+'/tx/'+tx.hash;$('#transaction-link').hidden=false;}
  return confirmedReceipt(tx,activeTransaction);
 }
+async function sendContract(key,method,...args){
+ const activeSigner=signer,expectedAddress=address;
+ const request=await prepareContractRequest(write(key)[method],args,activeSigner);
+ // Wallet changes during read-only preparation must not create a pending record.
+ if(signer!==activeSigner||address!==expectedAddress||address!==transactionAddress)throw Error('Wallet changed. Please review the action and try again.');
+ return send(()=>activeSigner.sendTransaction(request));
+}
 $('#unknown-send-form').onsubmit=async e=>{
  e.preventDefault();if(busy||!address||!signer)return;busy=true;syncActions();
  try{
@@ -138,7 +145,7 @@ $('#unknown-send-form').onsubmit=async e=>{
 };
 async function approve(spender,amount){
  const current=await read.usd.allowance(address,spender);
- if(current<amount){status(networkProfile.testAssets?'Approve test USD spending in your wallet.':'Approve collateral spending in your wallet.');if(current>0n)await send(()=>write('usd').approve(spender,0));await send(()=>write('usd').approve(spender,amount));}
+ if(current<amount){status(networkProfile.testAssets?'Approve test USD spending in your wallet.':'Approve collateral spending in your wallet.');if(current>0n)await sendContract('usd','approve',spender,0);await sendContract('usd','approve',spender,amount);}
 }
 let walletProvider,providerListeners,selectedWallet;
 function clearWallet(){$('#unknown-send-form').hidden=true;signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
@@ -276,9 +283,9 @@ $('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const 
  await refresh();const blockedAfterApproval=membershipBlock(state);if(blockedAfterApproval)throw Error(blockedAfterApproval);
  const currentWallet=wallet();if(!currentWallet||currentWallet.exists!==w.exists)throw Error('Membership changed. Refresh and review before trying again.');
  if(cost>BigInt(currentWallet.usdBalance))throw Error('Not enough collateral in your wallet.');
- if(w.exists)await send(()=>write('binary').addUnits(n));
- else if(placement)await send(()=>write('binary').registerWithPlacement(sponsorAddress,placement.placementParent,n));
- else await send(()=>write('binary').register(sponsorAddress,n));});};
+ if(w.exists)await sendContract('binary','addUnits',n);
+ else if(placement)await sendContract('binary','registerWithPlacement',sponsorAddress,placement.placementParent,n);
+ else await sendContract('binary','register',sponsorAddress,n);});};
 $('#auto-form').addEventListener('input',()=>{autoDirty=true;});
 $('#auto-form').onsubmit=e=>{e.preventDefault();const enabled=e.target.elements.enabled.checked;
  if(builderMode==='unknown'){status(t('Contract capabilities could not be verified. Auto-buy changes are disabled.'),true);return;}

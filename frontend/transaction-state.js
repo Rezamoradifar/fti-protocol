@@ -40,7 +40,7 @@ export async function submitTracked(send,tracker,nonce){
  try{const tx=await send();tracker.save(tx.hash);return tx;}
  catch(error){
   // Explicit rejection or an estimate failure proves no broadcast for this request.
-  if(error.code==='ACTION_REJECTED'||error.code===4001||(error.code==='CALL_EXCEPTION'&&error.action==='estimateGas'))tracker.clear();
+  if(explicitRejection(error)||(error.code==='CALL_EXCEPTION'&&error.action==='estimateGas'))tracker.clear();
   throw error;
  }
 }
@@ -52,4 +52,17 @@ export async function reconcileUnknown(tracker,provider,address,hash){
  const receipt=await provider.getTransactionReceipt(hash);
  if(!receipt)throw Error('Transaction confirmation is pending. Check wallet activity before retrying.');
  tracker.clear();return receipt;
+}
+
+// Preparation is read-only. Failures here must never create an uncertain-send lock.
+export async function prepareContractRequest(method,args,signer){
+ const request=await method.populateTransaction(...args);
+ const gas=await signer.estimateGas(request);
+ return {...request,gasLimit:(gas*120n+99n)/100n};
+}
+function explicitRejection(error,seen=new Set(),depth=0){
+ if(!error||typeof error!=='object'||seen.has(error)||depth>6)return false;
+ seen.add(error);
+ if(error.code===4001||error.code==='ACTION_REJECTED')return true;
+ return ['error','info','data','cause','originalError'].some(key=>explicitRejection(error[key],seen,depth+1));
 }

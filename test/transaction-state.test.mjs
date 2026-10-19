@@ -38,3 +38,27 @@ test('storage failure stops request before wallet is invoked',async()=>{
  const tracker=transactionState({getItem:()=>null,setItem:()=>{throw Error('storage denied');}},56,'0x123');
  await assert.rejects(submitTracked(async()=>{called=true;},tracker,0));assert.equal(called,false);
 });
+
+test('nested mobile-wallet rejection clears lock without treating transport failure as rejection',async()=>{
+ const {submitTracked}=await import('../frontend/transaction-state.js');
+ for(const error of [{code:'UNKNOWN_ERROR',info:{error:{code:4001}}},{cause:{originalError:{code:'ACTION_REJECTED'}}}]){
+  const {tracker}=fixture();await assert.rejects(submitTracked(async()=>{throw error;},tracker,0));assert.equal(tracker.read(),null);
+ }
+ const {tracker}=fixture();await assert.rejects(submitTracked(async()=>{throw {code:'UNKNOWN_ERROR',info:{error:{code:-32000}}};},tracker,0));assert.equal(tracker.read(),'unknown:0');tracker.clear();
+});
+test('populate and estimate errors occur before lock or wallet send, including RPC timeout',async()=>{
+ const {prepareContractRequest,submitTracked}=await import('../frontend/transaction-state.js');
+ for(const stage of ['populate','estimate']){
+  const {tracker}=fixture();let sent=false;
+  const method={populateTransaction:async()=>{if(stage==='populate')throw Error('RPC timeout');return {to:'contract',data:'0x12'};}};
+  const signer={estimateGas:async()=>{throw Error('RPC timeout');}};
+  await assert.rejects((async()=>{await prepareContractRequest(method,[1n],signer);await submitTracked(async()=>{sent=true;return {hash};},tracker,0);})(),/RPC timeout/);
+  assert.equal(sent,false);assert.equal(tracker.read(),null);
+ }
+});
+test('prepared membership preserves calldata and adds gas margin without sending',async()=>{
+ const {prepareContractRequest}=await import('../frontend/transaction-state.js');let called=0;
+ const request={to:'contract',data:'0x1234',value:0n};
+ const result=await prepareContractRequest({populateTransaction:async(...args)=>{assert.deepEqual(args,[3n]);return request;}},[3n],{estimateGas:async r=>{assert.equal(r,request);called++;return 101n;}});
+ assert.equal(called,1);assert.deepEqual(result,{...request,gasLimit:122n});assert.equal(request.gasLimit,undefined);
+});
