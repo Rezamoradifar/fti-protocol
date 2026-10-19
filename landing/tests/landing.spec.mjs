@@ -37,8 +37,8 @@ for(const width of [320,390,768,1440]){
 
 test('language/theme persistence, mobile menu, anchors, tabs and FAQ',async({page})=>{
   await page.setViewportSize({width:390,height:844});
-  await page.goto('/');
-  await page.getByRole('button',{name:'Switch to Persian'}).click();
+  await page.goto('/?lang=en');
+  await page.locator('.landing-language').selectOption('fa');
   await expect(page.locator('html')).toHaveAttribute('dir','rtl');
   await page.getByRole('button',{name:'تغییر حالت رنگ'}).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme','light');
@@ -69,7 +69,7 @@ test('font files are local and static paths fail honestly',async({page,request})
 
 test('mainnet badge follows verified runtime config and failed JS leaves a readable fallback',async({page})=>{
   await page.route('**/api/config',route=>route.fulfill({json:{chainId:56,mode:'bnb-mainnet'}}));
-  await page.goto('/');await expect(page.locator('.status')).toContainText('BNB Mainnet · 56');
+  await page.goto('/?lang=en');await expect(page.locator('.status')).toContainText('BNB Mainnet · 56');
   await page.route('**/assets/*.js',route=>route.abort());
   await page.reload();await expect(page.locator('#fti-boot')).toBeVisible();
   await expect(page.locator('#fti-boot a')).toHaveAttribute('href','/app/');
@@ -86,7 +86,7 @@ for(const route of ['token-site','whitepaper','roadmap'])test(`preserves public 
 test('3D controls, reduced motion and educational binary calculations',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.emulateMedia({reducedMotion:'reduce'});
- await page.goto('/');
+ await page.goto('/?lang=en');
  await expect(page.locator('.token-solid')).toHaveCSS('animation-name','none');
  const initial=await page.locator('.token-axis').getAttribute('style');
  await page.getByRole('button',{name:'Rotate token',exact:true}).click();

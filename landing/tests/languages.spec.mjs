@@ -1,0 +1,43 @@
+import {test,expect} from '@playwright/test';
+import fs from 'node:fs';
+const cfg=JSON.parse(fs.readFileSync(new URL('../../deployments/mainnet-20261016.json',import.meta.url)));
+const titles={en:'A new perspective',ar:'رؤية جديدة',tr:'Yeni bir bakış','zh-CN':'全新视角'};
+for(const lang of ['en','ar','tr','zh-CN'])for(const width of [320,390,1440])for(const theme of ['dark','light'])test(`${lang} ${width} ${theme}: landing and workspace language continuity`,async({page})=>{
+ await page.setViewportSize({width,height:850});
+ await page.addInitScript(theme=>localStorage.setItem('fti-theme',theme),theme);
+ await page.route('**/api/config',r=>r.fulfill({json:cfg}));
+ await page.route('**/api/state',r=>r.fulfill({status:503,json:{error:'Fixture unavailable'}}));
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/?lang='+lang);
+ await expect(page.locator('h1')).toContainText(titles[lang]);
+ await expect(page.locator('html')).toHaveAttribute('dir',lang==='ar'?'rtl':'ltr');
+ await expect(page.locator('.landing-language')).toHaveValue(lang);
+ await page.evaluate(()=>document.fonts.ready);
+ if(lang==='zh-CN')expect(await page.evaluate(()=>[...document.fonts].some(f=>f.family.includes('Noto Sans SC')&&f.status==='loaded'))).toBe(true);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+ const copy=await page.locator('main').innerText();
+ if(lang!=='en')for(const leftover of ['Understand the flow','Your place in the network','Two branches','Find your next action','What is FTI Protocol?'])expect(copy).not.toContain(leftover);
+ if(width===390&&theme==='dark')await page.screenshot({path:`test-results/language-${lang}.png`});
+ await page.locator('.hero .actions a[href="/app/"]').click();
+ await expect(page).toHaveURL(new RegExp('/app/\\?lang='+lang));
+ await expect(page.locator('#language-select')).toHaveValue(lang);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+ expect(errors).toEqual([]);
+});
+for(const lang of ['ar','tr','zh-CN'])for(const route of ['whitepaper','roadmap','token-site'])test(`${route} ${lang}: localized public document`,async({page})=>{
+ await page.setViewportSize({width:390,height:850});
+ await page.route('**/api/config',r=>r.fulfill({json:cfg}));
+ await page.route('**/api/state',r=>r.fulfill({status:503,json:{error:'Fixture unavailable'}}));
+ await page.goto('/'+route+'/?lang='+lang);
+ await expect(page.locator('html')).toHaveAttribute('lang',lang);
+ await expect(page.locator('h1')).toBeVisible();
+ const text=await page.locator('main').innerText();
+ for(const leftover of ['One membership unit costs','The council requires five','Each tier includes','Observed prices and recent volume','Available in current code','Understand the reserve'])expect(text).not.toContain(leftover);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+test('selector keeps referral, route, hash and new language over reload',async({page})=>{
+ await page.goto('/?lang=en&sponsor=0x123#token');
+ await page.locator('.landing-language').selectOption('ar');
+ await expect(page).toHaveURL(/lang=ar/);await expect(page).toHaveURL(/sponsor=0x123/);await expect(page).toHaveURL(/#token$/);
+ await page.reload();await expect(page.locator('html')).toHaveAttribute('lang','ar');
+});

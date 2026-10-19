@@ -35,3 +35,5 @@ body{margin:0;background:#080d0b}
  .public-site .document-content table{display:block;max-width:100%;overflow-x:auto}
  .public-site footer,.public-site footer nav{flex-wrap:wrap;gap:15px}
 }
+
+html[lang=zh-CN] .public-site,html[lang=zh-CN] .public-site :is(h1,h2,h3,button,input,select){font-family:'Noto Sans SC Variable',sans-serif}

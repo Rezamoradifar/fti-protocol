@@ -41,3 +41,7 @@ html[lang=en] .hero h1{font-size:clamp(32px,3.9vw,56px)}html[lang=en] h2{font-si
 @keyframes hud-orbit{from{transform:rotateX(65deg) rotateZ(-28deg)}to{transform:rotateX(65deg) rotateZ(332deg)}}
 @keyframes hud-orbit-b{from{transform:rotateY(64deg) rotateZ(32deg)}to{transform:rotateY(64deg) rotateZ(392deg)}}
 @media(prefers-reduced-motion:reduce){.hero-hud *{animation:none!important}}
+
+.landing-language{max-width:120px;min-height:44px;padding:7px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--text);font:inherit;font-size:13px}.landing-language option{background:var(--bg);color:var(--text)}
+html[lang=ar] body{font-family:'Vazirmatn Variable',Tahoma,sans-serif}html[lang=zh-CN] body{font-family:'Noto Sans SC Variable','Manrope Variable','PingFang SC','Microsoft YaHei',sans-serif}
+@media(max-width:540px){.landing-language{max-width:87px;font-size:12px}.nav-tools{gap:6px}.header .brand{font-size:18px}.header .brand-sub{font-size:7px}.header .fti-hologram{width:38px!important;height:38px!important}}

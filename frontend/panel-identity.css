@@ -1,3 +1,4 @@
+@import '../landing/node_modules/@fontsource-variable/noto-sans-sc/index.css';
 @import './hologram.css';
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @font-face{font-family:'FTI Manrope';font-style:normal;font-weight:200 800;font-display:swap;src:url('../landing/node_modules/@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2') format('woff2')}
@@ -55,3 +56,5 @@ html:not([dir=rtl]) body[data-surface] :is(h1,h2,h3,button){font-family:'FTI Orb
 body[data-surface] .sidebar .brand{font-family:'FTI Orbitron',sans-serif;font-size:24px}
 body[data-surface] .fti-header-mark{border-radius:50%;background:#050908;flex:none}
 @media(max-width:900px){body[data-surface] .sidebar .brand{font-size:22px}html:not([dir=rtl]) body[data-surface] .sidebar nav button{font-size:10px}}
+
+html[lang=zh-CN] body[data-surface]{--member-font:'Noto Sans SC Variable',sans-serif;--member-heading:var(--member-font)}
