@@ -16,3 +16,13 @@ test('language continuity preserves referrals and hashes',()=>{
  assert.equal(new URL(url).searchParams.get('sponsor'),'0x123');assert.equal(new URL(url).hash,'#membership');assert.equal(languageFrom(url,'en'),'ar');
  assert.equal(normalizeLanguage('zh-Hans'),'zh-CN');assert.equal(LANGUAGES.find(x=>x.code==='ar').dir,'rtl');assert.equal(languageFrom('https://ftiprotocol.com',null),'fa');
 });
+
+test('all mainnet NetworkText copy is localized, including when real API data arrives',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const source=await readFile(new URL('../frontend/main.jsx',import.meta.url),'utf8');
+ const keys=[...source.matchAll(/main="([^"]+)"/g)].map(x=>x[1]);
+ for(const lang of ['ar','tr','zh-CN'])for(const key of keys){
+  if(['100 USD','USD / FTI'].includes(key))continue;
+  assert.notEqual(translate(key,lang),key,`${lang}: ${key}`);
+ }
+});
