@@ -41,10 +41,11 @@
     "@walletconnect/ethereum-provider": "2.26.0",
     "ethers": "6.17.0",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "esbuild": "0.25.10",
+    "semver": "7.7.4"
   },
   "devDependencies": {
-    "esbuild": "0.25.10",
     "ganache": "7.9.2",
     "solc": "0.8.30"
   },

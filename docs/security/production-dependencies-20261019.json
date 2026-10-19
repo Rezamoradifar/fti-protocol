@@ -1,0 +1,31 @@
+{
+  "scope": "Fresh production UI build/install, npm ci --omit=dev; not an audit of the currently running VPS release",
+  "before": {
+    "installedPackages": 678,
+    "directlyAffected": {
+      "low": 1,
+      "moderate": 4,
+      "high": 16,
+      "critical": 5
+    },
+    "allAffectedUnderGanache": true
+  },
+  "after": {
+    "installedPackages": 307,
+    "directlyAffected": {
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0
+    },
+    "npmAudit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "remaining": "Full development install retains Ganache findings. Legacy VPS release directories and live backend dependencies have not been changed or independently inventoried."
+}

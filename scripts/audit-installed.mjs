@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
-const semver=require('semver'); // Installed through the pinned solc toolchain.
+const semver=require('semver'); // Explicit audit dependency; does not require the Solidity toolchain.
 const out=path.resolve(process.argv[2]||'audit/dependencies/installed');
 const inventory=[];
 async function modules(dir){
@@ -48,3 +48,5 @@ for(const name of new Set(findings.map(x=>x.name))){
 await fs.mkdir(path.dirname(out),{recursive:true});
 await fs.writeFile(out+'.json',JSON.stringify({generatedAt:new Date().toISOString(),node:process.version,inventory,advisories,findings,summary,countUnit:'unique directly affected package names, maximum severity; excludes inherited npm meta-vulnerabilities'},null,2)+'\n');
 console.log(JSON.stringify({installedPaths:inventory.length,directlyAffected:summary,report:out+'.json'}));
+
+if(process.argv.includes('--enforce')&&findings.length)process.exitCode=1;

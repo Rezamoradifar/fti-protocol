@@ -10,8 +10,10 @@ node_bin="$(readlink -f "/proc/$web_pid/exe")"
 [[ "$node_bin" == /opt/fti/runtime/node-v22.*/bin/node && -x "$node_bin" ]]
 export PATH="$(dirname -- "$node_bin"):$PATH"
 cd -- "$source"
-npm ci
+npm ci --omit=dev
 npm --prefix landing ci
+npm audit --omit=dev --audit-level=low
+node scripts/audit-installed.mjs "$source/dependency-audit" --enforce
 npm run build:web
 python3 tools/apply-mainnet-ui.py --source "$source"
 
