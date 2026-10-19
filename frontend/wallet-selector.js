@@ -12,16 +12,19 @@ export function discoverWallets(target=window,onChange=()=>{}) {
  const request=()=>target.dispatchEvent(new Event('eip6963:requestProvider'));
  request();
  return {request,list(){
-  const providers=target.ethereum?.providers||[target.ethereum];
+  const injected=target.ethereum;
+  const providers=Array.isArray(injected?.providers)?injected.providers:[injected];
   return [...wallets,...[...new Set(providers)].filter(p=>typeof p?.request==='function'&&!wallets.some(w=>w.provider===p)).map((provider,i)=>({provider,id:'legacy-'+i,name:provider.isTrust?'Trust Wallet':provider.isCoinbaseWallet?'Coinbase Wallet':provider.isMetaMask?'MetaMask':t('Browser wallet','ولت مرورگر')+' '+(i+1)}))];
  }};
 }
 
 let render=()=>{},pending;
 const discovery=typeof window==='undefined'?null:discoverWallets(window,()=>render());
-export async function requestWalletAccounts(selected,silent=false){
+export async function requestWalletAccounts(selected,silent=false,timeoutMs=5000){
  if(selected.remote&&!silent)return selected.provider.enable();
- return selected.provider.request({method:silent?'eth_accounts':'eth_requestAccounts'});
+ const request=selected.provider.request({method:silent?'eth_accounts':'eth_requestAccounts'});
+ if(!silent)return request;
+ let timer;try{return await Promise.race([request,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Wallet reconnection timed out. Press Connect wallet to choose again.')),timeoutMs);})]);}finally{clearTimeout(timer);}
 }
 export function chooseWallet({silent=false,projectId,chainId}={}) {
  const configured=/^[a-f0-9]{32}$/i.test(projectId||'')&&[56,97].includes(chainId);
@@ -36,8 +39,9 @@ export function chooseWallet({silent=false,projectId,chainId}={}) {
   const close=document.createElement('button');close.type='button';close.className='secondary';close.textContent=t('Cancel','انصراف');
   const list=document.createElement('div');list.className='wallet-options';
   const info=document.createElement('p');info.textContent=configured?t('Choose an installed wallet, or use WalletConnect for QR and mobile wallets.','ولت نصب‌شده را انتخاب کنید یا برای QR و ولت موبایل از WalletConnect استفاده کنید.'):t('Choose an installed EVM wallet. On mobile, open this site inside your wallet browser. WalletConnect QR requires a project ID and is not configured yet.','یک ولت نصب‌شده سازگار با EVM انتخاب کنید. در موبایل، سایت را داخل مرورگر ولت باز کنید. اتصال QR با WalletConnect هنوز تنظیم نشده است.');
-  let finished=false;
-  const finish=value=>{if(finished)return;finished=true;render=()=>{};dialog.close();dialog.remove();pending=null;resolve(value);};
+  let finished=false;const previousFocus=document.activeElement;
+  const overlay=document.createElement('div');overlay.className='wallet-dialog-fallback';
+  const finish=value=>{if(finished)return;finished=true;render=()=>{};try{dialog.close?.();}catch{}dialog.remove();overlay.remove();pending=null;previousFocus?.focus?.();resolve(value);};
   close.onclick=()=>finish(null);dialog.addEventListener('cancel',event=>{event.preventDefault();finish(null);});
   render=()=>{
    list.replaceChildren();const wallets=discovery.list();
@@ -46,6 +50,11 @@ export function chooseWallet({silent=false,projectId,chainId}={}) {
   };
   const mobile=document.createElement('button');mobile.type='button';mobile.className='primary';mobile.textContent=t('WalletConnect · QR / mobile','WalletConnect · QR / موبایل');mobile.disabled=!configured;
   mobile.onclick=async()=>{mobile.disabled=true;try{const selected=await wc();if(finished)return;try{sessionStorage.setItem('fti-selected-wallet',selected.id);}catch{}finish(selected);}catch(error){info.textContent=t('WalletConnect could not start. Try again.','اتصال WalletConnect شروع نشد؛ دوباره تلاش کنید.')+' '+(error.shortMessage||error.message);mobile.disabled=false;}};
-  dialog.append(title,info,list,mobile,close);document.body.append(dialog);render();dialog.showModal();
+  dialog.append(title,info,list,mobile,close);document.body.append(dialog);render();
+  try{dialog.showModal();}catch{
+   // Embedded wallet browsers may not implement native dialog.showModal.
+   dialog.setAttribute('open','');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');
+   overlay.append(dialog);document.body.append(overlay);close.focus();
+  }
  });return pending;
 }

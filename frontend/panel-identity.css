@@ -111,3 +111,6 @@ body[data-surface] .priority-actions :is(a,button){background:var(--panel2)!impo
  body[data-surface=admin] .sidebar nav{grid-template-columns:repeat(2,minmax(0,1fr))}
  body[data-surface] .market-chart{height:auto!important;min-height:180px!important;max-height:260px!important;aspect-ratio:780/400}
 }
+
+.wallet-dialog-fallback{position:fixed;inset:0;z-index:2147483647;background:#080d0be8;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+.wallet-dialog-fallback .wallet-dialog[open]{display:block;position:relative;inset:auto;margin:0;background:#101a18;color:#f3fff0;max-height:calc(100vh - 32px)}

@@ -2,15 +2,15 @@
   "schema": "FTI_MAINNET_UI_OVERLAY_V2",
   "files": {
     "frontend/brand.jsx": "30a17120796065355502307a7b29f637caeea6a45e87feed1c09332986d7857e",
-    "frontend/panel-identity.css": "224ce1df16656ffc6a01756410d3f0b226c5f315637939e240682e3896fe6981",
+    "frontend/panel-identity.css": "7237a8a1b16311423b34ac794aacb8004de59ca4d1ead09132df72e2c7498b0f",
     "scripts/build-web.mjs": "5c4344e6e9940f5da10bd59fafbe468600dea334081a9124c2905f6d1a60efcb",
     "web/index.html": "3cc73698ba82bbc1fd249fc2b87d168d3017561ec82f002a01ba490d4b2ffcd7",
-    "web/app.js": "6387fbe8abf7b2194cf97b549d690e602319549075cad37f5ca97f4033815f68",
+    "web/app.js": "657599b2f89786b20e1346cef28a2f792d08e5effd728e40001678fb9a7183c3",
     "web/app.js.LEGAL.txt": "573cc95a6417c69a6ca44804f440f00965283c8cdcc50025305a7a50f53940ac",
     "web/style.css": "373a39681dd415c339a117034c7d5d5d9fc976b28730b1967e25dd4afb117190",
     "web/member-landing-theme.css": "4a66ac54bbbd1282c61536ec6889f07047bdaeda1a54b6b431910da9b31d0198",
     "web/global-interface.css": "08c083262991d5387882b6d86b1930e69b5a7a3e67a998191017625caae2516b",
-    "web/panel-identity.css": "f88326040dbf18218d5a4ccb8439375860bc5ad9e964c16b942a6f9ad1796234",
+    "web/panel-identity.css": "12f294040117dd35e4e2c0d30b4e1f08e8da9727487b6a96458d089e5c95fece",
     "package-lock.json": "551f9ed0be01cb4efee84c0c9f63ce63738ed00d0483e47ff2f5787a6f9e54b9",
     "landing/package-lock.json": "6c0505095c6022ab77230577aa4f0d4881c36b65db823b553187ad1e53a7383b",
     "web/fonts/vazirmatn-arabic-wght-normal-GZN7WEUV.woff2": "84a382e46c30fb4f73d0e3800c16d0af15888e2731e57fa5f93e2c29a2c6a957",
@@ -133,7 +133,7 @@
     "web/vendor/ethers.js": "b016b0c3898c78fd8156466eb1ff1f42c9df951c2f0d64c9bdf799fe745b0a6c",
     "web/vendor/walletconnect.js": "7db67e1a3c4f79ce9067b6f858be663b9ac8a482ac5c8c09ad49ef374b78278a",
     "web/vendor/walletconnect.js.LEGAL.txt": "0df4d6aadb8d044c2c292fedf68aeb66b6506cf1bce5dee0ccb35e7193dcf0d1",
-    "frontend/wallet-selector.js": "bf679cf48b38c52593392db189dae1f8b3dee76983fcd65ab37a28e33e5a8dac",
+    "frontend/wallet-selector.js": "6551a194fb579d9ff7c8caa7e06c19d7b8267921545c43bf7e91e88131c43200",
     "frontend/wallet-session.js": "ba859ce236db509c975c0d3d50473d2ad508dd6dee574bd117a97161b6168f5d",
     "frontend/core-translations.js": "fb2eb87d2a8833dcc9c5994bdd26fffa85fe7d75b1ed360878b91f9fa4c41e00"
   }

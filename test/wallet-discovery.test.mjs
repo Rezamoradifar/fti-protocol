@@ -36,3 +36,11 @@ test('requests permission only from the selected injected wallet',async()=>{
  const selected={provider:{request:async args=>{method=args.method;return ['chosen'];},enable:()=>assert.fail('injected wallet must use request')}};
  assert.deepEqual(await requestWalletAccounts(selected),['chosen']);assert.equal(method,'eth_requestAccounts');
 });
+test('non-array provider metadata does not prevent opening the wallet list',()=>{
+ const target=new EventTarget(),p=provider();p.providers={};target.ethereum=p;
+ assert.equal(discoverWallets(target).list()[0].provider,p);
+});
+test('stalled silent reconnect times out and never requests permission',async()=>{
+ let method;const selected={provider:{request:args=>{method=args.method;return new Promise(()=>{});}}};
+ await assert.rejects(requestWalletAccounts(selected,true,5),/timed out/);assert.equal(method,'eth_accounts');
+});
