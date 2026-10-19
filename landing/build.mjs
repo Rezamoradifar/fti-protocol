@@ -11,11 +11,14 @@ const roots=new Set(Object.keys(result.metafile.inputs).map(x=>path.resolve(dir,
 if(roots.size!==1)throw new Error('Expected exactly one React runtime');
 const url=x=>'/'+path.relative(dist,path.resolve(dir,x)).split(path.sep).join('/');
 const template=fs.readFileSync(path.join(dir,'public/index.html'),'utf8');
-const htmlFiles=[];
+const boot=fs.readFileSync(path.join(dir,'public/boot.css'));
+const bootName='assets/boot-'+createHash('sha256').update(boot).digest('hex').slice(0,16)+'.css';
+fs.writeFileSync(path.join(dist,bootName),boot);
+const htmlFiles=[bootName];
 for(const [route,entry]of [['','src/main.jsx'],['token-site','src/public-entry.jsx'],['whitepaper','src/public-entry.jsx'],['roadmap','src/public-entry.jsx']]){
  const [js,meta]=Object.entries(result.metafile.outputs).find(([,meta])=>meta.entryPoint===entry&&meta.cssBundle)||[];
  if(!js||!meta?.cssBundle)throw new Error('Missing JS/CSS for '+entry);
- const html=template.replace('__APP_JS__',url(js)).replace('__APP_CSS__',url(meta.cssBundle));
+ const html=template.replace('__BOOT_CSS__','/'+bootName).replace('__APP_JS__',url(js)).replace('__APP_CSS__',url(meta.cssBundle));
  const name=route?route+'/index.html':'index.html';fs.mkdirSync(path.dirname(path.join(dist,name)),{recursive:true});
  fs.writeFileSync(path.join(dist,name),html);htmlFiles.push(name);
 }
