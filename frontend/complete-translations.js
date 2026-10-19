@@ -565,7 +565,15 @@ export const completeTranslations = {
     "Binary parent": "الأصل الثنائي",
     "Reserve · USD": "الاحتياطي · USD",
     "Support · USD": "الدعم · USD",
-    "Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.": "تستخدم خطوات متتابعة بقيمة 500 دولار أسعار الاحتياطي والمعروض المحدثة. رسم 3٪ لكل خطوة، وحتى 128 خطوة لكل معاملة. تُطبق حدود العضوية والدورة."
+    "Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.": "تستخدم خطوات متتابعة بقيمة 500 دولار أسعار الاحتياطي والمعروض المحدثة. رسم 3٪ لكل خطوة، وحتى 128 خطوة لكل معاملة. تُطبق حدود العضوية والدورة.",
+    "Send result is unknown. Inspect wallet activity and verify its transaction hash before continuing.": "نتيجة الإرسال غير معروفة. افحص نشاط المحفظة وتحقق من تجزئة المعاملة قبل المتابعة.",
+    "Transaction hash": "تجزئة المعاملة",
+    "Verify transaction receipt": "التحقق من إيصال المعاملة",
+    "Browser storage is required before sending.": "يجب تفعيل تخزين المتصفح قبل الإرسال.",
+    "A previous transaction must be resolved first.": "يجب تحديد حالة المعاملة السابقة أولاً.",
+    "No unknown send to verify.": "لا يوجد إرسال مجهول للتحقق منه.",
+    "Enter a valid transaction hash.": "أدخل تجزئة معاملة صحيحة.",
+    "Transaction does not match the wallet and pending nonce.": "المعاملة لا تطابق المحفظة ورقم nonce المسجل."
   },
   "tr": {
     "Journey": "Yolculuk",
@@ -1133,7 +1141,15 @@ export const completeTranslations = {
     "Binary parent": "İkili ağaç üst hesabı",
     "Reserve · USD": "Rezerv · USD",
     "Support · USD": "Destek · USD",
-    "Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.": "Ardışık 500 dolarlık adımlar güncellenen rezerv/arz fiyatlarını kullanır. Her adımda %3 ücret, işlem başına en fazla 128 adım vardır. Üyelik ve döngü limitleri geçerlidir."
+    "Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.": "Ardışık 500 dolarlık adımlar güncellenen rezerv/arz fiyatlarını kullanır. Her adımda %3 ücret, işlem başına en fazla 128 adım vardır. Üyelik ve döngü limitleri geçerlidir.",
+    "Send result is unknown. Inspect wallet activity and verify its transaction hash before continuing.": "Gönderim sonucu belirsiz. Devam etmeden önce cüzdan etkinliğini inceleyip işlem karmasını doğrulayın.",
+    "Transaction hash": "İşlem karması",
+    "Verify transaction receipt": "İşlem makbuzunu doğrula",
+    "Browser storage is required before sending.": "Göndermeden önce tarayıcı depolaması etkin olmalıdır.",
+    "A previous transaction must be resolved first.": "Önce önceki işlemin durumu belirlenmelidir.",
+    "No unknown send to verify.": "Doğrulanacak belirsiz gönderim yok.",
+    "Enter a valid transaction hash.": "Geçerli bir işlem karması girin.",
+    "Transaction does not match the wallet and pending nonce.": "İşlem, cüzdan ve kayıtlı nonce ile eşleşmiyor."
   },
   "zh-CN": {
     "Journey": "旅程",
@@ -1701,7 +1717,15 @@ export const completeTranslations = {
     "Binary parent": "二叉树父节点",
     "Reserve · USD": "储备 · USD",
     "Support · USD": "支持储备 · USD",
-    "Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.": "连续的每步 500 美元买入使用更新后的储备与供应量价格。每步收取 3% 费用，每笔交易最多 128 步，并受会员和周期额度限制。"
+    "Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.": "连续的每步 500 美元买入使用更新后的储备与供应量价格。每步收取 3% 费用，每笔交易最多 128 步，并受会员和周期额度限制。",
+    "Send result is unknown. Inspect wallet activity and verify its transaction hash before continuing.": "发送结果未知。继续前请检查钱包活动并验证交易哈希。",
+    "Transaction hash": "交易哈希",
+    "Verify transaction receipt": "验证交易回执",
+    "Browser storage is required before sending.": "发送前必须启用浏览器存储。",
+    "A previous transaction must be resolved first.": "必须先确定上一笔交易的状态。",
+    "No unknown send to verify.": "没有需要验证的未知发送。",
+    "Enter a valid transaction hash.": "请输入有效的交易哈希。",
+    "Transaction does not match the wallet and pending nonce.": "交易与钱包及记录的 nonce 不匹配。"
   },
   "fa": {
     "Transaction confirmation is pending. Check wallet activity before retrying.": "تأیید تراکنش هنوز مشخص نیست. پیش از تلاش دوباره، فعالیت ولت را بررسی کنید.",
@@ -1709,6 +1733,14 @@ export const completeTranslations = {
     "Transaction confirmed on-chain. Balance refresh failed; refresh the page before another request.": "تراکنش روی شبکه تأیید شد؛ تازه‌سازی موجودی ناموفق بود. پیش از درخواست جدید، صفحه را تازه کنید.",
     "Transaction reverted on-chain.": "تراکنش روی شبکه ناموفق شد.",
     "Transaction cancelled or replaced. Review wallet activity before continuing.": "تراکنش لغو یا جایگزین شد. پیش از ادامه، فعالیت ولت را بررسی کنید.",
-    "Membership changed. Refresh and review before trying again.": "وضعیت عضویت تغییر کرده است. پیش از تلاش دوباره، اطلاعات را تازه و بررسی کنید."
+    "Membership changed. Refresh and review before trying again.": "وضعیت عضویت تغییر کرده است. پیش از تلاش دوباره، اطلاعات را تازه و بررسی کنید.",
+    "Send result is unknown. Inspect wallet activity and verify its transaction hash before continuing.": "نتیجه ارسال نامشخص است. پیش از ادامه، فعالیت ولت را بررسی و هش تراکنش آن را تأیید کنید.",
+    "Transaction hash": "هش تراکنش",
+    "Verify transaction receipt": "بررسی رسید تراکنش",
+    "Browser storage is required before sending.": "برای ارسال، ذخیره‌سازی مرورگر باید فعال باشد.",
+    "A previous transaction must be resolved first.": "ابتدا باید وضعیت تراکنش قبلی مشخص شود.",
+    "No unknown send to verify.": "ارسال نامشخصی برای بررسی وجود ندارد.",
+    "Enter a valid transaction hash.": "هش معتبر تراکنش را وارد کنید.",
+    "Transaction does not match the wallet and pending nonce.": "تراکنش با ولت و nonce ثبت‌شده مطابقت ندارد."
   }
 };
