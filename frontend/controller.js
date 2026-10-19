@@ -86,7 +86,7 @@ function syncActions(){
  const normal=!state?.tokenPaused&&!state?.emergencyUnwind;
  for(const id of ['buy-form','sell-form','transfer-form'])for(const button of $('#'+id).querySelectorAll('[data-write]'))button.disabled=button.disabled||!normal;
  const blocked=membershipBlock(state);
- if(blocked)$('#register-button').disabled=true;
+ if(blocked){$('#register-button').disabled=true;$('#approve-units-button').disabled=true;}
  let notice=$('#membership-availability');
  if(!notice){notice=document.createElement('p');notice.id='membership-availability';notice.setAttribute('role','status');$('#register-form').prepend(notice);$('#register-button').setAttribute('aria-describedby',notice.id);}
  notice.hidden=!blocked;notice.textContent=t(blocked);
@@ -252,7 +252,7 @@ function renderWallet(){
  const registered=!!w?.exists;const form=$('#register-form');form.elements.sponsor.disabled=registered;
  if(cfg.tokenContract==='FTIReserveTokenUpgradeable'){const points=settledPoints(state);text('raw-point-value',points.raw===null?'—':fmt(points.raw));text('paid-point-value',points.paid===null?'—':fmt(points.paid));text('paid-point-count',points.count===null?'—':integer(points.count));}
  if(automaticReferral)text('direct-referrals',w?.exists?integer(w.directReferrals||0):'—');
- text('registration-title',registered?'Add membership units':'Join the network');text('register-button',registered?'Add units':'Register membership');
+ text('registration-title',registered?'Add membership units':'Join the network');$('#register-button').textContent=t('2. Buy units','۲. خرید یونیت');
  text('sponsor-help',registered?'Your inviter and position stay unchanged when you add units.':automaticReferral?t('One inviter can share unlimited direct invitations. Your binary position is assigned automatically, level by level, left before right.','هر معرف می‌تواند لینک دعوت خود را بدون محدودیت تعداد معرفی مستقیم به اشتراک بگذارد. جایگاه شما به‌صورت خودکار، سطح‌به‌سطح و از چپ به راست، زیر شبکهٔ معرف انتخاب می‌شود.'):'New positions fill the sponsor’s left slot first, then the right. Both slots must not be full.');
  for(const[id,done]of [['step-wallet',!!signer],['step-funds',BigInt(w?.usdBalance||0)>0n],['step-member',registered]])$('#'+id).classList.toggle('done',done);
  $('#referral-link').value=registered?withLanguage(sites.member+'?sponsor='+address+'#network'):'';
@@ -272,13 +272,24 @@ const sponsor=new URLSearchParams(location.search).get('sponsor');if(sponsor&&is
 $('#register-form').elements.units.oninput=()=>{const raw=$('#register-form').elements.units.value;text('registration-cost',/^\d+$/.test(raw)?integer(BigInt(raw)*100n)+' '+networkProfile.currency:'Enter whole units');};
 for(const id of ['claim','claim-rewards'])$('#'+id).onclick=()=>transaction(()=>send(()=>write('binary').claim()));
 $('#faucet').onclick=()=>{if(networkProfile.testAssets)transaction(()=>send(()=>write('usd').faucet()));};
+$('#approve-units-button').onclick=()=>transaction(async()=>{
+ const blocked=membershipBlock(state);if(blocked)throw Error(blocked);
+ const raw=$('#register-form').elements.units.value.trim();
+ if(!/^[1-9]\d*$/.test(raw))throw Error('Enter a positive whole number of units.');
+ const amount=BigInt(raw)*parseEther('100');
+ const w=wallet();if(!w)throw Error('Reload wallet data and try again.');
+ if(amount>BigInt(w.usdBalance))throw Error('Not enough collateral in your wallet.');
+ await approve(cfg.binary,amount);
+ if(await read.usd.allowance(transactionAddress,cfg.binary)<amount)throw Error('Approval could not be verified. Refresh before continuing.');
+ return t('USDT approved. Now press 2. Buy units. No units have been purchased in this step.','تتر تأیید شد. حالا دکمه «۲. خرید یونیت» را بزن. در این مرحله یونیتی خریداری نشده است.');
+});
 $('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const blocked=membershipBlock(state);if(blocked)throw Error(blocked);const f=e.target,raw=f.elements.units.value.trim();if(!/^[1-9]\d*$/.test(raw))throw Error('Enter a positive whole number of units.');const n=BigInt(raw);if(n<1n)throw Error('Enter a positive whole number of units.');const w=wallet();if(!w)throw Error('Reload wallet data and try again.');const sponsorAddress=f.elements.sponsor.value.trim();if(!w.exists&&(!isAddress(sponsorAddress)||sponsorAddress===ZeroAddress))throw Error('Enter a valid sponsor address.');const cost=n*parseEther('100');if(cost>BigInt(w.usdBalance))throw Error(networkProfile.testAssets?'Not enough test USD. Use Get test USD on Overview.':'Not enough collateral in your wallet.');let placement;
  if(!w.exists&&automaticReferral){
   status(t('Finding the next free position in the inviter’s network…','در حال پیدا کردن نخستین جایگاه خالی زیر مجموعهٔ معرف…'));
   placement=await json('/api/placement?referrer='+encodeURIComponent(sponsorAddress));
   if(!isAddress(placement.placementParent)||placement.referrer.toLowerCase()!==sponsorAddress.toLowerCase())throw Error('Placement suggestion failed integrity checks.');
  }
- await approve(cfg.binary,cost);
+ if(await read.usd.allowance(transactionAddress,cfg.binary)<cost)throw Error(t('First press 1. Approve USDT for the selected number of units.','ابتدا برای تعداد یونیت انتخاب‌شده، دکمه «۱. تأیید تتر» را بزن.'));
  // Approval may cross an hourly boundary; refresh before requesting the purchase.
  await refresh();const blockedAfterApproval=membershipBlock(state);if(blockedAfterApproval)throw Error(blockedAfterApproval);
  const currentWallet=wallet();if(!currentWallet||currentWallet.exists!==w.exists)throw Error('Membership changed. Refresh and review before trying again.');
