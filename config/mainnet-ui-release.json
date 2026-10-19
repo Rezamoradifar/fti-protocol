@@ -5,7 +5,7 @@
     "frontend/panel-identity.css": "58f590413a23ce1c3462f7c1a4e4a97052b284a84f8d48b5a2fd3ad6579446e9",
     "scripts/build-web.mjs": "45c835565eb1de1415d259a1fcc762f0023c62985cfbbb7e6a058ebf0975c871",
     "web/index.html": "3cc73698ba82bbc1fd249fc2b87d168d3017561ec82f002a01ba490d4b2ffcd7",
-    "web/app.js": "2cfbe2caec19294b5b554cabd8d33fbc91db475ace22fe94fc55644291797642",
+    "web/app.js": "bc69e4f4b1382a3ea0f1e2306a525ca92922b72e1f58716a33ce8b01e1cdfd31",
     "web/app.js.LEGAL.txt": "573cc95a6417c69a6ca44804f440f00965283c8cdcc50025305a7a50f53940ac",
     "web/style.css": "373a39681dd415c339a117034c7d5d5d9fc976b28730b1967e25dd4afb117190",
     "web/member-landing-theme.css": "4a66ac54bbbd1282c61536ec6889f07047bdaeda1a54b6b431910da9b31d0198",
@@ -16,10 +16,11 @@
     "web/fonts/vazirmatn-arabic-wght-normal-GZN7WEUV.woff2": "84a382e46c30fb4f73d0e3800c16d0af15888e2731e57fa5f93e2c29a2c6a957",
     "web/fonts/manrope-latin-wght-normal-73PUZEUA.woff2": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972",
     "frontend/main.jsx": "69c7902a49111efb602664409afea7646c46823746486a202810a46696f787f9",
-    "frontend/controller.js": "6d0a5ce95a4074a07ba6a45e5ba6e3ed47074817cab35b57ffbd5d09d4f33bdc",
+    "frontend/controller.js": "b5849250a0823a79f486462f823fb409c47045e741aeb3782699abdd48be87bf",
     "frontend/header-mark.jsx": "3441f4ba0855a18b6d31e6a845819cf79d7629db064ee6a82f47c373586528a9",
     "landing/package.json": "28b7334274ed8e6cf2fd78b8907f4988787828a75fa7efc7fad0b95bbb13d881",
     "web/fonts/orbitron-latin-600-normal-CEBIPJEJ.woff2": "585062e775d70397653192777533f65f3afb707320fcc2a4bc510470e03762e6",
-    "frontend/hologram.css": "694d9f658c8bbd6a9363ef381108f33407072bf550886abbda3ba569d208ed4a"
+    "frontend/hologram.css": "694d9f658c8bbd6a9363ef381108f33407072bf550886abbda3ba569d208ed4a",
+    "frontend/membership-availability.js": "d47512a62ec30145dbf8564762ce9f0d6908403836be5f1d685e2367e13f3b4c"
   }
 }
