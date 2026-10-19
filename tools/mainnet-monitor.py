@@ -12,24 +12,36 @@ def rpc(method,params):
  result=request(RPC,{'jsonrpc':'2.0','id':1,'method':method,'params':params})
  if 'error' in result or 'result' not in result:raise RuntimeError('RPC failed')
  return result['result']
+def keeper_status():
+ """Return True/False only for a successfully retrieved, recognized state."""
+ try:
+  check=subprocess.run(['systemctl','--system','show','fti-continuity-keeper.service','--property=ActiveState','--value'],timeout=10,text=True,capture_output=True)
+ except (OSError,subprocess.TimeoutExpired):return None
+ if check.returncode!=0:return None
+ state=check.stdout.strip()
+ if state=='active':return True
+ if state in {'inactive','failed'}:return False
+ # Transitional, missing or unfamiliar states are not proof of inactivity.
+ return None
 def evaluate(state,head,balance,keeper_active,previous,now):
  alerts=[];age=head-int(state['timestamp'])
  if not -30<=age<=120:alerts.append('API_STALE')
- if not keeper_active:alerts.append('KEEPER_SERVICE_INACTIVE')
+ if keeper_active is None:alerts.append('KEEPER_SERVICE_STATUS_UNKNOWN')
+ elif keeper_active is False:alerts.append('KEEPER_SERVICE_INACTIVE')
  if balance<10**15:alerts.append('KEEPER_GAS_LOW')
  if int(state['phase'])==0 and head-int(state['epochEnd'])>300:alerts.append('SETTLEMENT_OVERDUE')
  progress=[str(state.get(k,'')) for k in ['epoch','phase','cursor','monthPhase','jobCursor','jobCount','rewardQueue']]
  since=previous.get('since',now) if previous.get('progress')==progress else now
  work=int(state['phase'])!=0 or int(state['monthPhase'])!=0 or int(state.get('rewardQueue',0))>0 or int(state.get('jobCount',0))>int(state.get('jobCursor',0))
  if work and now-since>600:alerts.append('SETTLEMENT_NO_PROGRESS')
- result={'result':'FTI_MONITOR_ALERT' if alerts else 'FTI_MONITOR_OK','alerts':alerts,'epoch':state['epoch'],'phase':state['phase'],'rewardQueue':state.get('rewardQueue'),'apiAgeSeconds':age,'keeperBalanceWei':str(balance),'transactionsSent':0,'checkedAt':now}
+ result={'result':'FTI_MONITOR_ALERT' if alerts else 'FTI_MONITOR_OK','alerts':alerts,'epoch':state['epoch'],'phase':state['phase'],'rewardQueue':state.get('rewardQueue'),'apiAgeSeconds':age,'keeperServiceStatus':'unknown' if keeper_active is None else ('active' if keeper_active else 'inactive'),'keeperBalanceWei':str(balance),'transactionsSent':0,'checkedAt':now}
  return result,{'progress':progress,'since':since}
 def main():
  p=argparse.ArgumentParser();p.add_argument('--state-dir',default='/var/lib/fti-monitor');a=p.parse_args();directory=Path(a.state_dir);directory.mkdir(parents=True,exist_ok=True)
  try:
   if int(rpc('eth_chainId',[]),16)!=56:raise RuntimeError('Wrong chain')
   state=request('https://ftiprotocol.com/api/state');head=int(rpc('eth_getBlockByNumber',['latest',False])['timestamp'],16);balance=int(rpc('eth_getBalance',[KEEPER,'latest']),16)
-  active=subprocess.run(['systemctl','is-active','--quiet','fti-continuity-keeper.service'],timeout=10).returncode==0
+  active=keeper_status()
   prior=directory/'progress.json';previous=json.loads(prior.read_text()) if prior.exists() else {}
   result,progress=evaluate(state,head,balance,active,previous,int(time.time()))
   tmp=directory/'progress.tmp';tmp.write_text(json.dumps(progress));os.replace(tmp,prior)
