@@ -15,6 +15,11 @@ test('speed-up succeeds but cancellation never claims success',async()=>{
  for(const cancelled of [false,true]){const {tracker}=fixture();const result=confirmedReceipt({hash,wait:async()=>{throw {code:'TRANSACTION_REPLACED',cancelled,receipt:{status:1}};}},tracker);if(cancelled)await assert.rejects(result,/cancelled/);else assert.equal((await result).status,1);assert.equal(tracker.read(),null);}
 });
 test('pending records are scoped to chain and wallet',()=>{const {storage,tracker}=fixture();tracker.save(hash);assert.equal(transactionState(storage,97,'0xABC').read(),null);assert.equal(transactionState(storage,56,'0xDEF').read(),null);});
+test('the final mined replacement hash remains available after its pending lock clears',async()=>{
+ const {storage,tracker}=fixture(),replacement='0x'+'b'.repeat(64);
+ await confirmedReceipt({hash,wait:async()=>{throw {code:'TRANSACTION_REPLACED',receipt:{hash:replacement,status:1}};}},tracker);
+ const reload=transactionState(storage,56,'0xabc');assert.equal(reload.read(),null);assert.equal(reload.last(),replacement);
+});
 
 test('unknown send survives reload, blocks another send, and never clears on nonce movement alone',async()=>{
  const {submitTracked,reconcileUnknown}=await import('../frontend/transaction-state.js');const {storage,tracker}=fixture();

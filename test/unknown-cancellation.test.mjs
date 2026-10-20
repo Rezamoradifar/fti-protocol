@@ -29,3 +29,9 @@ test('wallet changes requested nonce: never claims successful cancellation',asyn
  const f=fixture();f.signer.sendTransaction=async request=>({...request,from:address,hash,nonce:1});
  await assert.rejects(cancelUnknown(f.tracker,f.provider,f.signer,address,56),/differ/);assert.equal(f.tracker.read(),'unknown:0');
 });
+test('a validated cancellation hash is available for display before receipt confirmation',async()=>{
+ const f=fixture();let displayed,waiting=false;
+ f.signer.sendTransaction=async request=>({...request,from:address,hash,wait:async()=>{waiting=true;assert.equal(displayed,hash);throw Error('timeout');}});
+ await assert.rejects(cancelUnknown(f.tracker,f.provider,f.signer,address,56,value=>{displayed=value;assert.equal(f.tracker.read(),hash);assert.equal(waiting,false);}));
+ assert.equal(displayed,hash);assert.equal(f.tracker.read(),hash);assert.equal(f.tracker.last(),hash);
+});
