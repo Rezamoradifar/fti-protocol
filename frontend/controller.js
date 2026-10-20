@@ -334,43 +334,56 @@ async function approve(spender,amount){
  transactionStage='ALLOWANCE';const current=await read.usd.allowance(address,spender);
  if(current<amount){status(networkProfile.testAssets?'Approve test USD spending in your wallet.':'Approve collateral spending in your wallet.');if(current>0n)await sendContract('usd','approve',spender,0);await sendContract('usd','approve',spender,amount);}
 }
-let walletProvider,providerListeners,selectedWallet;
-function clearWallet(){stopPendingChecks();review.cancel();$('#unknown-send-form').hidden=true;$('#cancel-unknown').hidden=false;const smartHelp=$('#smart-account-help');if(smartHelp)smartHelp.hidden=true;const description=$('#pending-cancellation-description');if(description)description.textContent=t('Cancellation only costs the network fee; it does not buy units.','لغو درخواست فقط کارمزد شبکه دارد و خرید یونیت نیست.');const details=$('#transaction-recovery-details');if(details)details.open=false;hashView.hide();$('#unknown-send-form').elements.hash.value='';$('#hash-lookup-result').textContent='';const local=$('#membership-flow-status');if(local)local.hidden=true;signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
+let walletProvider,providerListeners,selectedWallet,walletGeneration=0;
+function clearWallet(){walletGeneration++;selectedWallet=null;try{sessionStorage.removeItem('fti-wallet-connected');}catch{}stopPendingChecks();review.cancel();$('#unknown-send-form').hidden=true;$('#cancel-unknown').hidden=false;const smartHelp=$('#smart-account-help');if(smartHelp)smartHelp.hidden=true;const description=$('#pending-cancellation-description');if(description)description.textContent=t('Cancellation only costs the network fee; it does not buy units.','لغو درخواست فقط کارمزد شبکه دارد و خرید یونیت نیست.');const details=$('#transaction-recovery-details');if(details)details.open=false;hashView.hide();$('#unknown-send-form').elements.hash.value='';$('#hash-lookup-result').textContent='';const local=$('#membership-flow-status');if(local)local.hidden=true;signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
 function detachWallet(){if(providerListeners){walletProvider?.removeListener?.('accountsChanged',providerListeners.accounts);walletProvider?.removeListener?.('chainChanged',providerListeners.chain);walletProvider?.removeListener?.('disconnect',providerListeners.disconnect);}providerListeners=null;walletProvider=null;}
 function observeWallet(provider){
  detachWallet();walletProvider=provider;
- const reset=()=>{try{sessionStorage.removeItem('fti-wallet-connected');}catch{}clearWallet();status('Wallet account changed. Connect to continue.');refresh().catch(e=>status(reason(e),true));};
- providerListeners={accounts:reset,chain:()=>location.reload(),disconnect:reset};
+ const reset=()=>{detachWallet();clearWallet();const generation=walletGeneration;status('Wallet account changed. Connect to continue.');refresh().catch(e=>{if(walletGeneration===generation&&!address)status(reason(e),true);});};
+ providerListeners={accounts:reset,chain:()=>{detachWallet();clearWallet();location.reload();},disconnect:reset};
  provider.on?.('accountsChanged',providerListeners.accounts);provider.on?.('chainChanged',providerListeners.chain);provider.on?.('disconnect',providerListeners.disconnect);
 }
 async function connect({silent=false}={}){
  if(connecting||busy)return;if(signer&&address){status('Wallet already connected.');return;}connecting=true;syncActions();
  text('connect-label',t('Connecting…','در حال اتصال…'));
+ let generation=walletGeneration,attemptProvider,observed=false;
+ const current=()=>walletGeneration===generation&&(!observed||walletProvider===attemptProvider);
  try{
   let nextSigner;
   if(cfg.mode==='local')nextSigner=await rpc.getSigner($('#local-accounts').value);
   else{
    const selected=await chooseWallet({silent,authorize:!silent,projectId:cfg.walletConnectProjectId,chainId:cfg.chainId});if(!selected)return;
-   detachWallet();clearWallet();const injected=selected.provider;
+   if(!current())return;
+   detachWallet();clearWallet();generation=walletGeneration;const injected=selected.provider;attemptProvider=injected;
+   text('connect-label',t('Connecting…','در حال اتصال…'));
    if(!silent)status(t('Confirm connection in your wallet.','اتصال را داخل ولت تأیید کن.'));
    const accounts=await requestWalletAccounts(selected,silent);if(!Array.isArray(accounts)||!accounts.every(isAddress))throw Error('The wallet did not return a valid account.');if(!accounts.length)return;
+   if(!current())return;
    const chain=Number(await preparationDeadline(injected.request({method:'eth_chainId'}),10000));
+   if(!current())return;
    if(chain!==cfg.chainId){if(silent)throw Error('Switch your wallet to '+networkProfile.name+' and connect again.');try{await preparationDeadline(injected.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]}),60000);}catch{throw Error('Switch your wallet to '+networkProfile.name+' (chain ID '+cfg.chainId+'), then connect again.');}}
+   if(!current())return;
    const provider=new BrowserProvider(injected);if(Number((await preparationDeadline(provider.getNetwork())).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');
+   if(!current())return;
+   // Observe before the final identity read so an account/network change cannot
+   // slip between verification and committing the connected signer.
+   observeWallet(injected);observed=true;
    await readWalletIdentity(injected,accounts[0],cfg.chainId);
+   if(!current())return;
    // The selected wallet already granted this account. Do not let getSigner()
    // issue a second permission prompt after the original click has finished.
-   nextSigner=new JsonRpcSigner(provider,accounts[0]);observeWallet(injected);selectedWallet=selected;
+   nextSigner=new JsonRpcSigner(provider,accounts[0]);selectedWallet=selected;
   }
-  const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',(selectedWallet?.name?selectedWallet.name+' · ':'')+short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}
+  const nextAddress=await nextSigner.getAddress();if(!current())return;if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',(selectedWallet?.name?selectedWallet.name+' · ':'')+short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}
   let saved;try{saved=transactionState(localStorage,cfg.chainId,nextAddress);}catch{}
   hashView.restore(saved);$('#unknown-send-form').hidden=!saved?.read()?.startsWith('unknown:');
   let partialData=false;
-  try{await refresh();}catch{await (v3Model&&(surface==='token'||location.hash==='#trade')?refreshTokenState():refreshMembershipState());partialData=true;}
+  try{await refresh();}catch{if(!current()||signer!==nextSigner||address!==nextAddress)return;await (v3Model&&(surface==='token'||location.hash==='#trade')?refreshTokenState():refreshMembershipState());partialData=true;}
+  if(!current()||signer!==nextSigner||address!==nextAddress)return;
   if(saved?.read()?.startsWith('unknown:')){
    status(t('Checking the previous request automatically.','در حال بررسی خودکار درخواست قبلی…'));
   }else status(partialData?t('Wallet connected. Purchase data is ready.','ولت متصل شد؛ اطلاعات لازم خرید آماده است.'):'Wallet connected. Contract data loaded.');
- }catch(error){status(error.code==='FTI_WALLET_AUTHORIZATION_TIMEOUT'?t('The wallet has not answered the connection request yet. Check its connection window, then press Connect to continue waiting.','ولت هنوز به درخواست اتصال پاسخ نداده است. پنجرهٔ اتصال را داخل ولت بررسی کن؛ با زدن اتصال، همان درخواست پیگیری می‌شود.'):purchaseError('CONNECT',error),true);}finally{connecting=false;if(!address)text('connect-label','Connect wallet');syncActions();startPendingChecks();}
+ }catch(error){if(current()){detachWallet();clearWallet();status(error.code==='FTI_WALLET_AUTHORIZATION_TIMEOUT'?t('The wallet has not answered the connection request yet. Check its connection window, then press Connect to continue waiting.','ولت هنوز به درخواست اتصال پاسخ نداده است. پنجرهٔ اتصال را داخل ولت بررسی کن؛ با زدن اتصال، همان درخواست پیگیری می‌شود.'):purchaseError('CONNECT',error),true);}}finally{connecting=false;if(!address)text('connect-label','Connect wallet');syncActions();startPendingChecks();}
 }
 $('#connect').onclick=()=>connect();
 $('#disconnect').onclick=async()=>{

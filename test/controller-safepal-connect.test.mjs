@@ -8,29 +8,29 @@ const source=fs.readFileSync(new URL('../frontend/controller.js',import.meta.url
 const start=source.indexOf('async function connect('),end=source.indexOf("$('#connect').onclick=",start);
 const address='0x'+'1'.repeat(40),other='0x'+'2'.repeat(40);
 function fixture({silent=false,selection=true,accounts=[address],permissionError,chain='0x38',currentAccounts=accounts}={}){
- const calls=[],labels=[],messages=[],storage=new Map(),nodes={'unknown-send-form':{hidden:true}};
- let fallback=0,signers=0;
+ const calls=[],labels=[],messages=[],storage=new Map(),nodes={'unknown-send-form':{hidden:true}},listeners=new Map();
+ let fallback=0,signers=0,detached=0;
  const selected={name:'SafePal',id:'safepal',provider:{request:async request=>{
   calls.push(request.method);
   if(request.method==='eth_chainId')return chain;
   if(request.method==='eth_accounts')return currentAccounts;
   if(request.method==='wallet_switchEthereumChain')throw Error('User rejected network switch');
   assert.fail('No wallet permissions or transactions may be requested outside the selector');
- }}};
- const context={connecting:false,busy:false,signer:null,address:null,selectedWallet:null,walletProvider:null,autoDirty:false,councilOwner:false,
+ },on:(name,fn)=>listeners.set(name,fn),removeListener:(name,fn)=>{if(listeners.get(name)===fn)listeners.delete(name);}}};
+ const context={connecting:false,busy:false,signer:null,address:null,selectedWallet:null,walletProvider:null,walletGeneration:0,autoDirty:false,councilOwner:false,
   cfg:{mode:'bnb-mainnet',chainId:56,tokenContract:'FTIReserveTokenUpgradeable'},networkProfile:{name:'BNB Smart Chain'},v3Model:true,surface:'member',location:{hash:'#network'},
   syncActions(){},text:(id,value)=>labels.push([id,value]),status:(value,error)=>messages.push([value,error]),t:value=>value,short:value=>value.slice(0,6)+'…'+value.slice(-4),
   chooseWallet:async options=>{calls.push(['choose',options]);return selection?selected:null;},
   requestWalletAccounts:async(value,quiet)=>{assert.equal(value,selected);assert.equal(quiet,silent);if(permissionError)throw permissionError;return accounts;},
-  detachWallet(){},clearWallet(){context.signer=null;context.address=null;},
+  detachWallet(){detached++;context.walletProvider=null;listeners.clear();},clearWallet(){context.walletGeneration++;context.selectedWallet=null;context.signer=null;context.address=null;storage.delete('fti-wallet-connected');},
   BrowserProvider:class{async getNetwork(){return {chainId:56n};}getSigner(){assert.fail('getSigner must not issue another permission request');}},
   JsonRpcSigner:class{constructor(provider,account){signers++;this.account=account;}async getAddress(){return this.account;}},
-  observeWallet:provider=>{context.walletProvider=provider;},preparationDeadline,readWalletIdentity,isAddress,
+  observeWallet:provider=>{context.walletProvider=provider;listeners.set('accountsChanged',()=>{context.detachWallet();context.clearWallet();});},preparationDeadline,readWalletIdentity,isAddress,
   sessionStorage:{setItem:(key,value)=>storage.set(key,value)},localStorage:{},transactionState:()=>({read:()=>null}),hashView:{restore(){}},$:selector=>nodes[selector.slice(1)],
   refresh:async()=>{throw Error('Contract data service HTTP 400');},refreshMembershipState:async()=>{fallback++;},refreshTokenState:async()=>assert.fail('Member connection uses membership data'),
   purchaseError:(_,error)=>error.message,startPendingChecks(){}};
  vm.runInNewContext(source.slice(start,end),context);
- return {context,calls,labels,messages,storage,signers:()=>signers,fallback:()=>fallback,run:()=>context.connect({silent})};
+ return {context,calls,labels,messages,storage,listeners,detached:()=>detached,signers:()=>signers,fallback:()=>fallback,run:()=>context.connect({silent})};
 }
 test('actual SafePal connection asks the selector to authorize and uses its granted account without a second signer permission',async()=>{
  const f=fixture();await f.run();
@@ -60,4 +60,24 @@ test('malformed, empty or changed accounts cannot become a connected signer',asy
 });
 test('network-switch rejection leaves no connected signer and performs no permission retry',async()=>{
  const f=fixture({chain:'0x1'});await f.run();assert.equal(f.context.address,null);assert.equal(f.signers(),0);assert.equal(f.calls.filter(x=>x==='wallet_switchEthereumChain').length,1);assert(!f.calls.includes('eth_requestAccounts'));
+});
+test('an account reset while the signer address is awaited cannot commit the stale granted account',async()=>{
+ const f=fixture();f.context.JsonRpcSigner=class{constructor(provider,account){this.account=account;}async getAddress(){f.listeners.get('accountsChanged')();return this.account;}};
+ await f.run();assert.equal(f.context.address,null);assert.equal(f.context.signer,null);assert.equal(f.context.selectedWallet,null);
+ assert.equal(f.storage.has('fti-wallet-connected'),false);assert.equal(f.context.connecting,false);assert.equal(f.listeners.size,0);
+ assert(!f.messages.some(([value])=>value.startsWith('Wallet connected.')));
+});
+test('observers are installed before the final identity read and an in-flight account reset aborts connection',async()=>{
+ const f=fixture();f.context.readWalletIdentity=async()=>{assert.equal(f.listeners.has('accountsChanged'),true);f.listeners.get('accountsChanged')();};
+ await f.run();assert.equal(f.context.address,null);assert.equal(f.signers(),0);assert.equal(f.storage.size,0);assert.equal(f.listeners.size,0);
+});
+test('a reset during dashboard loading cannot trigger fallback or overwrite the reset with connected status',async()=>{
+ const f=fixture();f.context.refresh=async()=>{f.listeners.get('accountsChanged')();throw Error('old dashboard response');};
+ await f.run();assert.equal(f.context.address,null);assert.equal(f.storage.has('fti-wallet-connected'),false);assert.equal(f.fallback(),0);
+ assert(!f.messages.some(([value])=>value.startsWith('Wallet connected.')));
+});
+test('identity rejection after observer registration detaches the failed provider and clears its session',async()=>{
+ const f=fixture({currentAccounts:[other]});await f.run();
+ assert.equal(f.context.walletProvider,null);assert.equal(f.context.selectedWallet,null);assert.equal(f.listeners.size,0);
+ assert.equal(f.context.address,null);assert.equal(f.storage.size,0);assert(f.detached()>=2);
 });

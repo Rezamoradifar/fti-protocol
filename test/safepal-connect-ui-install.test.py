@@ -185,12 +185,12 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(actual, m.BASE_PREFIX)
         self.assertEqual(len(PRODUCTION_BASE), 113)
 
-    def test_only_verified_smart_cancellation_baseline_is_accepted(self):
-        self.assertEqual(m.BASE_PREFIX, 'fti-mainnet-ui-3fe4788a7ebeef12')
+    def test_only_verified_installed_safepal_baseline_is_accepted(self):
+        self.assertEqual(m.BASE_PREFIX, 'fti-mainnet-ui-9d1cb38dba79fd30')
         self.assertEqual(PRODUCTION_BASE['app.js'],
-            '0743fddbc01f8d295464ea58cb340f4513f187ceb7fa5e04ab018bd211c33a78')
+            '7b9b69fe487fe7f8da4872ff08623762e961cc63abe0e91257568a2f7bd8b81f')
         self.write('web/index.html', self.before.replace(m.BASE_PREFIX.encode(),
-            b'fti-mainnet-ui-fb3a53c530ab256b'))
+            b'fti-mainnet-ui-3fe4788a7ebeef12'))
         with self.assertRaisesRegex(RuntimeError, 'Unexpected installed asset URL'):
             m.apply(self.release)
         self.assertFalse(self.backups.exists())
