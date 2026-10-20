@@ -14,6 +14,9 @@ import solc from 'solc';
 import {BrowserProvider,Contract,ContractFactory,keccak256,AbiCoder,parseEther,MaxUint256} from 'ethers';
 import {artifact,checkAccounting} from '../scripts/lib.mjs';
 import {validateMainnetInput,prepareMainnet} from '../scripts/prepare-mainnet.mjs';
+import {loadWallets} from '../scripts/v3-wallets.mjs';
+import {APPROVED_MAINNET_PROFILE} from '../scripts/approved-mainnet-profile.mjs';
+import {assertFreshGenesisLayout} from '../scripts/approved-genesis-layout.mjs';
 import {freshDigest} from '../scripts/fresh-testnet.mjs';
 
 const address=n=>'0x'+n.toString(16).padStart(40,'0');
@@ -33,15 +36,20 @@ test('mainnet planning requires explicit public inputs; cannot reuse testnet def
   assert.notEqual(spawnSync(process.execPath,['scripts/prepare-mainnet.mjs',...args],{encoding:'utf8'}).status,0);
  }
 });
-test('unsigned chain-56 plan makes no writes and its exact payloads deploy the approved contract model on a local EVM',{timeout:180000},async()=>{
+test('unsigned chain-56 plan makes no writes and its exact payloads deploy the approved contract model on a local EVM',{timeout:300000},async()=>{
  // Chain ID 56 is simulated locally; this test never connects to BNB mainnet.
- const chainServer=ganache.server({chain:{chainId:56},logging:{quiet:true},wallet:{totalAccounts:40},miner:{blockGasLimit:30000000}});
+ const approved=loadWallets();
+ const chainServer=ganache.server({chain:{chainId:56},logging:{quiet:true},wallet:{totalAccounts:40,unlockedAccounts:approved.genesis},miner:{blockGasLimit:30000000}});
  await chainServer.listen(0,'127.0.0.1');const engine=chainServer.provider;
  const provider=new BrowserProvider(engine,undefined,{cacheTimeout:-1});provider.pollingInterval=10;
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fti-mainnet-integration-'));let web;
  const previousEnv=Object.fromEntries(['RPC_URL','PORT','HOST'].map(k=>[k,process.env[k]]));
  try{
   const w=await Promise.all(Array.from({length:40},(_,i)=>provider.getSigner(i))),a=await Promise.all(w.map(x=>x.getAddress()));
+  for(let i=0;i<31;i++){
+   await engine.request({method:'evm_setAccountBalance',params:[approved.genesis[i],'0x56bc75e2d63100000']});
+   w[i]=await provider.getSigner(approved.genesis[i]);a[i]=approved.genesis[i];
+  }
   // MockUSD intentionally refuses chain 56. Keep that guard intact and compile
   // a local-only fixture here; this artifact never enters production artifacts.
   const compiled=JSON.parse(solc.compile(JSON.stringify({language:'Solidity',sources:{'LocalCollateral.sol':{content:
@@ -51,7 +59,7 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   assert(!compiled.errors?.some(e=>e.severity==='error'));
   const usdArtifact=compiled.contracts['LocalCollateral.sol'].LocalCollateral;
   const usd=await new ContractFactory(usdArtifact.abi,'0x'+usdArtifact.evm.bytecode.object,w[39]).deploy();await usd.waitForDeployment();
-  const input={...valid(),deployer:a[38],development:a[39],usd:usd.target,usdCodeHash:keccak256(await provider.getCode(usd.target)),partners:a.slice(31,38),genesis:a.slice(0,31)};
+  const input={...valid(),deployer:a[38],development:approved.development,owner:approved.owner,walletProfile:APPROVED_MAINNET_PROFILE,usd:usd.target,usdCodeHash:keccak256(await provider.getCode(usd.target)),partners:a.slice(31,38),genesis:a.slice(0,31)};
   const nonce=await provider.getTransactionCount(a[38]),balance=await provider.getBalance(a[38]);
   const plan=await prepareMainnet({provider,input});
   assert.equal(plan.transactions.length,7);assert.equal(plan.readyToBroadcast,false);
@@ -69,11 +77,11 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   const pending=new Proxy(provider,{get:(target,key)=>key==='getTransactionCount'?async(address,tag)=>tag==='pending'?nonce+1:nonce:typeof target[key]==='function'?target[key].bind(target):target[key]});
   await assert.rejects(()=>prepareMainnet({provider:pending,input}),/pending deployer/);
   // ONLY this local test explicitly submits the generated payloads, with local signers.
-  const transactions={};
+  const transactions={},deploymentGas={};
   for(const step of plan.transactions){
    assert.equal(step.dataHash,keccak256(step.data));
    const tx={chainId:step.chainId,nonce:step.nonce,value:0n,data:step.data,...(step.to?{to:step.to}:{})};
-   const sent=await w[38].sendTransaction(tx),receipt=await sent.wait();transactions[step.name]=sent.hash;assert.equal(receipt.status,1);
+   const sent=await w[38].sendTransaction(tx),receipt=await sent.wait();transactions[step.name]=sent.hash;deploymentGas[step.name]=String(receipt.gasUsed);assert.equal(receipt.status,1);
    if(!step.to)assert.equal(receipt.contractAddress,plan.addresses[step.name]);
   }
   const contract=(key,name)=>new Contract(plan.addresses[key],artifact(name).abi,provider);
@@ -81,13 +89,19 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   const council=contract('council','SevenGuardianCouncil'),timelock=contract('timelock','FTITimelock');
   assert.equal(await binary.usd(),usd.target);assert.equal(await token.usd(),usd.target);
   assert.equal(await binary.token(),token.target);assert.equal(await token.binary(),binary.target);
-  assert.equal(await binary.development(),a[39]);assert.equal(await token.development(),a[39]);
+  assert.equal(await binary.development(),approved.development);assert.equal(await token.development(),approved.development);
   assert.equal(await binary.governance(),timelock.target);assert.equal(await token.governance(),timelock.target);
   assert.equal(await council.THRESHOLD(),5n);assert.equal(await timelock.getMinDelay(),259200n);
   for(let i=0;i<7;i++)assert.equal(await council.guardians(i),input.partners[i]);
+  assert.equal(await assertFreshGenesisLayout(binary,input.genesis),'FTI_GENESIS_1_2_4_8_8_8_20261016');
   assert.equal(await binary.memberCount(),31n);assert.equal(await binary.hourlyCapFlushVersion(),1n);
   assert.equal(await binary.poolDistributionVersion(),1n);
-  for(const wallet of input.genesis)assert.equal((await binary.members(wallet)).units,0n);
+  for(let i=0;i<31;i++){
+   assert.equal((await binary.memberList(i)).toLowerCase(),approved.genesis[i].toLowerCase());
+   assert.equal(await binary.unitsOf(approved.genesis[i]),0n);
+   assert.equal(await binary.activatedAtSerial(approved.genesis[i]),0n);
+  }
+  for(const role of [approved.owner,approved.development,input.deployer])assert.equal(await binary.registered(role),false);
   assert.equal(await token.totalSupply(),0n);assert.equal(await token.reserve(),0n);assert.equal(await token.supportReserve(),0n);
   await checkAccounting({binary,token});
   await assert.rejects(()=>finalizeMainnet({provider,plan,transactions,confirmations:1000}),/confirmations/);
@@ -97,12 +111,24 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   assert.equal(cfg.mode,'bnb-mainnet');assert.equal(cfg.importedUsers,0);
   assert.equal(cfg.poolDistributionVersion,1);assert.equal(cfg.rewardModel,'hourly-global-pool-v2');
   assert(!('rpcUrl' in cfg));
+  assert.equal(cfg.owner,approved.owner);assert.equal(cfg.walletProfile,APPROVED_MAINNET_PROFILE);
   await verifyOperationalDeployment(cfg,provider);
   await assert.rejects(()=>verifyOperationalDeployment({...cfg,release:'FTI_CONTINUITY_TESTNET_20261009'},provider),/mainnet release/);
   await assert.rejects(()=>verifyOperationalDeployment({...cfg,codeHashes:{...cfg.codeHashes,usd:'0x'+'0'.repeat(64)}},provider),/code mismatch/);
   const sourceFile=path.join(directory,'deployment.json');fs.writeFileSync(sourceFile,JSON.stringify(cfg));
   process.env.RPC_URL='http://127.0.0.1:'+chainServer.address().port;process.env.PORT='0';process.env.HOST='127.0.0.1';
   web=await startWeb(sourceFile);const base='http://127.0.0.1:'+web.address().port;
+  for(const route of ['/','/token-site/','/whitepaper/','/roadmap/']){
+   const response=await fetch(base+route);assert.equal(response.status,200);
+   const html=await response.text();
+   for(const asset of [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map(m=>m[1])){
+    const response=await fetch(base+asset);assert.equal(response.status,200,'Hashed route asset: '+asset);
+    assert.match(response.headers.get('content-type'),asset.endsWith('.js')?/javascript/:/text\/css/);
+   }
+  }
+  assert.equal((await fetch(base+'/assets/missing.js')).status,404);
+  const suggestion=await(await fetch(base+'/api/placement?referrer='+a[0])).json();
+  assert.equal(suggestion.placementParent,a[7]);assert.equal(suggestion.side,'right');
   const publicCfg=await(await fetch(base+'/api/config')).json();assert.equal(publicCfg.network.chainId,56);assert.equal(publicCfg.network.testAssets,false);assert.equal(publicCfg.hourlyCapFlushVersion,1);assert.equal(publicCfg.referralPlacementEnabled,true);
   assert.equal(publicCfg.poolDistributionVersion,1);
   const abi=await(await fetch(base+'/abi/Collateral')).json();assert(abi.every(x=>!String(x).includes('faucet')));
@@ -148,6 +174,19 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   await keeperStep(operator,provider,{batchedRewards:true});
   assert.equal(await usd.balanceOf(a[0])-walletCash,hourlyPool,'No duplicate hourly payment');
   await checkAccounting({binary,token});
-  console.log('FTI_MAINNET_PAYLOAD_LOCAL_TEST_PASS',JSON.stringify({scope:'LOCAL_EVM_WITH_CHAIN_ID_56_NOT_MAINNET',transactions:7,existingCollateral:true,generatedKeys:0,importedUsers:0,verifiedRuntime:true,webMainnet:true,keeper:true,monitor:true,buySellTransfer:true,poolDistributionVersion:1,fullHourlyPoolPaid:true,noDuplicatePayout:true}));
+  // Every remaining approved position must pay the same ordinary unit price.
+  for(let i=3;i<31;i++){
+   await sent(usd.mintTo(a[i],parseEther('100')));
+   await sent(usd.connect(w[i]).approve(binary.target,MaxUint256));
+   const before=await usd.balanceOf(a[i]);
+   await sent(binary.connect(w[i]).addUnits(1));
+   assert.equal(before-await usd.balanceOf(a[i]),parseEther('100'));
+  }
+  for(let i=0;i<31;i++){assert.equal(await binary.unitsOf(approved.genesis[i]),1n);assert((await binary.activatedAtSerial(approved.genesis[i]))>0n);}
+  for(const role of [approved.owner,approved.development])assert.equal(await binary.registered(role),false);
+  assert.equal(await binary.pendingReward(approved.owner),0n);
+  await checkAccounting({binary,token});
+  await assert.rejects(()=>finalizeMainnet({provider,plan,transactions,confirmations:1}),/must remain unpaid/);
+  console.log('FTI_MAINNET_PAYLOAD_LOCAL_TEST_PASS',JSON.stringify({scope:'LOCAL_EVM_WITH_CHAIN_ID_56_NOT_MAINNET',transactions:7,deploymentGas,approvedPositionsPaid:31,externalRolesExcluded:true,existingCollateral:true,generatedKeys:0,importedUsers:0,verifiedRuntime:true,webMainnet:true,keeper:true,monitor:true,buySellTransfer:true,poolDistributionVersion:1,fullHourlyPoolPaid:true,noDuplicatePayout:true}));
  }finally{if(web)await new Promise(resolve=>web.close(resolve));await chainServer.close();fs.rmSync(directory,{recursive:true,force:true});for(const[k,v]of Object.entries(previousEnv)){if(v===undefined)delete process.env[k];else process.env[k]=v;}}
 });

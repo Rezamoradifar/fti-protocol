@@ -1,0 +1,9 @@
+# FTI language continuity and translations
+
+The landing previously reduced stored language preferences to Persian or English, so Arabic, Turkish and Simplified Chinese selections did not survive navigation. The landing now shares the workspace language policy, including URL preference, referral/hash preservation and RTL for Arabic. Persian remains the default when no preference exists.
+
+Expanded local Arabic, Turkish and Simplified Chinese catalogs cover landing explanations, public documents, membership/trading workflows and status messages. English remains the source copy. Chinese font subsets are bundled locally for landing, public documents and workspace so devices without CJK fonts can render the text. Font requests are limited by CSS unicode ranges. Raw wallet/RPC errors and contract addresses remain unchanged.
+
+Validation: web and landing production builds; 59 Chromium browser cases covering Persian/English regressions and four requested languages, widths 320/390/768/1440, both themes, menus, links, documents and language persistence; four catalog/policy unit tests. After adding the local Chinese font, the 34 language cases were rerun with an explicit font-loaded assertion and mobile screenshot inspection. These are local browser checks with read-only API fixtures, not mainnet transaction tests or physical iPhone Safari verification.
+
+Install both `tools/update-mainnet-landing.sh` and `tools/update-mainnet-ui.sh` from the same pinned source revision. Existing installation scripts create backups and verify installed assets; retain their printed rollback commands. No contracts, economic logic, backend service or Keeper configuration are changed by this update. Production installation and browser verification remain pending until the operator installs this release and checks the live domain.

@@ -17,6 +17,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix landing
       - run: npm run compile
       - run: npm run build:web
+      - run: npm run build --prefix landing
       - run: node --test --test-concurrency=2 test/hourly-cap-*.test.mjs test/referral-layout.test.mjs test/referral-placement-contract.test.mjs test/global-builder-controls.test.mjs test/continuity-upgrade.test.mjs test/address-migration*.test.mjs test/fresh-testnet.test.mjs test/mainnet-preparation.test.mjs

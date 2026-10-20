@@ -1,16 +1,27 @@
+import {approvedGenesisLayout} from './approved-genesis-layout.mjs';
 import {firstOpenSlot,ZERO_ADDRESS} from '../core/referral-placement.mjs';
 const canonical=a=>String(a).toLowerCase();
 const exactAddress=a=>/^0x[a-fA-F0-9]{40}$/.test(a);
 
 // Reconstructs the current binary tree from the deterministic 31 Genesis
 // positions and actual Registered receipts. No private keys and no mutations.
-export function genesisPlacementIndex(genesis){
+export const LEGACY_GENESIS_LAYOUT='FTI_GENESIS_COMPLETE_31_V1';
+export async function detectGenesisPlacementLayout(genesis,binary){
+ const member=await binary.members(genesis[16]);
+ if(canonical(member.parent)===canonical(genesis[8]))return approvedGenesisLayout().id;
+ if(canonical(member.parent)===canonical(genesis[7]))return LEGACY_GENESIS_LAYOUT;
+ throw Error('UNSUPPORTED_GENESIS_LAYOUT');
+}
+export function genesisPlacementIndex(genesis,genesisLayout=LEGACY_GENESIS_LAYOUT){
  if(!Array.isArray(genesis)||genesis.length!==31||genesis.some(a=>!exactAddress(a))||new Set(genesis.map(canonical)).size!==31)throw Error('INVALID_GENESIS_INDEX');
+ const approved=genesisLayout===LEGACY_GENESIS_LAYOUT?null:approvedGenesisLayout();
+ if(approved&&genesisLayout!==approved.id)throw Error('UNSUPPORTED_GENESIS_LAYOUT');
  const nodes=new Map();
- for(let i=0;i<genesis.length;i++)nodes.set(canonical(genesis[i]),{wallet:genesis[i],exists:true,parent:i?genesis[Math.floor((i-1)/2)]:ZERO_ADDRESS,left:ZERO_ADDRESS,right:ZERO_ADDRESS,depth:i?Math.floor(Math.log2(i+1)):0});
- for(let i=1;i<genesis.length;i++){
-  const parent=nodes.get(canonical(genesis[Math.floor((i-1)/2)]));
-  parent[i%2?'left':'right']=genesis[i];
+ for(let i=0;i<genesis.length;i++){
+  const n=approved?approved.positions[i].parent:i?Math.floor((i-1)/2)+1:null;
+  const parent=n===null?ZERO_ADDRESS:genesis[n-1];
+  nodes.set(canonical(genesis[i]),{wallet:genesis[i],exists:true,parent,left:ZERO_ADDRESS,right:ZERO_ADDRESS,depth:n===null?0:nodes.get(canonical(parent)).depth+1});
+  if(n!==null)nodes.get(canonical(parent))[approved?approved.positions[i].side:i%2?'left':'right']=genesis[i];
  }
  function append(wallet,parentAddress){
   if(!exactAddress(wallet)||!exactAddress(parentAddress)||canonical(wallet)===canonical(parentAddress)||nodes.has(canonical(wallet)))throw Error('INVALID_REGISTRATION_EVENT');
@@ -24,16 +35,16 @@ export function genesisPlacementIndex(genesis){
   async choose(referrer){return firstOpenSlot(referrer,a=>nodes.get(canonical(a)),{maxNodes:1000000});}};
 }
 
-export function networkPlacementIndexer({genesis,binary,provider,startBlock,chunkSize=1500}){
+export function networkPlacementIndexer({genesis,genesisLayout=LEGACY_GENESIS_LAYOUT,binary,provider,startBlock,chunkSize=1500}){
  if(!Number.isSafeInteger(startBlock)||startBlock<1)throw Error('INVALID_CREATION_BLOCK');
  if(!Number.isSafeInteger(chunkSize)||chunkSize<100||chunkSize>10000)throw Error('INVALID_LOG_CHUNK_SIZE');
  const topic=binary.interface.getEvent('Registered').topicHash;
- let index=genesisPlacementIndex(genesis),lastBlock=startBlock-1,inFlight;
+ let index=genesisPlacementIndex(genesis,genesisLayout),lastBlock=startBlock-1,inFlight;
  const sync=()=>{
   if(inFlight)return inFlight;
   inFlight=(async()=>{
    const latest=await provider.getBlockNumber();
-   if(latest<lastBlock){index=genesisPlacementIndex(genesis);lastBlock=startBlock-1;}
+   if(latest<lastBlock){index=genesisPlacementIndex(genesis,genesisLayout);lastBlock=startBlock-1;}
    for(let start=lastBlock+1;start<=latest;start+=chunkSize){
     const end=Math.min(start+chunkSize-1,latest);
     const logs=await provider.getLogs({address:binary.target,topics:[topic],fromBlock:start,toBlock:end});

@@ -25,6 +25,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix landing
       - run: npm run build:web
       - run: npm --prefix landing run build
       - run: npm run compile

@@ -2,6 +2,10 @@
 // TranslationNotice makes that boundary visible instead of claiming full coverage.
 const languages=['fa','ar','tr','zh-CN','ru','es'];
 const rows=`
+Disconnect wallet|قطع اتصال ولت|قطع اتصال المحفظة|Cüzdan bağlantısını kes|断开钱包|Отключить кошелёк|Desconectar cartera
+Wallet disconnected.|اتصال ولت قطع شد.|تم قطع اتصال المحفظة.|Cüzdan bağlantısı kesildi.|钱包已断开。|Кошелёк отключён.|Cartera desconectada.
+Disconnected from this site. Close the WalletConnect session in your wallet.|اتصال از سایت قطع شد. نشست WalletConnect را در کیف پول خود ببندید.|تم قطع الاتصال بالموقع. أغلق جلسة WalletConnect في محفظتك.|Site bağlantısı kesildi. Cüzdanınızdaki WalletConnect oturumunu kapatın.|已断开本站连接。请在钱包中关闭 WalletConnect 会话。|Соединение с сайтом разорвано. Закройте сеанс WalletConnect в кошельке.|Desconectado del sitio. Cierra la sesión WalletConnect en tu cartera.
+Connect your wallet to see your balances, manage membership and trade FTI.|برای مشاهده موجودی، مدیریت جایگاه و معامله توکن، ولت خود را متصل کنید.|اربط محفظتك لعرض أرصدتك وإدارة العضوية وتداول FTI.|Bakiyelerinizi görmek, üyeliğinizi yönetmek ve FTI alıp satmak için cüzdanınızı bağlayın.|连接钱包以查看余额、管理会员资格并交易 FTI。|Подключите кошелёк, чтобы просматривать баланс, управлять участием и торговать FTI.|Conecta tu cartera para ver tus saldos, gestionar tu membresía y operar con FTI.
 Language|زبان|اللغة|Dil|语言|Язык|Idioma
 Choose language|انتخاب زبان|اختر اللغة|Dil seçin|选择语言|Выберите язык|Elegir idioma
 Change language|تغییر زبان|تغيير اللغة|Dili değiştir|切换语言|Сменить язык|Cambiar idioma

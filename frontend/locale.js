@@ -1,16 +1,25 @@
+import {completeTranslations} from './complete-translations.js';
 import {landingTranslations} from './landing-translations.js';
 import {coreTranslations} from './core-translations.js';
 import {language,initializeLanguage} from './language-policy.js';
 export {language,initializeLanguage,LANGUAGES,languageInfo,changeLanguage,withLanguage,displayNumber,displayUTC} from './language-policy.js';
 export function translate(value,lang=language,fa){
  const text=String(value);if(lang==='en')return text;
+ if(completeTranslations[lang]?.[text])return completeTranslations[lang][text];
  const landing=landingTranslations[lang];if(landing&&Object.hasOwn(landing,text))return landing[text];
  const core=coreTranslations[lang];if(core&&Object.hasOwn(core,text))return core[text];
  if(lang==='fa')return fa||translations[text]||dynamicText(text);
- return text;
+ return dynamicLocale(text,lang);
 }
 export function t(value,fa){return translate(value,language,fa);}
 const translations=Object.fromEntries(`
+Checking the purchase before opening your wallet…|در حال بررسی درخواست پیش از بازکردن پنجره تأیید ولت…
+Wallet already connected.|ولت شما متصل است؛ نیازی به اتصال دوباره نیست.
+Checking your previous request automatically…|در حال بررسی خودکار درخواست قبلی…
+Previous request resolved. Review your balances, then choose your next action.|وضعیت درخواست قبلی مشخص شد. موجودی و تعداد یونیت را بررسی کنید، سپس اقدام بعدی را انتخاب کنید.
+Previous request could not be verified automatically. Check wallet activity.|نتیجه درخواست قبلی خودکار پیدا نشد. تاریخچه ولت را بررسی کنید.
+
+Contract data could not be loaded. Check your connection and tap Refresh. Wallet connection is separate; do not repeat a payment.|اطلاعات قرارداد دریافت نشد. اینترنت را بررسی و دکمه ↻ را بزنید. اتصال ولت جداست؛ پرداخت را تکرار نکنید.
 Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.|خرید در پله‌های ۵۰۰ دلاری با قیمت جدید هر پله انجام می‌شود؛ کارمزد هر پله ۳٪ و حداکثر ۱۲۸ پله در تراکنش است. مجوز عضویت و چرخه اعمال می‌شود.
 Connect to view your balance and allowance.|برای مشاهده موجودی و مجوز خرید، ولت را متصل کنید.
 PROTOCOL|پروتکل
@@ -369,4 +378,9 @@ Object.assign(translations,{
 function dynamicText(s){
  const parts=[['Transaction submitted. Waiting for confirmation… ','تراکنش ارسال شد؛ در انتظار تأیید… '],['Updated ','به‌روزرسانی '],['Epoch ','دوره '],['Balance: ','موجودی: '],[' · Allowance: ',' · سقف خرید: '],['Available: ','قابل فروش: '],['Estimated output: ','دریافتی برآوردی: '],['Net proceeds: ','دریافتی خالص: '],['Minimum accepted: ','حداقل دریافتی: '],['Recipient receives: ','دریافتی گیرنده: '],[' · Burned: ',' · سوزانده‌شده: '],[' · Fee 3%',' · کارمزد ۳٪'],[' test USD',' دلار آزمایشی'],[' wallets awaiting cash payout',' ولت در صف پرداخت نقدی'],[' lifetime points',' پوینت کل'],['Next: ','رنک بعد: '],['Top rank','بالاترین رنک'],[' FTI locked',' FTI قفل‌شده'],['Connection unavailable: ','اتصال در دسترس نیست: '],['Volume queue: ','صف حجم شاخه‌ها: '],['Settlement phase: ','مرحله تسویه: '],[' · Member cursor: ',' · شاخص اعضا: ']];
  let value=s;for(const[from,to]of parts)value=value.replaceAll(from,to);return value;
+}
+
+function dynamicLocale(text,lang){
+ const fragments=['Transaction submitted. Waiting for confirmation… ','Updated ','Epoch ','Balance: ',' · Allowance: ','Available: ','Estimated output: ','Net proceeds: ','Minimum accepted: ','Recipient receives: ',' · Burned: ',' · Fee 3%',' wallets awaiting cash payout',' lifetime points','Next: ','Top rank',' FTI locked','Connection unavailable: ','Volume queue: ','Settlement phase: ',' · Member cursor: ','Wallet counter '];
+ let result=text;for(const key of fragments){const value=completeTranslations[lang]?.[key];if(value)result=result.replaceAll(key,value);}return result;
 }

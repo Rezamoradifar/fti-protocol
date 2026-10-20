@@ -26,4 +26,5 @@ jobs:
       - run: bash -n tools/prepare-existing-testnet.sh
       - run: npm run compile
       - run: node --test --test-concurrency=1 test/address-migration*.test.mjs
+      - run: npm ci --prefix landing
       - run: npm run build:web

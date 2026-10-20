@@ -1,0 +1,9 @@
+/* Windshield HUD treatment; isolated to the supplied header/sidebar logo. */
+.fti-hologram{position:relative;display:inline-grid;place-items:center;flex:none;isolation:isolate;perspective:240px;border-radius:50%;background:radial-gradient(circle at 30% 20%,#b7ffd52b,#061a1317 60%,#77ffb915);border:1px solid #98ffc94d;box-shadow:inset 0 0 9px #a6ffd526,0 0 15px #67f5ab24;overflow:visible;vertical-align:middle}
+.fti-hologram>.fti-header-mark{display:block!important;width:84%!important;height:84%!important;max-width:none;transform-origin:center;animation:fti-hud-spin 16s linear infinite;filter:drop-shadow(0 0 2px #8dffbf88);mix-blend-mode:screen;opacity:.94}
+.fti-hologram::before{content:'';position:absolute;inset:-4px;border:1px solid #a6ffd529;border-top-color:#b9ffdb99;border-bottom-color:#b9ffdb77;border-radius:50%;transform:rotateX(35deg) rotateZ(-25deg);pointer-events:none}
+.fti-hologram::after{content:'';position:absolute;inset:1px;border-radius:50%;background:linear-gradient(125deg,#dcffef4d,transparent 35%,transparent 70%,#a6ffd524),repeating-linear-gradient(0deg,transparent 0 4px,#b9ffda10 4px 5px);box-shadow:inset 0 1px 3px #e4fff452;pointer-events:none}
+@keyframes fti-hud-spin{from{transform:rotateX(16deg) rotateY(-12deg) rotateZ(0deg)}to{transform:rotateX(16deg) rotateY(-12deg) rotateZ(360deg)}}
+.fti-hologram:hover>.fti-header-mark,a:focus-visible .fti-hologram>.fti-header-mark{animation-play-state:paused}
+[data-theme=light] .fti-hologram,body.light .fti-hologram{background:#102b22;box-shadow:inset 0 0 9px #a6ffd526,0 2px 12px #173c2930;border-color:#44825f}
+@media(prefers-reduced-motion:reduce){.fti-hologram>.fti-header-mark{animation:none!important;transform:rotateX(12deg) rotateY(-8deg)}}

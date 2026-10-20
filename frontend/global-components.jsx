@@ -22,6 +22,6 @@ function SocialIcon({name}){
  return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]||'M4 12h16M12 4v16'}/></svg>;
 }
 export function TranslationNotice({includePersian=false}){
- if(language==='en'||language==='fa'&&!includePersian)return null;
+ if(['en','ar','tr','zh-CN'].includes(language)||language==='fa'&&!includePersian)return null;
  return <p className="fti-translation-notice" role="note">{t('Core controls are translated. Some detailed explanations are still shown in English.')}</p>;
 }

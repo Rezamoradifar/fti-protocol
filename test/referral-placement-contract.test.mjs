@@ -22,7 +22,8 @@ test('proxy referrals: unlimited direct invitations, bounded ancestry, unchanged
   const binaryProxy=await deployOne('FTIProxy',[binaryImpl.target,binaryImpl.interface.encodeFunctionData('initialize',[usd.target,token.target,timelock.target,council.target,addresses[38],addresses.slice(0,31)])],signers[0]);
   const binary=new Contract(binaryProxy.target,artifact('FundedBinaryPlanUpgradeable').abi,signers[0]);
   await sent(token.bind(binary.target));
-  const invite=addresses[15],participants=addresses.slice(39,49);
+  // Position 24 is a terminal leaf in the approved six-row genesis.
+  const invite=addresses[23],participants=addresses.slice(39,49);
   for(let i=39;i<49;i++){
    await sent(usd.connect(signers[i]).faucet());
    await sent(usd.connect(signers[i]).approve(binary.target,MaxUint256));
