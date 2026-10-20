@@ -5,16 +5,18 @@ import {preparedWalletSend,submitTracked,transactionState} from '../frontend/tra
 const hash='0x'+'a'.repeat(64),address='0x'+'1'.repeat(40),to='0x'+'2'.repeat(40);
 const request={from:address,to,gas:'0x5208',gasPrice:'0x64',nonce:'0x3',chainId:'0x38',value:'0x0',data:'0x'};
 function fixture(){
- const nodes={};for(const id of ['wallet-review-panel','confirm-wallet-request','cancel-wallet-review','wallet-review-title','wallet-review-from','wallet-review-to','wallet-review-network','wallet-review-nonce'])nodes[id]={hidden:true,disabled:true,textContent:'',focus(){},scrollIntoView(){}};
+ const nodes={};for(const id of ['wallet-review-panel','wallet-review-details','confirm-wallet-request','cancel-wallet-review','wallet-review-title','wallet-review-from','wallet-review-to','wallet-review-network','wallet-review-nonce'])nodes[id]={hidden:true,disabled:true,textContent:'',focus(){},scrollIntoView(){}};
  let now=1000;const view=walletReview({document:{getElementById:id=>nodes[id]},translate:key=>key,now:()=>now});
  return {nodes,view,tick:()=>{now+=31000;}};
 }
 test('preparation sends nothing; the final click reaches the mobile wallet in the original click stack',async()=>{
  const f=fixture(),data=new Map(),tracker=transactionState({getItem:k=>data.get(k),setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)},56,address);
+ f.nodes['wallet-review-details'].open=true;
  let active=false,calls=0;
  const callback=preparedWalletSend({request:r=>{calls++;assert(active,'mobile gesture must still be active');assert.equal(r.method,'eth_sendTransaction');assert.equal(tracker.read(),'unknown:3');return Promise.resolve(hash);}},{},request);
  const result=f.view.open({request,title:'Buy membership units',onConfirm:()=>submitTracked(callback,tracker,3)});
  assert.equal(calls,0);assert.equal(tracker.read(),null);assert.equal(f.nodes['wallet-review-panel'].hidden,false);
+ assert.equal(f.nodes['wallet-review-details'].open,false);
  await Promise.resolve();active=true;f.nodes['confirm-wallet-request'].onclick();active=false;
  assert.equal(calls,1);f.nodes['confirm-wallet-request'].onclick();assert.equal(calls,1);
  assert.equal((await result).hash,hash);assert.equal(tracker.read(),hash);assert.equal(f.nodes['wallet-review-panel'].hidden,true);

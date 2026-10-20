@@ -14,6 +14,7 @@ export function walletReview({document,translate,now=Date.now,maxAgeMs=30000}){
   if(pending)throw Error('A wallet review is already open.');
   if(!address(request?.from)||!address(request?.to)||!['chainId','nonce','gas','gasPrice','value'].every(key=>quantity(request[key]))||!/^0x(?:[0-9a-f]{2})*$/i.test(request.data||''))throw Error('Invalid prepared wallet request.');
   document.getElementById('wallet-review-title').textContent=title;
+  const details=document.getElementById('wallet-review-details');if(details)details.open=false;
   for(const [id,value]of Object.entries({'wallet-review-from':request.from,'wallet-review-to':request.to,'wallet-review-network':'BNB Smart Chain · '+String(BigInt(request.chainId)),'wallet-review-nonce':String(BigInt(request.nonce))}))document.getElementById(id).textContent=value;
   return new Promise((resolve,reject)=>{
    pending={resolve,reject,onConfirm,isCurrent,createdAt:now()};panel.hidden=false;button.disabled=false;

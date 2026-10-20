@@ -28,7 +28,7 @@ function fixture(){
  const signer={getAddress:async()=>address,sendTransaction:()=>assert.fail('BrowserProvider signer sends are forbidden')};
  const context={$,address,signer,transactionAddress:address,walletProvider:wallet,rpc,review,activeTransaction:tracker,cfg:{chainId:56},read:{binary:{addUnits:{populateTransaction:async()=>({to:contract,data:'0x1234'})}}},
   prepareContractRequest,preparedWalletSend,submitTracked,confirmedReceipt,transactionState,prepareUnknownCancellation,submitUnknownCancellation,readWalletIdentity,preparationDeadline,localStorage:storage,integer:value=>String(value),
-  hashView:{show:value=>assert.equal(value,hash),hide(){}},status(){},short:value=>value,t:key=>key,reason:error=>error.message,busy:false,syncActions(){},refresh:async()=>{},transactionStage:'',explorer:'https://bscscan.com',window:{confirm:()=>assert.fail('native confirmation must not be used')}};
+  hashView:{show:value=>assert.equal(value,hash),hide(){}},status(){},short:value=>value,t:key=>key,reason:error=>error.message,busy:false,syncActions(){},stopPendingChecks(){},startPendingChecks(){},refresh:async()=>{},transactionStage:'',explorer:'https://bscscan.com',window:{confirm:()=>assert.fail('native confirmation must not be used')}};
  function $(selector){return nodes[selector.slice(1)];}
  return {context,nodes,tracker,calls,submitted:()=>submitted,click:()=>{active=true;nodes['confirm-wallet-request'].onclick();active=false;}};
 }
