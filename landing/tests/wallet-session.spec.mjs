@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs';
+import {expectReadFailure} from './read-failure.mjs';
 const cfg=JSON.parse(fs.readFileSync(new URL('../../deployments/mainnet-20261016.json',import.meta.url)));
 for(const width of [320,390,844,1280])for(const lang of ['en','fa'])test(`connect disconnect and reconnect at ${width}px ${lang}`,async({page})=>{
  await page.setViewportSize({width,height:844});
@@ -16,7 +17,7 @@ for(const width of [320,390,844,1280])for(const lang of ['en','fa'])test(`connec
  await page.route('**/api/config',r=>r.fulfill({json:cfg}));
  await page.route('**/api/state**',r=>r.fulfill({status:503,json:{error:'Read-only fixture'}}));
  await page.goto('/app/?lang='+lang);
- await expect(page.getByRole('status').first()).toContainText('Read-only fixture');
+ await expectReadFailure(page,lang);
  await expect(page.locator('#disconnect')).toBeHidden();
  for(let i=0;i<2;i++){
   await page.locator('#connect').click();
