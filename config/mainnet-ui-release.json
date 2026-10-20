@@ -5,7 +5,7 @@
     "frontend/panel-identity.css": "7237a8a1b16311423b34ac794aacb8004de59ca4d1ead09132df72e2c7498b0f",
     "scripts/build-web.mjs": "5c4344e6e9940f5da10bd59fafbe468600dea334081a9124c2905f6d1a60efcb",
     "web/index.html": "3cc73698ba82bbc1fd249fc2b87d168d3017561ec82f002a01ba490d4b2ffcd7",
-    "web/app.js": "f2daf5efec943efbb294997eaf5bc6b4a2ff83b1bf4141856534be5dfbfefcd8",
+    "web/app.js": "d7582a7d8adf306b4b5fbb75cd0ac014ca4aadc67a0e200e3e91569283834718",
     "web/app.js.LEGAL.txt": "573cc95a6417c69a6ca44804f440f00965283c8cdcc50025305a7a50f53940ac",
     "web/style.css": "373a39681dd415c339a117034c7d5d5d9fc976b28730b1967e25dd4afb117190",
     "web/member-landing-theme.css": "4a66ac54bbbd1282c61536ec6889f07047bdaeda1a54b6b431910da9b31d0198",
@@ -136,7 +136,7 @@
     "frontend/wallet-selector.js": "cb6dd59387956d45addb501b6e959d2f8ba931d260d93a7766973556efd50298",
     "frontend/wallet-session.js": "ba859ce236db509c975c0d3d50473d2ad508dd6dee574bd117a97161b6168f5d",
     "frontend/core-translations.js": "fb2eb87d2a8833dcc9c5994bdd26fffa85fe7d75b1ed360878b91f9fa4c41e00",
-    "frontend/read-json.js": "2cd68ecb1734f34d9cc9715e4c92b911f0eb01e4c58917be1ed2f81ac04410f0",
+    "frontend/read-json.js": "c2c27822819ee55459c467cfe1cb99838f61444c6d16f78f02ad5155dbd31302",
     "frontend/recover-pending.js": "0bb74956e703cace73d8e89aa940acdac0aa77e3fb025d59b59e29dc0c0d0c35"
   }
 }

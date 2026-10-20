@@ -1,6 +1,6 @@
 // Only same-origin read endpoints may be retried. Never use for wallet/RPC sends.
 export async function readJson(url,{fetchImpl=globalThis.fetch,timeoutMs=12000}={}){
- if(!/^\/api\/(config|state|locks)(\?|$)/.test(url))throw Error('Unsupported read endpoint');
+ if(!/^\/api\/(config|state|locks|placement|events)(\?|$)/.test(url)&&!/^\/abi\/[A-Za-z][A-Za-z0-9_]*$/.test(url))throw Error('Unsupported read endpoint');
  for(let attempt=0;attempt<2;attempt++){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{

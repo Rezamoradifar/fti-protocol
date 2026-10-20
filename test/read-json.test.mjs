@@ -16,3 +16,14 @@ test('HTTP client errors are not retried and RPC sends are rejected',async()=>{
 test('public read failure still restores authorized wallet',async()=>{
  const events=[];await initializeReadSession({refresh:async()=>{throw Error('offline');},ready:()=>events.push('ready'),failed:()=>events.push('failed'),reconnect:async()=>events.push('connect')});assert.deepEqual(events,['failed','connect']);
 });
+test('controller boot can load every contract ABI before binding wallet buttons',async()=>{
+ for(const name of ['FundedBinaryPlanUpgradeable','FTIReserveTokenUpgradeable','Collateral','SevenGuardianCouncil','FTITimelock']){
+  const abi=[{type:'function',name:'balanceOf'}];let fetched=false;
+  assert.deepEqual(await readJson('/abi/'+name,{fetchImpl:async(url,options)=>{fetched=true;assert.equal(options.method,'GET');return {ok:true,json:async()=>abi};}}),abi);assert.equal(fetched,true);
+ }
+});
+test('placement and activity reads work; write endpoints and off-origin URLs remain forbidden',async()=>{
+ const fetchImpl=async()=>({ok:true,json:async()=>({ok:true})});
+ for(const url of ['/api/placement?referrer=0x123','/api/events'])assert.deepEqual(await readJson(url,{fetchImpl}),{ok:true});
+ for(const url of ['/rpc','/api/dev/time','https://example.org/api/state','//example.org/api/state','/abi/../rpc'])await assert.rejects(readJson(url,{fetchImpl}),/Unsupported/);
+});
