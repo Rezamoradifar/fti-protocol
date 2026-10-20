@@ -499,7 +499,7 @@ export const completeTranslations = {
     "No active locks": "لا قيود نشطة",
     "Builder": "بيِلدر",
     "No time locks": "لا قيود زمنية",
-    "Checking installed contract capabilities…": "جارٍ فحص قدرات العقد المثبت…",
+    "Checking installed contract capabilities…": "جارٍ فحص إمكانات العقد المنشور…",
     "Not enough collateral in your wallet.": "الضمان غير كافٍ في محفظتك.",
     "Approve collateral spending in your wallet.": "وافق على إنفاق الضمان في محفظتك.",
     "READ ONLY": "قراءة فقط",

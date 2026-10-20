@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
+    "pretest": "npm --prefix .. run compile",
     "test": "playwright test",
     "test:install": "python3 -m unittest discover -s tests -p \"test_*.py\" -v"
   },

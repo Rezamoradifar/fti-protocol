@@ -1,5 +1,6 @@
 import {walletError} from './membership-availability.js';
-import {t} from './locale.js';
+import {t,language} from './locale.js';
+import {collateralBalanceMessage} from './collateral-balance.js';
 const stages={
  CONNECT:['Wallet connection or account loading failed.','اتصال ولت یا دریافت اطلاعات حساب ناموفق بود.'],
  NETWORK:['Wallet network check failed.','بررسی شبکه از داخل ولت ناموفق بود.'],
@@ -12,6 +13,7 @@ const stages={
  SIGN:['Wallet request failed. Check wallet activity.','درخواست ولت ناموفق بود؛ تاریخچه ولت را بررسی کنید.']
 };
 export function purchaseError(stage,error){
+ if(error?.code==='FTI_INSUFFICIENT_COLLATERAL')return `[FTI-COLLATERAL] ${collateralBalanceMessage(error,language)}`;
  const code=Object.hasOwn(stages,stage)?stage:'UNKNOWN';
  const label=stages[code]||['Request failed.','درخواست ناموفق بود.'];
  return `[FTI-${code}] ${t(...label)} ${walletError(error)}`;

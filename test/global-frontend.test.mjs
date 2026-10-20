@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {LANGUAGES,languageFrom,normalizeLanguage,withLanguage} from '../frontend/language-policy.js';
 import {coreTranslations,coreKeys} from '../frontend/core-translations.js';
 import {landingTranslations} from '../frontend/landing-translations.js';
+import {completeTranslations} from '../frontend/complete-translations.js';
 import {translate} from '../frontend/locale.js';
 import {validatedSocialLinks} from '../frontend/social-policy.js';
 import {readBuilderMode,builderMonthState,autoPercent} from '../frontend/builder-view.js';
@@ -32,9 +33,23 @@ test('all core copy keys have nonempty translations in all six non-English langu
  assert(coreKeys.length>=250);
  for(const code of ['fa','ar','tr','zh-CN','ru','es']){
   assert.deepEqual(Object.keys(coreTranslations[code]),coreKeys);
-  for(const key of coreKeys){const value=coreTranslations[code][key];assert.equal(typeof value,'string');assert(value.trim());assert(!/[<>]/.test(value));assert.equal(translate(key,code),landingTranslations[code]?.[key]??value);}
+  for(const key of coreKeys){
+   const value=coreTranslations[code][key];
+   assert.equal(typeof value,'string');assert(value.trim());assert(!/[<>]/.test(value));
+   const resolved=completeTranslations[code]?.[key]??landingTranslations[code]?.[key]??value;
+   assert.equal(typeof resolved,'string');assert(resolved.trim());assert(!/[<>]/.test(resolved));
+   assert.equal(translate(key,code),resolved,`${code}: ${key}`);
+  }
  }
  assert.equal(translate('Connect wallet','en'),'Connect wallet');assert.equal(translate('__proto__','ru'),'__proto__');
+});
+test('Arabic capability check describes the deployed contract consistently',()=>{
+ const key='Checking installed contract capabilities…';
+ const expected='جارٍ فحص إمكانات العقد المنشور…';
+ assert.equal(coreTranslations.ar[key],expected);
+ assert.equal(completeTranslations.ar[key],expected);
+ assert.equal(translate(key,'ar'),expected);
+ assert.equal(translate(key,'en'),key);
 });
 test('untranslated detailed prose is not represented as a completed translation',()=>{
  assert.equal(translate('Not in the catalogue.','ar'),'Not in the catalogue.');

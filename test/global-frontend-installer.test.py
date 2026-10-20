@@ -14,9 +14,12 @@ REPO = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('installer', REPO / 'tools/install-global-frontend.py')
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
+# This installer intentionally ships a historical, hash-pinned release. Its
+# fixture must come from that revision, not today's hashed landing build.
+PINNED = Path(os.environ.get('FTI_GLOBAL_UI_FIXTURE_ROOT', REPO)).resolve()
 OLD_WEB = b'<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#000000"><meta name="description" content="FTI Protocol testnet workspace. Explore live reserves, manage membership and trade FTI through your wallet."><title>FTI Protocol \xe2\x80\x94 Your on-chain workspace</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./style.css"></head><body><div id="root"></div><noscript>This workspace requires JavaScript to read contract data.</noscript><script type="module" src="./app.js"></script></body></html>'
-ASSETS = {name: (REPO / item['source']).read_bytes() for name, item in m.MANIFEST['assets'].items()}
-RENDERED = m.render_entries(REPO, ASSETS)
+ASSETS = {name: (PINNED / item['source']).read_bytes() for name, item in m.MANIFEST['assets'].items()}
+RENDERED = m.render_entries(PINNED, ASSETS)
 
 
 class Fixture:
@@ -27,7 +30,7 @@ class Fixture:
         for folder in ('web/vendor', 'landing/dist', 'frontend', 'scripts', 'contracts', 'artifacts', 'landing/src'):
             (self.root / folder).mkdir(parents=True, exist_ok=True)
         for path, data in {'web/index.html': OLD_WEB,
-                           'landing/dist/index.html': (REPO / 'landing/public/index.html').read_bytes(),
+                           'landing/dist/index.html': (PINNED / 'landing/public/index.html').read_bytes(),
                            'web/app.js': b'original application bytes', 'web/style.css': b'original css',
                            'web/vendor/walletconnect.js': b'original wallet library', 'package.json': b'{}',
                            'package-lock.json': b'original lock', 'contracts/stub.sol': b'original contract',
@@ -178,13 +181,13 @@ class InstallerTests(unittest.TestCase):
 
     def test_source_manifest_matches_pinned_repository_inputs(self):
         for name,expected in m.MANIFEST['source'].items():
-            self.assertEqual(m.sha((REPO/name).read_bytes()),expected,name)
+            self.assertEqual(m.sha((PINNED/name).read_bytes()),expected,name)
 
     def archive(self, changed=None, symlink=False):
         buffer=io.BytesIO()
         with tarfile.open(fileobj=buffer,mode='w:gz') as tar:
             for name in m.MANIFEST['source']:
-                data=(REPO/name).read_bytes() if name!=changed else b'tampered'
+                data=(PINNED/name).read_bytes() if name!=changed else b'tampered'
                 item=tarfile.TarInfo('fti-protocol-'+m.REV+'/'+name);item.size=len(data)
                 if symlink and name==changed:item.type=tarfile.SYMTYPE;item.linkname='/etc/passwd'
                 tar.addfile(item,io.BytesIO(data))
