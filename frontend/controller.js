@@ -2,8 +2,12 @@ import {purchaseError} from './purchase-error.js';
 import {requireCollateralBalance} from './collateral-balance.js';
 import {recoverPending} from './recover-pending.js';
 import {transactionHashView} from './transaction-hash.js';
+import {walletReview} from './wallet-review.js';
+import {prepareUnknownCancellation,submitUnknownCancellation} from './prepared-cancellation.js';
+import {readMembershipSnapshot} from './membership-snapshot.js';
+import {readWalletIdentity,preparationDeadline} from './wallet-preflight.js';
 import {readJson,initializeReadSession} from './read-json.js';
-import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,cancelUnknown,preparedWalletSend} from './transaction-state.js';
+import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,preparedWalletSend} from './transaction-state.js';
 import {membershipBlock,walletError} from './membership-availability.js';
 import {deploymentConfiguration} from './deployment.js';
 import {deploymentNetwork} from '../core/deployment-network.mjs';
@@ -13,7 +17,7 @@ import {initNetworkTree} from './network-tree.js';
 import {t,language,displayNumber,displayUTC,withLanguage} from './locale.js';
 import {readBuilderMode,builderMonthState,autoPercent} from './builder-view.js';
 import {chooseWallet,requestWalletAccounts} from './wallet-selector.js';
-import {JsonRpcProvider,BrowserProvider,Contract,parseEther,formatEther,ZeroAddress,ZeroHash,randomBytes,hexlify,isAddress} from '/vendor/ethers.js';
+import {JsonRpcProvider,BrowserProvider,Contract,FetchRequest,parseEther,formatEther,ZeroAddress,ZeroHash,randomBytes,hexlify,isAddress} from '/vendor/ethers.js';
 import {disconnectSession} from './wallet-session.js';
 import {siteLinks} from './site-links.js';
 const sites=siteLinks(location.href);
@@ -56,7 +60,8 @@ if(v3Model){
  
 }
 
-const rpc=new JsonRpcProvider(location.origin+'/rpc',undefined,{cacheTimeout:-1,batchMaxCount:1});rpc.pollingInterval=1000;
+const rpcTransport=new FetchRequest(location.origin+'/rpc');rpcTransport.timeout=12000;
+const rpc=new JsonRpcProvider(rpcTransport,undefined,{cacheTimeout:-1,batchMaxCount:1});rpc.pollingInterval=1000;
 const names={binary:cfg.binaryContract||'BinaryPlan',token:cfg.tokenContract||'FTIToken',usd:networkProfile.testAssets?'MockUSD':'Collateral',council:v3Model?'SevenGuardianCouncil':'Council',...(cfg.timelock?{timelock:'FTITimelock'}:{})},read={};
 await Promise.all(Object.entries(names).map(async([key,name])=>{read[key]=new Contract(cfg[key],await json('/abi/'+name),rpc);}));
 if(cfg.hourlyCapFlushVersion===1)document.getElementById('point-policy').textContent=t('Above-cap matched volume is flushed each hour; only the unmatched stronger-leg balance is saved when the capped points are fully funded. Within-cap volume deferred by the $20 funding floor remains. Flushed credit stays in the protected reserve.','تعادل بالاتر از سقف ساعتی فلش می‌شود؛ با تأمین کامل پوینت‌های مجاز، فقط اختلاف دست بزرگ ذخیره می‌شود. حجم داخل سقف که به علت کمبود پشتوانه ۲۰ پرداخت نشده، باقی می‌ماند. اعتبار فلش‌شده در ذخیره محافظت‌شده قرارداد می‌ماند.');
@@ -82,6 +87,7 @@ const utc=displayUTC;
 const short=value=>value.slice(0,6)+'…'+value.slice(-4);
 function status(message,error=false){text('status',message);$('#status').dataset.state=error?'error':'ready';$('#status').classList.toggle('error',error);}
 const hashView=transactionHashView({document,clipboard:navigator.clipboard,translate:t,status,explorer});
+const review=walletReview({document,translate:t});
 const recoveryOptions={logAddresses:[cfg.usd,cfg.binary,cfg.token]};
 function reason(error){return walletError(error);}
 function wallet(){return address&&state?.wallet?.address?.toLowerCase()===address.toLowerCase()?state.wallet:null;}
@@ -89,9 +95,10 @@ function syncActions(){
  $('#unknown-send-form').querySelectorAll('button').forEach(button=>button.disabled=busy||!signer);
  $('#unknown-send-form').elements.hash.disabled=busy;
  const w=wallet();const enabled={holder:!!signer&&BigInt(w?.ftiBalance||0)>0n,council:!!signer&&councilOwner,wallet:!!signer,member:!!signer&&!!w?.exists,buyer:!!signer&&BigInt(w?.units||0)>0n,reward:!!signer&&BigInt(w?.claimable||0)>0n,unlocked:!!signer&&BigInt(w?.unlocked||0)>0n,auto:!!signer&&BigInt(w?.autoPending||0)>0n};
+ $('#register-form').elements.units.disabled=busy||connecting;$('#register-form').elements.sponsor.disabled=busy||connecting||!!w?.exists;
  document.querySelectorAll('[data-write]').forEach(button=>{button.disabled=busy||button.dataset.executed==='true'||(button.dataset.requires&&!enabled[button.dataset.requires]);});
  if(cfg.batchedRewards)$('#reward-all').disabled=busy||!signer||!state||BigInt(state.rewardQueue||0)===0n||Number(state.phase)!==0||Number(state.monthPhase)!==0;
- const normal=!state?.tokenPaused&&!state?.emergencyUnwind;
+ const normal=state?.tokenStateVerified!==false&&!state?.tokenPaused&&!state?.emergencyUnwind;
  for(const id of ['buy-form','sell-form','transfer-form'])for(const button of $('#'+id).querySelectorAll('[data-write]'))button.disabled=button.disabled||!normal;
  const blocked=membershipBlock(state);
  if(blocked){$('#register-button').disabled=true;$('#approve-units-button').disabled=true;}
@@ -118,11 +125,21 @@ async function checkCollateral(required){
  if(address!==transactionAddress)throw Error('Wallet changed. Please review the action and try again.');
  transactionStage='VALIDATION';
 }
-async function transaction(fn){
+async function refreshMembershipState(){
+ const expectedAddress=address,expectedSigner=signer;
+ const next=await preparationDeadline(readMembershipSnapshot({rpc,binary:read.binary,usd:read.usd,address:expectedAddress,chainId:cfg.chainId,recoveryFrozen:cfg.binaryContract==='FundedBinaryPlanUpgradeable'}),25000);
+ if(address!==expectedAddress||signer!==expectedSigner)throw Error('Wallet changed. Try again.');
+ refreshSequence++;
+ state={...state,...next,tokenStateVerified:state?.tokenPaused!==undefined&&state?.emergencyUnwind!==undefined,wallet:{...(wallet()||{}),...next.wallet}};
+ text('units',integer(next.wallet.units));text('account-units',integer(next.wallet.units));text('usd-balance',fmt(next.wallet.usdBalance));text('wallet-address',expectedAddress);
+ text('membership-status',next.wallet.exists?'Registered member':'Not registered');text('registration-title',next.wallet.exists?'Add membership units':'Join the network');$('#register-form').elements.sponsor.disabled=next.wallet.exists;
+ syncActions();
+}
+async function transaction(fn,{membership=false}={}){
  if(busy)return;if(!signer){status('Connect your wallet first.',true);return;}
  const originalAddress=address,originalSigner=signer;
  transactionStage='NETWORK';busy=true;transactionAddress=address;syncActions();status('Refreshing wallet data before your request…');
- try{if(cfg.mode!=='local'&&Number(await walletProvider.request({method:'eth_chainId'}))!==cfg.chainId)throw Error('Wallet network does not match this deployment.');
+ try{if(cfg.mode!=='local')await readWalletIdentity(walletProvider,originalAddress,cfg.chainId);
  if(address!==originalAddress||signer!==originalSigner)return;
  let storage;try{storage=localStorage;}catch{}
  activeTransaction=transactionState(storage,cfg.chainId,address);
@@ -138,7 +155,7 @@ async function transaction(fn){
  transactionStage='PREVIOUS';const previous=await resolvePending(activeTransaction,rpc);
  if(address!==originalAddress||signer!==originalSigner)return;
  if(previous){status(Number(previous.status)===1?'Previous transaction confirmed. Refresh and review your balances before another request.':'Transaction reverted on-chain.',Number(previous.status)!==1);await refresh().catch(()=>{});return;}
- transactionStage='BALANCE';await refresh();transactionStage='VALIDATION';if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();
+ transactionStage='BALANCE';await (membership?refreshMembershipState():refresh());transactionStage='VALIDATION';if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();
  if(address!==originalAddress||signer!==originalSigner)return;
  try{await refresh();}catch{if(address===originalAddress&&signer===originalSigner)status('Transaction confirmed on-chain. Balance refresh failed; refresh the page before another request.');return;}
  if(address!==originalAddress||signer!==originalSigner)return;
@@ -165,8 +182,26 @@ async function sendContract(key,method,...args){
  // Wallet changes during read-only preparation must not create a pending record.
  if(signer!==activeSigner||address!==expectedAddress||address!==transactionAddress)throw Error('Wallet changed. Please review the action and try again.');
  status('Review the request in your wallet.');
- const rpcRequest=rpc.getRpcTransaction({...request,from:expectedAddress,chainId:cfg.chainId});
- return send(preparedWalletSend(walletProvider,rpc,rpcRequest));
+ const originalWallet=walletProvider,tracker=activeTransaction;
+ const [,nonceHex,priceHex]=await Promise.all([
+  readWalletIdentity(originalWallet,expectedAddress,cfg.chainId),
+  rpc.send('eth_getTransactionCount',[expectedAddress,'pending']),rpc.send('eth_gasPrice',[])
+ ]);
+ const nonce=Number(BigInt(nonceHex)),gasPrice=BigInt(priceHex);
+ if(!Number.isSafeInteger(nonce)||nonce<0||gasPrice<=0n)throw Error('Transaction nonce or network fee is unavailable.');
+ if(signer!==activeSigner||address!==expectedAddress||walletProvider!==originalWallet||tracker.read())throw Error('Wallet or transaction state changed. Prepare the action again.');
+ const rpcRequest=rpc.getRpcTransaction({...request,from:expectedAddress,chainId:cfg.chainId,nonce,gasPrice,value:request.value||0n});
+ if(!rpcRequest.data)rpcRequest.data='0x';
+ const title=t(key==='usd'&&method==='approve'?'Approve USDT spending':key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?'Buy membership units':'Review your transaction',key==='usd'&&method==='approve'?'تأیید اجازهٔ مصرف تتر':key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?'خرید یونیت عضویت':'بررسی تراکنش');
+ const units=key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?BigInt(args.at(-1)):null;
+ $('#wallet-review-description').textContent=units!==null?t('Membership units: ','تعداد یونیت: ')+integer(units)+' · '+integer(units*100n)+' USDT':key==='usd'&&method==='approve'?t('USDT spending allowance: ','مجوز مصرف تتر: ')+formatEther(args[1])+' USDT':t('Review the amount and recipient in your wallet before confirming.','مبلغ و گیرنده را پیش از تأیید در ولت بررسی کن.');
+ const callback=preparedWalletSend(originalWallet,rpc,rpcRequest);
+ transactionStage='SIGN';status(t('Request prepared. Tap Open confirmation in wallet below.','درخواست آماده شد؛ دکمهٔ «باز کردن تأیید در ولت» را بزن.'));
+ const tx=await review.open({request:rpcRequest,title,isCurrent:()=>signer===activeSigner&&address===expectedAddress&&walletProvider===originalWallet&&!tracker.read(),onConfirm:()=>{hashView.hide();return submitTracked(callback,tracker,nonce);}});
+ if(signer===activeSigner&&address===expectedAddress){hashView.show(tx.hash,{pending:true});status('Transaction submitted. Waiting for confirmation… '+short(tx.hash));}
+ const receipt=await confirmedReceipt(tx,tracker);
+ if(signer===activeSigner&&address===expectedAddress&&/^0x[0-9a-f]{64}$/i.test(receipt.hash||''))hashView.show(receipt.hash,{pending:true});
+ return receipt;
 }
 $('#find-transaction-hash').onclick=async()=>{
  if(busy||!address||!signer)return;
@@ -207,14 +242,16 @@ $('#unknown-send-form').onsubmit=async e=>{
 };
 $('#cancel-unknown').onclick=async()=>{
  if(busy||!address||!signer)return;
- if(!window.confirm(t('Cancel the previous request? You will sign a zero BNB transaction to your own wallet and pay a network fee. This does not buy units.','درخواست قبلی لغو شود؟ یک تراکنش صفر BNB به ولت خودت امضا می‌کنی و کارمزد شبکه می‌پردازی. این کار خرید یونیت نیست.')))return;
- busy=true;syncActions();const originalAddress=address,originalSigner=signer;
+ busy=true;syncActions();const originalAddress=address,originalSigner=signer,originalWallet=walletProvider;
  try{
-  if(Number(await walletProvider.request({method:'eth_chainId'}))!==cfg.chainId)throw Error('Wallet network does not match this deployment.');
+  await readWalletIdentity(originalWallet,originalAddress,cfg.chainId);
   if(address!==originalAddress||signer!==originalSigner)return;
   const tracker=transactionState(localStorage,cfg.chainId,originalAddress);
-  status(t('Review the cancellation in your wallet. Waiting for confirmation.','لغو درخواست را در ولت بررسی کن؛ در انتظار تأیید شبکه.'));
-  await cancelUnknown(tracker,rpc,originalSigner,originalAddress,cfg.chainId,hash=>{if(address===originalAddress&&signer===originalSigner)hashView.show(hash,{pending:true});});
+  const prepared=await preparationDeadline(prepareUnknownCancellation(tracker,rpc,originalAddress,cfg.chainId),25000);
+  if(address!==originalAddress||signer!==originalSigner||walletProvider!==originalWallet)return;
+  $('#wallet-review-description').textContent=t('This sends zero BNB to your own wallet and pays only the network fee. It does not buy units.','این درخواست صفر BNB به ولت خودت می‌فرستد و فقط کارمزد شبکه دارد؛ خرید یونیت نیست.');
+  status(t('Cancellation prepared. Tap Open confirmation in wallet below.','لغو درخواست آماده شد؛ دکمهٔ «باز کردن تأیید در ولت» را بزن.'));
+  await review.open({request:prepared.request,title:t('Cancel previous request','لغو درخواست قبلی'),isCurrent:()=>address===originalAddress&&signer===originalSigner&&walletProvider===originalWallet&&tracker.read()===prepared.record,onConfirm:()=>submitUnknownCancellation(tracker,originalWallet,rpc,prepared,hash=>{if(address===originalAddress&&signer===originalSigner){hashView.show(hash,{pending:true});status(t('Cancellation submitted. Waiting for network confirmation.','لغو ارسال شد؛ در انتظار تأیید شبکه.'));}})});
   if(address!==originalAddress||signer!==originalSigner)return;
   $('#unknown-send-form').hidden=true;await refresh().catch(()=>{});
   if(address!==originalAddress||signer!==originalSigner)return;
@@ -226,7 +263,7 @@ async function approve(spender,amount){
  if(current<amount){status(networkProfile.testAssets?'Approve test USD spending in your wallet.':'Approve collateral spending in your wallet.');if(current>0n)await sendContract('usd','approve',spender,0);await sendContract('usd','approve',spender,amount);}
 }
 let walletProvider,providerListeners,selectedWallet;
-function clearWallet(){$('#unknown-send-form').hidden=true;hashView.hide();$('#unknown-send-form').elements.hash.value='';$('#hash-lookup-result').textContent='';signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
+function clearWallet(){review.cancel();$('#unknown-send-form').hidden=true;hashView.hide();$('#unknown-send-form').elements.hash.value='';$('#hash-lookup-result').textContent='';signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
 function detachWallet(){if(providerListeners){walletProvider?.removeListener?.('accountsChanged',providerListeners.accounts);walletProvider?.removeListener?.('chainChanged',providerListeners.chain);walletProvider?.removeListener?.('disconnect',providerListeners.disconnect);}providerListeners=null;walletProvider=null;}
 function observeWallet(provider){
  detachWallet();walletProvider=provider;
@@ -245,12 +282,13 @@ async function connect({silent=false}={}){
    const accounts=await requestWalletAccounts(selected,silent);if(!accounts.length)return;
    const chain=Number(await injected.request({method:'eth_chainId'}));
    if(chain!==cfg.chainId){if(silent)throw Error('Switch your wallet to '+networkProfile.name+' and connect again.');try{await injected.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]});}catch{throw Error('Switch your wallet to '+networkProfile.name+' (chain ID '+cfg.chainId+'), then connect again.');}}
-   const provider=new BrowserProvider(injected);if(Number((await provider.getNetwork()).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');nextSigner=await provider.getSigner();observeWallet(injected);selectedWallet=selected;
+   const provider=new BrowserProvider(injected);if(Number((await preparationDeadline(provider.getNetwork())).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');nextSigner=await preparationDeadline(provider.getSigner());observeWallet(injected);selectedWallet=selected;
   }
   const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}
   let saved;try{saved=transactionState(localStorage,cfg.chainId,nextAddress);}catch{}
   hashView.restore(saved);$('#unknown-send-form').hidden=!saved?.read()?.startsWith('unknown:');
-  await refresh();
+  let membershipOnly=false;
+  try{await refresh();}catch{await refreshMembershipState();membershipOnly=true;}
   if(saved?.read()?.startsWith('unknown:')){
    status('Checking your previous request automatically…');
    const recovered=await recoverPending(saved,rpc,nextAddress,cfg.chainId,recoveryOptions).catch(()=>null);
@@ -258,7 +296,7 @@ async function connect({silent=false}={}){
    $('#unknown-send-form').hidden=!!recovered;
    if(recovered){hashView.show(recovered.hash,{pending:true});await refresh();status('Previous request resolved. Review your balances, then choose your next action.');}
    else status('Previous request could not be verified automatically. Check wallet activity.',true);
-  }else status('Wallet connected. Contract data loaded.');
+  }else status(membershipOnly?t('Wallet connected. Membership data is ready; some dashboard data is unavailable.','ولت متصل شد و اطلاعات عضویت آماده است؛ بخشی از اطلاعات داشبورد در دسترس نیست.'):'Wallet connected. Contract data loaded.');
  }catch(error){status(purchaseError('CONNECT',error),true);}finally{connecting=false;syncActions();}
 }
 $('#connect').onclick=()=>connect();
@@ -371,7 +409,7 @@ $('#approve-units-button').onclick=()=>transaction(async()=>{
  await approve(cfg.binary,amount);
  if(await read.usd.allowance(transactionAddress,cfg.binary)<amount)throw Error('Approval could not be verified. Refresh before continuing.');
  return t('USDT approved. Now press 2. Buy units. No units have been purchased in this step.','تتر تأیید شد. حالا دکمه «۲. خرید یونیت» را بزن. در این مرحله یونیتی خریداری نشده است.');
-});
+},{membership:true});
 $('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const blocked=membershipBlock(state);if(blocked)throw Error(blocked);const f=e.target,raw=f.elements.units.value.trim();if(!/^[1-9]\d*$/.test(raw))throw Error('Enter a positive whole number of units.');const n=BigInt(raw);if(n<1n)throw Error('Enter a positive whole number of units.');const w=wallet();if(!w)throw Error('Reload wallet data and try again.');const sponsorAddress=f.elements.sponsor.value.trim();if(!w.exists&&(!isAddress(sponsorAddress)||sponsorAddress===ZeroAddress))throw Error('Enter a valid sponsor address.');const cost=n*parseEther('100');await checkCollateral(cost);let placement;
  if(!w.exists&&automaticReferral){
   status(t('Finding the next free position in the inviter’s network…','در حال پیدا کردن نخستین جایگاه خالی زیر مجموعهٔ معرف…'));
@@ -380,12 +418,12 @@ $('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const 
  }
  transactionStage='ALLOWANCE';if(await read.usd.allowance(transactionAddress,cfg.binary)<cost)throw Error(t('First press 1. Approve USDT for the selected number of units.','ابتدا برای تعداد یونیت انتخاب‌شده، دکمه «۱. تأیید تتر» را بزن.'));
  // Approval may cross an hourly boundary; refresh before requesting the purchase.
- transactionStage='BALANCE';await refresh();transactionStage='VALIDATION';const blockedAfterApproval=membershipBlock(state);if(blockedAfterApproval)throw Error(blockedAfterApproval);
+ transactionStage='BALANCE';await refreshMembershipState();transactionStage='VALIDATION';const blockedAfterApproval=membershipBlock(state);if(blockedAfterApproval)throw Error(blockedAfterApproval);
  const currentWallet=wallet();if(!currentWallet||currentWallet.exists!==w.exists)throw Error('Membership changed. Refresh and review before trying again.');
  await checkCollateral(cost);
  if(w.exists)await sendContract('binary','addUnits',n);
  else if(placement)await sendContract('binary','registerWithPlacement',sponsorAddress,placement.placementParent,n);
- else await sendContract('binary','register',sponsorAddress,n);});};
+ else await sendContract('binary','register',sponsorAddress,n);},{membership:true});};
 $('#auto-form').addEventListener('input',()=>{autoDirty=true;});
 $('#auto-form').onsubmit=e=>{e.preventDefault();const enabled=e.target.elements.enabled.checked;
  if(builderMode==='unknown'){status(t('Contract capabilities could not be verified. Auto-buy changes are disabled.'),true);return;}
