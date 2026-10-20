@@ -32,6 +32,12 @@ test('pruned historical state recovers a real indexed transaction after canonica
  assert.equal(found.hash,hash);assert.equal(f.tracker.read(),null);assert.deepEqual(f.events,[['remember',hash],['clear']]);
  assert.ok(f.calls.length<=10);for(const filter of f.calls){assert.deepEqual(filter.address,[contract]);assert.deepEqual(filter.topics,[null,topic]);assert.ok(filter.toBlock-filter.fromBlock<2000);assert.ok(filter.toBlock<=999988);assert.ok(filter.fromBlock>=979989);}
 });
+test('a pruned safe-head count still permits canonical log recovery',async()=>{
+ const f=prunedFixture();f.provider.getTransactionCount=async()=>{throw Error('missing trie node');};
+ const result=await recoverPending(f.tracker,f.provider,address,56,options);
+ assert.equal(result.hash,hash);assert.equal(f.tracker.read(),null);
+ assert.deepEqual(f.events,[['remember',hash],['clear']]);
+});
 test('a wallet indexed in a log cannot release a different sender, nonce or transaction hash',async()=>{
  for(const mode of ['sender','nonce','hash']){const f=prunedFixture();if(mode==='sender')f.tx.from=contract;if(mode==='nonce')f.tx.nonce=4;if(mode==='hash')f.tx.hash='0x'+'b'.repeat(64);
   assert.equal(await recoverPending(f.tracker,f.provider,address,56,options),null);assert.equal(f.tracker.read(),'unknown:3');assert.deepEqual(f.events,[]);

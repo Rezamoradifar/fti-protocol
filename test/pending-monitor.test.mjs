@@ -69,6 +69,75 @@ test('a hidden tab during a read does not start another read until visible',asyn
 });
 
 test('rejects unbounded or excessively frequent configurations',()=>{
- for(const value of [{maxAttempts:Infinity},{maxAttempts:0},{interval:0},{check:null}])
+ for(const value of [{maxAttempts:Infinity},{maxAttempts:0},{interval:0},{check:null},{onExhausted:null}])
   assert.throws(()=>harness(value),/Invalid pending monitor/);
+});
+
+test('reports an unresolved exhausted budget once after cleaning up timers and listeners',async()=>{
+ let checks=0,exhausted=0,cleanup;
+ const h=harness({maxAttempts:2,check:async()=>{checks++;return false;},onExhausted(){
+  exhausted++;cleanup=[h.tasks.size,h.listeners.size];
+ }});
+ h.monitor.start();await h.tick();assert.equal(exhausted,0);
+ await h.tick();h.monitor.wake();h.visibility(true);h.visibility(false);
+ assert.equal(checks,2);assert.equal(exhausted,1);assert.equal(h.tasks.size,0);assert.deepEqual(cleanup,[0,0]);
+});
+
+test('successful verification at the budget limit never reports exhaustion',async()=>{
+ let exhausted=0;const h=harness({maxAttempts:1,check:async()=>true,onExhausted:()=>{exhausted++;}});
+ h.monitor.start();await h.tick();assert.equal(exhausted,0);assert.equal(h.listeners.size,0);
+});
+
+test('manual stop and stale completion never report exhaustion',async()=>{
+ for(const mode of ['stop','stale']){
+  let done,current=true,exhausted=0;
+  const h=harness({maxAttempts:1,isCurrent:()=>current,check:()=>new Promise(resolve=>{done=resolve;}),onExhausted:()=>{exhausted++;}});
+  h.monitor.start();const pending=h.tick();
+  if(mode==='stop')h.monitor.stop();else current=false;
+  done(false);await pending;
+  assert.equal(exhausted,0);assert.equal(h.tasks.size,0);assert.equal(h.listeners.size,0);
+ }
+});
+
+test('a final read finishing hidden defers exhaustion until visible without another read',async()=>{
+ let done,checks=0,exhausted=0;
+ const h=harness({maxAttempts:1,check:()=>{checks++;return new Promise(resolve=>{done=resolve;});},onExhausted:()=>{exhausted++;}});
+ h.monitor.start();const pending=h.tick();h.visibility(true);done(false);await pending;
+ assert.equal(exhausted,0);assert.equal(h.tasks.size,0);assert.equal(h.listeners.size,1);
+ h.visibility(false);await h.tick();
+ assert.equal(checks,1);assert.equal(exhausted,1);assert.equal(h.listeners.size,0);
+});
+
+test('a hidden exhausted session stopped or made stale never notifies on visibility',async()=>{
+ for(const mode of ['stop','stale']){
+  let done,current=true,exhausted=0;
+  const h=harness({maxAttempts:1,isCurrent:()=>current,check:()=>new Promise(resolve=>{done=resolve;}),onExhausted:()=>{exhausted++;}});
+  h.monitor.start();const pending=h.tick();h.visibility(true);done(false);await pending;
+  if(mode==='stop')h.monitor.stop();else current=false;
+  h.visibility(false);if(h.tasks.size)await h.tick();
+  assert.equal(exhausted,0);assert.equal(h.tasks.size,0);assert.equal(h.listeners.size,0);
+ }
+});
+
+test('failed reads report exhaustion only after consuming the bounded budget',async()=>{
+ let exhausted=0,checks=0;
+ const h=harness({maxAttempts:2,check:async()=>{checks++;throw Error('RPC unavailable');},onExhausted:()=>{exhausted++;}});
+ h.monitor.start();await h.tick();assert.equal(exhausted,0);await h.tick();
+ assert.equal(checks,2);assert.equal(exhausted,1);assert.equal(h.tasks.size,0);
+});
+
+test('a notification failure still leaves the exhausted monitor stopped',async()=>{
+ const h=harness({maxAttempts:1,onExhausted(){throw Error('Status unavailable');}});
+ h.monitor.start();await h.tick();h.monitor.wake();
+ assert.equal(h.tasks.size,0);assert.equal(h.listeners.size,0);
+});
+
+test('completion from a stopped session cannot exhaust a new session or overlap its reads',async()=>{
+ let done,checks=0,exhausted=0;
+ const h=harness({maxAttempts:1,check:()=>{checks++;return new Promise(resolve=>{done=resolve;});},onExhausted:()=>{exhausted++;}});
+ h.monitor.start();const oldRead=h.tick();h.monitor.stop();h.monitor.start();
+ await h.tick();assert.equal(checks,1);assert.equal(exhausted,0);
+ done(false);await oldRead;assert.equal(exhausted,0);assert.equal(h.tasks.size,1);
+ const currentRead=h.tick();assert.equal(checks,2);done(false);await currentRead;
+ assert.equal(exhausted,1);assert.equal(h.tasks.size,0);assert.equal(h.listeners.size,0);
 });

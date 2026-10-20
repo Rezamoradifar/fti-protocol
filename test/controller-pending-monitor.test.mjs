@@ -16,17 +16,17 @@ function fixture({record=hash,recoverPending=async()=>null,rpc={}}={}){
  const tracker=transactionState(localStorage,56,account);
  if(record?.startsWith('unknown:'))tracker.saveUnknown(Number(record.slice(8)));
  else if(record)tracker.save(record);
- const monitors=[],shown=[],statuses=[],nodes={'unknown-send-form':{hidden:false}};
+ const monitors=[],shown=[],statuses=[],nodes={'unknown-send-form':{hidden:false},'find-transaction-hash':{},'hash-lookup-result':{textContent:''}};
  let refreshed=0;
  const context={pendingWatch:null,busy:false,connecting:false,address:account,signer:{},
   walletProvider:{request(){assert.fail('background verification must never invoke a wallet');}},
-  localStorage,transactionState,cfg:{chainId:56},document:{},recoveryOptions:{},recoverPending,v3Model:false,surface:'member',location:{hash:'#network'},
+  localStorage,transactionState,cfg:{chainId:56},document:{},recoveryOptions:{},recoveryFor:()=>({}),recoverPending,v3Model:false,surface:'member',location:{hash:'#network'},
   rpc:{getNetwork:async()=>({chainId:56n}),getTransactionReceipt:async()=>receipt(),
    getBlock:async number=>({number,hash:blockHash}),...rpc},
   pendingMonitor(options){const monitor={options,started:false,stopped:false,start(){this.started=true;},stop(){this.stopped=true;}};monitors.push(monitor);return monitor;},
-  hashView:{show(value,options){shown.push({value,options});}},
+  hashView:{show(value,options){shown.push({value,options});},hide(){},restore(){}},
   $:selector=>nodes[selector.slice(1)],
-  refreshMembershipState:async()=>{refreshed++;},
+  refreshMembershipState:async()=>{refreshed++;},refresh:async()=>{},syncActions(){},reason:error=>error.message,
   status:(value,error)=>statuses.push({value,error}),t:value=>value};
  vm.runInNewContext(source.slice(start,end),context);
  return {context,tracker,monitors,shown,statuses,nodes,refreshed:()=>refreshed,
@@ -113,4 +113,24 @@ test('no monitor starts while busy, connecting, disconnected or without a pendin
   const f=fixture();Object.assign(f.context,change);f.context.startPendingChecks();assert.equal(f.monitors.length,0);
  }
  const f=fixture({record:null});f.context.startPendingChecks();assert.equal(f.monitors.length,0);
+});
+
+test('exhausted verification reports that it stopped without releasing the recorded request',()=>{
+ const f=fixture({record:'unknown:3'}),monitor=f.start();
+ monitor.options.onExhausted();assert.equal(f.tracker.read(),'unknown:3');
+ assert.match(f.statuses.at(-1).value,/stopped without a confirmed result/);assert.equal(f.statuses.at(-1).error,true);
+ const count=f.statuses.length;f.context.stopPendingChecks();monitor.options.onExhausted();assert.equal(f.statuses.length,count);
+});
+
+test('manual hash lookup cannot clear or display an old session after account, signer or provider changes',async()=>{
+ for(const key of ['address','signer','walletProvider']){
+  const pending=deferred();let guarded;
+  const f=fixture({record:'unknown:3',recoverPending:async tracker=>{guarded=tracker;await pending.promise;tracker.remember(hash);tracker.clear();return {hash,receipt:receipt()};}});
+  const first=source.indexOf("$('#find-transaction-hash').onclick="),last=source.indexOf("$('#unknown-send-form').onsubmit=",first);
+  vm.runInNewContext(source.slice(first,last),f.context);
+  const action=f.nodes['find-transaction-hash'].onclick();
+  f.context[key]=key==='address'?'0x'+'2'.repeat(40):{};
+  assert.equal(guarded.read(),null);pending.resolve();await action;
+  assert.equal(f.tracker.read(),'unknown:3',key);assert.equal(f.tracker.last(),null,key);assert.equal(f.shown.length,0,key);
+ }
 });

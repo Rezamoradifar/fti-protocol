@@ -1,6 +1,7 @@
 import {purchaseError} from './purchase-error.js';
 import {requireCollateralBalance} from './collateral-balance.js';
 import {recoverPending} from './recover-pending.js';
+import {recoveryHints,readRecoveryHints} from './recovery-hints.js';
 import {transactionHashView} from './transaction-hash.js';
 import {walletReview} from './wallet-review.js';
 import {pendingMonitor} from './pending-monitor.js';
@@ -91,7 +92,9 @@ const short=value=>value.slice(0,6)+'…'+value.slice(-4);
 function status(message,error=false){text('status',message);$('#status').dataset.state=error?'error':'ready';$('#status').classList.toggle('error',error);const local=$('#membership-flow-status');if(local){local.textContent=t(message);local.hidden=false;local.classList.toggle('error',error);}}
 const hashView=transactionHashView({document,clipboard:navigator.clipboard,translate:t,status,explorer});
 const review=walletReview({document,translate:t});
-const recoveryOptions={logAddresses:[cfg.usd,cfg.binary,cfg.token]};
+const recoveryOptions={logAddresses:[cfg.usd,cfg.binary,cfg.token],candidateHashes:recoveryHints(location.href)};
+const recoveredCandidates=new Map();
+function recoveryFor(walletAddress){return {...recoveryOptions,candidateHashes:[...new Set([...recoveryOptions.candidateHashes,...(recoveredCandidates.get(walletAddress.toLowerCase())||[])])].slice(0,16)};}
 function reason(error){return walletError(error);}
 function wallet(){return address&&state?.wallet?.address?.toLowerCase()===address.toLowerCase()?state.wallet:null;}
 function stopPendingChecks(){pendingWatch?.stop();pendingWatch=null;}
@@ -103,10 +106,13 @@ function startPendingChecks(){
  const isCurrent=()=>pendingWatch===monitor&&address===originalAddress&&signer===originalSigner&&walletProvider===originalWallet&&!busy&&!connecting;
  const sameRecord=()=>isCurrent()&&tracker.read()===record;
  const guarded={read:()=>sameRecord()?record:null,remember:hash=>{if(sameRecord())tracker.remember(hash);},clear:()=>{if(sameRecord())tracker.clear();}};
- const monitor=pendingMonitor({document,isCurrent,interval:record.startsWith('unknown:')?20000:15000,maxAttempts:record.startsWith('unknown:')?3:8,check:async()=>{
+ const monitor=pendingMonitor({document,isCurrent,interval:record.startsWith('unknown:')?20000:15000,maxAttempts:record.startsWith('unknown:')?3:8,onExhausted:()=>{
+  if(!sameRecord())return;
+  status(t('Automatic verification stopped without a confirmed result. The previous request is still recorded. Use transaction verification to retry.','بررسی خودکار بدون نتیجهٔ قطعی متوقف شد. درخواست قبلی حفظ شده است؛ از بخش بررسی تراکنش دوباره تلاش کن.'),true);
+ },check:async()=>{
   if(!sameRecord())return true;
   let result;
-  if(record.startsWith('unknown:'))result=await recoverPending(guarded,rpc,originalAddress,cfg.chainId,recoveryOptions);
+  if(record.startsWith('unknown:'))result=await recoverPending(guarded,rpc,originalAddress,cfg.chainId,recoveryFor(originalAddress));
   else{
    if(Number((await rpc.getNetwork()).chainId)!==cfg.chainId)return false;
    const receipt=await rpc.getTransactionReceipt(record);
@@ -251,14 +257,17 @@ async function sendContract(key,method,...args){
 $('#find-transaction-hash').onclick=async()=>{
  if(busy||!address||!signer)return;
  stopPendingChecks();
- busy=true;syncActions();const originalAddress=address;
+ busy=true;syncActions();const originalAddress=address,originalSigner=signer,originalWallet=walletProvider;
+ const current=()=>address===originalAddress&&signer===originalSigner&&walletProvider===originalWallet;
  const result=$('#hash-lookup-result');
  result.textContent=t('Looking for the previous transaction on the network…','در حال جست‌وجوی تراکنش قبلی در شبکه…');
  try{
   const tracker=transactionState(localStorage,cfg.chainId,originalAddress),pending=tracker.read();
   if(pending?.startsWith('unknown:')){
-   const recovered=await recoverPending(tracker,rpc,originalAddress,cfg.chainId,recoveryOptions);
-   if(address!==originalAddress)return;
+   const sameRecord=()=>current()&&tracker.read()===pending;
+   const guarded={read:()=>sameRecord()?pending:null,remember:hash=>{if(sameRecord())tracker.remember(hash);},clear:()=>{if(sameRecord())tracker.clear();}};
+   const recovered=await recoverPending(guarded,rpc,originalAddress,cfg.chainId,recoveryFor(originalAddress));
+   if(!current())return;
    if(!recovered){hashView.hide();result.textContent=t('No confirmed hash was recovered. The request may still be pending, may not have been sent, or the RPC may lack its history. The previous request remains protected.','هش تأییدشدهٔ این درخواست پیدا نشد؛ ممکن است درخواست در انتظار باشد، ارسال نشده باشد یا RPC سابقه‌اش را نداشته باشد. قفل درخواست قبلی حفظ شده است.');return;}
    hashView.show(recovered.hash,{pending:true});$('#unknown-send-form').hidden=true;
    status(t('The previous hash was verified and is ready to copy. Review your units and balance before another purchase.','هش قبلی بررسی شد و برای کپی آماده است. پیش از خرید دوباره، یونیت‌ها و موجودی را بررسی کن.'));
@@ -267,7 +276,7 @@ $('#find-transaction-hash').onclick=async()=>{
    hashView.restore(tracker);
    result.textContent=pending||tracker.last()?t('The transaction hash is displayed above.','هش تراکنش در کادر بالا نمایش داده شده است.'):t('No transaction hash has been received from the wallet.','هنوز هیچ هش تراکنشی از ولت دریافت نشده است.');
   }
- }catch(error){if(address===originalAddress)result.textContent=t('Hash lookup could not be completed. The previous request is still protected.','جست‌وجوی هش کامل نشد؛ قفل درخواست قبلی حفظ شده است.')+' '+reason(error);}
+ }catch(error){if(current())result.textContent=t('Hash lookup could not be completed. The previous request is still protected.','جست‌وجوی هش کامل نشد؛ قفل درخواست قبلی حفظ شده است.')+' '+reason(error);}
  finally{busy=false;syncActions();startPendingChecks();}
 };
 $('#unknown-send-form').onsubmit=async e=>{
@@ -301,7 +310,7 @@ $('#cancel-unknown').onclick=async()=>{
    const record=tracker.read(),current=()=>address===originalAddress&&signer===originalSigner&&walletProvider===originalWallet&&tracker.read()===record;
    const guarded={read:()=>current()?record:null,remember:hash=>{if(current())tracker.remember(hash);},clear:()=>{if(current())tracker.clear();}};
    status(t('The recorded nonce has already been used. Looking for a verified transaction…','شمارهٔ درخواست ثبت‌شده مصرف شده؛ در حال جست‌وجوی تراکنش تأییدشده…'));
-   const recovered=await recoverPending(guarded,rpc,originalAddress,cfg.chainId,recoveryOptions).catch(()=>null);
+   const recovered=await recoverPending(guarded,rpc,originalAddress,cfg.chainId,recoveryFor(originalAddress)).catch(()=>null);
    if(address!==originalAddress||signer!==originalSigner||walletProvider!==originalWallet)return;
    if(!recovered){const details=$('#transaction-recovery-details');if(details)details.open=true;throw error;}
    hashView.show(recovered.hash,{pending:true});$('#unknown-send-form').hidden=true;
@@ -377,6 +386,10 @@ async function connect({silent=false}={}){
   const nextAddress=await nextSigner.getAddress();if(!current())return;if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',(selectedWallet?.name?selectedWallet.name+' · ':'')+short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}
   let saved;try{saved=transactionState(localStorage,cfg.chainId,nextAddress);}catch{}
   hashView.restore(saved);$('#unknown-send-form').hidden=!saved?.read()?.startsWith('unknown:');
+  if(saved?.read()?.startsWith('unknown:')){
+   try{const candidates=await readRecoveryHints({address:nextAddress,chainId:cfg.chainId});if(current()&&signer===nextSigner&&address===nextAddress)recoveredCandidates.set(nextAddress.toLowerCase(),candidates);}catch{/* Missing or invalid candidates never release the recorded request. */}
+   if(!current()||signer!==nextSigner||address!==nextAddress)return;
+  }
   let partialData=false;
   try{await refresh();}catch{if(!current()||signer!==nextSigner||address!==nextAddress)return;await (v3Model&&(surface==='token'||location.hash==='#trade')?refreshTokenState():refreshMembershipState());partialData=true;}
   if(!current()||signer!==nextSigner||address!==nextAddress)return;
