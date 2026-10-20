@@ -77,6 +77,43 @@ class ResumeTests(unittest.TestCase):
                 ['systemctl', 'reset-failed', 'fti-continuity-web.service'],
                 ['systemctl', 'start', 'fti-continuity-web.service']])
 
+    def test_rpc_rollback_preserves_a_concurrent_operator_edit(self):
+        dropin = Path(self.tmp.name) / 'rpc.conf'
+        dropin.write_bytes(b'operator configuration')
+        with patch.object(m.subprocess, 'run') as run:
+            with self.assertRaisesRegex(RuntimeError, 'changed concurrently'):
+                m.rollback_rpc(dropin, m.digest(b'installer configuration'))
+            self.assertEqual(dropin.read_bytes(), b'operator configuration')
+            run.assert_not_called()
+
+    def test_rpc_rollback_removes_only_its_verified_override(self):
+        dropin = Path(self.tmp.name) / 'rpc.conf'
+        dropin.write_bytes(b'installer configuration')
+        with patch.object(m.subprocess, 'run') as run:
+            m.rollback_rpc(dropin, m.digest(b'installer configuration'))
+            self.assertFalse(dropin.exists())
+            self.assertEqual([call.args[0] for call in run.call_args_list], [
+                ['systemctl', 'daemon-reload'],
+                ['systemctl', 'restart', 'fti-continuity-web.service']])
+
+    def test_exclusive_environment_file_cannot_overwrite_existing_config(self):
+        file = Path(self.tmp.name) / 'rpc.env'
+        file.write_bytes(b'operator configuration')
+        with self.assertRaises(FileExistsError):
+            m.write_exclusive(file, b'replacement')
+        self.assertEqual(file.read_bytes(), b'operator configuration')
+
+    def test_rpc_rollback_preserves_a_concurrent_environment_edit(self):
+        dropin, envfile = Path(self.tmp.name) / 'rpc.conf', Path(self.tmp.name) / 'rpc.env'
+        dropin.write_bytes(b'installer configuration')
+        envfile.write_bytes(b'operator environment')
+        with patch.object(m.subprocess, 'run') as run:
+            with self.assertRaisesRegex(RuntimeError, 'environment changed concurrently'):
+                m.rollback_rpc(dropin, m.digest(b'installer configuration'), envfile, m.digest(b'original environment'))
+            self.assertTrue(dropin.exists())
+            self.assertEqual(envfile.read_bytes(), b'operator environment')
+            run.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()
