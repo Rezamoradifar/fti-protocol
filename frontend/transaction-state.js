@@ -91,3 +91,16 @@ export async function cancelUnknown(tracker,provider,signer,address,chainId){
  tracker.save(tx.hash);
  return confirmedReceipt(tx,tracker);
 }
+
+// Serialize before recording uncertainty. The callback makes exactly one wallet
+// send request, returns its hash immediately, and reads receipts on our RPC.
+export function preparedWalletSend(wallet,readProvider,rpcRequest){
+ if(!wallet||typeof wallet.request!=='function')throw Error('Wallet is not connected.');
+ if(!/^0x[0-9a-f]{40}$/i.test(rpcRequest.to||'')||!/^0x[0-9a-f]{40}$/i.test(rpcRequest.from||'')||!rpcRequest.gas)throw Error('Invalid prepared transaction.');
+ const request={...rpcRequest};
+ return async()=>{
+  const hash=await wallet.request({method:'eth_sendTransaction',params:[request]});
+  if(!/^0x[0-9a-f]{64}$/i.test(hash||''))throw Error('Wallet did not return a transaction hash.');
+  return {hash,wait:()=>readProvider.waitForTransaction(hash,1,120000)};
+ };
+}

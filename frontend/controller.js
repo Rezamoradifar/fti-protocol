@@ -1,7 +1,7 @@
 import {purchaseError} from './purchase-error.js';
 import {recoverPending} from './recover-pending.js';
 import {readJson,initializeReadSession} from './read-json.js';
-import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,cancelUnknown} from './transaction-state.js';
+import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,cancelUnknown,preparedWalletSend} from './transaction-state.js';
 import {membershipBlock,walletError} from './membership-availability.js';
 import {deploymentConfiguration} from './deployment.js';
 import {deploymentNetwork} from '../core/deployment-network.mjs';
@@ -144,7 +144,8 @@ async function sendContract(key,method,...args){
  // Wallet changes during read-only preparation must not create a pending record.
  if(signer!==activeSigner||address!==expectedAddress||address!==transactionAddress)throw Error('Wallet changed. Please review the action and try again.');
  status('Review the request in your wallet.');
- return send(()=>activeSigner.sendTransaction(request));
+ const rpcRequest=rpc.getRpcTransaction({...request,from:expectedAddress,chainId:cfg.chainId});
+ return send(preparedWalletSend(walletProvider,rpc,rpcRequest));
 }
 $('#unknown-send-form').onsubmit=async e=>{
  e.preventDefault();if(busy||!address||!signer)return;busy=true;syncActions();
