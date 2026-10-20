@@ -57,3 +57,28 @@ test('late injected SafePal is found without losing a different installed wallet
  const target=new EventTarget();target.ethereum={...provider(),isMetaMask:true};const registry=discoverWallets(target);assert.equal(registry.list().length,1);
  target.safepalProvider=provider();assert.deepEqual(registry.list().map(w=>w.name),['SafePal','MetaMask']);
 });
+test('official SafePal mobile marker identifies a sole ethereum provider without guessed aliases',()=>{
+ for(const marker of [{isSafePal:true},{navigator:{userAgent:'SafePal Mobile'}}]){
+  const target=new EventTarget();Object.assign(target,marker);target.ethereum=provider();
+  const wallets=discoverWallets(target).list();assert.equal(wallets.length,1);assert.equal(wallets[0].name,'SafePal');
+ }
+ const target=new EventTarget();target.isSafePal=true;target.ethereum={providers:[{...provider(),isMetaMask:true},{...provider(),isTrust:true}]};
+ assert.deepEqual(discoverWallets(target).list().map(wallet=>wallet.name),['MetaMask','Trust Wallet']);
+});
+test('interactive permission times out without issuing a duplicate request while the first request remains pending',async()=>{
+ let calls=0,complete;const selected={provider:{request:args=>{assert.equal(args.method,'eth_requestAccounts');calls++;return new Promise(resolve=>{complete=resolve;});}}};
+ for(let attempt=0;attempt<2;attempt++)await assert.rejects(requestWalletAccounts(selected,false,5),error=>error.code==='FTI_WALLET_AUTHORIZATION_TIMEOUT');
+ assert.equal(calls,1);const resumed=requestWalletAccounts({...selected},false,100);complete(['connected']);
+ assert.deepEqual(await resumed,['connected']);assert.equal(calls,1);
+});
+test('settled rejection releases only its permission request so a new explicit attempt is possible',async()=>{
+ let calls=0;const selected={provider:{request:async()=>{if(++calls===1)throw Object.assign(Error('Rejected'),{code:4001});return ['connected'];}}};
+ await assert.rejects(requestWalletAccounts(selected),error=>error.code===4001);
+ assert.deepEqual(await requestWalletAccounts(selected),['connected']);assert.equal(calls,2);
+});
+test('silent reads never start another permission request while interactive authorization is pending',async()=>{
+ let complete;const calls=[],selected={provider:{request:args=>{calls.push(args.method);return args.method==='eth_accounts'?Promise.resolve([]):new Promise(resolve=>{complete=resolve;});}}};
+ const pending=requestWalletAccounts(selected,false,100);
+ assert.deepEqual(await requestWalletAccounts(selected,true),[]);assert.deepEqual(calls,['eth_requestAccounts','eth_accounts']);
+ complete(['connected']);assert.deepEqual(await pending,['connected']);
+});

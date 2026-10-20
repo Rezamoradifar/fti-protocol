@@ -19,7 +19,7 @@ import {initNetworkTree} from './network-tree.js';
 import {t,language,displayNumber,displayUTC,withLanguage} from './locale.js';
 import {readBuilderMode,builderMonthState,autoPercent} from './builder-view.js';
 import {chooseWallet,requestWalletAccounts} from './wallet-selector.js';
-import {JsonRpcProvider,BrowserProvider,Contract,FetchRequest,parseEther,formatEther,ZeroAddress,ZeroHash,randomBytes,hexlify,isAddress} from '/vendor/ethers.js';
+import {JsonRpcProvider,BrowserProvider,JsonRpcSigner,Contract,FetchRequest,parseEther,formatEther,ZeroAddress,ZeroHash,randomBytes,hexlify,isAddress} from '/vendor/ethers.js';
 import {disconnectSession} from './wallet-session.js';
 import {siteLinks} from './site-links.js';
 const sites=siteLinks(location.href);
@@ -142,6 +142,7 @@ function syncActions(){
  if(!notice){notice=document.createElement('p');notice.id='membership-availability';notice.setAttribute('role','status');$('#register-form').prepend(notice);$('#register-button').setAttribute('aria-describedby',notice.id);}
  notice.hidden=!blocked;notice.textContent=t(blocked);
  $('#language-select').disabled=busy||connecting;$('#connect').disabled=busy||connecting;$('#local-accounts').disabled=busy||connecting;
+ const quickConnect=$('#quick-connect');if(quickConnect){quickConnect.hidden=!!address;quickConnect.disabled=busy||connecting;}
  $('#disconnect').hidden=!address;$('#disconnect').disabled=busy||connecting;
  $('#copy-address').disabled=!address;$('#copy-referral').disabled=!w?.exists;
  $('#max-sell').disabled=busy||!enabled.unlocked;
@@ -344,18 +345,24 @@ function observeWallet(provider){
 }
 async function connect({silent=false}={}){
  if(connecting||busy)return;if(signer&&address){status('Wallet already connected.');return;}connecting=true;syncActions();
+ text('connect-label',t('Connecting…','در حال اتصال…'));
  try{
   let nextSigner;
   if(cfg.mode==='local')nextSigner=await rpc.getSigner($('#local-accounts').value);
   else{
-   const selected=await chooseWallet({silent,projectId:cfg.walletConnectProjectId,chainId:cfg.chainId});if(!selected)return;
+   const selected=await chooseWallet({silent,authorize:!silent,projectId:cfg.walletConnectProjectId,chainId:cfg.chainId});if(!selected)return;
    detachWallet();clearWallet();const injected=selected.provider;
-   const accounts=await requestWalletAccounts(selected,silent);if(!accounts.length)return;
-   const chain=Number(await injected.request({method:'eth_chainId'}));
-   if(chain!==cfg.chainId){if(silent)throw Error('Switch your wallet to '+networkProfile.name+' and connect again.');try{await injected.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]});}catch{throw Error('Switch your wallet to '+networkProfile.name+' (chain ID '+cfg.chainId+'), then connect again.');}}
-   const provider=new BrowserProvider(injected);if(Number((await preparationDeadline(provider.getNetwork())).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');nextSigner=await preparationDeadline(provider.getSigner());observeWallet(injected);selectedWallet=selected;
+   if(!silent)status(t('Confirm connection in your wallet.','اتصال را داخل ولت تأیید کن.'));
+   const accounts=await requestWalletAccounts(selected,silent);if(!Array.isArray(accounts)||!accounts.every(isAddress))throw Error('The wallet did not return a valid account.');if(!accounts.length)return;
+   const chain=Number(await preparationDeadline(injected.request({method:'eth_chainId'}),10000));
+   if(chain!==cfg.chainId){if(silent)throw Error('Switch your wallet to '+networkProfile.name+' and connect again.');try{await preparationDeadline(injected.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]}),60000);}catch{throw Error('Switch your wallet to '+networkProfile.name+' (chain ID '+cfg.chainId+'), then connect again.');}}
+   const provider=new BrowserProvider(injected);if(Number((await preparationDeadline(provider.getNetwork())).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');
+   await readWalletIdentity(injected,accounts[0],cfg.chainId);
+   // The selected wallet already granted this account. Do not let getSigner()
+   // issue a second permission prompt after the original click has finished.
+   nextSigner=new JsonRpcSigner(provider,accounts[0]);observeWallet(injected);selectedWallet=selected;
   }
-  const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}
+  const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',(selectedWallet?.name?selectedWallet.name+' · ':'')+short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}
   let saved;try{saved=transactionState(localStorage,cfg.chainId,nextAddress);}catch{}
   hashView.restore(saved);$('#unknown-send-form').hidden=!saved?.read()?.startsWith('unknown:');
   let partialData=false;
@@ -363,7 +370,7 @@ async function connect({silent=false}={}){
   if(saved?.read()?.startsWith('unknown:')){
    status(t('Checking the previous request automatically.','در حال بررسی خودکار درخواست قبلی…'));
   }else status(partialData?t('Wallet connected. Purchase data is ready.','ولت متصل شد؛ اطلاعات لازم خرید آماده است.'):'Wallet connected. Contract data loaded.');
- }catch(error){status(purchaseError('CONNECT',error),true);}finally{connecting=false;syncActions();startPendingChecks();}
+ }catch(error){status(error.code==='FTI_WALLET_AUTHORIZATION_TIMEOUT'?t('The wallet has not answered the connection request yet. Check its connection window, then press Connect to continue waiting.','ولت هنوز به درخواست اتصال پاسخ نداده است. پنجرهٔ اتصال را داخل ولت بررسی کن؛ با زدن اتصال، همان درخواست پیگیری می‌شود.'):purchaseError('CONNECT',error),true);}finally{connecting=false;if(!address)text('connect-label','Connect wallet');syncActions();startPendingChecks();}
 }
 $('#connect').onclick=()=>connect();
 $('#disconnect').onclick=async()=>{
@@ -561,7 +568,7 @@ $('#proposal-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const 
 $('#timelock-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const p=await read.council.proposal(BigInt(e.target.elements.id.value));if(p[0].toLowerCase()!==cfg.timelock.toLowerCase()||!p[3])throw Error('The scheduling proposal has not been executed.');const args=read.timelock.interface.decodeFunctionData('schedule',p[1]);await send(()=>write('timelock').execute(args[0],args[1],args[2],args[3],args[4]));});};
 text('token-address',cfg.token);$('#token-explorer').hidden=!explorer;if(explorer)$('#token-explorer').href=explorer+'/address/'+cfg.token;
 renderWallet();syncActions();navigate(location.hash.slice(1)||((sponsor&&isAddress(sponsor))?'network':defaultPage));
-try{if(cfg.mode==='local')await connect();else await initializeReadSession({refresh,ready:()=>status('Contract data loaded. Connect a wallet to manage your account.'),failed:error=>status(reason(error),true),reconnect:async()=>{let reconnect=false;try{reconnect=sessionStorage.getItem('fti-wallet-connected')==='yes';}catch{}if(reconnect)await connect({silent:true});}});}catch(error){status(reason(error),true);}
+try{if(cfg.mode==='local')await connect();else await initializeReadSession({refresh,ready:()=>{if(!connecting&&!busy&&!signer)status('Contract data loaded. Connect a wallet to manage your account.');},failed:error=>{if(!connecting&&!busy&&!signer)status(reason(error),true);},reconnect:async()=>{let reconnect=false;try{reconnect=sessionStorage.getItem('fti-wallet-connected')==='yes';}catch{}if(reconnect)await connect({silent:true});}});}catch(error){if(!connecting&&!busy)status(reason(error),true);}
 let backgroundRefreshRunning=false;
 setInterval(async()=>{
  if(busy||connecting||document.hidden||backgroundRefreshRunning)return;

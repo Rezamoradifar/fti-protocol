@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 const source=fs.readFileSync('frontend/wallet-selector.js','utf8').replace("import {t} from './locale.js';","const t=s=>s;")+ '\nwindow.chooseWallet=chooseWallet;';
 const browser=await chromium.launch({executablePath:process.env.FTI_CHROMIUM_PATH,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
 try{
- for(const mode of ['native','missing','throws']){
+ for(const mode of ['native','missing','throws','noop']){
   const page=await browser.newPage({viewport:{width:390,height:844}});
   await page.setContent('<body data-surface="member"><button id="connect">Connect</button></body>');
   await page.addStyleTag({content:fs.readFileSync('frontend/panel-identity.css','utf8').replace(/@import[^;]+;/g,'')});
@@ -12,6 +12,7 @@ try{
    window.ethereum={isMetaMask:true,providers:{},request:async()=>[]};
    if(mode==='missing')HTMLDialogElement.prototype.showModal=undefined;
    if(mode==='throws')HTMLDialogElement.prototype.showModal=()=>{throw Error('Unsupported');};
+   if(mode==='noop')HTMLDialogElement.prototype.showModal=()=>{};
   },mode);
   await page.addScriptTag({type:'module',content:source});
   await page.waitForFunction(()=>typeof window.chooseWallet==='function');
