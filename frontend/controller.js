@@ -1,3 +1,4 @@
+import {purchaseError} from './purchase-error.js';
 import {recoverPending} from './recover-pending.js';
 import {readJson,initializeReadSession} from './read-json.js';
 import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,cancelUnknown} from './transaction-state.js';
@@ -67,6 +68,7 @@ if(cfg.poolDistributionVersion===1){
 initNetworkTree(read.binary,rpc,cfg.hourlyCapFlushVersion,cfg.poolDistributionVersion);
 if(v3Model)initLiveMarket(read.token,rpc,cfg);
 let activeTransaction;
+let transactionStage='';
 let signer,address,state,busy=false,connecting=false,transactionAddress,refreshSequence=0,autoDirty=false,councilOwner=false;
 let lockOffset=0;
 const ranks=['Member','Builder 1','Builder 2','Builder 3','Builder 4'].map(x=>t(x));
@@ -108,7 +110,7 @@ function syncActions(){
 function write(key){if(!signer||!address)throw Error('Connect your wallet first.');if(transactionAddress&&address!==transactionAddress)throw Error('Wallet changed. Please review the action and try again.');return read[key].connect(signer);}
 async function transaction(fn){
  if(busy)return;if(!signer){status('Connect your wallet first.',true);return;}
- busy=true;transactionAddress=address;syncActions();$('#transaction-link').hidden=true;status('Refreshing wallet data before your request…');
+ transactionStage='NETWORK';busy=true;transactionAddress=address;syncActions();$('#transaction-link').hidden=true;status('Refreshing wallet data before your request…');
  try{if(cfg.mode!=='local'&&Number(await walletProvider.request({method:'eth_chainId'}))!==cfg.chainId)throw Error('Wallet network does not match this deployment.');
  let storage;try{storage=localStorage;}catch{}
  activeTransaction=transactionState(storage,cfg.chainId,address);
@@ -119,22 +121,22 @@ async function transaction(fn){
   const recovered=await recoverPending(activeTransaction,rpc,address,cfg.chainId).catch(()=>null);
   if(recovered){$('#unknown-send-form').hidden=true;await refresh();status('Previous request resolved. Review your balances, then choose your next action.');return;}
  }
- const previous=await resolvePending(activeTransaction,rpc);
+ transactionStage='PREVIOUS';const previous=await resolvePending(activeTransaction,rpc);
  if(previous){status(Number(previous.status)===1?'Previous transaction confirmed. Refresh and review your balances before another request.':'Transaction reverted on-chain.',Number(previous.status)!==1);await refresh().catch(()=>{});return;}
- await refresh();if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();
+ transactionStage='BALANCE';await refresh();transactionStage='VALIDATION';if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();
  try{await refresh();}catch{status('Transaction confirmed on-chain. Balance refresh failed; refresh the page before another request.');return;}
  status(typeof outcome==='string'?outcome:'Transaction confirmed on-chain.');}
- catch(error){const pending=activeTransaction?.read();$('#unknown-send-form').hidden=!pending?.startsWith('unknown:');status(pending?.startsWith('unknown:')?'Send result is unknown. Inspect wallet activity and verify its transaction hash before continuing.':pending?'Transaction confirmation is pending. Check wallet activity before retrying.':reason(error),true);}
- finally{busy=false;transactionAddress=null;activeTransaction=null;syncActions();}
+ catch(error){const pending=activeTransaction?.read();$('#unknown-send-form').hidden=!pending?.startsWith('unknown:');status(pending?.startsWith('unknown:')?'Send result is unknown. Inspect wallet activity and verify its transaction hash before continuing.':pending?'Transaction confirmation is pending. Check wallet activity before retrying.':purchaseError(transactionStage,error),true);}
+ finally{busy=false;transactionStage='';transactionAddress=null;activeTransaction=null;syncActions();}
 }
 async function send(request){
- const nonce=Number(await rpc.send('eth_getTransactionCount',[transactionAddress,'pending']));
- const tx=await submitTracked(request,activeTransaction,nonce);status('Transaction submitted. Waiting for confirmation… '+short(tx.hash));
+ transactionStage='NONCE';const nonce=Number(await rpc.send('eth_getTransactionCount',[transactionAddress,'pending']));
+ transactionStage='SIGN';const tx=await submitTracked(request,activeTransaction,nonce);status('Transaction submitted. Waiting for confirmation… '+short(tx.hash));
  if(explorer){$('#transaction-link').href=explorer+'/tx/'+tx.hash;$('#transaction-link').hidden=false;}
  return confirmedReceipt(tx,activeTransaction);
 }
 async function sendContract(key,method,...args){
- const activeSigner=signer,expectedAddress=address;
+ transactionStage='GAS';const activeSigner=signer,expectedAddress=address;
  status('Checking the purchase before opening your wallet…');
  let request;
  try{request=await prepareContractRequest(read[key][method],args,activeSigner,rpc);}
@@ -171,7 +173,7 @@ $('#cancel-unknown').onclick=async()=>{
  }catch(error){status(reason(error),true);}finally{busy=false;syncActions();}
 };
 async function approve(spender,amount){
- const current=await read.usd.allowance(address,spender);
+ transactionStage='ALLOWANCE';const current=await read.usd.allowance(address,spender);
  if(current<amount){status(networkProfile.testAssets?'Approve test USD spending in your wallet.':'Approve collateral spending in your wallet.');if(current>0n)await sendContract('usd','approve',spender,0);await sendContract('usd','approve',spender,amount);}
 }
 let walletProvider,providerListeners,selectedWallet;
@@ -206,7 +208,7 @@ async function connect({silent=false}={}){
    if(recovered){await refresh();status('Previous request resolved. Review your balances, then choose your next action.');}
    else status('Previous request could not be verified automatically. Check wallet activity.',true);
   }else status('Wallet connected. Contract data loaded.');
- }catch(error){status(reason(error),true);}finally{connecting=false;syncActions();}
+ }catch(error){status(purchaseError('CONNECT',error),true);}finally{connecting=false;syncActions();}
 }
 $('#connect').onclick=()=>connect();
 $('#disconnect').onclick=async()=>{
@@ -325,9 +327,9 @@ $('#register-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const 
   placement=await json('/api/placement?referrer='+encodeURIComponent(sponsorAddress));
   if(!isAddress(placement.placementParent)||placement.referrer.toLowerCase()!==sponsorAddress.toLowerCase())throw Error('Placement suggestion failed integrity checks.');
  }
- if(await read.usd.allowance(transactionAddress,cfg.binary)<cost)throw Error(t('First press 1. Approve USDT for the selected number of units.','ابتدا برای تعداد یونیت انتخاب‌شده، دکمه «۱. تأیید تتر» را بزن.'));
+ transactionStage='ALLOWANCE';if(await read.usd.allowance(transactionAddress,cfg.binary)<cost)throw Error(t('First press 1. Approve USDT for the selected number of units.','ابتدا برای تعداد یونیت انتخاب‌شده، دکمه «۱. تأیید تتر» را بزن.'));
  // Approval may cross an hourly boundary; refresh before requesting the purchase.
- await refresh();const blockedAfterApproval=membershipBlock(state);if(blockedAfterApproval)throw Error(blockedAfterApproval);
+ transactionStage='BALANCE';await refresh();transactionStage='VALIDATION';const blockedAfterApproval=membershipBlock(state);if(blockedAfterApproval)throw Error(blockedAfterApproval);
  const currentWallet=wallet();if(!currentWallet||currentWallet.exists!==w.exists)throw Error('Membership changed. Refresh and review before trying again.');
  if(cost>BigInt(currentWallet.usdBalance))throw Error('Not enough collateral in your wallet.');
  if(w.exists)await sendContract('binary','addUnits',n);

@@ -5,7 +5,7 @@
     "frontend/panel-identity.css": "7237a8a1b16311423b34ac794aacb8004de59ca4d1ead09132df72e2c7498b0f",
     "scripts/build-web.mjs": "5c4344e6e9940f5da10bd59fafbe468600dea334081a9124c2905f6d1a60efcb",
     "web/index.html": "3cc73698ba82bbc1fd249fc2b87d168d3017561ec82f002a01ba490d4b2ffcd7",
-    "web/app.js": "f76038d2736acb3573ec134cdf1fdfded3abe81e5ee16d09ceb43b0ef59e4632",
+    "web/app.js": "c01dbc4c130e085d021e1045020ca8d2ccdf774408416621eb9691d0dc50ca0b",
     "web/app.js.LEGAL.txt": "573cc95a6417c69a6ca44804f440f00965283c8cdcc50025305a7a50f53940ac",
     "web/style.css": "373a39681dd415c339a117034c7d5d5d9fc976b28730b1967e25dd4afb117190",
     "web/member-landing-theme.css": "4a66ac54bbbd1282c61536ec6889f07047bdaeda1a54b6b431910da9b31d0198",
@@ -16,7 +16,7 @@
     "web/fonts/vazirmatn-arabic-wght-normal-GZN7WEUV.woff2": "84a382e46c30fb4f73d0e3800c16d0af15888e2731e57fa5f93e2c29a2c6a957",
     "web/fonts/manrope-latin-wght-normal-73PUZEUA.woff2": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972",
     "frontend/main.jsx": "0a5c74663f165e06b6cb3c1e56f41de69f2ff5df81807b28f20b429dbf2c501d",
-    "frontend/controller.js": "d0cceff34c163f298ddae79b149d4afeb46e823c2a00fc9a87c37cd85ec2c9bf",
+    "frontend/controller.js": "8c4bfd77c36c6bbfdfe6042b996acc726ad851dc9ea24b2f6e29e373173f3bab",
     "frontend/header-mark.jsx": "3441f4ba0855a18b6d31e6a845819cf79d7629db064ee6a82f47c373586528a9",
     "landing/package.json": "c8245ec16e7d443a66edf237aa13dbcdee6a9dd21047d06a320d6e041501e249",
     "web/fonts/orbitron-latin-600-normal-CEBIPJEJ.woff2": "585062e775d70397653192777533f65f3afb707320fcc2a4bc510470e03762e6",
@@ -137,6 +137,7 @@
     "frontend/wallet-session.js": "ba859ce236db509c975c0d3d50473d2ad508dd6dee574bd117a97161b6168f5d",
     "frontend/core-translations.js": "fb2eb87d2a8833dcc9c5994bdd26fffa85fe7d75b1ed360878b91f9fa4c41e00",
     "frontend/read-json.js": "c2c27822819ee55459c467cfe1cb99838f61444c6d16f78f02ad5155dbd31302",
-    "frontend/recover-pending.js": "0bb74956e703cace73d8e89aa940acdac0aa77e3fb025d59b59e29dc0c0d0c35"
+    "frontend/recover-pending.js": "0bb74956e703cace73d8e89aa940acdac0aa77e3fb025d59b59e29dc0c0d0c35",
+    "frontend/purchase-error.js": "01bd2a2ce45a33a5fe954fa31b12d3fb625ffe2974492bc8779ac156d09bddbe"
   }
 }
