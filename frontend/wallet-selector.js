@@ -13,8 +13,8 @@ export function discoverWallets(target=window,onChange=()=>{}) {
  request();
  return {request,list(){
   const injected=target.ethereum;
-  const providers=Array.isArray(injected?.providers)?injected.providers:[injected];
-  return [...wallets,...[...new Set(providers)].filter(p=>typeof p?.request==='function'&&!wallets.some(w=>w.provider===p)).map((provider,i)=>({provider,id:'legacy-'+i,name:provider.isTrust?'Trust Wallet':provider.isCoinbaseWallet?'Coinbase Wallet':provider.isMetaMask?'MetaMask':t('Browser wallet','ولت مرورگر')+' '+(i+1)}))];
+  const providers=[target.safepalProvider,...(Array.isArray(injected?.providers)?injected.providers:[injected])];
+  return [...wallets,...[...new Set(providers)].filter(p=>typeof p?.request==='function'&&!wallets.some(w=>w.provider===p)).map((provider,i)=>({provider,id:provider===target.safepalProvider||provider.isSafePal?'safepal':'legacy-'+i,name:provider===target.safepalProvider||provider.isSafePal?'SafePal':provider.isTrust?'Trust Wallet':provider.isCoinbaseWallet?'Coinbase Wallet':provider.isMetaMask?'MetaMask':t('Browser wallet','ولت مرورگر')+' '+(i+1)}))];
  }};
 }
 

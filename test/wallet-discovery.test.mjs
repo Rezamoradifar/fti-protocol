@@ -44,3 +44,16 @@ test('stalled silent reconnect times out and never requests permission',async()=
  let method;const selected={provider:{request:args=>{method=args.method;return new Promise(()=>{});}}};
  await assert.rejects(requestWalletAccounts(selected,true,5),/timed out/);assert.equal(method,'eth_accounts');
 });
+test('SafePal exclusive provider works without ethereum and permission targets SafePal',async()=>{
+ const target=new EventTarget(),calls=[];target.safepalProvider={request:async args=>{calls.push(args.method);return ['account'];}};
+ const selected=discoverWallets(target).list()[0];assert.equal(selected.name,'SafePal');assert.equal(selected.id,'safepal');assert.deepEqual(calls,[]);
+ assert.deepEqual(await requestWalletAccounts(selected),['account']);assert.deepEqual(calls,['eth_requestAccounts']);
+});
+test('SafePal aliases are deduplicated and MetaMask compatibility flag does not mislabel it',()=>{
+ const target=new EventTarget(),p={...provider(),isMetaMask:true,isSafePal:true};target.ethereum=p;target.safepalProvider=p;
+ const wallets=discoverWallets(target).list();assert.equal(wallets.length,1);assert.equal(wallets[0].name,'SafePal');
+});
+test('late injected SafePal is found without losing a different installed wallet',()=>{
+ const target=new EventTarget();target.ethereum={...provider(),isMetaMask:true};const registry=discoverWallets(target);assert.equal(registry.list().length,1);
+ target.safepalProvider=provider();assert.deepEqual(registry.list().map(w=>w.name),['SafePal','MetaMask']);
+});
