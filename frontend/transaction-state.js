@@ -66,3 +66,27 @@ function explicitRejection(error,seen=new Set(),depth=0){
  if(error.code===4001||error.code==='ACTION_REJECTED')return true;
  return ['error','info','data','cause','originalError'].some(key=>explicitRejection(error[key],seen,depth+1));
 }
+
+// Explicit user action only: consume the recorded nonce without buying or approving.
+// Never unlock on a timeout, a rejected cancellation, or nonce observations alone.
+export async function cancelUnknown(tracker,provider,signer,address,chainId){
+ const record=tracker.read();
+ if(!/^unknown:\d+$/.test(record||''))throw Error('No unknown send to cancel.');
+ const nonce=Number(record.slice(8));
+ if(!Number.isSafeInteger(nonce))throw Error('Invalid nonce.');
+ const account=await signer.getAddress();
+ if(account.toLowerCase()!==address.toLowerCase())throw Error('Wallet changed. Connect the original wallet.');
+ if(Number((await provider.getNetwork()).chainId)!==chainId||Number((await signer.provider.getNetwork()).chainId)!==chainId)throw Error('Wallet network does not match this deployment.');
+ if(await provider.getCode(address)!=='0x')throw Error('Use wallet activity to resolve this smart-account request.');
+ const latest=await provider.getTransactionCount(address,'latest');
+ if(latest>nonce)throw Error('The previous nonce is already confirmed. Verify its transaction hash instead.');
+ if(latest<nonce)throw Error('Earlier transactions must confirm first. Check wallet activity.');
+ const fee=await provider.getFeeData();
+ if(!fee.gasPrice||fee.gasPrice<=0n)throw Error('Network fee is unavailable. No cancellation sent.');
+ if(tracker.read()!==record)throw Error('Transaction state changed. Refresh before continuing.');
+ const tx=await signer.sendTransaction({to:address,value:0n,data:'0x',nonce,chainId,gasLimit:21000n,gasPrice:(fee.gasPrice*125n+99n)/100n});
+ if(tx.from?.toLowerCase()!==address.toLowerCase()||tx.to?.toLowerCase()!==address.toLowerCase()||tx.nonce!==nonce||BigInt(tx.value)!==0n||tx.data!=='0x'||Number(tx.chainId)!==chainId)throw Error('Cancellation details differ from the request. Check wallet activity.');
+ // Persist the hash before waiting so reloads can reconcile the mined nonce.
+ tracker.save(tx.hash);
+ return confirmedReceipt(tx,tracker);
+}

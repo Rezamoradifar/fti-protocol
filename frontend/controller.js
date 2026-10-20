@@ -1,4 +1,4 @@
-import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest} from './transaction-state.js';
+import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,cancelUnknown} from './transaction-state.js';
 import {membershipBlock,walletError} from './membership-availability.js';
 import {deploymentConfiguration} from './deployment.js';
 import {deploymentNetwork} from '../core/deployment-network.mjs';
@@ -78,7 +78,7 @@ function status(message,error=false){text('status',message);$('#status').dataset
 function reason(error){return walletError(error);}
 function wallet(){return address&&state?.wallet?.address?.toLowerCase()===address.toLowerCase()?state.wallet:null;}
 function syncActions(){
- $('#unknown-send-form').querySelector('button').disabled=busy||!signer;
+ $('#unknown-send-form').querySelectorAll('button').forEach(button=>button.disabled=busy||!signer);
  $('#unknown-send-form').elements.hash.disabled=busy;
  const w=wallet();const enabled={holder:!!signer&&BigInt(w?.ftiBalance||0)>0n,council:!!signer&&councilOwner,wallet:!!signer,member:!!signer&&!!w?.exists,buyer:!!signer&&BigInt(w?.units||0)>0n,reward:!!signer&&BigInt(w?.claimable||0)>0n,unlocked:!!signer&&BigInt(w?.unlocked||0)>0n,auto:!!signer&&BigInt(w?.autoPending||0)>0n};
  document.querySelectorAll('[data-write]').forEach(button=>{button.disabled=busy||button.dataset.executed==='true'||(button.dataset.requires&&!enabled[button.dataset.requires]);});
@@ -138,9 +138,25 @@ $('#unknown-send-form').onsubmit=async e=>{
  try{
   if(cfg.mode!=='local'&&Number(await walletProvider.request({method:'eth_chainId'}))!==cfg.chainId)throw Error('Wallet network does not match this deployment.');
   const tracker=transactionState(localStorage,cfg.chainId,address);
-  const receipt=await reconcileUnknown(tracker,rpc,address,e.target.elements.hash.value.trim());
+  const entered=e.target.elements.hash.value.trim(),pending=tracker.read();
+  if(pending&&!pending.startsWith('unknown:')&&entered.toLowerCase()!==pending.toLowerCase())throw Error('Enter the pending transaction hash.');
+  const receipt=pending?.startsWith('unknown:')?await reconcileUnknown(tracker,rpc,address,entered):await resolvePending(tracker,rpc);
+  if(!receipt)throw Error('No pending transaction to verify.');
   $('#unknown-send-form').hidden=true;await refresh().catch(()=>{});
   status(Number(receipt.status)===1?'Previous transaction confirmed. Refresh and review your balances before another request.':'Transaction reverted on-chain.',Number(receipt.status)!==1);
+ }catch(error){status(reason(error),true);}finally{busy=false;syncActions();}
+};
+$('#cancel-unknown').onclick=async()=>{
+ if(busy||!address||!signer)return;
+ if(!window.confirm(t('Cancel the previous request? You will sign a zero BNB transaction to your own wallet and pay a network fee. This does not buy units.','درخواست قبلی لغو شود؟ یک تراکنش صفر BNB به ولت خودت امضا می‌کنی و کارمزد شبکه می‌پردازی. این کار خرید یونیت نیست.')))return;
+ busy=true;syncActions();const originalAddress=address,originalSigner=signer;
+ try{
+  if(Number(await walletProvider.request({method:'eth_chainId'}))!==cfg.chainId)throw Error('Wallet network does not match this deployment.');
+  const tracker=transactionState(localStorage,cfg.chainId,originalAddress);
+  status(t('Review the cancellation in your wallet. Waiting for confirmation.','لغو درخواست را در ولت بررسی کن؛ در انتظار تأیید شبکه.'));
+  await cancelUnknown(tracker,rpc,originalSigner,originalAddress,cfg.chainId);
+  $('#unknown-send-form').hidden=true;await refresh().catch(()=>{});
+  status(t('Previous nonce resolved. Review your units and balance, then approve USDT and buy units if still needed.','درخواست قبلی تعیین‌تکلیف شد. موجودی و یونیت‌ها را بررسی کن؛ سپس در صورت نیاز تأیید تتر و خرید را انجام بده.'));
  }catch(error){status(reason(error),true);}finally{busy=false;syncActions();}
 };
 async function approve(spender,amount){
