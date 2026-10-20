@@ -135,9 +135,13 @@ async function send(request){
 }
 async function sendContract(key,method,...args){
  const activeSigner=signer,expectedAddress=address;
- const request=await prepareContractRequest(write(key)[method],args,activeSigner);
+ status('Checking the purchase before opening your wallet…');
+ let request;
+ try{request=await prepareContractRequest(read[key][method],args,activeSigner,rpc);}
+ catch(error){throw Error(t('Preflight failed. No request was sent to your wallet.','بررسی اولیه انجام نشد؛ درخواستی برای امضا به ولت ارسال نشده است.')+' '+reason(error));}
  // Wallet changes during read-only preparation must not create a pending record.
  if(signer!==activeSigner||address!==expectedAddress||address!==transactionAddress)throw Error('Wallet changed. Please review the action and try again.');
+ status('Review the request in your wallet.');
  return send(()=>activeSigner.sendTransaction(request));
 }
 $('#unknown-send-form').onsubmit=async e=>{

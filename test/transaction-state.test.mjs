@@ -62,3 +62,15 @@ test('prepared membership preserves calldata and adds gas margin without sending
  const result=await prepareContractRequest({populateTransaction:async(...args)=>{assert.deepEqual(args,[3n]);return request;}},[3n],{estimateGas:async r=>{assert.equal(r,request);called++;return 101n;}});
  assert.equal(called,1);assert.deepEqual(result,{...request,gasLimit:122n});assert.equal(request.gasLimit,undefined);
 });
+test('public read provider estimates with the correct sender without calling wallet RPC',async()=>{
+ const {prepareContractRequest}=await import('../frontend/transaction-state.js');
+ const from='0x'+'1'.repeat(40),to='0x'+'2'.repeat(40),request={to,data:'0x1234'};
+ const signer={getAddress:async()=>from,estimateGas:async()=>{throw Error('Wallet Load failed');},sendTransaction:async()=>{throw Error('Must not send during preparation');}};
+ const result=await prepareContractRequest({populateTransaction:async()=>request},[],signer,{estimateGas:async r=>{assert.deepEqual(r,{...request,from});return 100n;}});
+ assert.deepEqual(result,{...request,gasLimit:120n});
+});
+test('public preflight reverts stop preparation without wallet fallback or sending',async()=>{
+ const {prepareContractRequest}=await import('../frontend/transaction-state.js');let walletCalls=0;
+ await assert.rejects(prepareContractRequest({populateTransaction:async()=>({to:'contract',data:'0x'})},[],{getAddress:async()=> 'wallet',estimateGas:async()=>{walletCalls++;}}, {estimateGas:async()=>{throw Error('reverted');}}),/reverted/);
+ assert.equal(walletCalls,0);
+});

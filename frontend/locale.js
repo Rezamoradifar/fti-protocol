@@ -13,6 +13,7 @@ export function translate(value,lang=language,fa){
 }
 export function t(value,fa){return translate(value,language,fa);}
 const translations=Object.fromEntries(`
+Checking the purchase before opening your wallet…|در حال بررسی درخواست پیش از بازکردن پنجره تأیید ولت…
 Wallet already connected.|ولت شما متصل است؛ نیازی به اتصال دوباره نیست.
 Checking your previous request automatically…|در حال بررسی خودکار درخواست قبلی…
 Previous request resolved. Review your balances, then choose your next action.|وضعیت درخواست قبلی مشخص شد. موجودی و تعداد یونیت را بررسی کنید، سپس اقدام بعدی را انتخاب کنید.

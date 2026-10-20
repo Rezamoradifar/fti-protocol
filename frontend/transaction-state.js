@@ -55,9 +55,10 @@ export async function reconcileUnknown(tracker,provider,address,hash){
 }
 
 // Preparation is read-only. Failures here must never create an uncertain-send lock.
-export async function prepareContractRequest(method,args,signer){
+export async function prepareContractRequest(method,args,signer,readProvider){
  const request=await method.populateTransaction(...args);
- const gas=await signer.estimateGas(request);
+ const estimate=readProvider?{...request,from:await signer.getAddress()}:request;
+ const gas=await (readProvider||signer).estimateGas(estimate);
  return {...request,gasLimit:(gas*120n+99n)/100n};
 }
 function explicitRejection(error,seen=new Set(),depth=0){
