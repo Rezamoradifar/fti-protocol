@@ -1,3 +1,4 @@
+import {readJson,initializeReadSession} from './read-json.js';
 import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,cancelUnknown} from './transaction-state.js';
 import {membershipBlock,walletError} from './membership-availability.js';
 import {deploymentConfiguration} from './deployment.js';
@@ -15,7 +16,7 @@ const sites=siteLinks(location.href);
 import {surface,surfacePages,defaultPage,pagePath} from './surfaces.js';
 const $=s=>document.querySelector(s);
 const text=(id,value)=>{document.getElementById(id).textContent=t(value);};
-async function json(url){const response=await fetch(url,{signal:AbortSignal.timeout(25000),cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to read contract data.');return data;}
+const json=readJson;
 const cfg=await deploymentConfiguration();
 const networkProfile=deploymentNetwork(cfg);
 $('#faucet').hidden=!networkProfile.testAssets;
@@ -368,5 +369,5 @@ $('#proposal-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const 
 $('#timelock-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const p=await read.council.proposal(BigInt(e.target.elements.id.value));if(p[0].toLowerCase()!==cfg.timelock.toLowerCase()||!p[3])throw Error('The scheduling proposal has not been executed.');const args=read.timelock.interface.decodeFunctionData('schedule',p[1]);await send(()=>write('timelock').execute(args[0],args[1],args[2],args[3],args[4]));});};
 text('token-address',cfg.token);$('#token-explorer').hidden=!explorer;if(explorer)$('#token-explorer').href=explorer+'/address/'+cfg.token;
 renderWallet();syncActions();navigate(location.hash.slice(1)||((sponsor&&isAddress(sponsor))?'network':defaultPage));
-try{if(cfg.mode==='local')await connect();else{await refresh();status('Contract data loaded. Connect a wallet to manage your account.');let reconnect=false;try{reconnect=sessionStorage.getItem('fti-wallet-connected')==='yes';}catch{}if(reconnect&&window.ethereum)await connect({silent:true});}}catch(error){status(reason(error),true);}
+try{if(cfg.mode==='local')await connect();else await initializeReadSession({refresh,ready:()=>status('Contract data loaded. Connect a wallet to manage your account.'),failed:error=>status(reason(error),true),reconnect:async()=>{let reconnect=false;try{reconnect=sessionStorage.getItem('fti-wallet-connected')==='yes';}catch{}if(reconnect&&window.ethereum)await connect({silent:true});}});}catch(error){status(reason(error),true);}
 setInterval(()=>{if(!busy&&!connecting)refresh().catch(error=>status('Connection unavailable: '+reason(error),true));},15000);
