@@ -20,7 +20,7 @@ function fixture({record=hash,recoverPending=async()=>null,rpc={}}={}){
  let refreshed=0;
  const context={pendingWatch:null,busy:false,connecting:false,address:account,signer:{},
   walletProvider:{request(){assert.fail('background verification must never invoke a wallet');}},
-  localStorage,transactionState,cfg:{chainId:56},document:{},recoveryOptions:{},recoverPending,
+  localStorage,transactionState,cfg:{chainId:56},document:{},recoveryOptions:{},recoverPending,v3Model:false,surface:'member',location:{hash:'#network'},
   rpc:{getNetwork:async()=>({chainId:56n}),getTransactionReceipt:async()=>receipt(),
    getBlock:async number=>({number,hash:blockHash}),...rpc},
   pendingMonitor(options){const monitor={options,started:false,stopped:false,start(){this.started=true;},stop(){this.stopped=true;}};monitors.push(monitor);return monitor;},

@@ -6,6 +6,7 @@ import {walletReview} from './wallet-review.js';
 import {pendingMonitor} from './pending-monitor.js';
 import {prepareUnknownCancellation,submitUnknownCancellation} from './prepared-cancellation.js';
 import {readMembershipSnapshot} from './membership-snapshot.js';
+import {readTokenSnapshot} from './token-snapshot.js';
 import {readWalletIdentity,preparationDeadline} from './wallet-preflight.js';
 import {readJson,initializeReadSession} from './read-json.js';
 import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,preparedWalletSend} from './transaction-state.js';
@@ -116,7 +117,7 @@ function startPendingChecks(){
   }
   if(!result||!isCurrent())return false;
   hashView.show(result.hash,{pending:true});$('#unknown-send-form').hidden=true;
-  await refreshMembershipState().catch(()=>{});
+  await (v3Model&&(surface==='token'||location.hash==='#trade')?refreshTokenState():refreshMembershipState()).catch(()=>{});
   if(!isCurrent())return true;
   status(Number(result.receipt.status)===1?t('Previous transaction confirmed.','تراکنش قبلی تأیید شد.'):t('Previous transaction failed on the network.','تراکنش قبلی در شبکه ناموفق بود.'),Number(result.receipt.status)!==1);
   return true;
@@ -129,6 +130,7 @@ function syncActions(){
  $('#register-form').elements.units.disabled=busy||connecting;$('#register-form').elements.sponsor.disabled=busy||connecting||!!w?.exists;
  $('#approve-units-button').hidden=true;
  $('#register-button').hidden=busy;
+ $('#buy-form').querySelectorAll('input,select').forEach(field=>field.disabled=busy||connecting);
  const sponsorField=$('#registration-sponsor-field');if(sponsorField)sponsorField.hidden=!!w?.exists;
  document.querySelectorAll('[data-write]').forEach(button=>{button.disabled=busy||button.dataset.executed==='true'||(button.dataset.requires&&!enabled[button.dataset.requires]);});
  if(cfg.batchedRewards)$('#reward-all').disabled=busy||!signer||!state||BigInt(state.rewardQueue||0)===0n||Number(state.phase)!==0||Number(state.monthPhase)!==0;
@@ -169,7 +171,17 @@ async function refreshMembershipState(){
  text('membership-status',next.wallet.exists?'Registered member':'Not registered');text('registration-title',next.wallet.exists?'Add membership units':'Join the network');$('#register-form').elements.sponsor.disabled=next.wallet.exists;
  syncActions();
 }
-async function transaction(fn,{membership=false}={}){
+async function refreshTokenState(){
+ if(!v3Model)throw Error('A verified token snapshot is not available for this deployment.');
+ const expectedAddress=address,expectedSigner=signer;
+ const next=await preparationDeadline(readTokenSnapshot({rpc,binary:read.binary,usd:read.usd,token:read.token,tokenAddress:cfg.token,address:expectedAddress,chainId:cfg.chainId,recoveryFrozen:cfg.tokenContract==='FTIReserveTokenUpgradeable'}),25000);
+ if(address!==expectedAddress||signer!==expectedSigner)throw Error('Wallet changed. Try again.');
+ refreshSequence++;state={...state,...next,wallet:{...(wallet()||{}),...next.wallet}};
+ for(const [id,value]of Object.entries({'fti-balance':fmt(next.wallet.ftiBalance,5),unlocked:fmt(next.wallet.unlocked,5),'trade-balance':fmt(next.wallet.ftiBalance,5),'trade-unlocked':fmt(next.wallet.unlocked,5),'trade-locked':fmt(0n,5),'usd-balance':fmt(next.wallet.usdBalance),allowance:fmt(next.wallet.remaining),units:integer(next.wallet.units),'account-units':integer(next.wallet.units),'buy-available':`Balance: ${fmt(next.wallet.usdBalance)} USD · Allowance: ${fmt(next.wallet.remaining)} USD`,'wallet-address':expectedAddress}))text(id,value);
+ text('trade-notice',!next.wallet.exists||next.wallet.units===0n?'Register or add membership units before trading.':next.tokenPaused||next.emergencyUnwind?'Token trading is currently paused by the contract.':t('Enter the USDT amount. Required checks and approvals continue automatically.','مبلغ تتر را وارد کن؛ بررسی‌ها و مراحل لازم به‌صورت خودکار ادامه پیدا می‌کنند.'));
+ syncActions();
+}
+async function transaction(fn,{membership=false,tokenPurchase=false}={}){
  if(busy)return;if(!signer){status('Connect your wallet first.',true);return;}
  stopPendingChecks();
  const originalAddress=address,originalSigner=signer;
@@ -187,9 +199,9 @@ async function transaction(fn,{membership=false}={}){
  transactionStage='PREVIOUS';const previous=await resolvePending(activeTransaction,rpc);
  if(address!==originalAddress||signer!==originalSigner)return;
  if(previous){status(Number(previous.status)===1?'Previous transaction confirmed. Refresh and review your balances before another request.':'Transaction reverted on-chain.',Number(previous.status)!==1);await refresh().catch(()=>{});return;}
- transactionStage='BALANCE';await (membership?refreshMembershipState():refresh());transactionStage='VALIDATION';if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();
+ transactionStage='BALANCE';await (membership?refreshMembershipState():tokenPurchase&&v3Model?refreshTokenState():refresh());transactionStage='VALIDATION';if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();
  if(address!==originalAddress||signer!==originalSigner)return;
- try{await (membership?refreshMembershipState():refresh());}catch{if(address===originalAddress&&signer===originalSigner)status(t('Transaction confirmed. Your balance will update automatically.','تراکنش تأیید شد؛ موجودی به‌صورت خودکار به‌روز می‌شود.'));return;}
+ try{await (membership?refreshMembershipState():tokenPurchase&&v3Model?refreshTokenState():refresh());}catch{if(address===originalAddress&&signer===originalSigner)status(t('Transaction confirmed. Your balance will update automatically.','تراکنش تأیید شد؛ موجودی به‌صورت خودکار به‌روز می‌شود.'));return;}
  if(address!==originalAddress||signer!==originalSigner)return;
  status(typeof outcome==='string'?outcome:'Transaction confirmed on-chain.');}
  catch(error){if(address!==originalAddress||signer!==originalSigner)return;const pending=activeTransaction?.read();$('#unknown-send-form').hidden=!pending?.startsWith('unknown:');status(pending?.startsWith('unknown:')?t('Checking the previous request automatically. Its status is not confirmed yet.','در حال بررسی خودکار درخواست قبلی؛ وضعیت آن هنوز مشخص نیست.'):pending?t('Waiting for network confirmation. Checking automatically.','در انتظار تأیید شبکه؛ بررسی خودکار انجام می‌شود.'):purchaseError(transactionStage,error),!pending);}
@@ -224,9 +236,9 @@ async function sendContract(key,method,...args){
  if(signer!==activeSigner||address!==expectedAddress||walletProvider!==originalWallet||tracker.read())throw Error('Wallet or transaction state changed. Prepare the action again.');
  const rpcRequest=rpc.getRpcTransaction({...request,from:expectedAddress,chainId:cfg.chainId,nonce,gasPrice,value:request.value||0n});
  if(!rpcRequest.data)rpcRequest.data='0x';
- const title=t(key==='usd'&&method==='approve'?'Approve USDT spending':key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?'Buy membership units':'Review your transaction',key==='usd'&&method==='approve'?'تأیید اجازهٔ مصرف تتر':key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?'خرید یونیت عضویت':'بررسی تراکنش');
+ const title=t(key==='usd'&&method==='approve'?'Approve USDT spending':key==='token'&&method==='buy'?'Buy FTI':key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?'Buy membership units':'Review your transaction',key==='usd'&&method==='approve'?'تأیید اجازهٔ مصرف تتر':key==='token'&&method==='buy'?'خرید FTI':key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?'خرید یونیت عضویت':'بررسی تراکنش');
  const units=key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?BigInt(args.at(-1)):null;
- $('#wallet-review-description').textContent=units!==null?t('Membership units: ','تعداد یونیت: ')+integer(units)+' · '+integer(units*100n)+' USDT':key==='usd'&&method==='approve'?t('USDT spending allowance: ','مجوز مصرف تتر: ')+formatEther(args[1])+' USDT':t('Review the amount and recipient in your wallet before confirming.','مبلغ و گیرنده را پیش از تأیید در ولت بررسی کن.');
+ $('#wallet-review-description').textContent=units!==null?t('Membership units: ','تعداد یونیت: ')+integer(units)+' · '+integer(units*100n)+' USDT':key==='usd'&&method==='approve'?t('USDT spending allowance: ','مجوز مصرف تتر: ')+formatEther(args[1])+' USDT':key==='token'&&method==='buy'?formatEther(args[0])+' USDT · '+t('Minimum received: ','حداقل دریافتی: ')+formatEther(args[1])+' FTI':t('Review the amount and recipient in your wallet before confirming.','مبلغ و گیرنده را پیش از تأیید در ولت بررسی کن.');
  const callback=preparedWalletSend(originalWallet,rpc,rpcRequest);
  transactionStage='SIGN';status(t('Request prepared. Tap Open confirmation in wallet below.','درخواست آماده شد؛ دکمهٔ «باز کردن تأیید در ولت» را بزن.'));
  const tx=await review.open({request:rpcRequest,title,isCurrent:()=>signer===activeSigner&&address===expectedAddress&&walletProvider===originalWallet&&!tracker.read(),onConfirm:()=>{hashView.hide();return submitTracked(callback,tracker,nonce);}});
@@ -321,11 +333,11 @@ async function connect({silent=false}={}){
   const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}
   let saved;try{saved=transactionState(localStorage,cfg.chainId,nextAddress);}catch{}
   hashView.restore(saved);$('#unknown-send-form').hidden=!saved?.read()?.startsWith('unknown:');
-  let membershipOnly=false;
-  try{await refresh();}catch{await refreshMembershipState();membershipOnly=true;}
+  let partialData=false;
+  try{await refresh();}catch{await (v3Model&&(surface==='token'||location.hash==='#trade')?refreshTokenState():refreshMembershipState());partialData=true;}
   if(saved?.read()?.startsWith('unknown:')){
    status(t('Checking the previous request automatically.','در حال بررسی خودکار درخواست قبلی…'));
-  }else status(membershipOnly?t('Wallet connected. Membership data is ready; some dashboard data is unavailable.','ولت متصل شد و اطلاعات عضویت آماده است؛ بخشی از اطلاعات داشبورد در دسترس نیست.'):'Wallet connected. Contract data loaded.');
+  }else status(partialData?t('Wallet connected. Purchase data is ready.','ولت متصل شد؛ اطلاعات لازم خرید آماده است.'):'Wallet connected. Contract data loaded.');
  }catch(error){status(purchaseError('CONNECT',error),true);}finally{connecting=false;syncActions();startPendingChecks();}
 }
 $('#connect').onclick=()=>connect();
@@ -471,9 +483,21 @@ for(const kind of ['buy','sell']){
  const showQuote=()=>{clearTimeout(debounce);const sequence=++quoteSequence;text(kind+'-quote','Updating quote…');debounce=setTimeout(async()=>{try{const[a,slip]=amountInput(form);let output,fee;if(kind==='buy')output=await read.token.quoteBuy(a);else[output,fee]=await read.token.quoteSell(a);if(sequence!==quoteSequence)return;const minimum=output*(10000n-slip)/10000n;text(kind+'-quote',(kind==='buy'?'Estimated output: ':'Net proceeds: ')+fmt(output,6)+(kind==='buy'?' FTI':' '+networkProfile.currency)+'\nMinimum accepted: '+fmt(minimum,6)+(kind==='buy'?' FTI':' '+networkProfile.currency)+(kind==='buy'&&cfg.tokenContract==='FTIReserveTokenUpgradeable'?' · '+((a+parseEther('500')-1n)/parseEther('500')).toString()+' steps · updated price per step · 3% fee':'')+(fee!==undefined?(v3Model?' · Fee 3%':' · Fee '+Number(fee)/100+'%'):''));$('#'+kind+'-quote').classList.remove('invalid');}catch(error){if(sequence!==quoteSequence)return;text(kind+'-quote',form.elements.amount.value?'Quote unavailable. Check the amount or refresh contract data.':'Enter an amount for a live quote.');$('#'+kind+'-quote').classList.add('invalid');}},250);};
  form.elements.amount.oninput=showQuote;form.elements.slippage.oninput=showQuote;
  form.onsubmit=e=>{e.preventDefault();transaction(async()=>{const[a,slip]=amountInput(form),w=wallet();if(kind==='buy'&&(!w?.exists||BigInt(w.units)===0n))throw Error('Register or add membership units before trading.');if(state.tokenPaused||state.emergencyUnwind)throw Error('Token trading is paused by the contract.');const deadline=BigInt(state.timestamp)+1200n;
-  if(kind==='buy'){if(cfg.tokenContract==='FTIReserveTokenUpgradeable'&&a>parseEther('64000'))throw Error('Buy up to 64,000 USD per transaction; repeat for a larger order.');await checkCollateral(a);if(a>BigInt(w.remaining))throw Error('Amount exceeds your remaining manual purchase allowance.');const quote=await read.token.quoteBuy(a);await approve(cfg.token,a);await send(()=>write('token').buy(a,quote*(10000n-slip)/10000n,deadline));}
+  if(kind==='buy'){
+   if(cfg.tokenContract==='FTIReserveTokenUpgradeable'&&a>parseEther('64000'))throw Error('Buy up to 64,000 USD per transaction; repeat for a larger order.');
+   await checkCollateral(a);if(a>BigInt(w.remaining))throw Error('Amount exceeds your remaining manual purchase allowance.');
+   await approve(cfg.token,a);
+   transactionStage='BALANCE';await (v3Model?refreshTokenState():refresh());transactionStage='VALIDATION';
+   const current=wallet();if(!current?.exists||BigInt(current.units)===0n)throw Error('Register or add membership units before trading.');
+   if(state.tokenPaused||state.tokenRecoveryFrozen||state.emergencyUnwind)throw Error('Token trading is paused by the contract.');
+   if(a>BigInt(current.remaining))throw Error('Amount exceeds your remaining manual purchase allowance.');
+   await checkCollateral(a);transactionStage='ALLOWANCE';if(await read.usd.allowance(transactionAddress,cfg.token)<a)throw Error('USDT approval could not be verified.');
+   transactionStage='GAS';const quote=await read.token.quoteBuy(a);if(quote<=0n)throw Error('Token quote is unavailable.');
+   await sendContract('token','buy',a,quote*(10000n-slip)/10000n,BigInt(state.timestamp)+1200n);
+   return t('FTI purchase confirmed. Your balance has been updated.','خرید FTI تأیید شد و موجودی به‌روز شد.');
+  }
   else{if(a>BigInt(w.unlocked))throw Error('Amount exceeds your unlocked balance. Check the unlock schedule.');const[q]=await read.token.quoteSell(a);await send(()=>write('token').sell(a,q*(10000n-slip)/10000n,deadline));}
- });};
+ },{tokenPurchase:kind==='buy'});};
 }
 $('#emergency-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{if(!v3Model||!state?.emergencyUnwind)throw Error('Emergency redemption is not active.');const amount=parseEther(e.target.elements.amount.value),minimum=parseEther(e.target.elements.minimum.value);if(amount<=0n||amount>BigInt(wallet()?.ftiBalance||0)||minimum<0n)throw Error('Enter an amount within your token balance.');await send(()=>write('token').emergencyRedeem(amount,minimum));});};
 $('#max-sell').onclick=()=>{const form=$('#sell-form');form.elements.amount.value=formatEther(wallet().unlocked);form.elements.amount.dispatchEvent(new Event('input',{bubbles:true}));};
@@ -518,7 +542,8 @@ setInterval(async()=>{
  if(busy||connecting||document.hidden||backgroundRefreshRunning)return;
  backgroundRefreshRunning=true;
  try{
-  if(address&&surface==='member'&&location.hash==='#network')await refreshMembershipState();
+  if(address&&v3Model&&(surface==='token'||location.hash==='#trade'))await refreshTokenState();
+  else if(address&&surface==='member'&&location.hash==='#network')await refreshMembershipState();
   else try{await refresh();}catch(error){if(address)await refreshMembershipState();else throw error;}
  }catch{/* Keep the current action visible; the next bounded refresh retries. */}
  finally{backgroundRefreshRunning=false;}

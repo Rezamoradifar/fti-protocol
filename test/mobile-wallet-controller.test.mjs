@@ -7,6 +7,7 @@ import {walletReview} from '../frontend/wallet-review.js';
 import {transactionState,preparedWalletSend,prepareContractRequest,submitTracked,confirmedReceipt} from '../frontend/transaction-state.js';
 import {prepareUnknownCancellation,submitUnknownCancellation} from '../frontend/prepared-cancellation.js';
 import {readWalletIdentity,preparationDeadline} from '../frontend/wallet-preflight.js';
+import {Interface,formatEther} from 'ethers';
 const source=fs.readFileSync(new URL('../frontend/controller.js',import.meta.url),'utf8');
 const address='0x'+'1'.repeat(40),contract='0x'+'2'.repeat(40),hash='0x'+'a'.repeat(64),blockHash='0x'+'b'.repeat(64);
 function fixture(){
@@ -45,4 +46,20 @@ test('the actual cancellation controller uses the new inline button even when na
  vm.runInNewContext(source.slice(start,end),f.context);
  const action=f.nodes['cancel-unknown'].onclick();await ready(f);assert(!f.calls.includes('eth_sendTransaction'));assert.equal(f.tracker.read(),'unknown:3');
  f.click();await action;assert.equal(f.calls.filter(x=>x==='eth_sendTransaction').length,1);assert.equal(f.submitted().to,address);assert.equal(f.submitted().value,'0x0');assert.equal(f.submitted().nonce,'0x3');assert.equal(f.tracker.read(),null);
+});
+test('the actual FTI buy controller sends exact buy calldata through one fresh wallet click',async()=>{
+ const f=fixture(),iface=new Interface(['function buy(uint256 amount,uint256 minTokens,uint256 deadline)']);
+ const amount=10n*10n**18n,minimum=9603n*10n**16n,deadline=5000n;
+ f.context.formatEther=formatEther;
+ f.context.read.token={buy:{populateTransaction:async(...args)=>({to:contract,data:iface.encodeFunctionData('buy',args)})}};
+ const start=source.indexOf('async function sendContract('),end=source.indexOf("$('#find-transaction-hash').onclick=",start);
+ vm.runInNewContext(source.slice(start,end)+'\nrun=()=>sendContract("token","buy",10n*10n**18n,9603n*10n**16n,5000n);',f.context);
+ const action=f.context.run();await ready(f);
+ assert.equal(f.nodes['wallet-review-title'].textContent,'Buy FTI');
+ assert.match(f.nodes['wallet-review-description'].textContent,/10\.0 USDT.*96\.03 FTI/);
+ assert(!f.calls.includes('eth_sendTransaction'));assert.equal(f.tracker.read(),null);
+ f.click();await action;assert.equal(f.calls.filter(x=>x==='eth_sendTransaction').length,1);
+ const decoded=iface.decodeFunctionData('buy',f.submitted().data);
+ assert.equal(decoded.amount,amount);assert.equal(decoded.minTokens,minimum);assert.equal(decoded.deadline,deadline);
+ assert.equal(f.submitted().to,contract);assert.equal(f.submitted().chainId,'0x38');assert.equal(f.submitted().value,'0x0');
 });
