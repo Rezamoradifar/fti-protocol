@@ -13,6 +13,10 @@ export function translate(value,lang=language,fa){
 }
 export function t(value,fa){return translate(value,language,fa);}
 const translations=Object.fromEntries(`
+Checking your previous request automatically…|در حال بررسی خودکار درخواست قبلی…
+Previous request resolved. Review your balances, then choose your next action.|وضعیت درخواست قبلی مشخص شد. موجودی و تعداد یونیت را بررسی کنید، سپس اقدام بعدی را انتخاب کنید.
+Previous request could not be verified automatically. Check wallet activity.|نتیجه درخواست قبلی خودکار پیدا نشد. تاریخچه ولت را بررسی کنید.
+
 Contract data could not be loaded. Check your connection and tap Refresh. Wallet connection is separate; do not repeat a payment.|اطلاعات قرارداد دریافت نشد. اینترنت را بررسی و دکمه ↻ را بزنید. اتصال ولت جداست؛ پرداخت را تکرار نکنید.
 Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.|خرید در پله‌های ۵۰۰ دلاری با قیمت جدید هر پله انجام می‌شود؛ کارمزد هر پله ۳٪ و حداکثر ۱۲۸ پله در تراکنش است. مجوز عضویت و چرخه اعمال می‌شود.
 Connect to view your balance and allowance.|برای مشاهده موجودی و مجوز خرید، ولت را متصل کنید.

@@ -1,3 +1,4 @@
+import {recoverPending} from './recover-pending.js';
 import {readJson,initializeReadSession} from './read-json.js';
 import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,cancelUnknown} from './transaction-state.js';
 import {membershipBlock,walletError} from './membership-availability.js';
@@ -113,6 +114,11 @@ async function transaction(fn){
  activeTransaction=transactionState(storage,cfg.chainId,address);
  const pendingHash=activeTransaction.read();
  if(pendingHash&&!pendingHash.startsWith('unknown:')&&explorer){$('#transaction-link').href=explorer+'/tx/'+pendingHash;$('#transaction-link').hidden=false;}
+ if(pendingHash?.startsWith('unknown:')){
+  status('Checking your previous request automatically…');
+  const recovered=await recoverPending(activeTransaction,rpc,address,cfg.chainId).catch(()=>null);
+  if(recovered){$('#unknown-send-form').hidden=true;await refresh();status('Previous request resolved. Review your balances, then choose your next action.');return;}
+ }
  const previous=await resolvePending(activeTransaction,rpc);
  if(previous){status(Number(previous.status)===1?'Previous transaction confirmed. Refresh and review your balances before another request.':'Transaction reverted on-chain.',Number(previous.status)!==1);await refresh().catch(()=>{});return;}
  await refresh();if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();
@@ -186,7 +192,16 @@ async function connect({silent=false}={}){
    if(chain!==cfg.chainId){if(silent)throw Error('Switch your wallet to '+networkProfile.name+' and connect again.');try{await injected.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+cfg.chainId.toString(16)}]});}catch{throw Error('Switch your wallet to '+networkProfile.name+' (chain ID '+cfg.chainId+'), then connect again.');}}
    const provider=new BrowserProvider(injected);if(Number((await provider.getNetwork()).chainId)!==cfg.chainId)throw Error('Wallet network does not match this deployment.');nextSigner=await provider.getSigner();observeWallet(injected);selectedWallet=selected;
   }
-  const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}await refresh();status('Wallet connected. Contract data loaded.');
+  const nextAddress=await nextSigner.getAddress();if(address!==nextAddress){autoDirty=false;councilOwner=false;}signer=nextSigner;address=nextAddress;text('connect-label',short(address));try{sessionStorage.setItem(cfg.mode==='local'?'fti-local-account':'fti-wallet-connected',cfg.mode==='local'?address:'yes');}catch{}await refresh();
+  let saved;try{saved=transactionState(localStorage,cfg.chainId,nextAddress);}catch{}
+  if(saved?.read()?.startsWith('unknown:')){
+   status('Checking your previous request automatically…');
+   const recovered=await recoverPending(saved,rpc,nextAddress,cfg.chainId).catch(()=>null);
+   if(address!==nextAddress)return;
+   $('#unknown-send-form').hidden=!!recovered;
+   if(recovered){await refresh();status('Previous request resolved. Review your balances, then choose your next action.');}
+   else status('Previous request could not be verified automatically. Check wallet activity.',true);
+  }else status('Wallet connected. Contract data loaded.');
  }catch(error){status(reason(error),true);}finally{connecting=false;syncActions();}
 }
 $('#connect').onclick=()=>connect();
