@@ -293,23 +293,48 @@ $('#cancel-unknown').onclick=async()=>{
   await readWalletIdentity(originalWallet,originalAddress,cfg.chainId);
   if(address!==originalAddress||signer!==originalSigner)return;
   const tracker=transactionState(localStorage,cfg.chainId,originalAddress);
-  const prepared=await preparationDeadline(prepareUnknownCancellation(tracker,rpc,originalAddress,cfg.chainId),25000);
+  let prepared;
+  try{prepared=await preparationDeadline(prepareUnknownCancellation(tracker,rpc,originalAddress,cfg.chainId),25000);}
+  catch(error){
+   if(error.code!=='FTI_PREVIOUS_NONCE_CONFIRMED')throw error;
+   const record=tracker.read(),current=()=>address===originalAddress&&signer===originalSigner&&walletProvider===originalWallet&&tracker.read()===record;
+   const guarded={read:()=>current()?record:null,remember:hash=>{if(current())tracker.remember(hash);},clear:()=>{if(current())tracker.clear();}};
+   status(t('The recorded nonce has already been used. Looking for a verified transaction…','شمارهٔ درخواست ثبت‌شده مصرف شده؛ در حال جست‌وجوی تراکنش تأییدشده…'));
+   const recovered=await recoverPending(guarded,rpc,originalAddress,cfg.chainId,recoveryOptions).catch(()=>null);
+   if(address!==originalAddress||signer!==originalSigner||walletProvider!==originalWallet)return;
+   if(!recovered){const details=$('#transaction-recovery-details');if(details)details.open=true;throw error;}
+   hashView.show(recovered.hash,{pending:true});$('#unknown-send-form').hidden=true;
+   await (v3Model&&(surface==='token'||location.hash==='#trade')?refreshTokenState():refreshMembershipState()).catch(()=>{});
+   if(address!==originalAddress||signer!==originalSigner||walletProvider!==originalWallet)return;
+   status(Number(recovered.receipt.status)===1?t('The previous transaction was verified. Review your current balance.','تراکنش قبلی بررسی شد؛ موجودی فعلی را ببین.'):t('The previous transaction failed on the network.','تراکنش قبلی در شبکه ناموفق بوده است.'),Number(recovered.receipt.status)!==1);
+   return;
+  }
   if(address!==originalAddress||signer!==originalSigner||walletProvider!==originalWallet)return;
-  $('#wallet-review-description').textContent=t('This sends zero BNB to your own wallet and pays only the network fee. It does not buy units.','این درخواست صفر BNB به ولت خودت می‌فرستد و فقط کارمزد شبکه دارد؛ خرید یونیت نیست.');
+  const description=prepared.accountType==='delegated-eoa'?t('Replace the previous request with zero BNB to the zero address. Only the network fee applies. Your smart-account setup stays unchanged.','درخواست قبلی با تراکنش صفر BNB به آدرس صفر جایگزین می‌شود؛ فقط کارمزد شبکه دارد. تنظیمات حساب هوشمند تغییری نمی‌کند.'):t('This sends zero BNB to your own wallet and pays only the network fee. It does not buy units.','این درخواست صفر BNB به ولت خودت می‌فرستد و فقط کارمزد شبکه دارد؛ خرید یونیت نیست.');
+  $('#wallet-review-description').textContent=description;const help=$('#pending-cancellation-description');if(help)help.textContent=description;
   status(t('Cancellation prepared. Tap Open confirmation in wallet below.','لغو درخواست آماده شد؛ دکمهٔ «باز کردن تأیید در ولت» را بزن.'));
   await review.open({request:prepared.request,title:t('Cancel previous request','لغو درخواست قبلی'),isCurrent:()=>address===originalAddress&&signer===originalSigner&&walletProvider===originalWallet&&tracker.read()===prepared.record,onConfirm:()=>submitUnknownCancellation(tracker,originalWallet,rpc,prepared,hash=>{if(address===originalAddress&&signer===originalSigner){hashView.show(hash,{pending:true});status(t('Cancellation submitted. Waiting for network confirmation.','لغو ارسال شد؛ در انتظار تأیید شبکه.'));}})});
   if(address!==originalAddress||signer!==originalSigner)return;
-  $('#unknown-send-form').hidden=true;await refresh().catch(()=>{});
+  $('#unknown-send-form').hidden=true;await (v3Model&&(surface==='token'||location.hash==='#trade')?refreshTokenState():refreshMembershipState()).catch(()=>{});
   if(address!==originalAddress||signer!==originalSigner)return;
-  status(t('Previous nonce resolved. Review your units and balance, then approve USDT and buy units if still needed.','درخواست قبلی تعیین‌تکلیف شد. موجودی و یونیت‌ها را بررسی کن؛ سپس در صورت نیاز تأیید تتر و خرید را انجام بده.'));
- }catch(error){if(address===originalAddress&&signer===originalSigner)status(reason(error),true);}finally{busy=false;syncActions();startPendingChecks();}
+  status(t('Previous request resolved. Review your balance before the next action.','درخواست قبلی تعیین‌تکلیف شد؛ پیش از اقدام بعدی، موجودی را بررسی کن.'));
+ }catch(error){if(address===originalAddress&&signer===originalSigner){
+  if(error.code==='FTI_UNSUPPORTED_SMART_ACCOUNT'){
+   $('#cancel-unknown').hidden=true;const details=$('#transaction-recovery-details');if(details)details.open=true;
+   const help=$('#smart-account-help');if(help){help.hidden=false;help.textContent=t('This wallet manages pending requests itself. Resolve the request in wallet activity, then paste its transaction hash below to verify it.','این نوع ولت درخواست‌های معلق را خودش مدیریت می‌کند. درخواست را در فعالیت‌های ولت تعیین‌تکلیف کن و سپس هش تراکنش را در کادر زیر وارد کن تا بررسی شود.');}
+   status(t('This account requires cancellation inside its wallet. Manual verification is open below.','لغو این حساب باید داخل ولت انجام شود؛ بخش بررسی هش پایین باز شد.'),true);
+  }else if(error.code==='FTI_PREVIOUS_NONCE_CONFIRMED')status(t('The recorded nonce was used, but no matching hash was verified. Check wallet history below.','شمارهٔ درخواست مصرف شده، ولی هش مطابق آن تأیید نشد؛ سابقهٔ ولت را در بخش پایین بررسی کن.'),true);
+  else if(error.code==='FTI_EARLIER_TRANSACTIONS_PENDING')status(t('An earlier wallet transaction must finish first.','ابتدا باید تراکنش قدیمی‌تر ولت تعیین‌تکلیف شود.'),true);
+  else if(error.code==='FTI_INVALID_ACCOUNT_CODE')status(t('Wallet type could not be verified. Try again.','نوع حساب ولت قابل بررسی نبود؛ دوباره تلاش کن.'),true);
+  else status(reason(error),true);
+ }}finally{busy=false;syncActions();startPendingChecks();}
 };
 async function approve(spender,amount){
  transactionStage='ALLOWANCE';const current=await read.usd.allowance(address,spender);
  if(current<amount){status(networkProfile.testAssets?'Approve test USD spending in your wallet.':'Approve collateral spending in your wallet.');if(current>0n)await sendContract('usd','approve',spender,0);await sendContract('usd','approve',spender,amount);}
 }
 let walletProvider,providerListeners,selectedWallet;
-function clearWallet(){stopPendingChecks();review.cancel();$('#unknown-send-form').hidden=true;hashView.hide();$('#unknown-send-form').elements.hash.value='';$('#hash-lookup-result').textContent='';const local=$('#membership-flow-status');if(local)local.hidden=true;signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
+function clearWallet(){stopPendingChecks();review.cancel();$('#unknown-send-form').hidden=true;$('#cancel-unknown').hidden=false;const smartHelp=$('#smart-account-help');if(smartHelp)smartHelp.hidden=true;const description=$('#pending-cancellation-description');if(description)description.textContent=t('Cancellation only costs the network fee; it does not buy units.','لغو درخواست فقط کارمزد شبکه دارد و خرید یونیت نیست.');const details=$('#transaction-recovery-details');if(details)details.open=false;hashView.hide();$('#unknown-send-form').elements.hash.value='';$('#hash-lookup-result').textContent='';const local=$('#membership-flow-status');if(local)local.hidden=true;signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
 function detachWallet(){if(providerListeners){walletProvider?.removeListener?.('accountsChanged',providerListeners.accounts);walletProvider?.removeListener?.('chainChanged',providerListeners.chain);walletProvider?.removeListener?.('disconnect',providerListeners.disconnect);}providerListeners=null;walletProvider=null;}
 function observeWallet(provider){
  detachWallet();walletProvider=provider;

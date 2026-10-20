@@ -49,7 +49,9 @@ test('unknown-request cancellation remains visible and manual recovery starts co
  assert(html.indexOf('id="cancel-unknown"')<details);
  assert(html.indexOf('id="find-transaction-hash"')>details);
  assert(html.indexOf('name="hash"')>details);
- assert.match(html,/تراکنش صفر BNB[\s\S]*کارمزد شبکه[\s\S]*خرید یونیت نیست/);
+ assert.match(html,/<p id="pending-cancellation-description"[^>]*>لغو درخواست فقط کارمزد شبکه دارد و خرید یونیت نیست\.<\/p>/);
+ assert.match(html,/<p id="smart-account-help" role="status" hidden=""><\/p>/);
+ assert.doesNotMatch(html,/صفر BNB به ولت خودت/);
  assert.doesNotMatch(html,/<details[^>]*\bopen\b/);
 });
 

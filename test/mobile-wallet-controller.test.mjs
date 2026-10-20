@@ -13,7 +13,7 @@ const address='0x'+'1'.repeat(40),contract='0x'+'2'.repeat(40),hash='0x'+'a'.rep
 function fixture(){
  const data=new Map(),storage={getItem:key=>data.get(key),setItem:(key,value)=>data.set(key,value),removeItem:key=>data.delete(key)};
  const tracker=transactionState(storage,56,address),nodes={};
- for(const id of ['wallet-review-panel','confirm-wallet-request','cancel-wallet-review','wallet-review-title','wallet-review-from','wallet-review-to','wallet-review-network','wallet-review-nonce','wallet-review-description','unknown-send-form','transaction-link','cancel-unknown'])nodes[id]={hidden:true,disabled:false,textContent:'',focus(){},scrollIntoView(){}};
+ for(const id of ['wallet-review-panel','confirm-wallet-request','cancel-wallet-review','wallet-review-title','wallet-review-from','wallet-review-to','wallet-review-network','wallet-review-nonce','wallet-review-description','unknown-send-form','transaction-link','cancel-unknown','pending-cancellation-description','transaction-recovery-details','smart-account-help'])nodes[id]={hidden:true,disabled:false,textContent:'',focus(){},scrollIntoView(){}};
  const review=walletReview({document:{getElementById:id=>nodes[id]},translate:key=>key});
  let active=false,submitted,calls=[];
  const receipt={hash,status:1,blockNumber:10,blockHash};
@@ -25,11 +25,11 @@ function fixture(){
  }};
  const rpc={estimateGas:async request=>{assert.equal(request.from,address);return 100n;},send:async method=>method==='eth_gasPrice'?'0x64':'0x3',getRpcTransaction:request=>Object.fromEntries(Object.entries(request).map(([key,value])=>[key==='gasLimit'?'gas':key,typeof value==='bigint'||typeof value==='number'?'0x'+value.toString(16):value])),
   getNetwork:async()=>({chainId:56n}),getCode:async()=>'0x',getTransactionCount:async()=>3,
-  waitForTransaction:async()=>receipt,getTransaction:async()=>({hash,from:address,to:address,nonce:3,value:0n,data:'0x',chainId:56n,blockNumber:10,blockHash}),getBlock:async()=>({hash:blockHash})};
+  waitForTransaction:async()=>receipt,getTransaction:async()=>({hash,from:address,to:address,nonce:3,value:0n,data:'0x',chainId:56n,type:0,gasLimit:21000n,blockNumber:10,blockHash}),getBlock:async()=>({number:10,hash:blockHash})};
  const signer={getAddress:async()=>address,sendTransaction:()=>assert.fail('BrowserProvider signer sends are forbidden')};
  const context={$,address,signer,transactionAddress:address,walletProvider:wallet,rpc,review,activeTransaction:tracker,cfg:{chainId:56},read:{binary:{addUnits:{populateTransaction:async()=>({to:contract,data:'0x1234'})}}},
   prepareContractRequest,preparedWalletSend,submitTracked,confirmedReceipt,transactionState,prepareUnknownCancellation,submitUnknownCancellation,readWalletIdentity,preparationDeadline,localStorage:storage,integer:value=>String(value),
-  hashView:{show:value=>assert.equal(value,hash),hide(){}},status(){},short:value=>value,t:key=>key,reason:error=>error.message,busy:false,syncActions(){},stopPendingChecks(){},startPendingChecks(){},refresh:async()=>{},transactionStage:'',explorer:'https://bscscan.com',window:{confirm:()=>assert.fail('native confirmation must not be used')}};
+  hashView:{show:value=>assert.equal(value,hash),hide(){}},status(){},short:value=>value,t:key=>key,reason:error=>error.message,busy:false,syncActions(){},stopPendingChecks(){},startPendingChecks(){},refresh:async()=>{},refreshMembershipState:async()=>{},v3Model:false,surface:'member',location:{hash:'#network'},recoveryOptions:{},transactionStage:'',explorer:'https://bscscan.com',window:{confirm:()=>assert.fail('native confirmation must not be used')}};
  function $(selector){return nodes[selector.slice(1)];}
  return {context,nodes,tracker,calls,submitted:()=>submitted,click:()=>{active=true;nodes['confirm-wallet-request'].onclick();active=false;}};
 }
@@ -62,4 +62,33 @@ test('the actual FTI buy controller sends exact buy calldata through one fresh w
  const decoded=iface.decodeFunctionData('buy',f.submitted().data);
  assert.equal(decoded.amount,amount);assert.equal(decoded.minTokens,minimum);assert.equal(decoded.deadline,deadline);
  assert.equal(f.submitted().to,contract);assert.equal(f.submitted().chainId,'0x38');assert.equal(f.submitted().value,'0x0');
+});
+function cancellationController(f){
+ const start=source.indexOf("$('#cancel-unknown').onclick="),end=source.indexOf('async function approve(',start);
+ vm.runInNewContext(source.slice(start,end),f.context);
+ return ()=>f.nodes['cancel-unknown'].onclick();
+}
+test('delegated EOA cancellation uses one explicit legacy zero-address request rather than invoking its own code',async()=>{
+ const f=fixture(),zero='0x'+'0'.repeat(40),code='0xef0100'+'7'.repeat(40);f.tracker.saveUnknown(3);
+ f.context.rpc.getCode=async target=>target.toLowerCase()===zero?'0x':code;
+ f.context.rpc.getTransaction=async()=>({hash,from:address,to:zero,nonce:3,value:0n,data:'0x',chainId:56n,type:0,gasLimit:21000n,blockNumber:10,blockHash});
+ const action=cancellationController(f)();await ready(f);
+ assert.equal(f.nodes['wallet-review-to'].textContent,zero);assert.match(f.nodes['wallet-review-description'].textContent,/zero address/);
+ assert.equal(f.tracker.read(),'unknown:3');assert(!f.calls.includes('eth_sendTransaction'));
+ f.click();await action;assert.equal(f.submitted().to,zero);assert.equal(f.submitted().type,'0x0');assert.equal(f.submitted().value,'0x0');assert.equal(f.submitted().data,'0x');assert.equal(f.tracker.read(),null);
+});
+test('a contract wallet opens wallet-managed verification and never prepares a cancellation send',async()=>{
+ const f=fixture();f.tracker.saveUnknown(3);f.context.rpc.getCode=async()=>'0x1234';
+ await cancellationController(f)();assert.equal(f.tracker.read(),'unknown:3');assert(!f.calls.includes('eth_sendTransaction'));
+ assert.equal(f.nodes['cancel-unknown'].hidden,true);assert.equal(f.nodes['transaction-recovery-details'].open,true);assert.equal(f.nodes['smart-account-help'].hidden,false);
+ assert.equal(f.nodes['wallet-review-panel'].hidden,true);
+});
+test('a consumed nonce recovers its verified hash without preparing or sending another transaction',async()=>{
+ const f=fixture();f.tracker.saveUnknown(3);f.context.rpc.getTransactionCount=async()=>4;
+ f.context.recoverPending=async guarded=>{guarded.remember(hash);guarded.clear();return {hash,receipt:{hash,status:1}};};
+ await cancellationController(f)();assert.equal(f.tracker.read(),null);assert.equal(f.tracker.last(),hash);assert(!f.calls.includes('eth_sendTransaction'));assert.equal(f.nodes['unknown-send-form'].hidden,true);
+});
+test('a consumed nonce without a verified hash keeps the original request protected and opens verification',async()=>{
+ const f=fixture();f.tracker.saveUnknown(3);f.context.rpc.getTransactionCount=async()=>4;f.context.recoverPending=async()=>null;
+ await cancellationController(f)();assert.equal(f.tracker.read(),'unknown:3');assert(!f.calls.includes('eth_sendTransaction'));assert.equal(f.nodes['transaction-recovery-details'].open,true);
 });
