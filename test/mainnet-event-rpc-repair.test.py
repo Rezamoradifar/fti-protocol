@@ -180,6 +180,71 @@ class EventRpcTests(unittest.TestCase):
         self.assertEqual([row[0] for row in rows], ['configured-rpc-1', 'configured-rpc-2', 'publicnode'])
         self.assertEqual(m.candidates(r.properties(), snapshot[3], self.new_url), [('private-input', self.new_url)])
 
+    def test_public_mode_excludes_configured_credentials_and_previously_forbidden_services(self):
+        snapshot = r.inspect_service()
+        rows = m.candidates(r.properties(), snapshot[3], public_only=True)
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(len({url for _, url in rows}), len(rows))
+        for _, url in rows:
+            self.assertTrue(m.valid_url(url))
+            self.assertNotIn('SECRET', url)
+            self.assertNotIn('publicnode', url)
+            self.assertNotIn('blockmachine', url)
+        with self.assertRaisesRegex(RuntimeError, 'CHOOSE_PUBLIC_OR_PRIVATE_RPC'):
+            m.candidates({}, {}, self.new_url, public_only=True)
+
+    def local_lock(self, file, *args, **kwargs):
+        if Path(file) == Path('/run/lock/fti-service-cutover.lock'):
+            file = self.base / 'lock'
+        return self.real_open(file, *args, **kwargs)
+
+    def test_public_mode_uses_first_verified_provider_and_existing_backup_path_without_prompt(self):
+        self.real_open = os.open
+        with patch('sys.argv', ['repair-mainnet-event-rpc.py', '--apply', '--public-rpcs']), \
+                patch.object(m.os, 'open', side_effect=self.local_lock), patch.object(m.os, 'umask'), \
+                patch.object(m, 'anchor_block', return_value={}), \
+                patch.object(m, 'verify_provider', side_effect=[RuntimeError('RPC_HTTP_403:eth_chainId'), None]) as probe, \
+                patch.object(m.getpass, 'getpass', side_effect=AssertionError('Public mode must not prompt')), \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            m.main()
+        self.assertEqual([call.args[0] for call in probe.call_args_list], [url for _, url in m.PUBLIC_CANDIDATES[:2]])
+        self.assertEqual(self.running_env['EVENT_RPC_URL'], m.PUBLIC_CANDIDATES[1][1])
+        self.assertEqual(self.running_env['RPC_URL'], 'https://limited.invalid/OVERRIDE_SECRET')
+        self.assertEqual(r.source_hashes(self.root), self.sources)
+        self.assertEqual(self.pid, 124)
+        self.assertIn('FTI_EVENT_RPC_AND_PLACEMENT_READY', out.getvalue())
+        self.assertNotIn('SECRET', out.getvalue())
+
+    def test_all_public_providers_rejected_leave_service_and_configuration_untouched(self):
+        self.real_open = os.open
+        before = r.inspect_service()[4]
+        with patch('sys.argv', ['repair-mainnet-event-rpc.py', '--apply', '--public-rpcs']), \
+                patch.object(m.os, 'open', side_effect=self.local_lock), patch.object(m.os, 'umask'), \
+                patch.object(m, 'anchor_block', return_value={}), \
+                patch.object(m, 'verify_provider', side_effect=RuntimeError('RPC_HTTP_403:eth_chainId')) as probe, \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            with self.assertRaisesRegex(RuntimeError, '^NO_USABLE_PUBLIC_LOG_RPC_NO_CHANGES$'):
+                m.main()
+        self.assertEqual(probe.call_count, len(m.PUBLIC_CANDIDATES))
+        self.assertEqual(r.inspect_service()[4], before)
+        self.assertEqual(self.override_env.read_bytes(), self.original_env)
+        self.assertFalse(m.BACKUPS.exists())
+        self.assertEqual(self.pid, 123)
+        self.assertNotIn('SECRET', out.getvalue())
+
+    def test_public_check_only_does_not_install_verified_endpoint(self):
+        self.real_open = os.open
+        with patch('sys.argv', ['repair-mainnet-event-rpc.py', '--public-rpcs']), \
+                patch.object(m.os, 'open', side_effect=self.local_lock), patch.object(m.os, 'umask'), \
+                patch.object(m, 'anchor_block', return_value={}), \
+                patch.object(m, 'verify_provider', return_value=None), \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            m.main()
+        self.assertIn('FTI_EVENT_RPC_CHECK_ONLY_NO_CHANGES', out.getvalue())
+        self.assertEqual(self.override_env.read_bytes(), self.original_env)
+        self.assertFalse(m.BACKUPS.exists())
+        self.assertEqual(self.pid, 123)
+
     def test_failed_provider_preflights_never_change_environment_or_restart(self):
         real_open = os.open
         def local_lock(file, *args, **kwargs):
@@ -236,8 +301,15 @@ class ProviderTests(unittest.TestCase):
     def test_rpc_error_does_not_expose_provider_credentials(self):
         response = io.BytesIO(r.packed({'jsonrpc': '2.0', 'id': 1, 'error': {'code': -32005, 'message': self.url}}))
         with patch.object(m.urllib.request.OpenerDirector, 'open', return_value=response):
-            with self.assertRaisesRegex(RuntimeError, '^RPC_REJECTED_-32005$'):
+            with self.assertRaisesRegex(RuntimeError, '^RPC_REJECTED_-32005:eth_chainId$'):
                 m.rpc(self.url, 'eth_chainId', [])
+
+    def test_http_denial_reports_only_status_and_method_without_retrying_or_exposing_private_url(self):
+        error = m.urllib.error.HTTPError(self.url, 403, self.url, {}, io.BytesIO(self.url.encode()))
+        with patch.object(m.urllib.request.OpenerDirector, 'open', side_effect=error) as request:
+            with self.assertRaisesRegex(RuntimeError, '^RPC_HTTP_403:eth_getLogs$'):
+                m.rpc(self.url, 'eth_getLogs', [{}])
+        self.assertEqual(request.call_count, 1)
 
 
 if __name__ == '__main__':

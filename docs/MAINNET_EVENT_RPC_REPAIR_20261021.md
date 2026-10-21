@@ -65,6 +65,40 @@ completed wallet signing, token approval or an on-chain registration.
 
 ## If no usable provider is found
 
+The operator subsequently reported HTTP 403 from an explicitly supplied RPC.
+This confirms that a successful check from another machine is insufficient.
+The output does not identify the hidden URL or establish the cause of denial.
+
+To test three other independently published public services from the actual
+VPS, without an API key or hidden prompt, run:
+
+```sh
+python3 repair-mainnet-event-rpc.py --apply --public-rpcs
+```
+
+This opt-in mode tests Nodies, dRPC and 1RPC in that order. Provider references:
+
+- https://docs.nodies.app/rpc-services/pokt-public-rpc-endpoints
+- https://drpc.org/chainlist/bsc-mainnet-rpc
+- https://docs.1rpc.io/overview/supported-networks
+
+It does not retry PublicNode or Blockmachine, whose access has already failed
+or remained unconfirmed on the VPS. Each candidate receives one bounded
+preflight; an HTTP denial or rate limit stops that provider's test. There is
+no proxy, alternate-IP routing, authentication workaround, retry loop or
+runtime provider rotation. Only the first fully verified provider can be
+installed, using the same backup, integrity checks and rollback behavior.
+HTTP/RPC failures now identify the read-only method as well as the numeric
+code; URLs, credentials and provider response bodies stay private.
+
+Without `--apply`, public mode performs only preflight checks. If every
+candidate fails, `NO_USABLE_PUBLIC_LOG_RPC_NO_CHANGES` is reported and no
+service or configuration changes occur. These endpoints are candidates,
+not a claim of successful VPS access or sustained history-scan capacity.
+Placement still must pass after restart; otherwise prior configuration is
+restored. The tool does not claim that all public RPC services are unusable
+when the bounded list fails.
+
 `NO_USABLE_LOG_RPC_NO_CHANGES_PRIVATE_RPC_REQUIRED` means no candidate passed
 and the event-RPC tool made no change. Obtain a BNB Smart Chain mainnet HTTPS
 endpoint that supports historical `eth_getLogs` with at least 1,500 blocks per
@@ -80,13 +114,16 @@ the same backup, identity checks and rollback path.
 
 ## Validation
 
-`python3 test/mainnet-event-rpc-repair.test.py` passes 15 tests. Fixtures use the
+`python3 test/mainnet-event-rpc-repair.test.py` passes 20 tests. Fixtures use the
 real service inspector, repeated environment-file rows, real source/artifact
 hashing, atomic file replacement and changing process IDs. Tests verify
 private backup before mutation, last-file precedence, preservation of the
 primary RPC and sources, health/placement rollback, concurrent-edit refusal,
 wrong-chain/block/log rejection, mandatory historical and recent log probes,
-and credential-safe errors. All 29 source-recovery tests also pass.
+and credential-safe errors. Public-mode tests cover selection after denial,
+backup and preservation of the primary RPC, no prompting, check-only mode,
+no changes when all candidates fail, and HTTP denial without retry or leaked
+credentials. All 29 source-recovery tests also pass.
 
 No SSH execution or production mutation was performed from this environment.
 The operator must run the pinned command and return its outcome before a live

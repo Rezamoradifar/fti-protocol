@@ -23,6 +23,13 @@ spec.loader.exec_module(r)
 BACKUPS = Path('/var/backups/fti-event-rpc')
 SCHEMA = 'FTI_EVENT_RPC_REPAIR_V1'
 PUBLIC_RPC = 'https://bsc-rpc.publicnode.com'
+# Independently published public services, tested from the operator's VPS.
+# Do not retry the providers already reported as forbidden on that VPS.
+PUBLIC_CANDIDATES = (
+    ('nodies-public', 'https://bsc-pokt.nodies.app/'),
+    ('drpc-public', 'https://bsc.drpc.org'),
+    ('1rpc-public', 'https://public.1rpc.io/bnb'),
+)
 PLACEMENT = '/api/placement?referrer=0xD6492377C2C33047aFE61768930b2aedFF2B2704'
 TOPIC = '0x199098452639b249bef6f727bc09ce903cece47ca72a8518bef9367ad39b6de7'
 
@@ -43,14 +50,14 @@ def rpc(url, method, params):
         r.require(len(raw) <= 4_000_000, 'RPC_RESPONSE_TOO_LARGE')
         result = json.loads(raw)
     except urllib.error.HTTPError as error:
-        raise RuntimeError('RPC_HTTP_' + str(error.code)) from None
+        raise RuntimeError('RPC_HTTP_' + str(error.code) + ':' + method) from None
     except (OSError, ValueError):
-        raise RuntimeError('RPC_UNREACHABLE_OR_INVALID_RESPONSE') from None
+        raise RuntimeError('RPC_UNREACHABLE_OR_INVALID_RESPONSE:' + method) from None
     r.require(isinstance(result, dict) and result.get('jsonrpc') == '2.0' and result.get('id') == 1,
               'INVALID_RPC_ENVELOPE')
     if 'error' in result:
         code = result['error'].get('code') if isinstance(result['error'], dict) else None
-        raise RuntimeError('RPC_REJECTED_' + str(code) if isinstance(code, int) else 'RPC_REJECTED')
+        raise RuntimeError(('RPC_REJECTED_' + str(code) if isinstance(code, int) else 'RPC_REJECTED') + ':' + method)
     r.require('result' in result, 'RPC_RESULT_MISSING')
     return result['result']
 
@@ -81,7 +88,10 @@ def env_values(text, initial=None):
     return env
 
 
-def candidates(properties, private, supplied=None):
+def candidates(properties, private, supplied=None, public_only=False):
+    if public_only:
+        r.require(supplied is None, 'CHOOSE_PUBLIC_OR_PRIVATE_RPC')
+        return list(PUBLIC_CANDIDATES)
     if supplied is not None:
         r.require(valid_url(supplied), 'HTTPS_RPC_URL_REQUIRED')
         return [('private-input', supplied)]
@@ -244,7 +254,9 @@ def main():
     action = parser.add_mutually_exclusive_group()
     action.add_argument('--apply', action='store_true')
     action.add_argument('--restore', type=Path)
-    parser.add_argument('--private-rpc', action='store_true', help='Read a private HTTPS URL securely from the terminal')
+    provider = parser.add_mutually_exclusive_group()
+    provider.add_argument('--private-rpc', action='store_true', help='Read an HTTPS URL securely from the terminal')
+    provider.add_argument('--public-rpcs', action='store_true', help='Test independent public providers from this VPS without prompting')
     args = parser.parse_args()
     r.require(os.geteuid() == 0, 'RUN_AS_ROOT_ON_FTI_SERVER')
     os.umask(0o077)
@@ -263,7 +275,7 @@ def main():
         supplied = getpass.getpass('BNB mainnet HTTPS RPC (hidden): ') if args.private_rpc else None
         anchor = anchor_block()
         selected = None
-        for label, url in candidates(properties, private, supplied):
+        for label, url in candidates(properties, private, supplied, public_only=args.public_rpcs):
             print('RPC_PROBE=' + label, flush=True)
             try:
                 verify_provider(url, cfg, anchor)
@@ -273,7 +285,8 @@ def main():
             print('RPC_VERIFIED=' + label + ':CHAIN_56_AND_1500_BLOCK_LOGS', flush=True)
             selected = url
             break
-        r.require(selected, 'NO_USABLE_LOG_RPC_NO_CHANGES_PRIVATE_RPC_REQUIRED')
+        r.require(selected, 'NO_USABLE_PUBLIC_LOG_RPC_NO_CHANGES' if args.public_rpcs
+                  else 'NO_USABLE_LOG_RPC_NO_CHANGES_PRIVATE_RPC_REQUIRED')
         if args.apply:
             apply(selected, snapshot, properties)
         else:
