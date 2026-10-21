@@ -68,8 +68,31 @@ On HTTP/RPC failure, bounded upstream JSON is used only to report a numeric
 code and fixed categories such as `BLOCK_RANGE_LIMIT` or
 `HISTORICAL_DATA_RESTRICTED`. Those categories are hints derived from the
 provider's error text, not independent diagnosis. Raw messages, URLs and
-response bodies are never printed. Generic HTTP 400 alone still leaves the
+response bodies are never printed by default. Generic HTTP 400 alone still leaves the
 cause unresolved. Failed log preflight cannot select or install a provider.
+
+### Diagnose a generic upstream error without applying changes
+
+The operator's new Singapore GetBlock endpoint passed chain/block checks but
+returned RPC error `-32000` on logs. This generic code alone does not prove a
+need to purchase Archive access or identify a block-range problem.
+
+```sh
+python3 repair-mainnet-event-rpc.py --diagnose-rpc --private-rpc
+```
+
+This opt-in mode is mutually exclusive with both `--apply` and `--restore`.
+It checks the same provider and includes at most 500 characters of upstream
+error text after removing the supplied endpoint, its long path/query token
+values, other URLs, long opaque identifiers and terminal control characters.
+It prints only the error message, not arbitrary nested response data.
+
+For an otherwise unexplained `-32000` log error, it also makes at most two
+single-block historical/recent log reads. It stops those observations on an
+explicit authentication denial or rate limit. A single-block success does
+not replace the mandatory historical/recent 1,500-block checks and cannot
+select or install a failed provider. This mode always leaves source, service
+and configuration untouched, even if all provider checks happen to pass.
 
 The selected URL is appended as `EVENT_RPC_URL` to the last effective systemd
 environment file. This preserves every original byte and all other settings.
@@ -150,7 +173,7 @@ the same backup, identity checks and rollback path.
 
 ## Validation
 
-`python3 test/mainnet-event-rpc-repair.test.py` passes 28 tests. Fixtures use the
+`python3 test/mainnet-event-rpc-repair.test.py` passes 34 tests. Fixtures use the
 real service inspector, repeated environment-file rows, real source/artifact
 hashing, atomic file replacement and changing process IDs. Tests verify
 private backup before mutation, last-file precedence, preservation of the
@@ -171,6 +194,11 @@ call `setgroups`, even for its own UID; fixtures assert the production
 `fti-v3` privilege-drop arguments, then retain the test process's identity.
 Production privilege dropping must still succeed on the actual VPS; a
 failure stops preflight rather than running Node as root.
+
+Diagnostic checks also cover redaction of supplied URL/token values and
+control characters, a real HTTPS RPC error with opt-in explanation,
+mutually exclusive mutation flags, no installation after successful small
+reads when full preflight failed, and stopping after an explicit denial.
 
 No SSH execution or production mutation was performed from this environment.
 The operator must run the pinned command and return its outcome before a live

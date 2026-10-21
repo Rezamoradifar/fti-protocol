@@ -137,7 +137,24 @@ def failure_detail(envelope):
     return suffix
 
 
-def runtime_rpc(root, node, url, method, params):
+def safe_error_message(envelope, url):
+    error = envelope.get('error', envelope) if isinstance(envelope, dict) else None
+    message = error.get('message') if isinstance(error, dict) else error
+    if not isinstance(message, str):
+        return ''
+    parsed = urllib.parse.urlsplit(url)
+    secrets = {url, urllib.parse.unquote(url), parsed.path, urllib.parse.unquote(parsed.path)}
+    secrets.update(urllib.parse.unquote(part) for part in parsed.path.split('/'))
+    secrets.update(value for _, value in urllib.parse.parse_qsl(parsed.query))
+    for secret in sorted((value for value in secrets if len(value) >= 8), key=len, reverse=True):
+        message = message.replace(secret, '[REDACTED]')
+    message = re.sub(r'(?:https?|wss?)://\S+', '[URL]', message)
+    message = re.sub(r'\b[A-Za-z0-9_+/=-]{24,}\b', '[REDACTED]', message)
+    message = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', ' ', message)
+    return ' '.join(message.split())[:500]
+
+
+def runtime_rpc(root, node, url, method, params, explain=False):
     r.require(method in READ_METHODS, 'READ_ONLY_RPC_REQUIRED')
     r.require(valid_url(url), 'HTTPS_RPC_URL_REQUIRED')
     payload = {'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params}
@@ -161,14 +178,16 @@ def runtime_rpc(root, node, url, method, params):
     status = packet.get('http')
     r.require(type(status) is int and 100 <= status <= 599, 'INVALID_RUNTIME_HTTP_STATUS')
     envelope = packet.get('envelope')
+    message = safe_error_message(envelope, url) if explain else ''
+    explanation = ':MESSAGE=' + json.dumps(message, ensure_ascii=True) if message else ''
     if status != 200:
-        raise RuntimeError('RPC_HTTP_' + str(status) + ':' + method + failure_detail(envelope))
+        raise RuntimeError('RPC_HTTP_' + str(status) + ':' + method + failure_detail(envelope) + explanation)
     if isinstance(envelope, dict) and 'error' in envelope:
         # Keep the original error code while adding only a fixed diagnostic category.
         try:
             return rpc_result(envelope, method)
         except RuntimeError as error:
-            raise RuntimeError(str(error) + failure_detail(envelope)) from None
+            raise RuntimeError(str(error) + failure_detail(envelope) + explanation) from None
     return rpc_result(envelope, method)
 
 
@@ -262,6 +281,21 @@ def verify_provider(url, cfg, anchor, call=None):
                       and first <= hex_number(log.get('blockNumber')) <= last and not log.get('removed')
                       and re.fullmatch(r'0x[0-9a-fA-F]{64}', log.get('blockHash', ''))
                       and re.fullmatch(r'0x[0-9a-fA-F]{64}', log.get('transactionHash', '')), 'INVALID_FILTERED_LOG')
+
+
+def diagnose_single_blocks(url, cfg, anchor, call):
+    # These observations never satisfy the 1,500-block deployment preflight.
+    for label, number in (('HISTORICAL_SINGLE_BLOCK', cfg['deployedBlock']),
+                          ('RECENT_SINGLE_BLOCK', hex_number(anchor['number']))):
+        try:
+            logs = call(url, 'eth_getLogs', [{'address': cfg['binary'], 'topics': [TOPIC],
+                                            'fromBlock': hex(number), 'toBlock': hex(number)}])
+            r.require(isinstance(logs, list), 'INVALID_LOG_RESPONSE')
+            print('RPC_DIAGNOSTIC=' + label + ':READ_OK_LOG_COUNT=' + str(len(logs)), flush=True)
+        except RuntimeError as error:
+            print('RPC_DIAGNOSTIC=' + label + ':' + str(error), flush=True)
+            if re.search(r'RPC_HTTP_(401|403|429)|AUTHENTICATION_REQUIRED|RATE_LIMIT|RPC_REJECTED_-32001', str(error)):
+                break
 
 
 def identity(properties, private):
@@ -365,6 +399,7 @@ def main():
     action = parser.add_mutually_exclusive_group()
     action.add_argument('--apply', action='store_true')
     action.add_argument('--restore', type=Path)
+    action.add_argument('--diagnose-rpc', action='store_true', help='Check only and show sanitized upstream error messages; never apply configuration')
     provider = parser.add_mutually_exclusive_group()
     provider.add_argument('--private-rpc', action='store_true', help='Read an HTTPS URL securely from the terminal')
     provider.add_argument('--public-rpcs', action='store_true', help='Test independent public providers from this VPS without prompting')
@@ -386,8 +421,10 @@ def main():
         supplied = getpass.getpass('BNB mainnet HTTPS RPC (hidden): ') if args.private_rpc else None
         anchor = anchor_block()
         def query(url, method, params):
-            return runtime_rpc(root, node, url, method, params)
+            return runtime_rpc(root, node, url, method, params, explain=args.diagnose_rpc)
         print('RPC_CLIENT=ACTIVE_NODE_ETHERS_TRANSPORT', flush=True)
+        if args.diagnose_rpc:
+            print('FTI_RPC_DIAGNOSTIC_ONLY_NO_CHANGES', flush=True)
         selected = None
         for label, url in candidates(properties, private, supplied, public_only=args.public_rpcs):
             print('RPC_PROBE=' + label, flush=True)
@@ -395,11 +432,15 @@ def main():
                 verify_provider(url, cfg, anchor, call=query)
             except RuntimeError as error:
                 print('RPC_REJECTED=' + label + ':' + str(error), flush=True)
+                if (args.diagnose_rpc and supplied is not None and 'RPC_REJECTED_-32000:eth_getLogs' in str(error)
+                        and not re.search(r'not supported|unsupported|disabled|not available|denied|forbidden|quota|usage limit|rate.?limit', str(error), re.I)):
+                    diagnose_single_blocks(url, cfg, anchor, query)
                 continue
             print('RPC_VERIFIED=' + label + ':CHAIN_56_AND_1500_BLOCK_LOGS', flush=True)
             selected = url
             break
-        r.require(selected, 'NO_USABLE_PUBLIC_LOG_RPC_NO_CHANGES' if args.public_rpcs
+        r.require(selected, 'RPC_DIAGNOSTIC_FAILED_NO_CHANGES' if args.diagnose_rpc
+                  else 'NO_USABLE_PUBLIC_LOG_RPC_NO_CHANGES' if args.public_rpcs
                   else 'NO_USABLE_LOG_RPC_NO_CHANGES_PRIVATE_RPC_REQUIRED')
         if args.apply:
             apply(selected, snapshot, properties)

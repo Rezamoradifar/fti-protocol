@@ -249,6 +249,53 @@ class EventRpcTests(unittest.TestCase):
         self.assertFalse(m.BACKUPS.exists())
         self.assertEqual(self.pid, 123)
 
+    def test_diagnostic_mode_does_not_apply_even_when_provider_passes(self):
+        self.real_open = os.open
+        before = r.inspect_service()[4]
+        with patch('sys.argv', ['repair-mainnet-event-rpc.py', '--diagnose-rpc', '--private-rpc']), \
+                patch.object(m.os, 'open', side_effect=self.local_lock), patch.object(m.os, 'umask'), \
+                patch.object(m.getpass, 'getpass', return_value=self.new_url), \
+                patch.object(m, 'anchor_block', return_value={}), \
+                patch.object(m, 'verify_provider', return_value=None), patch.object(m, 'apply') as apply, \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            m.main()
+        apply.assert_not_called()
+        self.assertEqual(r.inspect_service()[4], before)
+        self.assertFalse(m.BACKUPS.exists())
+        self.assertIn('FTI_RPC_DIAGNOSTIC_ONLY_NO_CHANGES', out.getvalue())
+
+    def test_diagnostic_and_apply_flags_are_rejected_before_inspection(self):
+        with patch('sys.argv', ['repair-mainnet-event-rpc.py', '--diagnose-rpc', '--apply']), \
+                patch.object(r, 'inspect_service') as inspect, contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as error:
+                m.main()
+        self.assertEqual(error.exception.code, 2)
+        inspect.assert_not_called()
+
+    def test_single_block_diagnostics_cannot_install_provider_that_failed_full_preflight(self):
+        self.real_open = os.open
+        before = r.inspect_service()[4]
+        with patch('sys.argv', ['repair-mainnet-event-rpc.py', '--diagnose-rpc', '--private-rpc']), \
+                patch.object(m.os, 'open', side_effect=self.local_lock), patch.object(m.os, 'umask'), \
+                patch.object(m.getpass, 'getpass', return_value=self.new_url), \
+                patch.object(m, 'anchor_block', return_value={'number': '0xfa0'}), \
+                patch.object(m, 'verify_provider', side_effect=RuntimeError('RPC_REJECTED_-32000:eth_getLogs')), \
+                patch.object(m, 'runtime_rpc', return_value=[]) as calls, patch.object(m, 'apply') as apply, \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            with self.assertRaisesRegex(RuntimeError, '^RPC_DIAGNOSTIC_FAILED_NO_CHANGES$'):
+                m.main()
+        apply.assert_not_called()
+        self.assertEqual(r.inspect_service()[4], before)
+        self.assertFalse(m.BACKUPS.exists())
+        self.assertEqual(calls.call_count, 2)
+        for call in calls.call_args_list:
+            query = call.args[-1][0]
+            self.assertEqual(query['fromBlock'], query['toBlock'])
+            self.assertTrue(call.kwargs['explain'])
+        self.assertIn('HISTORICAL_SINGLE_BLOCK:READ_OK', out.getvalue())
+        self.assertIn('RECENT_SINGLE_BLOCK:READ_OK', out.getvalue())
+        self.assertNotIn('RPC_VERIFIED=', out.getvalue())
+
     def test_failed_provider_preflights_never_change_environment_or_restart(self):
         real_open = os.open
         def local_lock(file, *args, **kwargs):
@@ -314,6 +361,23 @@ class ProviderTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, '^RPC_HTTP_403:eth_getLogs$'):
                 m.rpc(self.url, 'eth_getLogs', [{}])
         self.assertEqual(request.call_count, 1)
+
+    def test_diagnostic_message_removes_url_tokens_query_values_and_control_characters(self):
+        url = 'https://provider.invalid/PRIVATE_SECRET?key=ANOTHER_SECRET'
+        message = 'limit exceeded\n' + url + ' PRIVATE_SECRET ANOTHER_SECRET ' + 'a' * 32 + '\x1b[31m'
+        cleaned = m.safe_error_message({'error': {'message': message}}, url)
+        self.assertTrue(cleaned.startswith('limit exceeded'))
+        self.assertNotIn('SECRET', cleaned)
+        self.assertNotIn('provider.invalid', cleaned)
+        self.assertNotIn('a' * 32, cleaned)
+        self.assertNotIn('\n', cleaned)
+        self.assertNotIn('\x1b', cleaned)
+
+    def test_single_block_diagnostics_stop_after_explicit_access_denial(self):
+        with patch.object(m, 'runtime_rpc') as call, contextlib.redirect_stdout(io.StringIO()):
+            call.side_effect = RuntimeError('RPC_HTTP_403:eth_getLogs')
+            m.diagnose_single_blocks(self.url, self.cfg, self.anchor, call)
+        self.assertEqual(call.call_count, 1)
 
 
 class RuntimeTransportTests(unittest.TestCase):
@@ -406,6 +470,18 @@ class RuntimeTransportTests(unittest.TestCase):
         self.assertIn('RPC_HTTP_400:eth_getLogs', str(failure.exception))
         self.assertIn('DETAIL=BLOCK_RANGE_LIMIT', str(failure.exception))
         self.assertNotIn('SECRET', str(failure.exception))
+        self.assertEqual(len(self.server.calls), 1)
+
+    def test_opt_in_diagnostic_explains_actual_rpc_error_and_redacts_credentials(self):
+        self.server.reply = lambda _: (200, {'jsonrpc': '2.0', 'id': 1, 'error': {
+            'code': -32000, 'message': 'limit exceeded at ' + self.url + ' PRIVATE_SECRET'}}, {})
+        with self.assertRaises(RuntimeError) as failure:
+            m.runtime_rpc(ROOT, self.node, self.url, 'eth_getLogs', [{}], explain=True)
+        text = str(failure.exception)
+        self.assertIn('MESSAGE=', text)
+        self.assertIn('limit exceeded', text)
+        self.assertNotIn('SECRET', text)
+        self.assertNotIn(self.url, text)
         self.assertEqual(len(self.server.calls), 1)
 
     def test_forbidden_response_is_not_retried_or_exposed(self):
