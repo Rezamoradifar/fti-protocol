@@ -48,11 +48,11 @@ if(reserveModel){
 if(v3Model){
  for(const id of ['legacy-locks','locked-ftis','legacy-floor-fund','legacy-token-floor'])$('#'+id).hidden=true;
  text('buy-policy',cfg.tokenContract==='FTIReserveTokenUpgradeable'?'Sequential $500 steps use updated reserve/supply prices. 3% fee per step; up to 128 steps per transaction. Membership and cycle allowances apply.':'Membership and rank purchase limits apply. V3 has no time or wallet-count locks.');
- text('sell-policy','3% fee. Gross sales up to $500 and final full-supply exits are exempt from ordinary sale limits. Minimum output and deadline always apply.');
+ text('sell-policy',cfg.tokenContract==='FTIReserveTokenUpgradeable'?t('3% fee. Every non-final sale shares the 20% hourly net-outflow limit. Gross sales up to 500 USD are exempt only from the 5% single-sale reserve cap. Final full-supply exits are exempt from both limits. Minimum output and deadline always apply.','کارمزد ۳٪ است. سقف خروج خالص ساعتی ۲۰٪ برای همهٔ فروش‌های غیرنهایی برقرار است. فروش با مبلغ ناخالص تا ۵۰۰ دلار فقط از سقف ۵٪ ذخیره برای هر فروش معاف است. خروج نهایی کل عرضه از هر دو سقف معاف است. حداقل دریافتی و مهلت تراکنش همیشه بررسی می‌شوند.'):'3% fee. Gross sales up to $500 and final full-supply exits are exempt from ordinary sale limits. Minimum output and deadline always apply.');
  text('availability-policy','V3 tokens have no time or wallet-count locks. Pauses, emergency state and sale limits still apply.');
  text('token-price-label','Reserve / FTI');text('token-model-ratio-label','Pricing model');text('token-model-ratio','Reserve / supply · $0.10 first cycle, $0.20 restarts');
  text('token-model-description','No premint or time locks. Ordinary trade fees stay in reserve. Support is used only on a price drop, with the minimum available injection. Final-exit fees and remaining support go to development. Each new cycle starts with a $0.20 bootstrap quote.');
- text('token-sale-description','Reserve/share quotes, 3% fee. Sales above $500 retain 5% single-sale and 20% hourly limits; final full-supply exit is exempt. Transfers burn 3%. Support may be exhausted and does not guarantee a price floor.');
+ text('token-sale-description',cfg.tokenContract==='FTIReserveTokenUpgradeable'?t('Reserve/share quotes with a 3% fee. Every non-final sale counts toward the shared 20% hourly net-outflow limit. Gross sales above 500 USD also face the 5% single-sale reserve cap. Final full-supply exits bypass both limits. Transfers burn 3%; support may run out and does not guarantee a price floor.','قیمت از نسبت ذخیره به عرضه و با کارمزد ۳٪ محاسبه می‌شود. خروج خالص همهٔ فروش‌های غیرنهایی در سقف ساعتی مشترک ۲۰٪ حساب می‌شود. فروش با مبلغ ناخالص بالای ۵۰۰ دلار، سقف ۵٪ ذخیره برای هر فروش را هم دارد. خروج نهایی کل عرضه از هر دو سقف معاف است. انتقال ۳٪ می‌سوزاند؛ پشتیبانی ممکن است تمام شود و کف قیمت را تضمین نمی‌کند.'):'Reserve/share quotes, 3% fee. Sales above $500 retain 5% single-sale and 20% hourly limits; final full-supply exit is exempt. Transfers burn 3%. Support may be exhausted and does not guarantee a price floor.');
  text('point-policy',cfg.tokenContract==='FTIReserveTokenUpgradeable'?'Rewards use funded credits from your own branches. Every paid point has at least $20 gross funding. Protection increases below $16 calculated before the payout filter.':'Rewards use funded credits from your own branches. $20 per point is the protection target, not a reward ceiling or an unfunded guarantee. Protection adjusts hourly point caps when funding falls below that target.');
  text('transfer-title','Transfer FTI');text('transfer-description','The amount entered is your total debit: the recipient receives 97% and 3% is burned. The burn rounds up to the smallest FTI unit. Recipients do not need membership.');
  $('#transfer-quote').hidden=false;
@@ -136,7 +136,7 @@ function syncActions(){
  $('#register-form').elements.units.disabled=busy||connecting;$('#register-form').elements.sponsor.disabled=busy||connecting||!!w?.exists;
  $('#approve-units-button').hidden=true;
  $('#register-button').hidden=busy;
- $('#buy-form').querySelectorAll('input,select').forEach(field=>field.disabled=busy||connecting);
+ for(const id of ['buy-form','sell-form'])$('#'+id).querySelectorAll('input,select').forEach(field=>field.disabled=busy||connecting);
  const sponsorField=$('#registration-sponsor-field');if(sponsorField)sponsorField.hidden=!!w?.exists;
  document.querySelectorAll('[data-write]').forEach(button=>{button.disabled=busy||button.dataset.executed==='true'||(button.dataset.requires&&!enabled[button.dataset.requires]);});
  if(cfg.batchedRewards)$('#reward-all').disabled=busy||!signer||!state||BigInt(state.rewardQueue||0)===0n||Number(state.phase)!==0||Number(state.monthPhase)!==0;
@@ -214,11 +214,11 @@ async function refreshTokenState(){
  if(address!==expectedAddress||signer!==expectedSigner)throw Error('Wallet changed. Try again.');
  refreshSequence++;state={...state,...next,wallet:{...(wallet()||{}),...next.wallet}};
  renderTokenPrice(next);
- for(const [id,value]of Object.entries({'fti-balance':fmt(next.wallet.ftiBalance,5),unlocked:fmt(next.wallet.unlocked,5),'trade-balance':fmt(next.wallet.ftiBalance,5),'trade-unlocked':fmt(next.wallet.unlocked,5),'trade-locked':fmt(0n,5),'usd-balance':fmt(next.wallet.usdBalance),allowance:fmt(next.wallet.remaining),units:integer(next.wallet.units),'account-units':integer(next.wallet.units),'buy-available':`Balance: ${fmt(next.wallet.usdBalance)} USD · Allowance: ${fmt(next.wallet.remaining)} USD`,'wallet-address':expectedAddress}))text(id,value);
- text('trade-notice',!next.wallet.exists||next.wallet.units===0n?'Register or add membership units before trading.':next.tokenPaused||next.emergencyUnwind?'Token trading is currently paused by the contract.':t('Enter the USDT amount. Required checks and approvals continue automatically.','مبلغ تتر را وارد کن؛ بررسی‌ها و مراحل لازم به‌صورت خودکار ادامه پیدا می‌کنند.'));
+ for(const [id,value]of Object.entries({'fti-balance':fmt(next.wallet.ftiBalance,5),unlocked:fmt(next.wallet.unlocked,5),'trade-balance':fmt(next.wallet.ftiBalance,5),'trade-unlocked':fmt(next.wallet.unlocked,5),'trade-locked':fmt(0n,5),'usd-balance':fmt(next.wallet.usdBalance),allowance:fmt(next.wallet.remaining),units:integer(next.wallet.units),'account-units':integer(next.wallet.units),'buy-available':`Balance: ${fmt(next.wallet.usdBalance)} USD · Allowance: ${fmt(next.wallet.remaining)} USD`,'sell-available':'Available: '+fmt(next.wallet.unlocked,6)+' FTI','wallet-address':expectedAddress}))text(id,value);
+ text('trade-notice',!next.wallet.exists?'Register your wallet in Membership before buying FTI.':next.wallet.units===0n?'Add at least one membership unit before buying FTI.':next.tokenPaused||next.emergencyUnwind?'Token trading is currently paused by the contract.':t('Enter the USDT amount. Required checks and approvals continue automatically.','مبلغ تتر را وارد کن؛ بررسی‌ها و مراحل لازم به‌صورت خودکار ادامه پیدا می‌کنند.'));
  syncActions();
 }
-async function transaction(fn,{membership=false,tokenPurchase=false}={}){
+async function transaction(fn,{membership=false,tokenPurchase=false,tokenTrade=false}={}){
  if(busy)return;if(!signer){status('Connect your wallet first.',true);return;}
  stopPendingChecks();
  const originalAddress=address,originalSigner=signer;
@@ -236,9 +236,9 @@ async function transaction(fn,{membership=false,tokenPurchase=false}={}){
  transactionStage='PREVIOUS';const previous=await resolvePending(activeTransaction,rpc);
  if(address!==originalAddress||signer!==originalSigner)return;
  if(previous){status(Number(previous.status)===1?'Previous transaction confirmed. Refresh and review your balances before another request.':'Transaction reverted on-chain.',Number(previous.status)!==1);await refresh().catch(()=>{});return;}
- transactionStage='BALANCE';await (membership?refreshMembershipState():tokenPurchase&&v3Model?refreshTokenState():refresh());transactionStage='VALIDATION';if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();
+ transactionStage='BALANCE';await (membership?refreshMembershipState():(tokenPurchase||tokenTrade)&&v3Model?refreshTokenState():refresh());transactionStage='VALIDATION';if(address!==transactionAddress)throw Error('Wallet changed. Try again.');status('Review the request in your wallet.');const outcome=await fn();
  if(address!==originalAddress||signer!==originalSigner)return;
- try{await (membership?refreshMembershipState():tokenPurchase&&v3Model?refreshTokenState():refresh());}catch{if(address===originalAddress&&signer===originalSigner)status(t('Transaction confirmed. Your balance will update automatically.','تراکنش تأیید شد؛ موجودی به‌صورت خودکار به‌روز می‌شود.'));return;}
+ try{await (membership?refreshMembershipState():(tokenPurchase||tokenTrade)&&v3Model?refreshTokenState():refresh());}catch{if(address===originalAddress&&signer===originalSigner)status(t('Transaction confirmed. Your balance will update automatically.','تراکنش تأیید شد؛ موجودی به‌صورت خودکار به‌روز می‌شود.'));return;}
  if(address!==originalAddress||signer!==originalSigner)return;
  status(typeof outcome==='string'?outcome:'Transaction confirmed on-chain.');}
  catch(error){if(address!==originalAddress||signer!==originalSigner)return;const pending=activeTransaction?.read();$('#unknown-send-form').hidden=!pending?.startsWith('unknown:');status(pending?.startsWith('unknown:')?t('Checking the previous request automatically. Its status is not confirmed yet.','در حال بررسی خودکار درخواست قبلی؛ وضعیت آن هنوز مشخص نیست.'):pending?t('Waiting for network confirmation. Checking automatically.','در انتظار تأیید شبکه؛ بررسی خودکار انجام می‌شود.'):purchaseError(transactionStage,error),!pending);}
@@ -256,10 +256,15 @@ async function send(request){
 }
 async function sendContract(key,method,...args){
  transactionStage='GAS';const activeSigner=signer,expectedAddress=address;
- status('Checking the purchase before opening your wallet…');
+ status(key==='token'&&method==='sell'?t('Checking the sale before opening your wallet…','در حال بررسی فروش پیش از باز کردن ولت…'):'Checking the purchase before opening your wallet…');
  let request;
  try{request=await prepareContractRequest(read[key][method],args,activeSigner,rpc);}
- catch(error){throw Error(t('Preflight failed. No request was sent to your wallet.','بررسی اولیه انجام نشد؛ درخواستی برای امضا به ولت ارسال نشده است.')+' '+reason(error));}
+ catch(error){
+  const detail=reason(error);
+  if(key==='token'&&method==='sell'&&detail.includes('hourly sell protection'))throw Error(t('This amount exceeds the shared hourly sale limit. Enter a smaller amount or wait for the hourly window to reset. No request was sent to your wallet.','این مقدار از سقف مشترک فروش ساعتی بیشتر است؛ مقدار کمتری وارد کن یا تا پایان بازهٔ ساعتی صبر کن. هیچ درخواستی برای امضا به ولت ارسال نشده است.'));
+  if(key==='token'&&method==='sell'&&detail.includes('single sell protection'))throw Error(t('This amount exceeds the reserve limit for a single sale. Enter a smaller amount. No request was sent to your wallet.','این مقدار از سقف ذخیرهٔ مجاز برای هر فروش بیشتر است؛ مقدار کمتری وارد کن. هیچ درخواستی برای امضا به ولت ارسال نشده است.'));
+  throw Error(t('Preflight failed. No request was sent to your wallet.','بررسی اولیه انجام نشد؛ درخواستی برای امضا به ولت ارسال نشده است.')+' '+detail);
+ }
  // Wallet changes during read-only preparation must not create a pending record.
  if(signer!==activeSigner||address!==expectedAddress||address!==transactionAddress)throw Error('Wallet changed. Please review the action and try again.');
  status('Review the request in your wallet.');
@@ -273,9 +278,9 @@ async function sendContract(key,method,...args){
  if(signer!==activeSigner||address!==expectedAddress||walletProvider!==originalWallet||tracker.read())throw Error('Wallet or transaction state changed. Prepare the action again.');
  const rpcRequest=rpc.getRpcTransaction({...request,from:expectedAddress,chainId:cfg.chainId,nonce,gasPrice,value:request.value||0n});
  if(!rpcRequest.data)rpcRequest.data='0x';
- const title=t(key==='usd'&&method==='approve'?'Approve USDT spending':key==='token'&&method==='buy'?'Buy FTI':key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?'Buy membership units':'Review your transaction',key==='usd'&&method==='approve'?'تأیید اجازهٔ مصرف تتر':key==='token'&&method==='buy'?'خرید FTI':key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?'خرید یونیت عضویت':'بررسی تراکنش');
+ const title=t(key==='usd'&&method==='approve'?'Approve USDT spending':key==='token'&&method==='buy'?'Buy FTI':key==='token'&&method==='sell'?'Sell FTI':key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?'Buy membership units':'Review your transaction',key==='usd'&&method==='approve'?'تأیید اجازهٔ مصرف تتر':key==='token'&&method==='buy'?'خرید FTI':key==='token'&&method==='sell'?'فروش FTI':key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?'خرید یونیت عضویت':'بررسی تراکنش');
  const units=key==='binary'&&['addUnits','register','registerWithPlacement'].includes(method)?BigInt(args.at(-1)):null;
- $('#wallet-review-description').textContent=units!==null?t('Membership units: ','تعداد یونیت: ')+integer(units)+' · '+integer(units*100n)+' USDT':key==='usd'&&method==='approve'?t('USDT spending allowance: ','مجوز مصرف تتر: ')+formatEther(args[1])+' USDT':key==='token'&&method==='buy'?formatEther(args[0])+' USDT · '+t('Minimum received: ','حداقل دریافتی: ')+formatEther(args[1])+' FTI':t('Review the amount and recipient in your wallet before confirming.','مبلغ و گیرنده را پیش از تأیید در ولت بررسی کن.');
+ $('#wallet-review-description').textContent=units!==null?t('Membership units: ','تعداد یونیت: ')+integer(units)+' · '+integer(units*100n)+' USDT':key==='usd'&&method==='approve'?t('USDT spending allowance: ','مجوز مصرف تتر: ')+formatEther(args[1])+' USDT':key==='token'&&method==='buy'?formatEther(args[0])+' USDT · '+t('Minimum received: ','حداقل دریافتی: ')+formatEther(args[1])+' FTI':key==='token'&&method==='sell'?formatEther(args[0])+' FTI · '+t('Minimum received: ','حداقل دریافتی: ')+formatEther(args[1])+' USDT':t('Review the amount and recipient in your wallet before confirming.','مبلغ و گیرنده را پیش از تأیید در ولت بررسی کن.');
  const callback=preparedWalletSend(originalWallet,rpc,rpcRequest);
  transactionStage='SIGN';status(t('Request prepared. Tap Open confirmation in wallet below.','درخواست آماده شد؛ دکمهٔ «باز کردن تأیید در ولت» را بزن.'));
  const tx=await review.open({request:rpcRequest,title,isCurrent:()=>signer===activeSigner&&address===expectedAddress&&walletProvider===originalWallet&&!tracker.read(),onConfirm:()=>{hashView.hide();return submitTracked(callback,tracker,nonce);}});
@@ -572,7 +577,7 @@ for(const kind of ['buy','sell']){
  const form=$('#'+kind+'-form');let debounce,quoteSequence=0;
  const showQuote=()=>{clearTimeout(debounce);const sequence=++quoteSequence;text(kind+'-quote','Updating quote…');debounce=setTimeout(async()=>{try{const[a,slip]=amountInput(form);let output,fee;if(kind==='buy')output=await read.token.quoteBuy(a);else[output,fee]=await read.token.quoteSell(a);if(sequence!==quoteSequence)return;const minimum=output*(10000n-slip)/10000n;text(kind+'-quote',(kind==='buy'?'Estimated output: ':'Net proceeds: ')+fmt(output,6)+(kind==='buy'?' FTI':' '+networkProfile.currency)+'\nMinimum accepted: '+fmt(minimum,6)+(kind==='buy'?' FTI':' '+networkProfile.currency)+(kind==='buy'&&cfg.tokenContract==='FTIReserveTokenUpgradeable'?' · '+((a+parseEther('500')-1n)/parseEther('500')).toString()+' steps · updated price per step · 3% fee':'')+(fee!==undefined?(v3Model?' · Fee 3%':' · Fee '+Number(fee)/100+'%'):''));$('#'+kind+'-quote').classList.remove('invalid');}catch(error){if(sequence!==quoteSequence)return;text(kind+'-quote',form.elements.amount.value?'Quote unavailable. Check the amount or refresh contract data.':'Enter an amount for a live quote.');$('#'+kind+'-quote').classList.add('invalid');}},250);};
  form.elements.amount.oninput=showQuote;form.elements.slippage.oninput=showQuote;
- form.onsubmit=e=>{e.preventDefault();transaction(async()=>{const[a,slip]=amountInput(form),w=wallet();if(kind==='buy'&&(!w?.exists||BigInt(w.units)===0n))throw Error('Register or add membership units before trading.');if(state.tokenPaused||state.emergencyUnwind)throw Error('Token trading is paused by the contract.');const deadline=BigInt(state.timestamp)+1200n;
+ form.onsubmit=e=>{e.preventDefault();transaction(async()=>{const[a,slip]=amountInput(form),w=wallet();if(kind==='buy'&&(!w?.exists||BigInt(w.units)===0n))throw Error('Register or add membership units before trading.');if(state.tokenPaused||state.tokenRecoveryFrozen||state.emergencyUnwind)throw Error('Token trading is paused by the contract.');const deadline=BigInt(state.timestamp)+1200n;
   if(kind==='buy'){
    if(cfg.tokenContract==='FTIReserveTokenUpgradeable'&&a>parseEther('64000'))throw Error('Buy up to 64,000 USD per transaction; repeat for a larger order.');
    await checkCollateral(a);if(a>BigInt(w.remaining))throw Error('Amount exceeds your remaining manual purchase allowance.');
@@ -586,8 +591,8 @@ for(const kind of ['buy','sell']){
    await sendContract('token','buy',a,quote*(10000n-slip)/10000n,BigInt(state.timestamp)+1200n);
    return t('FTI purchase confirmed. Your balance has been updated.','خرید FTI تأیید شد و موجودی به‌روز شد.');
   }
-  else{if(a>BigInt(w.unlocked))throw Error('Amount exceeds your unlocked balance. Check the unlock schedule.');const[q]=await read.token.quoteSell(a);await send(()=>write('token').sell(a,q*(10000n-slip)/10000n,deadline));}
- },{tokenPurchase:kind==='buy'});};
+  else{if(a>BigInt(w.unlocked))throw Error('Amount exceeds your unlocked balance. Check the unlock schedule.');const[q]=await read.token.quoteSell(a);if(q<=0n)throw Error('Token quote is unavailable.');if(v3Model)await sendContract('token','sell',a,q*(10000n-slip)/10000n,deadline);else await send(()=>write('token').sell(a,q*(10000n-slip)/10000n,deadline));return t('FTI sale confirmed. Your balance has been updated.','فروش FTI تأیید شد و موجودی به‌روز شد.');}
+ },{tokenPurchase:kind==='buy',tokenTrade:kind==='sell'});};
 }
 $('#emergency-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{if(!v3Model||!state?.emergencyUnwind)throw Error('Emergency redemption is not active.');const amount=parseEther(e.target.elements.amount.value),minimum=parseEther(e.target.elements.minimum.value);if(amount<=0n||amount>BigInt(wallet()?.ftiBalance||0)||minimum<0n)throw Error('Enter an amount within your token balance.');await send(()=>write('token').emergencyRedeem(amount,minimum));});};
 $('#max-sell').onclick=()=>{const form=$('#sell-form');form.elements.amount.value=formatEther(wallet().unlocked);form.elements.amount.dispatchEvent(new Event('input',{bubbles:true}));};

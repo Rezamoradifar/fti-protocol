@@ -8,3 +8,7 @@ test('same mobile transport failure identifies its precise operation without exp
  }
 });
 test('unknown stage cannot inject an arbitrary diagnostic code',()=>{assert.match(purchaseError('https://secret',{message:'Load failed'}),/^\[FTI-UNKNOWN\]/);});
+test('validation failures describe the request without mislabeling a sale as a purchase',()=>{
+ const result=purchaseError('VALIDATION',{message:'Token quote is unavailable.'});
+ assert.match(result,/Request requirements were not met|شرایط درخواست کامل نیست/);assert.doesNotMatch(result,/Purchase requirements|شرایط درخواست خرید/);
+});

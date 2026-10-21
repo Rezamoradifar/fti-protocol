@@ -24,7 +24,7 @@ export function walletReview({document,translate,now=Date.now,maxAgeMs=30000}){
  button.onclick=()=>{
   const job=pending;if(!job)return;
   const age=now()-job.createdAt;
-  if(age<0||age>maxAgeMs){cancel(translate('The prepared request expired. Start the action again to refresh it.','اطلاعات آماده‌شده منقضی شد؛ دوباره دکمهٔ خرید یا لغو درخواست را بزن.'));return;}
+  if(age<0||age>maxAgeMs){cancel(translate('The prepared request expired. Start the action again to refresh it.','اطلاعات آماده‌شده منقضی شد؛ عملیات را دوباره شروع کن.'));return;}
   try{if(!job.isCurrent())throw Error();}catch{cancel(translate('Wallet or transaction state changed. Prepare the action again.','ولت یا وضعیت درخواست تغییر کرده است؛ عملیات را دوباره آماده کن.'));return;}
   pending=null;hide();
   // Do not add an await, Promise.then, RPC read or native confirm before this

@@ -6,7 +6,7 @@ const stages={
  NETWORK:['Wallet network check failed.','بررسی شبکه از داخل ولت ناموفق بود.'],
  PREVIOUS:['Previous transaction check failed.','بررسی تراکنش قبلی ناموفق بود.'],
  BALANCE:['Wallet balance refresh failed.','دریافت موجودی ولت از سایت ناموفق بود.'],
- VALIDATION:['Purchase requirements were not met.','شرایط درخواست خرید کامل نیست.'],
+ VALIDATION:['Request requirements were not met.','شرایط درخواست کامل نیست.'],
  ALLOWANCE:['USDT allowance check failed.','خواندن مجوز تتر از شبکه ناموفق بود.'],
  GAS:['Transaction preparation failed.','آماده‌سازی تراکنش و برآورد گس ناموفق بود.'],
  NONCE:['Transaction number check failed.','دریافت شماره تراکنش از شبکه ناموفق بود.'],
