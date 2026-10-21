@@ -8,3 +8,9 @@ test('RPC failure is not reported as zero volume',async()=>{
  const token={target:'t',interface:{getEvent:n=>({topicHash:n})}};
  await assert.rejects(readMarket({getLogs:async()=>{throw Error('rate limit');}},token,0,2));
 });
+test('an aborted market read starts no further log or timestamp work',async()=>{
+ const controller=new AbortController();let calls=0;
+ const token={target:'t',interface:{getEvent:n=>({topicHash:n})}};
+ await assert.rejects(readMarket({getLogs:async()=>{calls++;controller.abort();return [];}},token,1,300,{signal:controller.signal}));
+ assert.equal(calls,1);
+});

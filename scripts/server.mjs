@@ -2,8 +2,9 @@ import {contentSecurityPolicy} from './content-security-policy.mjs';
 import {operationalRpcUrl} from './mainnet-rpc.mjs';
 import http from 'node:http';
 import {rootForHost,PUBLIC_ROUTES} from './site-routing.mjs';
-import {readMarket} from './market-reader.mjs';
-import {readEvents} from './event-reader.mjs';
+import {createStateReader} from './state-reader.mjs';
+import {historyCache} from './history-cache.mjs';
+import {createEventHistoryReader,PUBLIC_EVENT_RPC} from './event-history-source.mjs';
 import {networkPlacementIndexer,detectGenesisPlacementLayout} from './referral-placement-index.mjs';
 import {readHourlyCapFlushVersion} from '../core/hourly-cap-policy.mjs';
 import {readPoolDistributionVersion} from '../core/pool-distribution-policy.mjs';
@@ -24,9 +25,8 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  const eventTransport=new FetchRequest(process.env.EVENT_RPC_URL||rpc);eventTransport.timeout=15000;
  const eventProvider=process.env.EVENT_RPC_URL?new JsonRpcProvider(eventTransport,undefined,{cacheTimeout:-1,batchMaxCount:1}):provider;
  const tokenContract=cfg.tokenContract||'FTIToken';if(!['FTIToken','FTIReserveToken','FTIReserveTokenV3','FTIReserveTokenUpgradeable'].includes(tokenContract))throw Error('Unknown token model');
- const reserveModel=tokenContract==='FTIReserveToken';const v3Model=['FTIReserveTokenV3','FTIReserveTokenUpgradeable'].includes(tokenContract);
+ const v3Model=['FTIReserveTokenV3','FTIReserveTokenUpgradeable'].includes(tokenContract);
  const binaryContract=cfg.binaryContract||'BinaryPlan';if(!['BinaryPlan','FundedBinaryPlan','FundedBinaryPlanUpgradeable'].includes(binaryContract))throw Error('Unknown reward model');
- const fundedModel=['FundedBinaryPlan','FundedBinaryPlanUpgradeable'].includes(binaryContract);
  const contracts=Object.fromEntries(['binary','token','usd','council','timelock'].filter(k=>cfg[k]).map(k=>[k,new Contract(cfg[k],k==='usd'&&!network.testAssets?COLLATERAL_ABI:artifact({binary:binaryContract,token:tokenContract,usd:'MockUSD',council:v3Model?'SevenGuardianCouncil':'Council',timelock:'FTITimelock'}[k]).abi,provider)]));
  const host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||3000);const publicConfig={...cfg,network};delete publicConfig.rpcUrl;const walletConnectProjectId=process.env.WALLETCONNECT_PROJECT_ID||'';if(walletConnectProjectId&&!/^[a-f0-9]{32}$/i.test(walletConnectProjectId))throw Error('Invalid WalletConnect project ID');publicConfig.walletConnectProjectId=walletConnectProjectId;publicConfig.selectableHourlyAutoBuy=contracts.binary.interface.hasFunction('setAutoBuyPercent');
  // Referral endpoint is dormant until the proxy really exposes the new
@@ -43,10 +43,17 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  publicConfig.referralPlacementEnabled=referralPlacementEnabled;
  publicConfig.hourlyCapFlushVersion=await readHourlyCapFlushVersion(contracts.binary);
  publicConfig.poolDistributionVersion=await readPoolDistributionVersion(contracts.binary);
+ publicConfig.stateReaderVersion=1;
+ publicConfig.eventHistoryVersion=1;
+ const readState=createStateReader({provider,contracts,cfg,publicConfig});
+ let fallbackProvider;
+ if(cfg.chainId===56){const fallbackTransport=new FetchRequest(PUBLIC_EVENT_RPC);fallbackTransport.timeout=8000;fallbackProvider=new JsonRpcProvider(fallbackTransport,undefined,{cacheTimeout:-1,batchMaxCount:1});}
+ const readHistory=createEventHistoryReader({primary:provider,eventProvider,fallbackProvider,contracts,cfg});
+ const marketRead=historyCache(signal=>readHistory('market',signal));
+ const eventsRead=historyCache(signal=>readHistory('events',signal),{ttlMs:15000});
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data,(_,v)=>typeof v==='bigint'?v.toString():v));};
  const readMethods=new Set(['eth_chainId','eth_blockNumber','eth_call','eth_getBalance','eth_getStorageAt','eth_getCode','eth_getLogs','eth_getTransactionReceipt','eth_getTransactionByHash','eth_getBlockByNumber','eth_estimateGas','eth_gasPrice','eth_maxPriorityFeePerGas','eth_feeHistory','eth_getTransactionCount']);
  async function body(req){let raw='';for await(const c of req){raw+=c;if(raw.length>65536)throw Error('Request too large');}return JSON.parse(raw);}
- let eventCache,eventFlight,marketCache,marketFlight;
  const server=http.createServer(async(req,res)=>{try{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Content-Security-Policy',contentSecurityPolicy(walletConnectProjectId));
@@ -74,17 +81,15 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
    catch(e){return json(res,503,{error:e.message||'PLACEMENT_UNAVAILABLE'});}
   }
   if(url.pathname==='/api/state'){
-   const {binary:b,token:t,usd}=contracts;const address=url.searchParams.get('wallet');if(address&&!isAddress(address))throw Error('Invalid address');
-   const [price,supply,reserve,bb,floor,ath,clock,count,epoch,epochEnd,phase,level,pointPool,pending,auto,jobCursor,jobCount,cursor,monthPhase,nextMonth,paused,tokenPaused,account1,account2,block]=await Promise.all([t.price(),t.totalSupply(),t.reserve(),(v3Model?t.supportReserve():t.buybackFund()),(v3Model?0n:t.floorFund()),t.ath(),(v3Model?0n:t.walletClock()),b.memberCount(),b.epoch(),b.epochEnd(),b.phase(),b.protectionLevel(),b.pointPool(),b.totalPending(),b.totalAuto(),b.jobCursor(),b.jobCount(),b.cursor(),b.monthPhase(),b.nextBuilderMonth(),b.paused(),t.paused(),b.accounting(),t.accounting(),provider.getBlock('latest')]);
-   const result={price,supply,reserve,bb,floor,ath,clock,count,epoch,epochEnd,phase,level,pointPool,pending,auto,jobCursor,jobCount,cursor,monthPhase,nextMonth,paused,tokenPaused,account1,account2,block:block.number,timestamp:block.timestamp};
-   if(v3Model){result.pricingModel='zero-start-reserve-v3';result.emergencyUnwind=await t.emergencyUnwind();result.builderMultiplier=await t.builderMultiplier();[result.cycle,result.cycleStartPrice,result.development]=await Promise.all([t.cycle(),t.cycleStartPrice(),t.development()]);}
-   if(tokenContract==='FTIReserveTokenUpgradeable'){[result.binaryRecoveryFrozen,result.tokenRecoveryFrozen,result.calculatedPointValue,result.candidatePoints,result.pointValue,result.totalPaidPoints]=await Promise.all([b.recoveryFrozen(),t.recoveryFrozen(),b.calculatedPointValue(),b.candidatePoints(),b.pointValue(),b.totalPaidPoints()]);result.paused=result.paused||result.binaryRecoveryFrozen;result.tokenPaused=result.tokenPaused||result.tokenRecoveryFrozen;}
-   if(cfg.batchedRewards){result.rewardQueue=await b.rewardAccountCount();}
-   if(reserveModel){result.totalSupply=supply;result.anchorSupply=await t.anchorSupply();result.supply=await t.circulatingSupply();result.pricingModel='real-reserve-v1';}
-   if(fundedModel){result.rewardModel=publicConfig.poolDistributionVersion===1?'hourly-global-pool-v2':v3Model?'attributed-credit-target-v2':'attributed-credit-v1';[result.pointRetained,result.builderRetained,result.pointAssigned,result.dirtyMembers]=await Promise.all([b.retainedPointReserve(),b.retainedBuilderReserve(),b.assignedPointCredit(),b.dirtyCount()]);}
-   if(address){const m=await b.members(address);const [usdBalance,ftiBalance,unlocked,remaining,claimable,autoPending,locks]=await Promise.all([usd.balanceOf(address),t.balanceOf(address),(v3Model?t.balanceOf(address):(cfg.liquidityVersion===1?t.available(address):t.unlocked(address))),t.remainingAllowance(address),b.pendingReward(address),b.pendingAuto(address),(v3Model?[]:t.lockInfo(address))]);result.wallet={address,parent:m.parent,left:m.left,right:m.right,units:m.units,carryL:m.carryL,carryR:m.carryR,lifetimeL:m.lifetimeL,lifetimeR:m.lifetimeR,rank:m.rank,exists:m.exists,autoEnabled:m.autoEnabled,maxAutoPrice:m.maxAutoPrice,usdBalance,ftiBalance,unlocked,remaining,claimable,autoPending,locks:locks.map(l=>({amount:l.amount,clock:l.clock,deadline:l.deadline})),lockCount:cfg.lockVersion===2?await t.lockCount(address):locks.length};if(fundedModel){result.wallet.depth=await b.depth(address);result.wallet.creditL=await b.creditL(address);result.wallet.creditR=await b.creditR(address);if(referralPlacementEnabled){result.wallet.referrer=await b.directReferrerOf(address);result.wallet.directReferrals=await b.directReferralCount(address);}}}
-   if(address&&publicConfig.selectableHourlyAutoBuy)result.wallet.autoBuyPercent=await contracts.binary.autoBuyPercent(address);
-   return json(res,200,result);
+   const address=url.searchParams.get('wallet');
+   if(address&&!isAddress(address))return json(res,400,{error:'Invalid address'});
+   try{return json(res,200,await readState(address));}
+   catch(error){
+    res.setHeader('Retry-After','2');
+    const code=/^[A-Z_]{1,64}$/.test(error.code||'')?error.code:'STATE_UNAVAILABLE';
+    const field=/^[a-zA-Z0-9_.]{1,80}$/.test(error.field||'')?error.field:undefined;
+    return json(res,503,{error:'Contract state is temporarily unavailable. Retry shortly.',code,...(field?{field}:{})});
+   }
   }
   if(url.pathname==='/api/locks'){
    const address=url.searchParams.get('wallet'),offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit')||64);
@@ -95,20 +100,18 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
    return json(res,200,{total,offset,locks:locks.map(l=>({amount:l.amount,clock:l.clock,deadline:l.deadline}))});
   }
   if(url.pathname==='/api/market'){
-   if(marketCache&&Date.now()-marketCache.at<30000)return json(res,200,marketCache.data);
-   if(!marketFlight)marketFlight=(async()=>{if((await eventProvider.getNetwork()).chainId!==BigInt(cfg.chainId))throw Error('Wrong market network');const latest=await eventProvider.getBlockNumber();const data=await readMarket(eventProvider,contracts.token,Math.max(cfg.deployedBlock||0,latest-299),latest);marketCache={at:Date.now(),data};return data;})().finally(()=>{marketFlight=null;});
-   try{return json(res,200,await marketFlight);}catch{return json(res,503,{error:'Market history unavailable; no fabricated volume.'});}
+   try{return json(res,200,await marketRead());}
+   catch{res.setHeader('Retry-After','15');return json(res,503,{error:'Market history unavailable; no fabricated volume.'});}
   }
   if(url.pathname==='/api/events'){
-   if(eventCache&&Date.now()-eventCache.at<15000)return json(res,200,eventCache.rows);
-   if(!eventFlight)eventFlight=(async()=>{if((await eventProvider.getNetwork()).chainId!==BigInt(cfg.chainId))throw Error('Wrong activity network');const latest=await eventProvider.getBlockNumber();const rows=await readEvents(eventProvider,{binary:contracts.binary,token:contracts.token},Math.max(cfg.deployedBlock||0,latest-1499),latest);eventCache={at:Date.now(),rows};return rows;})().finally(()=>{eventFlight=null;});
-   try{return json(res,200,await eventFlight);}catch{return json(res,503,{error:'Activity RPC unavailable. Retry later; no events have been fabricated.'});}
+   try{return json(res,200,await eventsRead());}
+   catch{res.setHeader('Retry-After','15');return json(res,503,{error:'Activity RPC unavailable. Retry later; no events have been fabricated.'});}
   }
   if(url.pathname.startsWith('/abi/')){const name=url.pathname.slice(5);if(name==='Collateral')return json(res,200,COLLATERAL_ABI);if(!network.testAssets&&name==='MockUSD')return json(res,404,{error:'Test ABI unavailable on mainnet'});if(!['BinaryPlan','FundedBinaryPlan','FTIToken','FTIReserveToken','FTIReserveTokenV3','MockUSD','Council','SevenGuardianCouncil','FTITimelock','FundedBinaryPlanUpgradeable','FTIReserveTokenUpgradeable'].includes(name))throw Error('Unknown ABI');return json(res,200,artifact(name).abi);}
   let file;if(url.pathname==='/vendor/ethers.js')file=path.join(root,'node_modules/ethers/dist/ethers.min.js');else {const entry=url.pathname.match(/^\/(app|token|admin)$/);if(entry){res.writeHead(301,{Location:url.pathname+'/'+url.search});return res.end();}const landingReady=fs.existsSync(path.join(root,'landing/dist/index.html'));const landingRoute=landingReady&&(url.pathname.startsWith('/assets/')||['/','/app.js','/app.css','/protocol-ring.webp',...PUBLIC_ROUTES].includes(url.pathname));const staticRoot=path.join(root,landingRoute?'landing/dist':'web');const staticPath=url.pathname.replace(/^\/(app|token|admin)\//,'/');const route=PUBLIC_ROUTES.includes(url.pathname)?url.pathname.slice(1)+'index.html':staticPath==='/'?'index.html':staticPath.slice(1);file=path.resolve(staticRoot,route);if(!file.startsWith(staticRoot+path.sep))return json(res,403,{error:'Denied'});}
   if(!fs.existsSync(file)||!fs.statSync(file).isFile())return json(res,404,{error:'Not found'});const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.webp':'image/webp','.woff2':'font/woff2'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
  }catch(e){json(res,400,{error:e.shortMessage||e.message});}});
- server.once('close',()=>{provider.destroy();if(eventProvider!==provider)eventProvider.destroy();});
+ server.once('close',()=>{provider.destroy();if(eventProvider!==provider)eventProvider.destroy();fallbackProvider?.destroy();});
  await new Promise((resolve,reject)=>server.once('error',reject).listen(port,host,resolve));console.log(`FTI ${cfg.mode}: http://${host}:${port}`);return server;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url))startWeb().catch(e=>{console.error(e.message);process.exit(1);});
