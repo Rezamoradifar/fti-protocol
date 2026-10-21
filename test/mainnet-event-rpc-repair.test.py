@@ -4,7 +4,12 @@ import io
 import json
 import os
 from pathlib import Path
+import http.server
+import shutil
+import ssl
+import subprocess
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -180,15 +185,14 @@ class EventRpcTests(unittest.TestCase):
         self.assertEqual([row[0] for row in rows], ['configured-rpc-1', 'configured-rpc-2', 'publicnode'])
         self.assertEqual(m.candidates(r.properties(), snapshot[3], self.new_url), [('private-input', self.new_url)])
 
-    def test_public_mode_excludes_configured_credentials_and_previously_forbidden_services(self):
+    def test_public_mode_excludes_configured_credentials_and_low_capacity_fallback(self):
         snapshot = r.inspect_service()
         rows = m.candidates(r.properties(), snapshot[3], public_only=True)
-        self.assertEqual(len(rows), 3)
+        self.assertEqual(len(rows), 4)
         self.assertEqual(len({url for _, url in rows}), len(rows))
         for _, url in rows:
             self.assertTrue(m.valid_url(url))
             self.assertNotIn('SECRET', url)
-            self.assertNotIn('publicnode', url)
             self.assertNotIn('blockmachine', url)
         with self.assertRaisesRegex(RuntimeError, 'CHOOSE_PUBLIC_OR_PRIVATE_RPC'):
             m.candidates({}, {}, self.new_url, public_only=True)
@@ -310,6 +314,147 @@ class ProviderTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, '^RPC_HTTP_403:eth_getLogs$'):
                 m.rpc(self.url, 'eth_getLogs', [{}])
         self.assertEqual(request.call_count, 1)
+
+
+class RuntimeTransportTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.node = shutil.which('node')
+        if not cls.node or not shutil.which('openssl'):
+            raise unittest.SkipTest('Node and OpenSSL required for real TLS transport checks')
+        cls.temp = tempfile.TemporaryDirectory()
+        cls.cert = Path(cls.temp.name) / 'cert.pem'
+        key = Path(cls.temp.name) / 'key.pem'
+        subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes',
+                        '-keyout', str(key), '-out', str(cls.cert), '-days', '1',
+                        '-subj', '/CN=localhost', '-addext', 'subjectAltName=IP:127.0.0.1,DNS:localhost',
+                        '-addext', 'basicConstraints=critical,CA:TRUE'],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                payload = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                self.server.calls.append((self.path, payload))
+                status, data, headers = self.server.reply(payload)
+                body = r.packed(data)
+                self.send_response(status)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(body)))
+                for name, value in headers.items():
+                    self.send_header(name, value)
+                self.end_headers()
+                self.wfile.write(body)
+            def log_message(self, *_):
+                pass
+        cls.server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(cls.cert, key)
+        cls.server.socket = context.wrap_socket(cls.server.socket, server_side=True)
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.server.server_close()
+        cls.thread.join(timeout=2)
+        cls.temp.cleanup()
+
+    def setUp(self):
+        self.server.calls = []
+        self.url = 'https://127.0.0.1:' + str(self.server.server_port) + '/PRIVATE_SECRET'
+        self.anchor = {'number': '0xfa0', 'hash': '0x' + 'a' * 64}
+        self.trust_certificate = True
+        self.real_run = subprocess.run
+        def local_run(*args, **kwargs):
+            # Production always drops to fti-v3. This sandbox forbids setgroups
+            # even for its own UID, so the fixture keeps its existing identity
+            # after verifying the production privilege-drop arguments.
+            self.assertEqual((kwargs['user'], kwargs['group'], kwargs['extra_groups']), ('fti-v3', 'fti-v3', []))
+            self.assertNotIn('NODE_OPTIONS', kwargs['env'])
+            self.assertNotIn(self.url, args[0])
+            self.assertEqual(json.loads(kwargs['input'])['url'], self.url)
+            for argument in ('user', 'group', 'extra_groups'):
+                kwargs.pop(argument)
+            if self.trust_certificate:
+                kwargs['env'] = dict(kwargs['env'], NODE_EXTRA_CA_CERTS=str(self.cert))
+            return self.real_run(*args, **kwargs)
+        patched = patch.object(m.subprocess, 'run', side_effect=local_run)
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def call(self, url, method, params):
+        return m.runtime_rpc(ROOT, self.node, url, method, params)
+
+    def test_real_ethers_transport_passes_complete_chain_block_and_log_verification(self):
+        def reply(payload):
+            method = payload['method']
+            result = '0x38' if method == 'eth_chainId' else self.anchor if method == 'eth_getBlockByNumber' else []
+            return 200, {'jsonrpc': '2.0', 'id': payload['id'], 'result': result}, {}
+        self.server.reply = reply
+        with patch.dict(os.environ, NODE_OPTIONS='--require=UNTRUSTED_SECRET'):
+            m.verify_provider(self.url, {'binary': r.TARGET['binary'], 'deployedBlock': 100}, self.anchor, call=self.call)
+        self.assertEqual([payload['method'] for _, payload in self.server.calls],
+                         ['eth_chainId', 'eth_getBlockByNumber', 'eth_getLogs', 'eth_getLogs'])
+        filters = [payload['params'][0] for _, payload in self.server.calls if payload['method'] == 'eth_getLogs']
+        self.assertTrue(all(int(item['toBlock'], 16) - int(item['fromBlock'], 16) == 1499 for item in filters))
+
+    def test_http_400_reports_range_category_without_reflecting_provider_secrets(self):
+        self.server.reply = lambda _: (400, {'error': {'code': -32602,
+            'message': 'Block range exceeds the maximum; https://provider.invalid/PRIVATE_SECRET'}}, {})
+        with self.assertRaises(RuntimeError) as failure:
+            self.call(self.url, 'eth_getLogs', [{}])
+        self.assertIn('RPC_HTTP_400:eth_getLogs', str(failure.exception))
+        self.assertIn('DETAIL=BLOCK_RANGE_LIMIT', str(failure.exception))
+        self.assertNotIn('SECRET', str(failure.exception))
+        self.assertEqual(len(self.server.calls), 1)
+
+    def test_forbidden_response_is_not_retried_or_exposed(self):
+        self.server.reply = lambda _: (403, {'error': {'message': self.url}}, {})
+        with self.assertRaisesRegex(RuntimeError, '^RPC_HTTP_403:eth_chainId$'):
+            self.call(self.url, 'eth_chainId', [])
+        self.assertEqual(len(self.server.calls), 1)
+
+    def test_rate_limit_is_not_retried(self):
+        self.server.reply = lambda _: (429, {'error': {'message': 'Too many requests'}}, {'Retry-After': '1'})
+        with self.assertRaisesRegex(RuntimeError, 'RPC_HTTP_429:eth_chainId:DETAIL=RATE_LIMIT'):
+            self.call(self.url, 'eth_chainId', [])
+        self.assertEqual(len(self.server.calls), 1)
+
+    def test_redirect_is_rejected_without_contacting_redirect_target(self):
+        self.server.reply = lambda _: (302, {}, {'Location': self.url + '/redirect-target'})
+        with self.assertRaisesRegex(RuntimeError, '^RPC_REDIRECT_REJECTED:eth_chainId$'):
+            self.call(self.url, 'eth_chainId', [])
+        self.assertEqual(len(self.server.calls), 1)
+
+    def test_untrusted_tls_certificate_is_rejected_before_rpc_request(self):
+        self.trust_certificate = False
+        with self.assertRaisesRegex(RuntimeError, '^RPC_UNREACHABLE_OR_INVALID_RESPONSE:eth_chainId$'):
+            self.call(self.url, 'eth_chainId', [])
+        self.assertEqual(self.server.calls, [])
+
+
+class RuntimeIsolationTests(unittest.TestCase):
+    def test_write_method_and_plain_http_fail_before_starting_runtime(self):
+        with patch.object(m.subprocess, 'run') as run:
+            with self.assertRaisesRegex(RuntimeError, 'READ_ONLY_RPC_REQUIRED'):
+                m.runtime_rpc(ROOT, '/node', 'https://provider.invalid/SECRET', 'eth_sendRawTransaction', [])
+            with self.assertRaisesRegex(RuntimeError, 'HTTPS_RPC_URL_REQUIRED'):
+                m.runtime_rpc(ROOT, '/node', 'http://provider.invalid/SECRET', 'eth_chainId', [])
+        run.assert_not_called()
+
+    def test_timeout_invalid_output_and_unknown_child_errors_do_not_leak_credentials(self):
+        cases = [subprocess.TimeoutExpired(['SECRET'], 18),
+                 subprocess.CompletedProcess([], 0, b'SECRET not JSON', b'SECRET'),
+                 subprocess.CompletedProcess([], 0, b'{"clientError":"SECRET"}', b'SECRET')]
+        for result in cases:
+            with self.subTest(result=type(result).__name__), patch.object(m.subprocess, 'run') as run:
+                if isinstance(result, Exception):
+                    run.side_effect = result
+                else:
+                    run.return_value = result
+                with self.assertRaises(RuntimeError) as failure:
+                    m.runtime_rpc(ROOT, '/node', 'https://provider.invalid/SECRET', 'eth_chainId', [])
+                self.assertNotIn('SECRET', str(failure.exception))
 
 
 if __name__ == '__main__':

@@ -40,6 +40,37 @@ range. A candidate that cannot pass is never installed. Private RPC URLs and
 provider error messages are not printed. The developer environment could not
 verify PublicNode access (HTTP 403); the actual VPS preflight is mandatory.
 
+### Match the deployed HTTP client
+
+The operator's later screenshots showed `curl` receiving HTTP 200 from dRPC
+while Python preflight received HTTP 403. A test using the deployed Node and
+ethers client returned `CHAIN_ID=0x38`, then HTTP 400 on the historical
+1,500-block log query. This proves chain connectivity through that client;
+it does not prove dRPC log access or identify the reason for HTTP 400.
+
+External preflights now use the verified active Node executable and the
+release's existing ethers `FetchRequest` transport, matching the server's
+HTTP implementation. Python still performs the unchanged chain/block/log
+validation and reads the loopback reference block. No SDK installation,
+backend source edit or change to the web service's transport is made.
+
+Each external request runs in a short-lived subprocess as `fti-v3`, with
+supplementary groups cleared and a minimal environment. The URL and payload
+travel only on stdin, never command arguments. The helper allows only its
+four read methods, preserves TLS verification, blocks redirects before they
+are followed, does not retry denied or rate-limited requests, and enforces
+a 12-second transport timeout plus an 18-second process timeout. Ethers
+buffers the response internally; the helper rejects bodies above 4 MB.
+No inherited `NODE_OPTIONS` or provider credentials are forwarded in the
+child environment.
+
+On HTTP/RPC failure, bounded upstream JSON is used only to report a numeric
+code and fixed categories such as `BLOCK_RANGE_LIMIT` or
+`HISTORICAL_DATA_RESTRICTED`. Those categories are hints derived from the
+provider's error text, not independent diagnosis. Raw messages, URLs and
+response bodies are never printed. Generic HTTP 400 alone still leaves the
+cause unresolved. Failed log preflight cannot select or install a provider.
+
 The selected URL is appended as `EVENT_RPC_URL` to the last effective systemd
 environment file. This preserves every original byte and all other settings.
 Environment files are reread on service restart; no unit edit or daemon reload
@@ -69,21 +100,26 @@ The operator subsequently reported HTTP 403 from an explicitly supplied RPC.
 This confirms that a successful check from another machine is insufficient.
 The output does not identify the hidden URL or establish the cause of denial.
 
-To test three other independently published public services from the actual
+To test four independently published public services from the actual
 VPS, without an API key or hidden prompt, run:
 
 ```sh
 python3 repair-mainnet-event-rpc.py --apply --public-rpcs
 ```
 
-This opt-in mode tests Nodies, dRPC and 1RPC in that order. Provider references:
+This opt-in mode tests PublicNode, Nodies, dRPC and 1RPC in that order, using
+the active Node/ethers HTTP transport. Provider references:
 
+- https://bsc.publicnode.com/
 - https://docs.nodies.app/rpc-services/pokt-public-rpc-endpoints
 - https://drpc.org/chainlist/bsc-mainnet-rpc
 - https://docs.1rpc.io/overview/supported-networks
 
-It does not retry PublicNode or Blockmachine, whose access has already failed
-or remained unconfirmed on the VPS. Each candidate receives one bounded
+PublicNode's earlier rejection came from the Python-only probe, so its access
+through the deployed Node transport remains unconfirmed and is checked once.
+Blockmachine is excluded because its published 60-RU/min public capacity is
+not suitable for assuming this six-minute historical warmup can complete.
+Each candidate receives one bounded
 preflight; an HTTP denial or rate limit stops that provider's test. There is
 no proxy, alternate-IP routing, authentication workaround, retry loop or
 runtime provider rotation. Only the first fully verified provider can be
@@ -114,7 +150,7 @@ the same backup, identity checks and rollback path.
 
 ## Validation
 
-`python3 test/mainnet-event-rpc-repair.test.py` passes 20 tests. Fixtures use the
+`python3 test/mainnet-event-rpc-repair.test.py` passes 28 tests. Fixtures use the
 real service inspector, repeated environment-file rows, real source/artifact
 hashing, atomic file replacement and changing process IDs. Tests verify
 private backup before mutation, last-file precedence, preservation of the
@@ -124,6 +160,17 @@ and credential-safe errors. Public-mode tests cover selection after denial,
 backup and preservation of the primary RPC, no prompting, check-only mode,
 no changes when all candidates fail, and HTTP denial without retry or leaked
 credentials. All 29 source-recovery tests also pass.
+
+Six additional integration cases run the actual ethers transport against an
+isolated HTTPS server: successful full provider verification, HTTP 400
+classification without credential reflection, HTTP 403 without retry, HTTP
+429 without retry, redirect rejection and rejection of an untrusted TLS
+certificate. Two isolation cases cover write-method/HTTP refusal and
+sanitized timeout/invalid-child-output handling. The test environment cannot
+call `setgroups`, even for its own UID; fixtures assert the production
+`fti-v3` privilege-drop arguments, then retain the test process's identity.
+Production privilege dropping must still succeed on the actual VPS; a
+failure stops preflight rather than running Node as root.
 
 No SSH execution or production mutation was performed from this environment.
 The operator must run the pinned command and return its outcome before a live

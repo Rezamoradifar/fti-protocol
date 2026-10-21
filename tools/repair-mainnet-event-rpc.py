@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import shlex
 import stat
+import subprocess
 import tempfile
 import time
 import urllib.error
@@ -23,15 +24,62 @@ spec.loader.exec_module(r)
 BACKUPS = Path('/var/backups/fti-event-rpc')
 SCHEMA = 'FTI_EVENT_RPC_REPAIR_V1'
 PUBLIC_RPC = 'https://bsc-rpc.publicnode.com'
-# Independently published public services, tested from the operator's VPS.
-# Do not retry the providers already reported as forbidden on that VPS.
+# Independently published services, tested once using the deployed SDK.
+# A Python-only rejection did not establish the active Node client's access.
 PUBLIC_CANDIDATES = (
+    ('publicnode-node', PUBLIC_RPC),
     ('nodies-public', 'https://bsc-pokt.nodies.app/'),
     ('drpc-public', 'https://bsc.drpc.org'),
     ('1rpc-public', 'https://public.1rpc.io/bnb'),
 )
 PLACEMENT = '/api/placement?referrer=0xD6492377C2C33047aFE61768930b2aedFF2B2704'
 TOPIC = '0x199098452639b249bef6f727bc09ce903cece47ca72a8518bef9367ad39b6de7'
+READ_METHODS = ('eth_chainId', 'eth_blockNumber', 'eth_getBlockByNumber', 'eth_getLogs')
+# The active web server uses this ethers HTTP transport. Keep credentials on
+# stdin, run as the service user, and never add this helper to hashed sources.
+NODE_RPC = r'''
+import fs from 'node:fs';
+import { FetchRequest } from 'ethers';
+let fault = 'RPC_UNREACHABLE_OR_INVALID_RESPONSE';
+try {
+  const {url, payload} = JSON.parse(fs.readFileSync(0, 'utf8'));
+  const address = new URL(url);
+  if (address.protocol !== 'https:' || address.username || address.password || address.hash ||
+      !['eth_chainId','eth_blockNumber','eth_getBlockByNumber','eth_getLogs'].includes(payload.method)) {
+    fault = 'READ_ONLY_HTTPS_RPC_REQUIRED';
+    throw new Error('stopped');
+  }
+  const request = new FetchRequest(url);
+  request.timeout = 12000;
+  request.body = JSON.stringify(payload);
+  request.setHeader('content-type', 'application/json');
+  request.setThrottleParams({maxAttempts: 1});
+  request.retryFunc = async () => false;
+  const getUrl = request.getUrlFunc;
+  request.getUrlFunc = async (outgoing, signal) => {
+    if (outgoing.url !== url || outgoing.method !== 'POST') {
+      fault = 'RPC_REDIRECT_REJECTED';
+      throw new Error('stopped');
+    }
+    const result = await getUrl(outgoing, signal);
+    if (result.statusCode >= 300 && result.statusCode < 400) {
+      fault = 'RPC_REDIRECT_REJECTED';
+      throw new Error('stopped');
+    }
+    if ((result.body?.length ?? 0) > 4000000) {
+      fault = 'RPC_RESPONSE_TOO_LARGE';
+      throw new Error('stopped');
+    }
+    return result;
+  };
+  const response = await request.send();
+  let envelope = null;
+  try { envelope = response.bodyJson; } catch {}
+  process.stdout.write(JSON.stringify({http: response.statusCode, envelope}));
+} catch {
+  process.stdout.write(JSON.stringify({clientError: fault}));
+}
+'''
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -40,7 +88,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def rpc(url, method, params):
-    r.require(method in ('eth_chainId', 'eth_blockNumber', 'eth_getBlockByNumber', 'eth_getLogs'), 'READ_ONLY_RPC_REQUIRED')
+    r.require(method in READ_METHODS, 'READ_ONLY_RPC_REQUIRED')
     request = urllib.request.Request(url, r.packed({'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params}),
                                      {'Content-Type': 'application/json'})
     try:
@@ -53,6 +101,10 @@ def rpc(url, method, params):
         raise RuntimeError('RPC_HTTP_' + str(error.code) + ':' + method) from None
     except (OSError, ValueError):
         raise RuntimeError('RPC_UNREACHABLE_OR_INVALID_RESPONSE:' + method) from None
+    return rpc_result(result, method)
+
+
+def rpc_result(result, method):
     r.require(isinstance(result, dict) and result.get('jsonrpc') == '2.0' and result.get('id') == 1,
               'INVALID_RPC_ENVELOPE')
     if 'error' in result:
@@ -60,6 +112,64 @@ def rpc(url, method, params):
         raise RuntimeError(('RPC_REJECTED_' + str(code) if isinstance(code, int) else 'RPC_REJECTED') + ':' + method)
     r.require('result' in result, 'RPC_RESULT_MISSING')
     return result['result']
+
+
+def failure_detail(envelope):
+    # Classify only known error text; never print arbitrary upstream messages.
+    error = envelope.get('error', envelope) if isinstance(envelope, dict) else {}
+    if not isinstance(error, dict):
+        return ''
+    code = error.get('code')
+    suffix = ':CODE=' + str(code) if type(code) is int else ''
+    message = error.get('message')
+    if not isinstance(message, str):
+        return suffix
+    message = re.sub(r'https?://\S+', '', message[:4096]).lower()
+    reasons = (
+        ('HISTORICAL_DATA_RESTRICTED', r'archive|historical|pruned|history.*unavailable'),
+        ('BLOCK_RANGE_LIMIT', r'block.{0,20}range|range.{0,20}(limit|exceed|maximum)'),
+        ('AUTHENTICATION_REQUIRED', r'api.?key|unauthori[sz]ed|authentication|access.?token'),
+        ('RATE_LIMIT', r'rate.?limit|too many requests'),
+    )
+    for name, pattern in reasons:
+        if re.search(pattern, message):
+            return suffix + ':DETAIL=' + name
+    return suffix
+
+
+def runtime_rpc(root, node, url, method, params):
+    r.require(method in READ_METHODS, 'READ_ONLY_RPC_REQUIRED')
+    r.require(valid_url(url), 'HTTPS_RPC_URL_REQUIRED')
+    payload = {'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params}
+    try:
+        result = subprocess.run(
+            [node, '--input-type=module', '--eval', NODE_RPC],
+            input=r.packed({'url': url, 'payload': payload}), cwd=root,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=18,
+            env={'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8'},
+            user='fti-v3', group='fti-v3', extra_groups=[])
+        r.require(result.returncode == 0 and len(result.stdout) <= 4_001_024, 'RPC_RUNTIME_CLIENT_FAILED')
+        packet = json.loads(result.stdout)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        raise RuntimeError('RPC_RUNTIME_CLIENT_FAILED:' + method) from None
+    r.require(isinstance(packet, dict), 'INVALID_RUNTIME_RPC_RESPONSE')
+    if 'clientError' in packet:
+        allowed = ('RPC_UNREACHABLE_OR_INVALID_RESPONSE', 'READ_ONLY_HTTPS_RPC_REQUIRED',
+                   'RPC_REDIRECT_REJECTED', 'RPC_RESPONSE_TOO_LARGE')
+        code = packet['clientError'] if packet['clientError'] in allowed else 'RPC_RUNTIME_CLIENT_FAILED'
+        raise RuntimeError(code + ':' + method)
+    status = packet.get('http')
+    r.require(type(status) is int and 100 <= status <= 599, 'INVALID_RUNTIME_HTTP_STATUS')
+    envelope = packet.get('envelope')
+    if status != 200:
+        raise RuntimeError('RPC_HTTP_' + str(status) + ':' + method + failure_detail(envelope))
+    if isinstance(envelope, dict) and 'error' in envelope:
+        # Keep the original error code while adding only a fixed diagnostic category.
+        try:
+            return rpc_result(envelope, method)
+        except RuntimeError as error:
+            raise RuntimeError(str(error) + failure_detail(envelope)) from None
+    return rpc_result(envelope, method)
 
 
 def valid_url(url):
@@ -132,17 +242,18 @@ def anchor_block():
     return anchor
 
 
-def verify_provider(url, cfg, anchor):
+def verify_provider(url, cfg, anchor, call=None):
+    query = call or rpc
     r.require(valid_url(url), 'HTTPS_RPC_URL_REQUIRED')
-    r.require(hex_number(rpc(url, 'eth_chainId', [])) == 56, 'WRONG_RPC_CHAIN')
+    r.require(hex_number(query(url, 'eth_chainId', [])) == 56, 'WRONG_RPC_CHAIN')
     number = hex_number(anchor['number'])
-    remote = rpc(url, 'eth_getBlockByNumber', [anchor['number'], False])
+    remote = query(url, 'eth_getBlockByNumber', [anchor['number'], False])
     r.require(isinstance(remote, dict) and remote.get('hash') == anchor['hash']
               and remote.get('number') == anchor['number'], 'RPC_BLOCK_DISAGREEMENT')
     start = cfg.get('deployedBlock')
     r.require(isinstance(start, int) and 0 < start <= number, 'INVALID_DEPLOYMENT_BLOCK')
     for first, last in ((start, min(start + 1499, number)), (max(start, number - 1499), number)):
-        logs = rpc(url, 'eth_getLogs', [{'address': cfg['binary'], 'topics': [TOPIC],
+        logs = query(url, 'eth_getLogs', [{'address': cfg['binary'], 'topics': [TOPIC],
                                        'fromBlock': hex(first), 'toBlock': hex(last)}])
         r.require(isinstance(logs, list), 'INVALID_LOG_RESPONSE')
         for log in logs:
@@ -267,18 +378,21 @@ def main():
             restore(args.restore)
             return
         snapshot = r.inspect_service()
-        root, _, cfg, private, current_identity = snapshot
+        root, node, cfg, private, current_identity = snapshot
         _, _, changes = r.plan(root, cfg)
         r.require(not changes, 'RESTORE_ORIGINAL_SOURCE_FIRST')
         properties = r.properties()
         r.require(identity(properties, private) == current_identity, 'CONFIGURATION_CHANGED_DURING_INSPECTION')
         supplied = getpass.getpass('BNB mainnet HTTPS RPC (hidden): ') if args.private_rpc else None
         anchor = anchor_block()
+        def query(url, method, params):
+            return runtime_rpc(root, node, url, method, params)
+        print('RPC_CLIENT=ACTIVE_NODE_ETHERS_TRANSPORT', flush=True)
         selected = None
         for label, url in candidates(properties, private, supplied, public_only=args.public_rpcs):
             print('RPC_PROBE=' + label, flush=True)
             try:
-                verify_provider(url, cfg, anchor)
+                verify_provider(url, cfg, anchor, call=query)
             except RuntimeError as error:
                 print('RPC_REJECTED=' + label + ':' + str(error), flush=True)
                 continue
