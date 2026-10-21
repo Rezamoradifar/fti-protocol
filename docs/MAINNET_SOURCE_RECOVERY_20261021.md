@@ -42,6 +42,23 @@ chain, code, creation transactions and contract roles. A failed health/config
 check restores the pre-repair files. Concurrent operator changes stop rollback
 instead of being overwritten.
 
+Configuration identity excludes only the five recognized runtime fields in
+systemd's `ExecStart` output: start/stop timestamps, PID, exit code and exit
+status. The executable, arguments and `ignore_errors` setting remain included,
+alongside the ordered environment files and byte hashes of the unit, drop-ins,
+environment and deployment files. An unknown `ExecStart` format is rejected.
+The prior version hashed the raw output, so its own `systemctl stop` could cause
+`CONCURRENT_CONFIGURATION_CHANGE`, then prevent automatic rollback. The new
+version uses backup record schema V2 and rechecks configuration after stopping
+the service during rollback too.
+
+If that earlier error occurred, retain the existing backup. Run the corrected
+tool with `--apply` to inspect the current state and create a fresh independent
+backup before any change. Do not rerun the old rollback helper. V1 records are
+not silently accepted as V2 identities. A running, healthy process does not
+hide altered source on disk: recovery skips a restart only when both the
+complete source fingerprint and health checks already match.
+
 `FTI_WEB_RECOVERED` confirms local `/health` and `/api/config`, including chain
 56 and the pinned deployment identity. It does **not** mean end-to-end wallet
 signing or all public routes passed. The tool prints separate follow-up results
@@ -56,7 +73,7 @@ mutate the release. Retain that output for a targeted follow-up.
 
 ## Validation and limits
 
-`python3 test/mainnet-source-recovery.test.py` passed 18 local tests. They cover
+`python3 test/mainnet-source-recovery.test.py` passed 29 local tests. They cover
 the real JavaScript `releaseManifest` calculation, successful recovery, private
 backups before service stop, health-failure rollback, rollback after partial
 replacement, concurrent edits, contract/artifact/bundle drift, symlinks,
@@ -70,6 +87,21 @@ regression test using the real service inspector and fixed without relaxing
 path, deployment, ownership or fingerprint validation. Missing settings now
 produce specific error codes rather than an empty-path error.
 
-No SSH login, VPS backup, server execution or production recovery was performed
-from the development environment. The prepared operator command must run on
-the actual FTI server before production results can be claimed.
+Additional regressions reproduce stop/start transitions using the real service
+inspector rather than a mocked constant identity. They cover successful repair,
+health-failure rollback after a PID change, rejection of actual configuration
+changes during stop, restarts between inspection reads, changed command
+arguments, unknown output fields and refusal of legacy backup records. The
+lifecycle tests failed with the previous implementation and pass with the fix.
+The CLI tests also cover a healthy process with drifted source and a healthy,
+matching release that needs neither backup nor restart.
+
+No SSH login or server mutation was performed from the development environment.
+The operator's latest output confirms creation of backup
+`/var/backups/fti-source-recovery/recovery-8nvibprc`, followed by the concurrency
+error; it does not confirm recovery. Read-only public checks returned HTTP 200
+for `/health`, `/api/config` and `/api/state`, with the pinned mainnet identity,
+while referral placement still returned 503. These observations do not prove
+which process is serving the domain or whether the on-disk source is repaired.
+The corrected operator command must run on the actual FTI server before its
+production outcome can be claimed.

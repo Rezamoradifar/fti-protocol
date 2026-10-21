@@ -25,6 +25,7 @@ RELEASES = Path('/opt/fti/releases')
 STATES = Path('/var/lib/fti-continuity')
 RUNTIME = Path('/opt/fti/runtime')
 BACKUPS = Path('/var/backups/fti-source-recovery')
+RECORD_SCHEMA = 'FTI_ORIGINAL_SOURCE_RECOVERY_V2'
 DIRS = ('contracts', 'frontend', 'scripts', 'core', 'landing/src')
 MUTABLE = ('frontend', 'scripts', 'landing/src')
 EXTRAS = ('config/mainnet-genesis-layout.json', 'config/mainnet-council.json',
@@ -246,7 +247,19 @@ def parse_properties(raw):
 
 def properties():
     raw = command(['systemctl', 'show', SERVICE, '--property=' + ','.join(IDENTITY)])
-    return parse_properties(raw)
+    result = parse_properties(raw)
+    # ExecStart contains both configuration and live ExecStatus. Stopping or
+    # restarting changes timestamps/PID/exit status without changing the command.
+    # Recognize the entire systemctl format; retain path, argv and ignore_errors.
+    # Unknown fields/formats fail closed rather than dropping configuration.
+    match = re.fullmatch(
+        r'(\{ path=/[^;{}\r\n]+ ; argv\[\]=[^;{}\r\n]+ ; ignore_errors=(?:yes|no))'
+        r' ; start_time=\[[^\]\r\n]*\] ; stop_time=\[[^\]\r\n]*\]'
+        r' ; pid=[0-9]+ ; code=[^;{}\r\n]* ; status=[^;{}\r\n]* \}',
+        result.get('ExecStart', ''))
+    require(match, 'UNSUPPORTED_EXEC_START')
+    result['ExecStart'] = match[1] + ' }'
+    return result
 
 
 def environment_files(value):
@@ -446,7 +459,7 @@ def restore(backup, restart=True):
     require(backup.parent == BACKUPS and backup.is_dir() and backup.stat().st_uid == 0
             and not backup.stat().st_mode & 0o077, 'INVALID_BACKUP')
     record = json.loads(read(backup / 'record.json')[0])
-    require(record.get('schema') == 'FTI_ORIGINAL_SOURCE_RECOVERY_V1', 'INVALID_BACKUP_RECORD')
+    require(record.get('schema') == RECORD_SCHEMA, 'UNSUPPORTED_BACKUP_RECORD_REQUIRES_REVIEW')
     root, _, cfg, _, identity = inspect_service()
     require(str(root) == record['root'] and identity == record['identity'], 'SERVICE_CHANGED_NO_ROLLBACK')
     current = source_hashes(root)
@@ -462,12 +475,14 @@ def restore(backup, restart=True):
             require(digest(data) == record['before'][name], 'BACKUP_CHECKSUM_FAILED')
             originals[name] = data
     command(['systemctl', 'stop', SERVICE])
+    unchanged(root, current, record['artifacts'], identity)
     for name in record['changes']:
         if name in originals:
             replace(root / name, originals[name], record['metadata'][name])
         elif (root / name).exists():
             safe(root / name).unlink()
     require(source_hashes(root) == record['before'], 'ROLLBACK_VERIFICATION_FAILED')
+    unchanged(root, record['before'], record['artifacts'], identity)
     if restart:
         command(['systemctl', 'reset-failed', SERVICE])
         command(['systemctl', 'start', SERVICE])
@@ -483,7 +498,7 @@ def apply(root, node, cfg, private, identity):
     safe(BACKUPS).mkdir(mode=0o700, parents=True, exist_ok=True)
     require(BACKUPS.stat().st_uid == 0 and not BACKUPS.stat().st_mode & 0o077, 'UNSAFE_BACKUP_DIRECTORY')
     backup = Path(tempfile.mkdtemp(prefix='recovery-', dir=BACKUPS))
-    record = {'schema': 'FTI_ORIGINAL_SOURCE_RECOVERY_V1', 'root': str(root), 'identity': identity,
+    record = {'schema': RECORD_SCHEMA, 'root': str(root), 'identity': identity,
               'before': before, 'after': after, 'changes': changes, 'artifacts': artifacts, 'metadata': {}}
     for name in changes:
         if (root / name).exists():
@@ -531,6 +546,10 @@ def apply(root, node, cfg, private, identity):
     print(json.dumps({'result': 'FTI_WEB_RECOVERED', 'originalSourceFingerprintVerified': True,
                       'contractsChanged': False, 'deploymentConfigChanged': False,
                       'keeperChanged': False, 'backup': str(backup)}), flush=True)
+    followup_checks()
+
+
+def followup_checks():
     for path in ['/api/state', '/api/placement?referrer=0xD6492377C2C33047aFE61768930b2aedFF2B2704']:
         try:
             json_get(path, timeout=8)
@@ -561,8 +580,9 @@ def main():
                           'contractsChanged': False, 'deploymentConfigChanged': False}), flush=True)
         if not args.apply:
             return
-        if health():
+        if not changes and health():
             print('FTI_ALREADY_HEALTHY_NO_CHANGES', flush=True)
+            followup_checks()
             return
         apply(root, node, cfg, private, identity)
 
