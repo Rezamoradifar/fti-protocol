@@ -22,6 +22,8 @@ SERVICE = 'fti-continuity-web.service'
 REVISION = 'ba82373a83d63fba0643332371cfb6d62903c849'
 FINGERPRINT = 'eaf50289e56998959303757f443b80d38caa7002427f4a5b126f5b00dee3e934'
 RELEASES = Path('/opt/fti/releases')
+STATES = Path('/var/lib/fti-continuity')
+RUNTIME = Path('/opt/fti/runtime')
 BACKUPS = Path('/var/backups/fti-source-recovery')
 DIRS = ('contracts', 'frontend', 'scripts', 'core', 'landing/src')
 MUTABLE = ('frontend', 'scripts', 'landing/src')
@@ -224,9 +226,27 @@ def command(args, timeout=30):
     return result.stdout.decode()
 
 
+def parse_properties(raw):
+    result = {}
+    for line in raw.splitlines():
+        if '=' not in line:
+            continue
+        key, value = line.split('=', 1)
+        # systemctl emits a separate EnvironmentFiles= line per file. A dict
+        # comprehension silently drops web.env when a later RPC override exists.
+        # Older versions may print the singular label for the same property.
+        if key in ('EnvironmentFile', 'EnvironmentFiles'):
+            key = 'EnvironmentFiles'
+            result[key] = ' '.join(part for part in (result.get(key, ''), value) if part)
+        else:
+            require(key not in result, 'DUPLICATE_SERVICE_PROPERTY:' + key)
+            result[key] = value
+    return result
+
+
 def properties():
     raw = command(['systemctl', 'show', SERVICE, '--property=' + ','.join(IDENTITY)])
-    return dict(line.split('=', 1) for line in raw.splitlines() if '=' in line)
+    return parse_properties(raw)
 
 
 def environment_files(value):
@@ -239,16 +259,18 @@ def inspect_service():
     p = properties()
     require(p.get('LoadState') == 'loaded' and p.get('User') == p.get('Group') == 'fti-v3',
             'WRONG_SERVICE_IDENTITY')
+    require(p.get('WorkingDirectory'), 'MISSING_SERVICE_WORKING_DIRECTORY')
     root = safe(p['WorkingDirectory'])
     require(root.parent == RELEASES and re.fullmatch(r'mainnet-web-[A-Za-z0-9-]+', root.name)
             and root.is_dir(), 'WRONG_RELEASE_DIRECTORY')
-    node_match = re.search(r'path=(/opt/fti/runtime/node-v22\.[-A-Za-z0-9.]+/bin/node) ;', p['ExecStart'])
+    node_match = re.search(r'path=(' + re.escape(str(RUNTIME)) + r'/node-v22\.[-A-Za-z0-9.]+/bin/node) ;', p['ExecStart'])
     require(node_match and str(root / 'scripts/server.mjs') in p['ExecStart'], 'WRONG_WEB_ENTRYPOINT')
     node = safe(node_match[1])
     require(node.is_file() and os.access(node, os.X_OK), 'MISSING_NODE_RUNTIME')
     require(not p.get('UnsetEnvironment'), 'UNSUPPORTED_ENVIRONMENT_UNSET')
     env = dict(value.split('=', 1) for value in shlex.split(p.get('Environment', '')) if '=' in value)
     private = {}
+    require(p.get('FragmentPath'), 'MISSING_SERVICE_UNIT_FILE')
     paths = [p.get('FragmentPath', ''), *p.get('DropInPaths', '').split(),
              *environment_files(p.get('EnvironmentFiles', ''))]
     for name in paths:
@@ -265,8 +287,9 @@ def inspect_service():
             fields = shlex.split(value)
             require(len(fields) <= 1, 'UNSUPPORTED_ENVIRONMENT_VALUE')
             env[key] = fields[0] if fields else ''
-    cfgpath = safe(env.get('DEPLOYMENT_FILE', ''))
-    require(cfgpath == Path('/var/lib/fti-continuity') / root.name / 'deployment.json',
+    require(env.get('DEPLOYMENT_FILE'), 'MISSING_DEPLOYMENT_FILE_FROM_SERVICE_ENVIRONMENT')
+    cfgpath = safe(env['DEPLOYMENT_FILE'])
+    require(cfgpath == STATES / root.name / 'deployment.json',
             'WRONG_DEPLOYMENT_FILE')
     require(env.get('FTI_SOURCE_REVISION') == REVISION and env.get('PORT') == '3110'
             and env.get('HOST', '127.0.0.1') == '127.0.0.1', 'WRONG_WEB_ENVIRONMENT')

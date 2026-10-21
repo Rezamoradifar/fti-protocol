@@ -196,5 +196,93 @@ class RecoveryTests(unittest.TestCase):
             m.environment_files('/one/web.env extra-unparsed-content')
 
 
+class ServiceInspectionTests(unittest.TestCase):
+    """Exercise the real service inspector, including repeated systemctl rows."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name)
+        self.root = self.base / 'releases/mainnet-web-20261016T041703Z-351769'
+        self.root.mkdir(parents=True)
+        self.state = self.base / 'states' / self.root.name
+        self.state.mkdir(parents=True)
+        self.cfgfile = self.state / 'deployment.json'
+        self.cfgfile.write_text(json.dumps(m.TARGET))
+        self.node = self.base / 'runtime/node-v22.23.3-x64/bin/node'
+        self.node.parent.mkdir(parents=True)
+        self.node.write_text('#!/bin/sh\nexit 0\n')
+        self.node.chmod(0o755)
+        self.unit = self.base / 'fti-continuity-web.service'
+        self.unit.write_text('[Service]\n')
+        self.web_env = self.state / 'web.env'
+        self.web_env.write_text('DEPLOYMENT_FILE="' + str(self.cfgfile) + '"\n'
+                                'FTI_SOURCE_REVISION="' + m.REVISION + '"\n'
+                                'PORT="3110"\nHOST="127.0.0.1"\nRPC_URL="https://original.invalid/SECRET"\n')
+        self.rpc_env = self.base / 'rpc.env'
+        self.rpc_env.write_text('RPC_URL="https://override.invalid/SECRET"\nFTI_MAINNET_RPC_URL=\nFTI_MAINNET_RPC_FILE=\n')
+        self.raw = '\n'.join([
+            'LoadState=loaded', 'User=fti-v3', 'Group=fti-v3',
+            'WorkingDirectory=' + str(self.root),
+            'ExecStart={ path=' + str(self.node) + ' ; argv[]=' + str(self.node) + ' ' + str(self.root / 'scripts/server.mjs') + ' ; }',
+            'Environment=',
+            'EnvironmentFiles=' + str(self.web_env) + ' (ignore_errors=no)',
+            'EnvironmentFiles=' + str(self.rpc_env) + ' (ignore_errors=no)',
+            'UnsetEnvironment=', 'FragmentPath=' + str(self.unit), 'DropInPaths=',
+        ])
+        for name, value in [('RELEASES', self.base / 'releases'), ('STATES', self.base / 'states'),
+                             ('RUNTIME', self.base / 'runtime')]:
+            p = patch.object(m, name, value)
+            p.start()
+            self.addCleanup(p.stop)
+        p = patch.object(m, 'command', side_effect=lambda *args, **kwargs: self.raw)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_real_inspector_keeps_primary_env_before_rpc_override(self):
+        old = dict(line.split('=', 1) for line in self.raw.splitlines())
+        self.assertNotIn(str(self.web_env), old['EnvironmentFiles'])
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            root, node, cfg, private, identity = m.inspect_service()
+        self.assertEqual(root, self.root)
+        self.assertEqual(node, str(self.node))
+        self.assertEqual(cfg, m.TARGET)
+        self.assertIn(str(self.web_env), private)
+        self.assertIn(str(self.rpc_env), private)
+        self.assertIn(str(self.cfgfile), private)
+        self.assertEqual(len(identity), 64)
+        self.assertNotIn('SECRET', out.getvalue())
+
+    def test_legacy_singular_and_multiple_rows_keep_order(self):
+        self.raw = self.raw.replace('EnvironmentFiles=', 'EnvironmentFile=')
+        parsed = m.properties()
+        self.assertEqual(m.environment_files(parsed['EnvironmentFiles']), [str(self.web_env), str(self.rpc_env)])
+        self.assertEqual(m.inspect_service()[2], m.TARGET)
+
+    def test_later_env_override_must_not_be_ignored(self):
+        self.rpc_env.write_text('DEPLOYMENT_FILE="/unexpected/deployment.json"\n')
+        with self.assertRaisesRegex(RuntimeError, 'WRONG_DEPLOYMENT_FILE'):
+            m.inspect_service()
+
+    def test_empty_deployment_path_has_specific_error(self):
+        self.rpc_env.write_text('DEPLOYMENT_FILE=""\n')
+        with self.assertRaisesRegex(RuntimeError, 'MISSING_DEPLOYMENT_FILE_FROM_SERVICE_ENVIRONMENT'):
+            m.inspect_service()
+
+    def test_changed_config_changes_inspection_identity(self):
+        first = m.inspect_service()[4]
+        self.rpc_env.write_text('RPC_URL="https://changed.invalid/SECRET"\n')
+        self.assertNotEqual(m.inspect_service()[4], first)
+
+    def test_duplicate_single_value_property_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, 'DUPLICATE_SERVICE_PROPERTY:WorkingDirectory'):
+            m.parse_properties(self.raw + '\nWorkingDirectory=/unexpected')
+
+    def test_missing_unit_file_is_named(self):
+        self.raw = self.raw.replace('FragmentPath=' + str(self.unit), 'FragmentPath=')
+        with self.assertRaisesRegex(RuntimeError, 'MISSING_SERVICE_UNIT_FILE'):
+            m.inspect_service()
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

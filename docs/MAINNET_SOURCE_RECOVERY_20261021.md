@@ -56,11 +56,19 @@ mutate the release. Retain that output for a targeted follow-up.
 
 ## Validation and limits
 
-`python3 test/mainnet-source-recovery.test.py` passed 11 local tests. They cover
+`python3 test/mainnet-source-recovery.test.py` passed 18 local tests. They cover
 the real JavaScript `releaseManifest` calculation, successful recovery, private
 backups before service stop, health-failure rollback, rollback after partial
 replacement, concurrent edits, contract/artifact/bundle drift, symlinks,
-download tampering and strict environment-file parsing.
+download tampering and strict environment-file parsing. The service-inspection
+tests also cover the actual `systemctl show` representation: one repeated
+`EnvironmentFiles=` row per file, preserved in order. A later RPC override must
+not discard the earlier `web.env` or its `DEPLOYMENT_FILE`. The first tool
+version lost those earlier rows and could stop with `UNSAFE_PATH` before the
+recovery plan or any source mutation. This parser bug is now reproduced by a
+regression test using the real service inspector and fixed without relaxing
+path, deployment, ownership or fingerprint validation. Missing settings now
+produce specific error codes rather than an empty-path error.
 
 No SSH login, VPS backup, server execution or production recovery was performed
 from the development environment. The prepared operator command must run on
