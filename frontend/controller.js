@@ -7,7 +7,7 @@ import {walletReview} from './wallet-review.js';
 import {pendingMonitor} from './pending-monitor.js';
 import {prepareUnknownCancellation,submitUnknownCancellation} from './prepared-cancellation.js';
 import {readMembershipSnapshot} from './membership-snapshot.js';
-import {readTokenSnapshot} from './token-snapshot.js';
+import {readTokenSnapshot,readTokenPriceSnapshot} from './token-snapshot.js';
 import {readWalletIdentity,preparationDeadline} from './wallet-preflight.js';
 import {readJson,initializeReadSession} from './read-json.js';
 import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,preparedWalletSend} from './transaction-state.js';
@@ -168,6 +168,35 @@ async function checkCollateral(required){
  if(address!==transactionAddress)throw Error('Wallet changed. Please review the action and try again.');
  transactionStage='VALIDATION';
 }
+let tokenPriceSnapshot,tokenPriceFlight;
+function renderTokenPrice(next){
+ if(tokenPriceSnapshot&&next.block<tokenPriceSnapshot.block)return;
+ tokenPriceSnapshot=next;
+ const price=next.supply>0n?displayNumber(Number(formatEther(next.price)),{maximumSignificantDigits:8}):'—';
+ for(const[id,value]of Object.entries({'token-spot':price,price,'trade-price':price,'token-reserve':fmt(next.reserve),reserve:fmt(next.reserve),reserve2:fmt(next.reserve),'token-supply':fmt(next.supply),supply:fmt(next.supply),'bootstrap-display':fmt(next.cycleStartPrice,2)+' USD'}))text(id,value);
+ const delayed=Date.now()/1000-next.timestamp>45,observed=utc(next.timestamp)+' · '+t('Block','بلاک')+' '+next.block;
+ for(const id of ['token-spot','price','trade-price']){const element=$('#'+id);element.dataset.state=delayed?'stale':'verified';element.title=observed;}
+ const description=(delayed?t('Delayed chain data','دادهٔ شبکه با تأخیر'):t('Live','زنده'))+' · '+observed;
+ for(const id of ['token-price-status','price-status','trade-price-status'])text(id,(next.supply===0n?t('No price exists while token supply is zero.','تا زمانی که عرضهٔ توکن صفر است، قیمت معاملاتی وجود ندارد.')+' · ':'')+description);
+}
+async function refreshTokenPrice(){
+ if(tokenPriceFlight)return tokenPriceFlight;
+ const previous=tokenPriceSnapshot;
+ tokenPriceFlight=(async()=>{
+  try{
+   const next=await preparationDeadline(readTokenPriceSnapshot({rpc,token:read.token,tokenAddress:cfg.token,chainId:cfg.chainId}),25000);
+   renderTokenPrice(next);
+  }catch(error){
+   if(tokenPriceSnapshot===previous){
+    const description=(previous?t('Price feed unavailable · last observed data retained','دریافت قیمت ناموفق بود؛ آخرین قیمت تأییدشده نمایش داده می‌شود.'):t('Price feed unavailable','دریافت قیمت از شبکه ممکن نشد.'))+(previous?' · '+utc(previous.timestamp)+' · '+t('Block','بلاک')+' '+previous.block:'');
+    for(const id of ['token-spot','price','trade-price']){const element=$('#'+id);element.dataset.state='stale';element.title=description;}
+    for(const id of ['token-price-status','price-status','trade-price-status'])text(id,description);
+   }
+   throw error;
+  }
+ })().finally(()=>{tokenPriceFlight=null;});
+ return tokenPriceFlight;
+}
 async function refreshMembershipState(){
  const expectedAddress=address,expectedSigner=signer;
  const next=await preparationDeadline(readMembershipSnapshot({rpc,binary:read.binary,usd:read.usd,address:expectedAddress,chainId:cfg.chainId,recoveryFrozen:cfg.binaryContract==='FundedBinaryPlanUpgradeable'}),25000);
@@ -184,6 +213,7 @@ async function refreshTokenState(){
  const next=await preparationDeadline(readTokenSnapshot({rpc,binary:read.binary,usd:read.usd,token:read.token,tokenAddress:cfg.token,address:expectedAddress,chainId:cfg.chainId,recoveryFrozen:cfg.tokenContract==='FTIReserveTokenUpgradeable'}),25000);
  if(address!==expectedAddress||signer!==expectedSigner)throw Error('Wallet changed. Try again.');
  refreshSequence++;state={...state,...next,wallet:{...(wallet()||{}),...next.wallet}};
+ renderTokenPrice(next);
  for(const [id,value]of Object.entries({'fti-balance':fmt(next.wallet.ftiBalance,5),unlocked:fmt(next.wallet.unlocked,5),'trade-balance':fmt(next.wallet.ftiBalance,5),'trade-unlocked':fmt(next.wallet.unlocked,5),'trade-locked':fmt(0n,5),'usd-balance':fmt(next.wallet.usdBalance),allowance:fmt(next.wallet.remaining),units:integer(next.wallet.units),'account-units':integer(next.wallet.units),'buy-available':`Balance: ${fmt(next.wallet.usdBalance)} USD · Allowance: ${fmt(next.wallet.remaining)} USD`,'wallet-address':expectedAddress}))text(id,value);
  text('trade-notice',!next.wallet.exists||next.wallet.units===0n?'Register or add membership units before trading.':next.tokenPaused||next.emergencyUnwind?'Token trading is currently paused by the contract.':t('Enter the USDT amount. Required checks and approvals continue automatically.','مبلغ تتر را وارد کن؛ بررسی‌ها و مراحل لازم به‌صورت خودکار ادامه پیدا می‌کنند.'));
  syncActions();
@@ -425,6 +455,7 @@ function navigate(page,focus=false){
  text('page-title',t(titles[page]));document.title=t(titles[page])+' · FTI Protocol';
  if(location.hash!=='#'+page)history.replaceState(null,'','#'+page);
  if(focus){$('#page-title').focus({preventScroll:true});$('#main').scrollIntoView({behavior:'instant'});}
+ if(v3Model&&['overview','token-home','trade'].includes(page))void refreshTokenPrice().catch(()=>{});
  if(page==='activity')loadEvents();if(page==='admin')loadProposals();
  if(page==='network'&&(new URLSearchParams(location.search).get('view')==='tree'||new URLSearchParams(location.search).has('root')))requestAnimationFrame(()=>{const details=$('#network-explorer-details');if(details)details.open=true;$('#network-explorer')?.scrollIntoView({behavior:'smooth',block:'start'});});
 }
@@ -457,8 +488,9 @@ async function refresh(){
  for(const id of ['builder-month-schedule','member-month-schedule'])document.getElementById(id).textContent=monthText;
  $('#begin-month').textContent=t(month.kind!=='ready'&&builderMode==='selectable'?'Request close at next month boundary':'Close month');
 
- for(const[id,value]of Object.entries({'token-spot':fmt(d.price,6),'token-reserve':fmt(d.reserve),'token-supply':fmt(d.supply),'token-bb':fmt(d.bb),'token-floor':fmt(d.floor),'token-status':d.emergencyUnwind?'Emergency redemption':d.tokenPaused?'Paused':'Active',price:fmt(d.price,6),reserve:fmt(d.reserve),reserve2:fmt(d.reserve),members:integer(d.count),'point-pool':fmt(d.pointPool),buyback:fmt(d.bb),floor:fmt(d.floor),supply:fmt(d.supply),epoch:'Epoch '+integer(d.epoch),phase:['Accepting deposits','Matching points','Allocating rewards'][d.phase]||'Processing',protection:integer(d.level),'epoch-end':utc(d.epochEnd),accounting:d.account1[0]===d.account1[1]&&d.account2[0]===d.account2[1]?'Balanced':'Review required',queue:`Volume queue: ${d.jobCursor} / ${d.jobCount}\nSettlement phase: ${d.phase} · Member cursor: ${d.cursor}`,'lock-clock':v3Model?'No time locks':'Wallet counter '+integer(d.clock),'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))text(id,value);
- if(v3Model){text('cycle-display',integer(d.cycle));text('ath-display',fmt(d.ath,6)+' USD');text('bootstrap-display',fmt(d.cycleStartPrice,2)+' USD');text('builder-multiplier',integer(d.builderMultiplier)+'×');}
+ const legacyPriceValues=v3Model?{}:{'token-spot':fmt(d.price,6),'token-reserve':fmt(d.reserve),'token-supply':fmt(d.supply),price:fmt(d.price,6),reserve:fmt(d.reserve),reserve2:fmt(d.reserve),supply:fmt(d.supply)};
+ for(const[id,value]of Object.entries({...legacyPriceValues,'token-bb':fmt(d.bb),'token-floor':fmt(d.floor),'token-status':d.emergencyUnwind?'Emergency redemption':d.tokenPaused?'Paused':'Active',members:integer(d.count),'point-pool':fmt(d.pointPool),buyback:fmt(d.bb),floor:fmt(d.floor),epoch:'Epoch '+integer(d.epoch),phase:['Accepting deposits','Matching points','Allocating rewards'][d.phase]||'Processing',protection:integer(d.level),'epoch-end':utc(d.epochEnd),accounting:d.account1[0]===d.account1[1]&&d.account2[0]===d.account2[1]?'Balanced':'Review required',queue:`Volume queue: ${d.jobCursor} / ${d.jobCount}\nSettlement phase: ${d.phase} · Member cursor: ${d.cursor}`,'lock-clock':v3Model?'No time locks':'Wallet counter '+integer(d.clock),'updated-at':'Updated '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}))text(id,value);
+ if(v3Model){text('cycle-display',integer(d.cycle));text('ath-display',fmt(d.ath,6)+' USD');text('builder-multiplier',integer(d.builderMultiplier)+'×');}
  $('#emergency-panel').hidden=!v3Model||!d.emergencyUnwind||!['member','token'].includes(surface);
  renderWallet();syncActions();
 }
@@ -490,7 +522,7 @@ function renderWallet(){
 }
 $('#reward-all-panel').hidden=!cfg.batchedRewards;
 $('#reward-all').onclick=()=>transaction(()=>send(()=>write('binary').payRewards(100)));
-$('#refresh-state').onclick=async()=>{try{await refresh();status('Contract data refreshed.');}catch(e){status(reason(e),true);}};
+$('#refresh-state').onclick=async()=>{if(v3Model)void refreshTokenPrice().catch(()=>{});try{await refresh();status('Contract data refreshed.');}catch(e){status(reason(e),true);}};
 for(const[id,step]of [['locks-prev',-64],['locks-next',64]])$('#'+id).onclick=async()=>{lockOffset=Math.max(0,lockOffset+step);try{await refresh();}catch(e){status(reason(e),true);}};
 async function copy(value,input){try{await navigator.clipboard.writeText(value);status('Copied to clipboard.');}catch{if(input){input.focus();input.select();status('The link is selected. Copy it from the text field.');}else{const range=document.createRange();range.selectNodeContents($('#wallet-address'));getSelection().removeAllRanges();getSelection().addRange(range);status('The address is selected. Copy the selected text.');}}}
 $('#copy-address').onclick=()=>copy(address);$('#copy-referral').onclick=()=>copy($('#referral-link').value,$('#referral-link'));
@@ -600,6 +632,7 @@ setInterval(async()=>{
  if(busy||connecting||document.hidden||backgroundRefreshRunning)return;
  backgroundRefreshRunning=true;
  try{
+  if(v3Model&&!(address&&(surface==='token'||location.hash==='#trade')))void refreshTokenPrice().catch(()=>{});
   if(address&&v3Model&&(surface==='token'||location.hash==='#trade'))await refreshTokenState();
   else if(address&&surface==='member'&&location.hash==='#network')await refreshMembershipState();
   else try{await refresh();}catch(error){if(address)await refreshMembershipState();else throw error;}

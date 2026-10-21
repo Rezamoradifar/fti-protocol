@@ -13,18 +13,42 @@ function checkedBlock(value){
  if(!value||!Number.isSafeInteger(value.number)||value.number<0||!Number.isSafeInteger(value.timestamp)||value.timestamp<=0||typeof value.hash!=='string'||!hashPattern.test(value.hash))throw Error('Token block could not be verified.');
  return {number:value.number,timestamp:value.timestamp,hash:value.hash.toLowerCase()};
 }
+async function priceValues(token,options){
+ const values=await Promise.all([token.price(options),token.reserve(options),token.totalSupply(options),token.cycleStartPrice(options)]);
+ const [price,reserve,supply,cycleStartPrice]=values.map((value,index)=>uint(value,['price','reserve','supply','cycle opening quote'][index]));
+ if(cycleStartPrice===0n||price!==(supply===0n?0n:reserve*10n**18n/supply))throw Error('Token price snapshot is inconsistent.');
+ return {price,reserve,supply,cycleStartPrice};
+}
+async function observedBlock(rpc,chainId){
+ if(!Number.isSafeInteger(chainId)||chainId<=0)throw Error('Invalid token network configuration.');
+ if(uint((await rpc.getNetwork()).chainId,'network')!==BigInt(chainId))throw Error('Token RPC network does not match this deployment.');
+ return checkedBlock(await rpc.getBlock('latest'));
+}
+async function verifyBlock(rpc,chainId,observed){
+ const canonical=checkedBlock(await rpc.getBlock(observed.number));
+ if(canonical.number!==observed.number||canonical.hash!==observed.hash||canonical.timestamp!==observed.timestamp)throw Error('Token block changed. Prepare the request again.');
+ if(uint((await rpc.getNetwork()).chainId,'network')!==BigInt(chainId))throw Error('Token RPC network does not match this deployment.');
+}
+
+// Public price reads do not depend on a wallet, membership or the dashboard API.
+// A zero supply has no traded price; the cycle opening quote remains separate.
+export async function readTokenPriceSnapshot({rpc,token,chainId,tokenAddress=token?.target}){
+ checkedAddress(tokenAddress,'contract address');
+ const observed=await observedBlock(rpc,chainId),values=await priceValues(token,{blockTag:observed.number});
+ await verifyBlock(rpc,chainId,observed);
+ return {block:observed.number,blockHash:observed.hash,timestamp:observed.timestamp,...values};
+}
 
 // This snapshot is only for FTIReserveTokenV3/FTIReserveTokenUpgradeable, where
 // the full token balance is unlocked. Legacy token locks need their own getter.
 export async function readTokenSnapshot({rpc,binary,usd,token,address,chainId,recoveryFrozen=true,tokenAddress=token?.target}){
  checkedAddress(address,'wallet');checkedAddress(tokenAddress,'contract address');
  if(!Number.isSafeInteger(chainId)||chainId<=0||typeof recoveryFrozen!=='boolean')throw Error('Invalid token network configuration.');
- if(uint((await rpc.getNetwork()).chainId,'network')!==BigInt(chainId))throw Error('Token RPC network does not match this deployment.');
- const observed=checkedBlock(await rpc.getBlock('latest')),options={blockTag:observed.number};
- const [pausedValue,frozenValue,emergencyValue,member,usdBalance,ftiBalance,remaining,allowance]=await Promise.all([
+ const observed=await observedBlock(rpc,chainId),options={blockTag:observed.number};
+ const [pausedValue,frozenValue,emergencyValue,member,usdBalance,ftiBalance,remaining,allowance,prices]=await Promise.all([
   token.paused(options),recoveryFrozen?token.recoveryFrozen(options):Promise.resolve(false),token.emergencyUnwind(options),
   binary.members(address,options),usd.balanceOf(address,options),token.balanceOf(address,options),
-  token.remainingAllowance(address,options),usd.allowance(address,tokenAddress,options),
+  token.remainingAllowance(address,options),usd.allowance(address,tokenAddress,options),priceValues(token,options),
  ]);
  const paused=bool(pausedValue,'pause flag'),frozen=bool(frozenValue,'recovery flag'),emergency=bool(emergencyValue,'emergency flag');
  if(!member||typeof member!=='object')throw Error('Token membership record is unavailable.');
@@ -36,8 +60,6 @@ export async function readTokenSnapshot({rpc,binary,usd,token,address,chainId,re
  wallet.usdBalance=uint(usdBalance,'collateral balance');wallet.ftiBalance=uint(ftiBalance,'balance');
  wallet.unlocked=wallet.ftiBalance;wallet.remaining=uint(remaining,'remaining allowance');
  wallet.collateralAllowance=uint(allowance,'collateral allowance');
- const canonical=checkedBlock(await rpc.getBlock(observed.number));
- if(canonical.number!==observed.number||canonical.hash!==observed.hash||canonical.timestamp!==observed.timestamp)throw Error('Token block changed. Prepare the request again.');
- if(uint((await rpc.getNetwork()).chainId,'network')!==BigInt(chainId))throw Error('Token RPC network does not match this deployment.');
- return {block:observed.number,timestamp:observed.timestamp,tokenStateVerified:true,tokenPaused:paused||frozen,tokenRecoveryFrozen:frozen,emergencyUnwind:emergency,wallet};
+ await verifyBlock(rpc,chainId,observed);
+ return {block:observed.number,blockHash:observed.hash,timestamp:observed.timestamp,...prices,tokenStateVerified:true,tokenPaused:paused||frozen,tokenRecoveryFrozen:frozen,emergencyUnwind:emergency,wallet};
 }

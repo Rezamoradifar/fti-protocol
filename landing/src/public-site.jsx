@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect} from 'react';
 import {t,language} from '../../frontend/locale.js';
 import {TranslationNotice} from '../../frontend/global-components.jsx';
 import {SiteHeader,SiteFooter} from '../../frontend/site-shell.jsx';
@@ -6,6 +6,8 @@ import {TokenSeal} from '../../frontend/brand.jsx';
 import {TokenIntroduction} from '../../frontend/token-introduction.jsx';
 import {siteLinks} from '../../frontend/site-links.js';
 import {deploymentNetwork} from '../../core/deployment-network.mjs';
+import {TokenPrice} from './token-price.jsx';
+import {useDeploymentConfig} from './use-deployment-config.js';
 const links=siteLinks(location.href),pair=(en,fa)=>t(en,fa);
 const sections=[
  ['Purpose','هدف', 'FTI connects membership, funded binary rewards and a reserve token through one on-chain deployment. This presentation explains the current published rules. The network badge identifies the configured deployment; independent auditing is not complete.','FTI عضویت، پاداش باینری تأمین‌شده و توکن مبتنی بر ذخیره را در یک مجموعه قرارداد متصل می‌کند. این معرفی، قوانین منتشرشده فعلی را توضیح می‌دهد. نشان شبکه، استقرار تنظیم‌شده را مشخص می‌کند؛ حسابرسی مستقل کامل نشده است.'],
@@ -27,24 +29,9 @@ const phases=[
 ];
 export function PublicSite(){
  const page=location.pathname==='/whitepaper/'?'whitepaper':location.pathname==='/roadmap/'?'roadmap':'token';
- const[cfg,setCfg]=useState(null),[state,setState]=useState(null),[error,setError]=useState(false);
- useEffect(()=>{
-  document.title=t(page==='token'?'FTI Token':page==='whitepaper'?'FTI Presentation':'FTI Roadmap');
-  const abort=new AbortController();
-  async function load(){
-   const results=await Promise.allSettled(['/api/config','/api/state'].map(async route=>{
-    const r=await fetch(route,{signal:abort.signal});if(!r.ok)throw Error('Data unavailable');return r.json();
-   }));
-   if(abort.signal.aborted)return;
-   let failed=false;
-   if(results[0].status==='fulfilled'){try{deploymentNetwork(results[0].value);setCfg(results[0].value);}catch{failed=true;}}else failed=true;
-   if(results[1].status==='fulfilled')setState(results[1].value);else {setState(null);failed=true;}
-   setError(failed);
-  }
-  load();const timer=setInterval(load,30000);return()=>{abort.abort();clearInterval(timer);};
- },[page]);
+ const {config:cfg,loading:configLoading,error:configError,retry:retryConfig}=useDeploymentConfig();
+ useEffect(()=>{document.title=t(page==='token'?'FTI Token':page==='whitepaper'?'FTI Presentation':'FTI Roadmap');},[page]);
  const network=cfg?deploymentNetwork(cfg):null;
- const usd=network?.currency||'USD';
  const currentSections=sections.map(row=>[...row]);
  if(cfg?.hourlyCapFlushVersion===1&&cfg?.poolDistributionVersion!==1){currentSections[3][2]='Above-cap matches are flushed each hour. When capped points are fully funded, only the unmatched stronger-leg volume remains. Within-cap volume deferred by insufficient funding is retained. Paid points require 20 USD gross funding; protection begins below 16 USD calculated value.';currentSections[3][3]='تعادل بالاتر از سقف ساعتی فلش می‌شود. با تأمین کامل پوینت‌های مجاز، فقط اختلاف دست بزرگ باقی می‌ماند. حجم داخل سقف که به علت کمبود پشتوانه پرداخت نشده حفظ می‌شود. هر پوینت پرداختی به ۲۰ دلار پشتوانه نیاز دارد و حفاظت زیر ارزش محاسباتی ۱۶ دلار فعال می‌شود.';}
  if(!cfg||cfg.poolDistributionVersion===1){
@@ -58,10 +45,9 @@ export function PublicSite(){
   currentSections[1][2]=currentSections[1][2].replace('test USD','USD');currentSections[1][3]=currentSections[1][3].replace('دلار آزمایشی','دلار');
   const last=currentSections[currentSections.length-1];last[2]='Observed prices and recent volume are not forecasts. Mainnet uses the selected real collateral and BNB for gas. Collateral value, support and repayment are not guaranteed. Software, issuer, liquidity and governance risks remain.';last[3]='قیمت‌های مشاهده‌شده و حجم اخیر پیش‌بینی نیستند. شبکه اصلی از دارایی پشتوانه منتخب و BNB برای کارمزد استفاده می‌کند. ارزش پشتوانه، حمایت و بازپرداخت تضمین نشده‌اند. ریسک نرم‌افزار، ناشر، نقدشوندگی و حاکمیت باقی است.';
  }
- const format=v=>v===undefined?'—':(Number(v)/1e18).toLocaleString('en-US',{maximumFractionDigits:6});
  return <div className="public-site"><SiteHeader token/>
  <main><div className="wrap"><TranslationNotice/></div>{page==='token'?<><section className="wrap token-public-hero"><div><span className="pill">FTI / {network?.label||pair('Checking network…','در حال بررسی شبکه…')}</span><h1>{pair('Understand the reserve.','ذخیره را ببینید.')}<br/><span>{pair('Own your next move.','آگاهانه معامله کنید.')}</span></h1><p>{pair('An on-chain reserve token with visible funding, staged purchases and wallet-controlled transactions.','توکن مبتنی بر ذخیره روی شبکه؛ با پشتوانه قابل مشاهده، خرید پلکانی و تراکنش با تأیید ولت شما.')}</p><div className="actions"><a className="button" href={links.trade}>{pair('Open the market','ورود به بازار')}</a><a className="button outline" href={links.whitepaper}>{pair('Read the whitepaper','مطالعه وایت‌پیپر')}</a></div><small>{network&&!network.testAssets?pair('Mainnet · real assets · no guaranteed return','شبکه اصلی · دارایی واقعی · بدون بازده تضمین‌شده'):pair('Testnet assets · no real USD backing','دارایی تست‌نت · بدون پشتوانه دلار واقعی')}</small></div><TokenSeal/></section>
- <section className="wrap public-stats" aria-label={pair('Live contract data','داده زنده قرارداد')}>{[[pair('Spot','قیمت')+' · '+usd,format(state?.price)],[pair('Reserve','ذخیره')+' · '+usd,format(state?.reserve)],[pair('Support','حمایت')+' · '+usd,format(state?.bb)],[pair('Supply · FTI','عرضه · FTI'),format(state?.supply)]].map(([title,value])=><article key={title}><span>{title}</span><strong>{value}</strong></article>)}</section>{error&&<p className="wrap feed-warning" role="status">{pair('Live data is temporarily unavailable.','داده زنده موقتاً در دسترس نیست.')}</p>}
+ <TokenPrice config={cfg} lang={language} className="wrap" showMetrics configLoading={configLoading} configError={configError} onRetryConfig={retryConfig}/>
  <div className="wrap section"><TokenIntroduction/></div>
  <section className="wrap section public-feature-grid">{[[links.whitepaper,'01','Whitepaper','وایت‌پیپر','Economics, fees, settlement and governance.','اقتصاد توکن، کارمزد، تسویه و حاکمیت.'],[links.roadmap,'02','Roadmap','رودمپ','Current capabilities and the checks still ahead.','قابلیت‌های فعلی و مراحل بررسی باقی‌مانده.'],[links.member,'03','Your dashboard','پنل شما','Membership, genealogy and your rewards.','عضویت، ژنولوژی و پاداش‌های شما.']].map(([href,n,en,fa,copy,faCopy])=><a key={href} href={href} className="public-resource"><span>{n}</span><h3>{pair(en,fa)}</h3><p>{pair(copy,faCopy)}</p><b>↗</b></a>)}</section>
  <section className="wrap section"><h2>{pair('Active deployment','قراردادهای فعال')}</h2><div className="contracts">{['token','binary','council','timelock'].map(key=><article key={key}><b>{t({token:'Token',binary:'Binary network',council:'Council',timelock:'Timelock'}[key])}</b>{cfg?.[key]?<a className="address" href={network?.explorer?network.explorer+'/address/'+cfg[key]+'#code':undefined} target="_blank" rel="noreferrer">{cfg[key]}</a>:<span>—</span>}</article>)}</div></section></>:<>
