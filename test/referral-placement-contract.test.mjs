@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import ganache from 'ganache';
 import {BrowserProvider,Contract,MaxUint256} from 'ethers';
 import {deployOne,artifact,checkAccounting} from '../scripts/lib.mjs';
-import {firstOpenSlot} from '../core/referral-placement.mjs';
+import {networkPlacementIndexer} from '../scripts/referral-placement-index.mjs';
 
 const sent=async tx=>{const receipt=await(await tx).wait();assert.equal(receipt.status,1);return receipt;};
 
@@ -35,8 +35,10 @@ test('proxy referrals: unlimited direct invitations, bounded ancestry, unchanged
   const sponsorMember=await binary.members(invite);
   assert.equal(sponsorMember.left,participants[0]);assert.equal(sponsorMember.right,participants[1]);
   await assert.rejects(binary.connect(signers[41]).register.staticCall(invite,1));
+  const placementReader=networkPlacementIndexer({genesis:addresses.slice(0,31),genesisLayout:'FTI_GENESIS_1_2_4_8_8_8_20261016',binary,provider:{getLogs:()=>assert.fail('Current-state placement must not scan logs')},startBlock:1,chainId:31337});
   for(let i=41;i<49;i++){
-   const target=addresses[i],placement=await firstOpenSlot(invite,a=>binary.members(a));
+   const target=addresses[i],placement=await placementReader.choose(invite);
+   assert.equal(placement.source,'canonical-state');assert.equal(placement.chainId,31337);
    await assert.rejects(binary.connect(signers[i]).registerWithPlacement.staticCall(invite,addresses[29],1),/InvalidOperation|execution reverted/);
    const receipt=await sent(binary.connect(signers[i]).registerWithPlacement(invite,placement.placementParent,1));
    assert.equal((await binary.members(target)).parent,placement.placementParent);

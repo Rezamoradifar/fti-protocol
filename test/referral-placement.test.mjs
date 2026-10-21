@@ -60,19 +60,19 @@ test('network index consumes chronological on-chain Registered receipts only onc
   }};
  const provider={getBlockNumber:async()=>105,getLogs:async req=>{calls.push(req);return logs.filter(l=>l.blockNumber>=req.fromBlock&&l.blockNumber<=req.toBlock);}};
  const indexer=networkPlacementIndexer({genesis:g,binary,provider,startBlock:100,chunkSize:100});
- const q=await indexer.choose(g[15]);
+ const graph=await indexer.sync(),q=await graph.choose(g[15]);
  assert.equal(q.placementParent,first);assert.equal(q.side,'left');
- assert.equal(q.indexedMembers,33);assert.equal(q.indexedBlock,105);
+ assert.equal(graph.count(),33);assert.equal(calls[0].toBlock,105);
  assert.equal(calls.length,1);
- const next=await indexer.choose(g[15]);assert.equal(next.placementParent,first);assert.equal(calls.length,1);
+ const next=await(await indexer.sync()).choose(g[15]);assert.equal(next.placementParent,first);assert.equal(calls.length,1);
 });
 
-test('stale placement never returns a different actual on-chain position',async()=>{
+test('current-state placement uses the vacant side instead of a stale historical suggestion',async()=>{
  const g=genesis(),binary={target:address(900),interface:{getEvent:()=>({topicHash:'0xfake'}),parseLog:()=>null},
-  members:async a=>({exists:true,left:a===g[15]?address(250):ZERO_ADDRESS,right:ZERO_ADDRESS})};
- const provider={getBlockNumber:async()=>10,getLogs:async()=>[]};
+  members:async a=>({exists:true,parent:g[7],left:a===g[15]?address(250):ZERO_ADDRESS,right:ZERO_ADDRESS}),depth:async()=>4n};
+ const provider={getNetwork:async()=>({chainId:56n}),getBlock:async()=>({number:10,timestamp:1000,hash:'0x'+'a'.repeat(64)}),getLogs:()=>assert.fail('Placement must not query historical logs')};
  const idx=networkPlacementIndexer({genesis:g,binary,provider,startBlock:1});
- await assert.rejects(idx.choose(g[15]),/STALE_PLACEMENT_RETRY/);
+ const q=await idx.choose(g[15]);assert.equal(q.placementParent,g[15]);assert.equal(q.side,'right');assert.equal(q.source,'canonical-state');
 });
 
 test('six-row network index replays registration into an empty left side without overwriting the right chain',async()=>{
@@ -83,5 +83,5 @@ test('six-row network index replays registration into an empty left side without
  const provider={getBlockNumber:async()=>105,getLogs:async()=>logs};
  const idx=networkPlacementIndexer({genesis:g,genesisLayout:approvedGenesisLayout().id,binary,provider,startBlock:100,chunkSize:100});
  const graph=await idx.sync();assert.equal((await graph.getMember(g[8])).right,g[16]);assert.equal((await graph.getMember(g[8])).left,first);
- const q=await idx.choose(g[8]);assert.equal(q.placementParent,first);assert.equal(q.side,'left');assert.equal(q.indexedMembers,32);
+ const q=await graph.choose(g[8]);assert.equal(q.placementParent,first);assert.equal(q.side,'left');assert.equal(graph.count(),32);
 });
