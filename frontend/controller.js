@@ -334,6 +334,7 @@ $('#cancel-unknown').onclick=async()=>{
  if(busy||!address||!signer)return;
  stopPendingChecks();
  busy=true;syncActions();const originalAddress=address,originalSigner=signer,originalWallet=walletProvider;
+ const tokenContext=v3Model&&(surface==='token'||location.hash==='#trade');
  try{
   await readWalletIdentity(originalWallet,originalAddress,cfg.chainId);
   if(address!==originalAddress||signer!==originalSigner)return;
@@ -355,14 +356,15 @@ $('#cancel-unknown').onclick=async()=>{
    return;
   }
   if(address!==originalAddress||signer!==originalSigner||walletProvider!==originalWallet)return;
-  const description=prepared.accountType==='delegated-eoa'?t('Replace the previous request with zero BNB to the zero address. Only the network fee applies. Your smart-account setup stays unchanged.','درخواست قبلی با تراکنش صفر BNB به آدرس صفر جایگزین می‌شود؛ فقط کارمزد شبکه دارد. تنظیمات حساب هوشمند تغییری نمی‌کند.'):t('This sends zero BNB to your own wallet and pays only the network fee. It does not buy units.','این درخواست صفر BNB به ولت خودت می‌فرستد و فقط کارمزد شبکه دارد؛ خرید یونیت نیست.');
+  const replacement=prepared.accountType==='delegated-eoa'?t('Replace the previous request with zero BNB to the zero address. Only the network fee applies. Your smart-account setup stays unchanged.','درخواست قبلی با تراکنش صفر BNB به آدرس صفر جایگزین می‌شود؛ فقط کارمزد شبکه دارد. تنظیمات حساب هوشمند تغییری نمی‌کند.'):t('This sends zero BNB to your own wallet and pays only the network fee. It does not buy units.','این درخواست صفر BNB به ولت خودت می‌فرستد و فقط کارمزد شبکه دارد؛ خرید یونیت نیست.');
+  const description=replacement+(tokenContext?' '+t('This only cancels the previous request. It does not sell FTI.','این کار فقط درخواست قبلی را لغو می‌کند و فروش FTI نیست.'):'');
   $('#wallet-review-description').textContent=description;const help=$('#pending-cancellation-description');if(help)help.textContent=description;
-  status(t('Cancellation prepared. Tap Open confirmation in wallet below.','لغو درخواست آماده شد؛ دکمهٔ «باز کردن تأیید در ولت» را بزن.'));
+  status(tokenContext?t('Cancellation prepared; this does not sell FTI. Tap Open confirmation in wallet below.','لغو درخواست آماده شد؛ این کار فروش FTI نیست. دکمهٔ «باز کردن تأیید در ولت» را بزن.'):t('Cancellation prepared. Tap Open confirmation in wallet below.','لغو درخواست آماده شد؛ دکمهٔ «باز کردن تأیید در ولت» را بزن.'));
   await review.open({request:prepared.request,title:t('Cancel previous request','لغو درخواست قبلی'),isCurrent:()=>address===originalAddress&&signer===originalSigner&&walletProvider===originalWallet&&tracker.read()===prepared.record,onConfirm:()=>submitUnknownCancellation(tracker,originalWallet,rpc,prepared,hash=>{if(address===originalAddress&&signer===originalSigner){hashView.show(hash,{pending:true});status(t('Cancellation submitted. Waiting for network confirmation.','لغو ارسال شد؛ در انتظار تأیید شبکه.'));}})});
   if(address!==originalAddress||signer!==originalSigner)return;
   $('#unknown-send-form').hidden=true;await (v3Model&&(surface==='token'||location.hash==='#trade')?refreshTokenState():refreshMembershipState()).catch(()=>{});
   if(address!==originalAddress||signer!==originalSigner)return;
-  status(t('Previous request resolved. Review your balance before the next action.','درخواست قبلی تعیین‌تکلیف شد؛ پیش از اقدام بعدی، موجودی را بررسی کن.'));
+  status(tokenContext?t('Previous request cancelled. To sell FTI, press Confirm FTI sale again.','درخواست قبلی لغو شد؛ برای فروش، دوباره تأیید فروش FTI را بزن.'):t('Previous request resolved. Review your balance before the next action.','درخواست قبلی تعیین‌تکلیف شد؛ پیش از اقدام بعدی، موجودی را بررسی کن.'));
  }catch(error){if(address===originalAddress&&signer===originalSigner){
   if(error.code==='FTI_UNSUPPORTED_SMART_ACCOUNT'){
    $('#cancel-unknown').hidden=true;const details=$('#transaction-recovery-details');if(details)details.open=true;
@@ -379,12 +381,22 @@ async function approve(spender,amount){
  if(current<amount){status(networkProfile.testAssets?'Approve test USD spending in your wallet.':'Approve collateral spending in your wallet.');if(current>0n)await sendContract('usd','approve',spender,0);await sendContract('usd','approve',spender,amount);}
 }
 let walletProvider,providerListeners,selectedWallet,walletGeneration=0;
-function clearWallet(){walletGeneration++;selectedWallet=null;try{sessionStorage.removeItem('fti-wallet-connected');}catch{}stopPendingChecks();review.cancel();$('#unknown-send-form').hidden=true;$('#cancel-unknown').hidden=false;const smartHelp=$('#smart-account-help');if(smartHelp)smartHelp.hidden=true;const description=$('#pending-cancellation-description');if(description)description.textContent=t('Cancellation only costs the network fee; it does not buy units.','لغو درخواست فقط کارمزد شبکه دارد و خرید یونیت نیست.');const details=$('#transaction-recovery-details');if(details)details.open=false;hashView.hide();$('#unknown-send-form').elements.hash.value='';$('#hash-lookup-result').textContent='';const local=$('#membership-flow-status');if(local)local.hidden=true;signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
+function clearWallet(){walletGeneration++;selectedWallet=null;try{sessionStorage.removeItem('fti-wallet-connected');}catch{}stopPendingChecks();review.cancel();$('#unknown-send-form').hidden=true;$('#cancel-unknown').hidden=false;const smartHelp=$('#smart-account-help');if(smartHelp)smartHelp.hidden=true;const description=$('#pending-cancellation-description');if(description)description.textContent=v3Model&&(surface==='token'||location.hash==='#trade')?t('Cancellation only resolves the previous request and costs the network fee. It does not sell FTI.','لغو فقط درخواست قبلی را تعیین‌تکلیف می‌کند و کارمزد شبکه دارد؛ فروش FTI نیست.'):t('Cancellation only costs the network fee; it does not buy units.','لغو درخواست فقط کارمزد شبکه دارد و خرید یونیت نیست.');const details=$('#transaction-recovery-details');if(details)details.open=false;hashView.hide();$('#unknown-send-form').elements.hash.value='';$('#hash-lookup-result').textContent='';const local=$('#membership-flow-status');if(local)local.hidden=true;signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
 function detachWallet(){if(providerListeners){walletProvider?.removeListener?.('accountsChanged',providerListeners.accounts);walletProvider?.removeListener?.('chainChanged',providerListeners.chain);walletProvider?.removeListener?.('disconnect',providerListeners.disconnect);}providerListeners=null;walletProvider=null;}
-function observeWallet(provider){
+function observeWallet(provider,expectedAddress=address){
  detachWallet();walletProvider=provider;
- const reset=()=>{detachWallet();clearWallet();const generation=walletGeneration;status('Wallet account changed. Connect to continue.');refresh().catch(e=>{if(walletGeneration===generation&&!address)status(reason(e),true);});};
- providerListeners={accounts:reset,chain:()=>{detachWallet();clearWallet();location.reload();},disconnect:reset};
+ const observed={};
+ const current=()=>walletProvider===provider&&providerListeners===observed;
+ const reset=()=>{if(!current())return;detachWallet();clearWallet();const generation=walletGeneration;status('Wallet account changed. Connect to continue.');refresh().catch(e=>{if(walletGeneration===generation&&!address)status(reason(e),true);});};
+ providerListeners=Object.assign(observed,{accounts:accounts=>{
+  if(!current())return;
+  if(Array.isArray(accounts)&&accounts.length>0&&accounts.every(isAddress)&&isAddress(expectedAddress)&&accounts[0].toLowerCase()===expectedAddress.toLowerCase())return;
+  reset();
+ },chain:chain=>{
+  if(!current())return;
+  if(typeof chain==='string'&&/^0x(?:0|[1-9a-f][0-9a-f]*)$/i.test(chain)&&BigInt(chain)===BigInt(cfg.chainId))return;
+  detachWallet();clearWallet();location.reload();
+ },disconnect:reset});
  provider.on?.('accountsChanged',providerListeners.accounts);provider.on?.('chainChanged',providerListeners.chain);provider.on?.('disconnect',providerListeners.disconnect);
 }
 async function connect({silent=false}={}){
@@ -411,7 +423,7 @@ async function connect({silent=false}={}){
    if(!current())return;
    // Observe before the final identity read so an account/network change cannot
    // slip between verification and committing the connected signer.
-   observeWallet(injected);observed=true;
+   observeWallet(injected,accounts[0]);observed=true;
    await readWalletIdentity(injected,accounts[0],cfg.chainId);
    if(!current())return;
    // The selected wallet already granted this account. Do not let getSigner()

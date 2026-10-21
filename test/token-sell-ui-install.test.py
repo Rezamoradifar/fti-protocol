@@ -193,13 +193,22 @@ class InstallerTests(unittest.TestCase):
     def test_fourth_responsive_live_price_base_keeps_the_exact_responsive_css(self):
         self.assert_install_profile(self.baselines[3])
 
-    def test_four_reviewed_bases_collapse_to_two_exact_app_and_css_outputs(self):
+    def test_latest_original_css_base_installs_app_and_is_idempotent(self):
+        self.assert_install_profile('fti-mainnet-ui-2095875d40dde305')
+
+    def test_latest_live_responsive_base_preserves_exact_css_and_is_idempotent(self):
+        self.assert_install_profile('fti-mainnet-ui-9c9c3b667965afbd')
+
+    def test_all_six_reviewed_bases_collapse_to_two_exact_app_and_css_outputs(self):
         payload, prefixes = m.release_variants(self.release)
         self.assertEqual(payload, {'app.js': self.app})
         self.assertEqual(set(prefixes), set(self.baselines))
+        self.assertEqual(len(prefixes), 6)
         self.assertEqual(len(set(prefixes.values())), 2)
         self.assertEqual(prefixes[self.baselines[0]], prefixes[self.baselines[1]])
         self.assertEqual(prefixes[self.baselines[2]], prefixes[self.baselines[3]])
+        self.assertEqual(prefixes[self.baselines[4]], prefixes[self.baselines[0]])
+        self.assertEqual(prefixes[self.baselines[5]], prefixes[self.baselines[2]])
         self.assertNotEqual(prefixes[self.baselines[0]], prefixes[self.baselines[2]])
 
     def test_optional_new_legal_notice_changes_only_app_and_notice_while_css_is_preserved(self):
@@ -229,16 +238,19 @@ class InstallerTests(unittest.TestCase):
                 m.apply(self.app_release(app))
         self.assertFalse(self.backups.exists())
 
-    def test_production_profiles_pin_all_four_reviewed_app_and_css_combinations(self):
+    def test_production_profiles_pin_all_six_reviewed_app_and_css_combinations(self):
         old_app = '2557e14510a1f017e8b3b6ad3f8957b8c56e85a55d1fdd3ee66e1ef4c0eadef2'
         price_app = 'ccea7812f67c925f7ffebc8c5d935e9651cc55fdef4ff40ea170a1b58bda14e1'
+        latest_app = 'bad4d4bfa1bfd657a97669bafaede8ef55f912b488a696db0f011f9da49f09ea'
         old_css = '12f294040117dd35e4e2c0d30b4e1f08e8da9727487b6a96458d089e5c95fece'
         responsive_css = '754e5c9c549a372ca106b23915c51ddc34bcb914373a5876ccc0675ec579274f'
         self.assertEqual(PRODUCTION_PROFILES, {
             'fti-mainnet-ui-f52f5261b5b036f9': {'app.js': old_app, 'panel-identity.css': old_css},
             'fti-mainnet-ui-2c0130354c3b16c3': {'app.js': price_app, 'panel-identity.css': old_css},
             'fti-mainnet-ui-bc86b640b8c4a053': {'app.js': old_app, 'panel-identity.css': responsive_css},
-            'fti-mainnet-ui-935a39c2af948aa5': {'app.js': price_app, 'panel-identity.css': responsive_css}})
+            'fti-mainnet-ui-935a39c2af948aa5': {'app.js': price_app, 'panel-identity.css': responsive_css},
+            'fti-mainnet-ui-2095875d40dde305': {'app.js': latest_app, 'panel-identity.css': old_css},
+            'fti-mainnet-ui-9c9c3b667965afbd': {'app.js': latest_app, 'panel-identity.css': responsive_css}})
         self.assertEqual(len(PRODUCTION_ASSETS), 113)
         for prefix, profile in PRODUCTION_PROFILES.items():
             assets = dict(PRODUCTION_ASSETS, **profile)

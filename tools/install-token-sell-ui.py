@@ -36,6 +36,10 @@ BASE_PROFILES = {
         'panel-identity.css': '754e5c9c549a372ca106b23915c51ddc34bcb914373a5876ccc0675ec579274f'},
     'fti-mainnet-ui-935a39c2af948aa5': {'app.js': 'ccea7812f67c925f7ffebc8c5d935e9651cc55fdef4ff40ea170a1b58bda14e1',
         'panel-identity.css': '754e5c9c549a372ca106b23915c51ddc34bcb914373a5876ccc0675ec579274f'},
+    'fti-mainnet-ui-2095875d40dde305': {'app.js': 'bad4d4bfa1bfd657a97669bafaede8ef55f912b488a696db0f011f9da49f09ea',
+        'panel-identity.css': '12f294040117dd35e4e2c0d30b4e1f08e8da9727487b6a96458d089e5c95fece'},
+    'fti-mainnet-ui-9c9c3b667965afbd': {'app.js': 'bad4d4bfa1bfd657a97669bafaede8ef55f912b488a696db0f011f9da49f09ea',
+        'panel-identity.css': '754e5c9c549a372ca106b23915c51ddc34bcb914373a5876ccc0675ec579274f'},
 }
 TARGET = 'app.js'
 LEGAL = 'app.js.LEGAL.txt'
