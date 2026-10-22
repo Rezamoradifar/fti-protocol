@@ -32,7 +32,9 @@ jobs:
           test/prepared-cancellation.test.mjs test/pending-monitor.test.mjs
           test/membership-purchase-flow.test.mjs test/prepared-wallet-send.test.mjs
           test/wallet-review.test.mjs test/transaction-hash.test.mjs
-      - run: python3 test/registration-recovery-ui-install.test.py -q
+      # The installer enforces root ownership for private production backups.
+      # Exercise those same checks in the isolated runner without weakening them.
+      - run: sudo python3 test/registration-recovery-ui-install.test.py -q
       - run: npm run build:web
       - name: Reproduce the exact packaged installer
         run: |
