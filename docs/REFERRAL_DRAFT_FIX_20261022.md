@@ -14,7 +14,8 @@ registration field. Same-tab session storage is bounded to 24 hours. URL query
 propagation also supports internal link navigation and new-tab clicks.
 
 New explicit invitations take priority. Invalid/conflicting invitations never
-fall back silently to an older inviter. Deliberate clears remain cleared, even
+fall back silently to an older inviter; a native validity guard blocks ambiguous
+links when history rewriting is restricted. Deliberate clears remain cleared, even
 when storage writes fail. Existing disabled member fields and nonempty live
 edits are not overwritten. Inviter data is not added to external links, RPC/API
 URLs or wallet URI schemes. No browser prototypes are modified.
@@ -26,9 +27,9 @@ server unit, Nginx configuration or release-verification code is changed.
 
 ## Checks
 
-- `node --test test/referral-context.test.mjs`: 23 pass, 0 fail locally.
+- `node --test test/referral-context.test.mjs`: 25 pass, 0 fail locally.
 - Node syntax checks pass for the new modules and changed build script.
-- Isolated Chromium DOM harness: 18 checks pass across 320/390/1280px; it used
+- Isolated Chromium DOM harness: 24 checks pass across 320/390/1280px; it used
   synthetic history/storage and a local submit handler. This is not a real
   SafePal/MetaMask connection, live placement API, or signed transaction test.
 - Full application build and full-suite status must be checked on the final

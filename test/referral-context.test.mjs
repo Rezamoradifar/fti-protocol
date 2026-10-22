@@ -19,7 +19,7 @@ function browser(href='https://ftiprotocol.com/app/',storage=store()){
  Object.defineProperty(win,'location',{get(){const url=new URL(current);return {href:current,origin:url.origin};}});
  return {win,doc,storage,
   install:()=>installReferralContext(win,{now:()=>time}),
-  mount(value='',disabled=false){doc.field={value,disabled};mutation();return doc.field;},
+  mount(value='',disabled=false){doc.field={value,disabled,validationMessage:'',setCustomValidity(message){this.validationMessage=message;}};mutation();return doc.field;},
   edit(value){doc.field.value=value;doc.emit('input',doc.field);},
   click(href,{download=false,type='click'}={}){let value=href;const anchor={getAttribute:()=>value,setAttribute:(_key,next)=>{value=next;},hasAttribute:key=>key==='download'&&download,closest:()=>anchor};doc.emit(type,anchor);return {anchor,get href(){return value;}};}
  };
@@ -126,4 +126,20 @@ test('production build installs draft context before loading the existing worksp
  const entry=fs.readFileSync(new URL('../frontend/workspace-entry.js',import.meta.url),'utf8');
  assert.match(build,/entryPoints:\['frontend\/workspace-entry\.js'\]/);
  assert.ok(entry.indexOf('installReferralContext(window)')<entry.indexOf("await import('./main.jsx')"));
+});
+
+test('legacy controller cannot choose the first address from an ambiguous link',()=>{
+ for(const query of ['sponsor='+A+'&ref='+B,'sponsor='+A+'&sponsor='+B,'sponsor='+A+'&ref=invalid']){
+  const b=browser('https://ftiprotocol.com/app/?'+query);b.install();const field=b.mount();
+  const legacy=new URL(b.win.location.href).searchParams.get('sponsor');
+  if(legacy&&/^0x[0-9a-fA-F]{40}$/.test(legacy))field.value=legacy;
+  assert.equal(field.value,'');assert.ok(field.validationMessage);
+  b.edit(B);assert.equal(field.validationMessage,'');assert.equal(new URL(b.win.location.href).searchParams.get('sponsor'),B);
+ }
+});
+test('restricted history cannot silently authorize an ambiguous inviter',()=>{
+ const b=browser('https://ftiprotocol.com/app/?sponsor='+A+'&ref='+B);b.win.history.replaceState=()=>{throw Error('restricted');};
+ b.install();const field=b.mount();field.value=new URL(b.win.location.href).searchParams.get('sponsor');
+ assert.equal(field.value,A);assert.ok(field.validationMessage);
+ b.edit(B);assert.equal(field.validationMessage,'');
 });

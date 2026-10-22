@@ -47,13 +47,12 @@ export function installReferralContext(win,{now=()=>Date.now()}={}){
  const saved=loadReferral(storage,now());
  let value=incoming.present?incoming.value:(saved??'');
  let hasDraft=incoming.present||saved!==null;
- // Retain an explicit malformed URL until the user edits the field. A reload
- // with disabled storage must not restore some older invitation instead.
+ // Canonicalize invalid/ambiguous invitations to an explicit empty sponsor.
+ // Otherwise the legacy controller could pick the first conflicting alias.
  let invalidLink=incoming.present&&!incoming.valid;
  let field=null;
  const decorated=new WeakMap();
  const syncUrl=()=>{
-  if(invalidLink)return;
   try{
    const next=referralUrl(win.location.href,value,{cleared:hasDraft&&!value});
    if(next!==win.location.href)win.history.replaceState(win.history.state,'',next);
@@ -68,6 +67,7 @@ export function installReferralContext(win,{now=()=>Date.now()}={}){
   if(!next){field=null;return;}
   if(next===field&&!force)return;
   field=next;
+  field.setCustomValidity?.(invalidLink&&!field.disabled?'Invalid invitation. Enter one valid sponsor address.':'');
   // Never replace the registered member's on-chain inviter or a live nonempty
   // edit. Restore a draft only into an empty, enabled field.
   if(!field.disabled&&!field.value&&value)field.value=value;
@@ -77,6 +77,7 @@ export function installReferralContext(win,{now=()=>Date.now()}={}){
   const raw=e.target.value.trim();
   value=address(raw)?raw:'';
   invalidLink=false;hasDraft=true;
+  e.target.setCustomValidity?.('');
   remember();
  };
  const focus=e=>{if(e.target===input())bind(true);};
