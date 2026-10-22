@@ -52,6 +52,28 @@ test('a verified hint resolves the matching request without any historical state
  assert(!f.calls.some(([kind])=>kind==='history'||kind==='logs'));
 });
 
+test('a remembered cancellation hash recovers an unknown request when archive state and logs are unavailable',async()=>{
+ const f=fixture();f.tracker.last=()=>hash;
+ const result=await recoverPending(f.tracker,f.provider,address,56);
+ assert.equal(result.hash,hash);assert.equal(f.tracker.read(),null);
+ assert.deepEqual(f.writes,[['remember',hash],['clear']]);
+ assert(!f.calls.some(([kind])=>kind==='history'||kind==='logs'));
+});
+
+test('an old remembered hash never releases a different pending nonce',async()=>{
+ const f=fixture();f.tracker.last=()=>hash;f.tx.nonce=2;
+ await assert.rejects(recoverPending(f.tracker,f.provider,address,56),/missing trie node/);
+ assert.equal(f.tracker.read(),'unknown:3');assert.deepEqual(f.writes,[]);
+});
+
+test('the remembered hash has priority over the bounded external hint list',async()=>{
+ const f=fixture();f.tracker.last=()=>hash;
+ const other='0x'+'c'.repeat(64);
+ f.provider.getTransaction=async value=>{f.calls.push(['transaction',value]);return value===hash?f.tx:null;};
+ assert.equal((await recoverPending(f.tracker,f.provider,address,56,{candidateHashes:Array(16).fill(other)})).hash,hash);
+ assert.equal(f.calls.find(([kind])=>kind==='transaction')[1],hash);
+});
+
 test('hint cannot unlock another sender, nonce, chain, transaction or noncanonical receipt',async()=>{
  for(const mode of ['sender','nonce','chain','hash','pending','young','receipt-hash','receipt-block','tx-block','status','reorg','network-change']){
   const f=fixture();

@@ -16,7 +16,7 @@ function fixture({record=hash,recoverPending=async()=>null,rpc={}}={}){
  const tracker=transactionState(localStorage,56,account);
  if(record?.startsWith('unknown:'))tracker.saveUnknown(Number(record.slice(8)));
  else if(record)tracker.save(record);
- const monitors=[],shown=[],statuses=[],nodes={'unknown-send-form':{hidden:false},'find-transaction-hash':{},'hash-lookup-result':{textContent:''}};
+ const monitors=[],shown=[],statuses=[],nodes={'unknown-send-form':{hidden:false},'retry-pending-check':{},'find-transaction-hash':{},'hash-lookup-result':{textContent:''}};
  let refreshed=0;
  const context={pendingWatch:null,busy:false,connecting:false,address:account,signer:{},
   walletProvider:{request(){assert.fail('background verification must never invoke a wallet');}},
@@ -53,6 +53,15 @@ test('unknown records remain protected when no verified transaction is recovered
  const monitor=f.start();assert.equal(monitor.options.maxAttempts,3);
  assert.equal(await monitor.options.check(),false);assert.equal(calls,1);
  assert.equal(f.tracker.read(),'unknown:3');assert.equal(f.shown.length,0);
+});
+
+test('the background recovery guard exposes a remembered hash only for its current wallet session',async()=>{
+ let guarded;
+ const f=fixture({record:'unknown:3',recoverPending:async value=>{guarded=value;assert.equal(value.last(),hash);return null;}});
+ f.tracker.remember(hash);const monitor=f.start();
+ assert.equal(await monitor.options.check(),false);
+ f.context.walletProvider={};
+ assert.equal(guarded.last(),null);assert.equal(f.tracker.read(),'unknown:3');
 });
 
 test('read failures preserve the unknown record for the bounded scheduler to retry',async()=>{
@@ -120,6 +129,21 @@ test('exhausted verification reports that it stopped without releasing the recor
  monitor.options.onExhausted();assert.equal(f.tracker.read(),'unknown:3');
  assert.match(f.statuses.at(-1).value,/stopped without a confirmed result/);assert.equal(f.statuses.at(-1).error,true);
  const count=f.statuses.length;f.context.stopPendingChecks();monitor.options.onExhausted();assert.equal(f.statuses.length,count);
+});
+
+test('the visible retry action restarts only bounded read-only verification',()=>{
+ const f=fixture({record:'unknown:3'}),old=f.start();
+ old.options.onExhausted();f.nodes['retry-pending-check'].onclick();
+ assert.equal(old.stopped,true);assert.equal(f.monitors.length,2);
+ assert.equal(f.monitors[1].started,true);assert.equal(f.monitors[1].options.maxAttempts,3);
+ assert.equal(f.tracker.read(),'unknown:3');assert.match(f.statuses.at(-1).value,/No transaction is being sent/);
+});
+
+test('retry never starts a read job during another action or after disconnect',()=>{
+ for(const change of [{busy:true},{connecting:true},{address:null},{signer:null}]){
+  const f=fixture({record:'unknown:3'});Object.assign(f.context,change);
+  f.nodes['retry-pending-check'].onclick();assert.equal(f.monitors.length,0);assert.equal(f.tracker.read(),'unknown:3');
+ }
 });
 
 test('manual hash lookup cannot clear or display an old session after account, signer or provider changes',async()=>{

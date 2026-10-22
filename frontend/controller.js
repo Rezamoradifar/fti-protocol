@@ -105,7 +105,7 @@ function startPendingChecks(){
  const record=tracker.read();if(!record)return;
  const isCurrent=()=>pendingWatch===monitor&&address===originalAddress&&signer===originalSigner&&walletProvider===originalWallet&&!busy&&!connecting;
  const sameRecord=()=>isCurrent()&&tracker.read()===record;
- const guarded={read:()=>sameRecord()?record:null,remember:hash=>{if(sameRecord())tracker.remember(hash);},clear:()=>{if(sameRecord())tracker.clear();}};
+ const guarded={read:()=>sameRecord()?record:null,last:()=>sameRecord()?tracker.last():null,remember:hash=>{if(sameRecord())tracker.remember(hash);},clear:()=>{if(sameRecord())tracker.clear();}};
  const monitor=pendingMonitor({document,isCurrent,interval:record.startsWith('unknown:')?20000:15000,maxAttempts:record.startsWith('unknown:')?3:8,onExhausted:()=>{
   if(!sameRecord())return;
   status(t('Automatic verification stopped without a confirmed result. The previous request is still recorded. Use transaction verification to retry.','بررسی خودکار بدون نتیجهٔ قطعی متوقف شد. درخواست قبلی حفظ شده است؛ از بخش بررسی تراکنش دوباره تلاش کن.'),true);
@@ -129,6 +129,11 @@ function startPendingChecks(){
   return true;
  }});pendingWatch=monitor;monitor.start();
 }
+$('#retry-pending-check').onclick=()=>{
+ if(busy||connecting||!address||!signer)return;
+ status(t('Checking the previous request again. No transaction is being sent.','در حال بررسی دوبارهٔ درخواست قبلی؛ تراکنشی ارسال نمی‌شود.'));
+ startPendingChecks();
+};
 function syncActions(){
  $('#unknown-send-form').querySelectorAll('button').forEach(button=>button.disabled=busy||!signer);
  $('#unknown-send-form').elements.hash.disabled=busy;
@@ -300,7 +305,7 @@ $('#find-transaction-hash').onclick=async()=>{
   const tracker=transactionState(localStorage,cfg.chainId,originalAddress),pending=tracker.read();
   if(pending?.startsWith('unknown:')){
    const sameRecord=()=>current()&&tracker.read()===pending;
-   const guarded={read:()=>sameRecord()?pending:null,remember:hash=>{if(sameRecord())tracker.remember(hash);},clear:()=>{if(sameRecord())tracker.clear();}};
+   const guarded={read:()=>sameRecord()?pending:null,last:()=>sameRecord()?tracker.last():null,remember:hash=>{if(sameRecord())tracker.remember(hash);},clear:()=>{if(sameRecord())tracker.clear();}};
    const recovered=await recoverPending(guarded,rpc,originalAddress,cfg.chainId,recoveryFor(originalAddress));
    if(!current())return;
    if(!recovered){hashView.hide();result.textContent=t('No confirmed hash was recovered. The request may still be pending, may not have been sent, or the RPC may lack its history. The previous request remains protected.','هش تأییدشدهٔ این درخواست پیدا نشد؛ ممکن است درخواست در انتظار باشد، ارسال نشده باشد یا RPC سابقه‌اش را نداشته باشد. قفل درخواست قبلی حفظ شده است.');return;}
@@ -344,7 +349,7 @@ $('#cancel-unknown').onclick=async()=>{
   catch(error){
    if(error.code!=='FTI_PREVIOUS_NONCE_CONFIRMED')throw error;
    const record=tracker.read(),current=()=>address===originalAddress&&signer===originalSigner&&walletProvider===originalWallet&&tracker.read()===record;
-   const guarded={read:()=>current()?record:null,remember:hash=>{if(current())tracker.remember(hash);},clear:()=>{if(current())tracker.clear();}};
+   const guarded={read:()=>current()?record:null,last:()=>current()?tracker.last():null,remember:hash=>{if(current())tracker.remember(hash);},clear:()=>{if(current())tracker.clear();}};
    status(t('The recorded nonce has already been used. Looking for a verified transaction…','شمارهٔ درخواست ثبت‌شده مصرف شده؛ در حال جست‌وجوی تراکنش تأییدشده…'));
    const recovered=await recoverPending(guarded,rpc,originalAddress,cfg.chainId,recoveryFor(originalAddress)).catch(()=>null);
    if(address!==originalAddress||signer!==originalSigner||walletProvider!==originalWallet)return;
