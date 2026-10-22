@@ -25,6 +25,18 @@ depth. Session guards expose that hint only while the same wallet, signer,
 provider and pending record remain current. A visible no-fee retry action
 restarts the bounded read-only monitor after it exhausts its budget.
 
+Extended release testing also found that a failed public dashboard read followed
+by a failed minimal contract read revoked an already authorized wallet session.
+The controller now retains the verified wallet and its account/network observers,
+shows unavailable contract data, and keeps membership purchases disabled until a
+fresh verified snapshot is available. Account changes during either read still
+discard the stale session. Unknown membership is no longer labelled unregistered.
+
+The root lockfile updates only `follow-redirects` from 1.16.0 to 1.16.1. A clean
+production-only install has zero audit findings and excludes Ganache and solc.
+The browser WalletConnect SDK is byte-for-byte unchanged. This UI installer does
+not update the running server's installed dependencies.
+
 This does not establish that an unbroadcast or hashless legacy request is safe to
 forget. Such requests remain recorded until a matching receipt is verified or
 the user explicitly completes the existing wallet cancellation flow. Neither a
@@ -51,16 +63,28 @@ release fingerprint modification is performed by this installer.
 
 - The remembered-hash and controller-guard regressions failed on the baseline
   and pass after the fix.
-- 109 Node results pass across recovery hints, pending recovery/controller,
+- The initial 109 Node results pass across recovery hints, pending recovery/controller,
   transaction state, cancellation preparation, pending monitor, membership
   purchase flow, direct wallet send, wallet review and transaction hash tests.
 - Production workspace build passes after installing both root and landing
   dependencies. The landing dependencies supply the existing local fonts.
 - 15 installer filesystem/rollback tests pass. Python/JS syntax checks pass.
+- Extended Python validation passed 575 tests across 34 files. The historical
+  global frontend installer was tested against its own pinned revision, as its
+  existing workflow requires, rather than current hashed landing assets.
+- Browser copy assertions now check the current localized membership unit price,
+  currency and quantity input instead of a paragraph removed by the compact form.
+  Wallet-session fixtures explicitly simulate unavailable contract reads and
+  assert that the retained wallet cannot register without verified data.
+- The V3 API transfer test waits for the canonical API snapshot to include the
+  confirmed transfer block, then checks the exact 9.7 FTI recipient balance,
+  unlocked amount, total supply and reserve. A coherent cached pre-transfer
+  snapshot must not be mistaken for the post-transfer result.
+- The pull request runs the full protocol suite, Chromium/WebKit flows,
+  preparation rehearsal, hourly/monthly pools and dependency security checks.
+  Their final results must be reviewed for the exact candidate commit.
 - No VPS login, installation, physical SafePal/MetaMask interaction, live
   registration signature or financial transaction was performed in this task.
-- The earlier CI dependency audit finding for `follow-redirects` is outside this
-  narrow frontend fix. A successful UI build does not resolve that finding.
 
 After installation, reconnect the same wallet and use **Check previous request
 again · no fee**. If no matching hash is available, use the wallet's actual

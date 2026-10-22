@@ -442,10 +442,19 @@ async function connect({silent=false}={}){
    try{const candidates=await readRecoveryHints({address:nextAddress,chainId:cfg.chainId});if(current()&&signer===nextSigner&&address===nextAddress)recoveredCandidates.set(nextAddress.toLowerCase(),candidates);}catch{/* Missing or invalid candidates never release the recorded request. */}
    if(!current()||signer!==nextSigner||address!==nextAddress)return;
   }
-  let partialData=false;
-  try{await refresh();}catch{if(!current()||signer!==nextSigner||address!==nextAddress)return;await (v3Model&&(surface==='token'||location.hash==='#trade')?refreshTokenState():refreshMembershipState());partialData=true;}
+  let partialData=false,dataError;
+  try{await refresh();}catch{
+   if(!current()||signer!==nextSigner||address!==nextAddress)return;
+   try{await (v3Model&&(surface==='token'||location.hash==='#trade')?refreshTokenState():refreshMembershipState());partialData=true;}
+   catch(error){dataError=error;}
+  }
   if(!current()||signer!==nextSigner||address!==nextAddress)return;
-  if(saved?.read()?.startsWith('unknown:')){
+  if(dataError){
+   // Authorization succeeded. A public read outage must not revoke that wallet
+   // or enable a purchase without a fresh verified membership/token snapshot.
+   renderWallet();
+   status(t('Wallet connected. Contract data is unavailable. Refresh before a transaction.','ولت متصل است؛ اطلاعات قرارداد در دسترس نیست. پیش از تراکنش، اطلاعات را تازه کنید.'),true);
+  }else if(saved?.read()?.startsWith('unknown:')){
    status(t('Checking the previous request automatically.','در حال بررسی خودکار درخواست قبلی…'));
   }else status(partialData?t('Wallet connected. Purchase data is ready.','ولت متصل شد؛ اطلاعات لازم خرید آماده است.'):'Wallet connected. Contract data loaded.');
  }catch(error){if(current()){detachWallet();clearWallet();status(error.code==='FTI_WALLET_AUTHORIZATION_TIMEOUT'?t('The wallet has not answered the connection request yet. Check its connection window, then press Connect to continue waiting.','ولت هنوز به درخواست اتصال پاسخ نداده است. پنجرهٔ اتصال را داخل ولت بررسی کن؛ با زدن اتصال، همان درخواست پیگیری می‌شود.'):purchaseError('CONNECT',error),true);}}finally{connecting=false;if(!address)text('connect-label','Connect wallet');syncActions();startPendingChecks();}
@@ -521,14 +530,14 @@ function renderWallet(){
  const w=wallet();const locked=w?BigInt(w.ftiBalance)-BigInt(w.unlocked):0n;
  if(fundedModel)text('wallet-credits',w?fmt(w.creditL)+' / '+fmt(w.creditR):'—');
  const count=Number(w?.lockCount||0);$('#lock-pagination').hidden=cfg.lockVersion!==2||count<=64;$('#locks-prev').disabled=busy||lockOffset===0;$('#locks-next').disabled=busy||lockOffset+64>=count;text('lock-page-label',count?`${lockOffset+1}–${Math.min(lockOffset+64,count)} of ${count}`:'No active locks');
- for(const[id,value]of Object.entries({claimable:w?fmt(w.claimable):'—','reward-claimable':w?fmt(w.claimable):'—',rank:w?.exists?ranks[w.rank]:address?'Not registered':'Not connected','wallet-address':address||'No wallet connected','usd-balance':w?fmt(w.usdBalance):'—','fti-balance':w?fmt(w.ftiBalance,5):'—',unlocked:w?fmt(w.unlocked,5):'—',allowance:w?fmt(w.remaining):'—',units:w?integer(w.units):'—','account-units':w?integer(w.units):'—',lifetime:w?`${integer(w.lifetimeL)} / ${integer(w.lifetimeR)}`:'—',carry:w?`${integer(w.carryL)} / ${integer(w.carryR)}`:'—','auto-pending':w?fmt(w.autoPending):'—','trade-balance':w?fmt(w.ftiBalance,5):'—','trade-unlocked':w?fmt(w.unlocked,5):'—','trade-locked':w?fmt(locked,5):'—','locked-summary':w?fmt(locked,5)+' FTI locked':'Connect to view token locks','buy-available':w?`Balance: ${fmt(w.usdBalance)} USD · Allowance: ${fmt(w.remaining)} USD`:'Connect to view your balance and allowance.','sell-available':w?'Available: '+fmt(w.unlocked,6)+' FTI':'Available: — FTI','membership-status':w?.exists?'Registered member':address?'Not registered':'Not connected','auto-status':w?.exists?(w.autoEnabled?'Enabled':'Disabled'):'Not connected'}))text(id,value);
+ for(const[id,value]of Object.entries({claimable:w?fmt(w.claimable):'—','reward-claimable':w?fmt(w.claimable):'—',rank:w?.exists?ranks[w.rank]:!address?'Not connected':w?'Not registered':'Waiting for contract data','wallet-address':address||'No wallet connected','usd-balance':w?fmt(w.usdBalance):'—','fti-balance':w?fmt(w.ftiBalance,5):'—',unlocked:w?fmt(w.unlocked,5):'—',allowance:w?fmt(w.remaining):'—',units:w?integer(w.units):'—','account-units':w?integer(w.units):'—',lifetime:w?`${integer(w.lifetimeL)} / ${integer(w.lifetimeR)}`:'—',carry:w?`${integer(w.carryL)} / ${integer(w.carryR)}`:'—','auto-pending':w?fmt(w.autoPending):'—','trade-balance':w?fmt(w.ftiBalance,5):'—','trade-unlocked':w?fmt(w.unlocked,5):'—','trade-locked':w?fmt(locked,5):'—','locked-summary':w?fmt(locked,5)+' FTI locked':'Connect to view token locks','buy-available':w?`Balance: ${fmt(w.usdBalance)} USD · Allowance: ${fmt(w.remaining)} USD`:'Connect to view your balance and allowance.','sell-available':w?'Available: '+fmt(w.unlocked,6)+' FTI':'Available: — FTI','membership-status':w?.exists?'Registered member':!address?'Not connected':w?'Not registered':'Waiting for contract data','auto-status':w?.exists?(w.autoEnabled?'Enabled':'Disabled'):'Not connected'}))text(id,value);
  text('welcome-copy',w?.exists?'Your membership, tokens and rewards — connected to your wallet and read directly from the chain.':networkProfile.testAssets?'Connect a wallet, get test assets and register with a sponsor to begin.':'Connect your wallet to see your balances, manage membership and trade FTI.');
  const matched=w?(BigInt(w.lifetimeL)<BigInt(w.lifetimeR)?BigInt(w.lifetimeL):BigInt(w.lifetimeR)):0n;
  const next=thresholds[w?.rank||0];const previous=Number(w?.rank)>0?thresholds[Number(w.rank)-1]:0n;
  $('#rank-progress').value=w?.exists?(next?Math.max(0,Math.min(100,Number((matched-previous)*100n/(next-previous)))):100):0;
  text('rank-description',w?.exists?(next?'Progress is based on your weaker lifetime branch.':'You have reached the highest current rank.'):'Register with a sponsor to start your membership.');
  text('rank-points',w?.exists?integer(matched)+' lifetime points':'— lifetime points');text('rank-next',w?.exists?(next?'Next: '+integer(next):'Top rank'):'—');
- text('trade-notice',!address?'Connect a registered wallet to trade.':!w?.exists?'Register your wallet in Membership before buying FTI.':BigInt(w?.units||0)===0n?'Add at least one membership unit before buying FTI.':state?.tokenPaused?'Token trading is currently paused by the contract.':BigInt(w?.ftiBalance||0)>0n&&BigInt(w?.unlocked||0)===0n?'Your FTI is locked. Selling becomes available when a tranche reaches its wallet threshold or UTC deadline below.':'Buy, sell or transfer through your wallet. Every transaction requires your approval.');
+ text('trade-notice',!address?'Connect a registered wallet to trade.':!w?'Waiting for contract data':!w.exists?'Register your wallet in Membership before buying FTI.':BigInt(w?.units||0)===0n?'Add at least one membership unit before buying FTI.':state?.tokenPaused?'Token trading is currently paused by the contract.':BigInt(w?.ftiBalance||0)>0n&&BigInt(w?.unlocked||0)===0n?'Your FTI is locked. Selling becomes available when a tranche reaches its wallet threshold or UTC deadline below.':'Buy, sell or transfer through your wallet. Every transaction requires your approval.');
  const registered=!!w?.exists;const form=$('#register-form');form.elements.sponsor.disabled=registered;
  if(cfg.tokenContract==='FTIReserveTokenUpgradeable'){const points=settledPoints(state);text('raw-point-value',points.raw===null?'—':fmt(points.raw));text('paid-point-value',points.paid===null?'—':fmt(points.paid));text('paid-point-count',points.count===null?'—':integer(points.count));}
  if(automaticReferral)text('direct-referrals',w?.exists?integer(w.directReferrals||0):'—');

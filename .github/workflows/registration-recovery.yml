@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'frontend/controller.js'
+      - 'frontend/core-translations.js'
       - 'frontend/main.jsx'
       - 'frontend/recover-pending.js'
       - 'test/*pending*'
@@ -32,6 +33,9 @@ jobs:
           test/prepared-cancellation.test.mjs test/pending-monitor.test.mjs
           test/membership-purchase-flow.test.mjs test/prepared-wallet-send.test.mjs
           test/wallet-review.test.mjs test/transaction-hash.test.mjs
+          test/controller-safepal-connect.test.mjs test/controller-wallet-events.test.mjs
+          test/wallet-session.test.mjs test/membership-availability.test.mjs
+          test/state-reader.test.mjs
       # The installer enforces root ownership for private production backups.
       # Exercise those same checks in the isolated runner without weakening them.
       - run: sudo env PYTHONDONTWRITEBYTECODE=1 python3 test/registration-recovery-ui-install.test.py -q
