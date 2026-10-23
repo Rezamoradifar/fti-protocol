@@ -1,6 +1,7 @@
 // Share bounded read-only history work. Failed/late reads never become an empty
 // success, and a timed-out upstream call must drain before another can start.
-export function historyCache(load,{ttlMs=30000,failureTtlMs=15000,timeoutMs=18000,now=Date.now}={}){
+import {HISTORY_SERVER_TIMEOUT_MS} from '../core/history-read-policy.mjs';
+export function historyCache(load,{ttlMs=30000,failureTtlMs=15000,timeoutMs=HISTORY_SERVER_TIMEOUT_MS,now=Date.now}={}){
  if(typeof load!=='function'||typeof now!=='function'||![ttlMs,failureTtlMs,timeoutMs].every(n=>Number.isSafeInteger(n)&&n>0))throw Error('Invalid history cache configuration');
  let cached,failure,active;
  return function read(){

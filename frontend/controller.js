@@ -10,6 +10,8 @@ import {readMembershipSnapshot} from './membership-snapshot.js';
 import {readTokenSnapshot,readTokenPriceSnapshot} from './token-snapshot.js';
 import {readWalletIdentity,preparationDeadline} from './wallet-preflight.js';
 import {readJson,initializeReadSession} from './read-json.js';
+import {createActivityEvents} from './activity-events.js';
+import {activityText} from './activity-copy.js';
 import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,preparedWalletSend} from './transaction-state.js';
 import {membershipBlock,walletError} from './membership-availability.js';
 import {deploymentConfiguration} from './deployment.js';
@@ -487,7 +489,7 @@ function navigate(page,focus=false){
  if(location.hash!=='#'+page)history.replaceState(null,'','#'+page);
  if(focus){$('#page-title').focus({preventScroll:true});$('#main').scrollIntoView({behavior:'instant'});}
  if(v3Model&&['overview','token-home','trade'].includes(page))void refreshTokenPrice().catch(()=>{});
- if(page==='activity')loadEvents();if(page==='admin')loadProposals();
+ if(page==='activity')loadEvents();else cancelEvents();if(page==='admin')loadProposals();
  if(page==='network'&&(new URLSearchParams(location.search).get('view')==='tree'||new URLSearchParams(location.search).has('root')))requestAnimationFrame(()=>{const details=$('#network-explorer-details');if(details)details.open=true;$('#network-explorer')?.scrollIntoView({behavior:'smooth',block:'start'});});
 }
 document.querySelectorAll('[data-page],[data-go]').forEach(button=>button.onclick=()=>navigate(button.dataset.page||button.dataset.go,true));
@@ -632,14 +634,25 @@ if(v3Model){
 $('#transfer-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const to=e.target.elements.to.value.trim(),amount=parseEther(e.target.elements.amount.value);if(!isAddress(to)||to===ZeroAddress)throw Error('Enter a valid recipient address.');if(amount<=0n||amount>BigInt(wallet().unlocked))throw Error('Enter an amount within your unlocked token balance.');if(to.toLowerCase()===address.toLowerCase())throw Error('Choose a different recipient wallet.');if(!v3Model&&await read.binary.unitsOf(to)===0n)throw Error('The recipient must own at least one membership unit.');await send(()=>write('token').transfer(to,amount));});};
 for(const[id,method,arg]of [['volume','processVolume',50],['close-epoch','beginEpochClose'],['process-epoch','processEpoch',50],['process-month','processBuilderMonth',50]])$('#'+id).onclick=()=>transaction(()=>send(()=>write('binary')[method](...(arg?[arg]:[]))));
 document.querySelectorAll('[data-time]').forEach(button=>button.onclick=()=>transaction(async()=>{const response=await fetch('/api/dev/time',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seconds:Number(button.dataset.time)})});if(!response.ok)throw Error((await response.json()).error);}));
-let eventsLoading=false;
-async function loadEvents(){
- if(eventsLoading)return;eventsLoading=true;$('#refresh-events').disabled=true;text('events','Loading recent on-chain events…');
- try{const rows=await json('/api/events');if(!Array.isArray(rows))throw Error('Events are unavailable.');$('#events').replaceChildren();if(!rows.length)text('events','No events in the recent block range.');
- for(const row of rows){const node=document.createElement('div');node.className='event';const title=document.createElement('strong');title.textContent=row.name+' · Block '+integer(row.block);const pre=document.createElement('pre');pre.textContent=row.args.map(arg=>arg.name+': '+arg.value).join('\n');node.append(title,pre);if(explorer){const link=document.createElement('a');link.href=explorer+'/tx/'+row.hash;link.target='_blank';link.rel='noreferrer';link.textContent='View transaction ↗';node.append(link);}$('#events').append(node);}}
- catch(error){text('events','Recent events could not be loaded. Your balances remain available. Use Refresh events to retry.');status(reason(error),true);}
- finally{eventsLoading=false;$('#refresh-events').disabled=false;}
-}
+const eventsNotice=document.createElement('p');
+eventsNotice.id='events-status';eventsNotice.setAttribute('role','status');eventsNotice.setAttribute('aria-live','polite');
+$('#events').before(eventsNotice);
+const activityEvents=createActivityEvents({
+ read:json,isActive:()=>!$('#activity').hidden,
+ loading:value=>{$('#refresh-events').disabled=value;$('#events').setAttribute('aria-busy',String(value));},
+ notice:state=>{eventsNotice.dataset.state=state;eventsNotice.textContent=activityText(state);$('#events').dataset.state=['ready','empty'].includes(state)?'verified':['stale','refreshing'].includes(state)?'stale':'unavailable';},
+ render:rows=>{
+  const fragment=document.createDocumentFragment();
+  for(const row of rows){
+   if(!row||typeof row.name!=='string'||!Array.isArray(row.args))throw Error('Events are unavailable.');
+   const node=document.createElement('div');node.className='event';const title=document.createElement('strong');title.textContent=row.name+' · Block '+integer(row.block);const pre=document.createElement('pre');pre.textContent=row.args.map(arg=>arg.name+': '+arg.value).join('\n');node.append(title,pre);
+   if(explorer){const link=document.createElement('a');link.href=explorer+'/tx/'+row.hash;link.target='_blank';link.rel='noreferrer';link.textContent=t('View transaction ↗');node.append(link);}fragment.append(node);
+  }
+  $('#events').replaceChildren(fragment);
+ }
+});
+function loadEvents(){return activityEvents.load();}
+function cancelEvents(){activityEvents.cancel();}
 $('#refresh-events').onclick=loadEvents;
 for(const[key,name]of Object.entries(names)){const el=document.createElement('div');el.textContent=name;const code=document.createElement('code');code.textContent=cfg[key];if(explorer){const a=document.createElement('a');a.href=explorer+'/address/'+cfg[key];a.target='_blank';a.rel='noreferrer';a.append(code);el.append(a);}else el.append(code);$('#contracts').append(el);}
 $('#begin-month').onclick=()=>transaction(async()=>{

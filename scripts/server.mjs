@@ -4,6 +4,7 @@ import http from 'node:http';
 import {rootForHost,PUBLIC_ROUTES} from './site-routing.mjs';
 import {createStateReader} from './state-reader.mjs';
 import {historyCache} from './history-cache.mjs';
+import {HISTORY_SERVER_TIMEOUT_MS} from '../core/history-read-policy.mjs';
 import {createEventHistoryReader,PUBLIC_EVENT_RPC} from './event-history-source.mjs';
 import {networkPlacementIndexer,detectGenesisPlacementLayout} from './referral-placement-index.mjs';
 import {readHourlyCapFlushVersion} from '../core/hourly-cap-policy.mjs';
@@ -45,6 +46,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  publicConfig.poolDistributionVersion=await readPoolDistributionVersion(contracts.binary);
  publicConfig.stateReaderVersion=1;
  publicConfig.eventHistoryVersion=1;
+ publicConfig.eventHistoryTimeoutMs=HISTORY_SERVER_TIMEOUT_MS;
  const readState=createStateReader({provider,contracts,cfg,publicConfig});
  let fallbackProvider;
  if(cfg.chainId===56){const fallbackTransport=new FetchRequest(PUBLIC_EVENT_RPC);fallbackTransport.timeout=8000;fallbackProvider=new JsonRpcProvider(fallbackTransport,undefined,{cacheTimeout:-1,batchMaxCount:1});}
@@ -104,6 +106,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
    catch{res.setHeader('Retry-After','15');return json(res,503,{error:'Market history unavailable; no fabricated volume.'});}
   }
   if(url.pathname==='/api/events'){
+   res.setHeader('X-FTI-Read-Timeout-Ms',String(HISTORY_SERVER_TIMEOUT_MS));
    try{return json(res,200,await eventsRead());}
    catch{res.setHeader('Retry-After','15');return json(res,503,{error:'Activity RPC unavailable. Retry later; no events have been fabricated.'});}
   }

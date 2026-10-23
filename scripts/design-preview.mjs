@@ -2,7 +2,7 @@
 import http from 'node:http';import fs from 'node:fs';import path from 'node:path';
 const args=process.argv.slice(2),value=(name,fallback)=>args[args.indexOf(name)+1]||fallback;
 const port=Number(value('--port','4173')),host=value('--host','0.0.0.0');
-const root=process.cwd(),types={'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml'};
+const root=process.cwd(),types={'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.webp':'image/webp','.woff2':'font/woff2'};
 http.createServer(async(req,res)=>{try{const url=new URL(req.url,'http://terminal.local');
  if(url.pathname.startsWith('/abi/')){const name=url.pathname.slice(5);if(!/^[A-Za-z0-9]+$/.test(name))throw Error('Invalid ABI');res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify(JSON.parse(fs.readFileSync('artifacts/'+name+'.json')).abi));}
  if(url.pathname.startsWith('/api/')||url.pathname==='/rpc'){
@@ -10,7 +10,7 @@ http.createServer(async(req,res)=>{try{const url=new URL(req.url,'http://termina
   const respond=value=>{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(value));};
   if(url.pathname==='/api/config')return respond(cfg);
   if(url.pathname==='/api/state')return respond(state);
-  if(url.pathname==='/api/events')return respond({events:[]});
+  if(url.pathname==='/api/events')return respond([]);
   if(url.pathname==='/rpc'){
    let body='';for await(const part of req)body+=part;
    const calls=JSON.parse(fs.readFileSync('preview/calls.json'));
