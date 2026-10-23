@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "language": "en",
+  "timezone": "Asia/Tehran",
+  "suggested_channel_title": "FTI Protocol | Official",
+  "suggested_channel_username": "FTIProtocol_Official",
+  "channel_url": "https://t.me/FTIProtocol_Official",
+  "channel_id": -1003941034086,
+  "bot_username": "FTIProtocol_OfficialBot",
+  "suggested_channel_description": "Official FTI Protocol announcements, platform updates and user guidance. Explore the platform and applications at https://ftiprotocol.com/",
+  "channel_discovered": true,
+  "posting_permission_verified": true,
+  "posts": [
+    {
+      "id": "fti-launch-01",
+      "title": "Welcome to FTI Protocol",
+      "text": "Welcome to FTI Protocol\n\nThe official channel for project announcements, platform updates and guidance across the FTI ecosystem.\n\nWebsite: https://ftiprotocol.com/\nMember application: https://ftiprotocol.com/app/\nToken application: https://ftiprotocol.com/token/\n\nFTI operates on BNB Smart Chain mainnet. Review the details in the application and your wallet before authorizing any operation.\n\nBegin with the platform links above and follow this channel for official updates.\n\nFTI Protocol | Official\n@FTIProtocol_Official\n\n#FTIProtocol #OfficialAnnouncements #BNBSmartChain",
+      "category": "official-announcement",
+      "visual_theme": "brand-introduction"
+    },
+    {
+      "id": "fti-launch-02",
+      "title": "Explore the FTI Ecosystem",
+      "text": "Explore the FTI Ecosystem\n\nFTI connects membership, a binary structure and a reserve-based token model.\n\nThe member application provides account information and management features. The token application presents token information and related operations.\n\nExplore the platform and choose the application relevant to your needs:\nhttps://ftiprotocol.com/\n\nFTI Protocol | Official\n@FTIProtocol_Official\n\n#FTIProtocol #FTIEcosystem #PlatformGuide",
+      "category": "platform-overview",
+      "visual_theme": "ecosystem-overview"
+    },
+    {
+      "id": "fti-launch-03",
+      "title": "Connect Your Wallet",
+      "text": "Connect Your Wallet\n\nOpen the member application:\nhttps://ftiprotocol.com/app/\n\n1. Select the wallet connection option.\n2. Choose a connection method supported by your wallet.\n3. Confirm BNB Smart Chain mainnet, chain ID 56.\n\nWallet connection, registration and transaction approval are separate steps. Review each subsequent request before approving it.\n\nFTI Protocol | Official\n@FTIProtocol_Official\n\n#FTIProtocol #WalletGuide #BNBSmartChain",
+      "category": "user-guide",
+      "visual_theme": "wallet-connection"
+    },
+    {
+      "id": "fti-launch-04",
+      "title": "Check Your Referral Details",
+      "text": "Check Your Referral Details\n\nIf you received an FTI referral link, use it to begin registration.\n\nBefore confirming, compare the referrer address shown in the application with the address provided to you. Resolve any discrepancy before proceeding.\n\nIf you need assistance, retain the referral link and exact error message so the issue can be reviewed.\n\nFTI Protocol | Official\n@FTIProtocol_Official\n\n#FTIProtocol #RegistrationGuide #ReferralGuide",
+      "category": "user-guide",
+      "visual_theme": "referral-verification"
+    },
+    {
+      "id": "fti-launch-05",
+      "title": "Understand the Reserve Model",
+      "text": "Understand the Reserve Model\n\nReserves and token supply contribute to the calculation of the FTI token’s internal price.\n\nThis calculation does not guarantee returns or a fixed token price. Review current token information and the terms shown for each operation.\n\nRead the details in the token application before proceeding:\nhttps://ftiprotocol.com/token/\n\nFTI Protocol | Official\n@FTIProtocol_Official\n\n#FTIProtocol #ReserveModel #TokenEducation",
+      "category": "token-education",
+      "visual_theme": "reserve-model"
+    },
+    {
+      "id": "fti-launch-06",
+      "title": "Verify the FTI Token",
+      "text": "Verify the FTI Token\n\nA token name or symbol alone does not establish its identity. Check the network and contract address together.\n\nNetwork: BNB Smart Chain mainnet\nFTI token contract:\n0x43755B1E813b2d41F669ea08bcf859De07195eA1\n\nCompare this address with the current information in the token application:\nhttps://ftiprotocol.com/token/\n\nFTI Protocol | Official\n@FTIProtocol_Official\n\n#FTIProtocol #TokenContract #BNBSmartChain",
+      "category": "token-education",
+      "visual_theme": "contract-verification"
+    },
+    {
+      "id": "fti-launch-07",
+      "title": "Review Your Activity",
+      "text": "Review Your Activity\n\nThe activity history section shows the status of its data request and displays a notice if new information cannot be retrieved.\n\nWhen previously retrieved information is shown, review the accompanying freshness notice.\n\nCheck your wallet and the network explorer to confirm a transaction’s final status.\n\nFTI Protocol | Official\n@FTIProtocol_Official\n\n#FTIProtocol #ActivityHistory #MemberApplication",
+      "category": "user-guide",
+      "visual_theme": "activity-history"
+    },
+    {
+      "id": "fti-launch-08",
+      "title": "Member Application Update",
+      "text": "Member Application Update\n\nThe FTI member application has been updated with clearer loading states, retry controls and improved activity history handling.\n\nThe release also includes a more compact membership card and updated light and dark theme controls.\n\nOpen the application to review the updated experience:\nhttps://ftiprotocol.com/app/\n\nFTI Protocol | Official\n@FTIProtocol_Official\n\n#FTIProtocol #PlatformUpdate #MemberApplication",
+      "category": "product-update",
+      "visual_theme": "application-update"
+    },
+    {
+      "id": "fti-launch-09",
+      "title": "Request Technical Assistance",
+      "text": "Request Technical Assistance\n\nHelp support review your issue by including:\n\n• The page and action involved\n• The exact error message\n• Your device and browser\n• The approximate time of the incident\n\nInclude a screenshot if useful, with confidential information removed. Never disclose your wallet recovery phrase or private key.\n\nSend your report to the contact address listed on the website:\nSupport@FTIProtocol.com\n\nFTI Protocol | Official\n@FTIProtocol_Official\n\n#FTIProtocol #TechnicalSupport #WalletSecurity",
+      "category": "support",
+      "visual_theme": "technical-assistance"
+    },
+    {
+      "id": "fti-launch-10",
+      "title": "Getting Started",
+      "text": "Getting Started\n\nIs a wallet required to view public information?\nPublic information in the member and token applications can be viewed without connecting a wallet.\n\nDoes wallet connection complete registration?\nConnection, registration and transaction approval are separate steps.\n\nBegin with the member application:\nhttps://ftiprotocol.com/app/\n\nFor the main platform links, refer to this channel’s introductory post.\n\nFTI Protocol | Official\n@FTIProtocol_Official\n\n#FTIProtocol #GettingStarted #PlatformGuide",
+      "category": "user-guide",
+      "visual_theme": "getting-started"
+    }
+  ],
+  "bot_id": 8961425436,
+  "published_posts": {
+    "fti-launch-01": {
+      "status": "sent",
+      "channel_id": -1003941034086,
+      "bot_id": 8961425436,
+      "message_id": 4,
+      "text_sha256": "92ab1339fd2b8a59df99239ef6f0cf26797df34a793b9e4f9abbeab83633d645",
+      "caption_sha256": "9e7019b18b5e2821dbe24f80649bb0e6f922b09e022e1d198907a73a8e3f3c14",
+      "asset_sha256": "46a31c5b18fa42a9723243bea6b522af33eabf557b5d0d2a0b3360ddf1907a30",
+      "sent_at": "2026-10-23T21:25:25.922769+00:00"
+    },
+    "fti-launch-03": {
+      "status": "sent",
+      "channel_id": -1003941034086,
+      "bot_id": 8961425436,
+      "message_id": 6,
+      "text_sha256": "f7acd6114771b476a9a8bb1fee382d64f30a1d8bd327551555102b6100e4f6eb",
+      "caption_sha256": "da8566a09f130274ab0d19a1420e1b68ff665613284e4540814f9f43db30aed0",
+      "asset_sha256": "ac3c5ad9c0822c727b63e749e93eb77eed325511e4259ceef53cdbe2dea5f19b",
+      "sent_at": "2026-10-23T21:25:34.914974+00:00"
+    }
+  }
+}

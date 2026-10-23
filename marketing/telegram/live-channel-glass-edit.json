@@ -1,0 +1,53 @@
+{
+  "bot_id": 8961425436,
+  "channel_id": -1003941034086,
+  "pinned_message_id": 4,
+  "plan_sha256": "611f60830a59dad66af30ad8fa7cd5bb8fc3b9503e79ca1ef55f865e79d7cf57",
+  "schema_version": 1,
+  "steps": {
+    "message-4": {
+      "asset_sha256": "a843038c1c91c6f03927ffa74db44864410601882ba0b1c0aa0fe27aa12bd279",
+      "buttons_verified": true,
+      "caption_sha256": "9e7019b18b5e2821dbe24f80649bb0e6f922b09e022e1d198907a73a8e3f3c14",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T21:39:53.361623+00:00",
+      "file_ids": [
+        "CgACAgQAAyEGAATq52hmAAMEatvUKMPt1ew1WgEkVEq-nNiZ_hYAAv0dAALK9-BSUNonaDzTPeI9BA"
+      ],
+      "fingerprint": "037cde9eb4a39babefe860118f6d1d765e93b8987924f96e16382b9205e74ed8",
+      "intent_at": "2026-10-23T21:39:48.031531+00:00",
+      "media_type": "animation",
+      "message_id": 4,
+      "status": "success"
+    },
+    "message-6": {
+      "asset_sha256": "57aa0f574bae0536da8eef3f0ed61c365341f0196d7d2914ac734085037ea01a",
+      "buttons_verified": true,
+      "caption_sha256": "da8566a09f130274ab0d19a1420e1b68ff665613284e4540814f9f43db30aed0",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T21:40:01.032507+00:00",
+      "file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMGatvUMAAB-MesHwAB-KbSRMW3yO350gAC7A5rG8r34FJNWo-4v5R3OgEAAwIAA3MAAz0E",
+        "AgACAgQAAyEGAATq52hmAAMGatvUMAAB-MesHwAB-KbSRMW3yO350gAC7A5rG8r34FJNWo-4v5R3OgEAAwIAA20AAz0E",
+        "AgACAgQAAyEGAATq52hmAAMGatvUMAAB-MesHwAB-KbSRMW3yO350gAC7A5rG8r34FJNWo-4v5R3OgEAAwIAA3gAAz0E",
+        "AgACAgQAAyEGAATq52hmAAMGatvUMAAB-MesHwAB-KbSRMW3yO350gAC7A5rG8r34FJNWo-4v5R3OgEAAwIAA3kAAz0E"
+      ],
+      "fingerprint": "f415b534d3a0afc90b4abc797aa3573cbc6cecded3b8002db4a7981915af9675",
+      "intent_at": "2026-10-23T21:39:53.363436+00:00",
+      "media_type": "photo",
+      "message_id": 6,
+      "status": "success"
+    },
+    "profile": {
+      "api_confirmed": true,
+      "asset_sha256": "a26d12204087fd44c55e46ca1b5c645e8d2ea17094bc7c772290bf55bbef1dc8",
+      "confirmed_at": "2026-10-23T21:39:48.028630+00:00",
+      "fingerprint": "f926f0a4eac1dec77933e4347b31bab50e89d149b9f8695c9b1be6d23f476044",
+      "intent_at": "2026-10-23T21:39:43.259382+00:00",
+      "status": "success"
+    }
+  },
+  "updated_at": "2026-10-23T21:40:04.868177+00:00",
+  "verified_at": "2026-10-23T21:40:04.868158+00:00",
+  "workflow": "glass-design-v1"
+}

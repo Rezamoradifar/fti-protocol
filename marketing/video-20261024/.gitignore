@@ -1,0 +1,12 @@
+# Reproducible render outputs; keep scripts, copy, backgrounds and source fonts.
+/frames/
+/intermediate/
+/audio/
+/*.mp4
+
+# Temporary visual/audio QA output belongs here or in intermediate/.
+/qa/
+/tmp/
+/*-qa*.json
+/*.tmp
+/*.log

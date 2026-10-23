@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="100" viewBox="0 0 100 100">
+<!-- Exact website artwork is linked unchanged; only its surrounding composition varies. -->
+<defs>
+  <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e8fff4"/><stop offset=".45" stop-color="#80dfbe"/><stop offset="1" stop-color="#168668"/></linearGradient>
+  <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b9ffe8" stop-opacity=".25"/><stop offset="1" stop-color="#1e8068" stop-opacity=".2"/></linearGradient>
+</defs>
+<g fill="none" stroke="#70cfac" stroke-width="3" stroke-linecap="round"><path d="m15 19 20 18m50-18L65 37M16 81l20-18m48 18L64 63"/></g>
+<g fill="#0d4535" stroke="url(#edge)" stroke-width="2"><circle cx="13" cy="17" r="9"/><circle cx="87" cy="17" r="9"/><circle cx="14" cy="83" r="9"/><circle cx="86" cy="83" r="9"/><circle cx="50" cy="50" r="33"/></g>
+<defs><clipPath id="mark"><circle cx="50" cy="50" r="32"/></clipPath></defs>
+<image x="18" y="18" width="64" height="64" xlink:href="../assets/site-logo-profile.png" clip-path="url(#mark)"/>
+<g fill="#d4ffeb"><circle cx="13" cy="17" r="3"/><circle cx="87" cy="17" r="3"/><circle cx="14" cy="83" r="3"/><circle cx="86" cy="83" r="3"/></g>
+</svg>
+

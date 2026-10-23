@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "purpose": "Generated scenic background plates only; exact FTI logo and all explanatory text are composited by the renderer.",
+  "plates": [
+    {
+      "file": "backgrounds/01.png",
+      "prompt": "Premium cinematic technology video background plate, landscape 16:9. FTI Protocol brand palette near black forest green #061911, pale mint #B5FFD5, quiet silver highlights. Frame left two thirds is very dark clean atmospheric negative space for later white explanatory text, without busy details. Right third contains an elegant large three dimensional translucent glass orbital ring, emerald rim light, faint reflections on a polished obsidian floor, layered depth and sparse floating illuminated dust. Center-right around x80% y48% remains an empty dark circular space to receive an exact existing logo later. Sophisticated luxury glass technology art direction, restrained and credible, high material realism, not a stock finance image. Absolutely NO text, letters, logo, numbers, watermark, money, coins, charts, or fake interface. Wide composition designed for a presentation film, safe 8% outer margins."
+    },
+    {
+      "file": "backgrounds/02.png",
+      "prompt": "Create a premium cinematic 16:9 landscape background plate for a formal technology education video. Matte near black forest and mint palette matching a glass protocol brand. Left 65% remains almost black and calm with generous clean negative space for later large white text. At right, a sculptural arrangement of translucent frosted-glass planes and slender interlocking branches, subtle emerald light along their edges, reflected in dark stone. It is abstract architecture, not a network diagram and not a data chart. Reserve a calm dark open area centered around x80% y48% for a later existing emblem overlay. Beautiful dimensional material, shallow atmospheric haze, quiet dramatic lighting, luxurious restrained design. No text, logo, numbers, watermarks, coins, arrows, printed symbols, financial metrics or visible UI."
+    },
+    {
+      "file": "backgrounds/03.png",
+      "prompt": "Premium wide landscape 16:9 background for a refined protocol presentation film. Near black forest-green studio, softly luminous mint and clear glass. Left 65% is clean dark negative space for explanatory typography. At right, an elegant glass reservoir-like circular sculpture with layered transparent rims and a soft ribbon of light contained within it; conceptual reserve theme, no literal currency and no coin imagery. Keep center-right x80% y48% mostly empty dark so a real metallic mint brand emblem can be composited cleanly. Grounded polished obsidian reflection, precise architectural lighting, understated beautiful realistic materials, no excessive glow. Absolutely no words, letters, logos, numbers, watermarks, graphs, claims, or dashboard controls."
+    },
+    {
+      "file": "backgrounds/04.png",
+      "prompt": "Cinema-grade 16:9 landscape background plate for the final chapters of a luxury technology presentation. Palette deep forest black, frosted glass, subtle silver and icy mint light. Left two thirds calm near-black negative space for large later text. At right, a minimal circular glass pavilion with several softly lit vertical glass fins around its rim, suggesting shared coordination abstractly without depicting a precise data relationship. Reserve an empty dark medallion area at x80% y48% for compositing an existing brand logo. Soft emerald horizon light, beautiful subtle glass refractions, polished dark surface, slow-film mood, refined trustworthy editorial aesthetic. No humans, text, logos, numbers, watermark, charts, money, coins or UI."
+    }
+  ]
+}

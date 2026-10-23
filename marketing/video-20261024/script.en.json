@@ -1,0 +1,341 @@
+{
+  "version": 1,
+  "language": "en",
+  "audience": "end-users",
+  "format": "16:9",
+  "target_seconds": 305,
+  "title": "FTI Protocol — A Connected Ecosystem",
+  "scenes": [
+    {
+      "id": "scene-01",
+      "title": "FTI Protocol",
+      "kicker": "THE CONNECTED ECOSYSTEM",
+      "screen_lines": [
+        "Membership. Token. Governance.",
+        "One connected user experience.",
+        "ftiprotocol.com"
+      ],
+      "narration": "FTI Protocol connects membership, a reserve-based token and governance in one ecosystem. Understand the role of each component, follow the steps for getting started and use the relevant workspace to review your account, participation and available actions.",
+      "seconds": 12,
+      "source_paths": [
+        "landing/src/main.jsx",
+        "config/telegram-launch-posts.en.json"
+      ]
+    },
+    {
+      "id": "scene-02",
+      "title": "Two Distinct Roles",
+      "kicker": "MEMBERSHIP AND TOKEN",
+      "screen_lines": [
+        "Membership records your position.",
+        "Token purchases are separate.",
+        "Choose the workspace for your task."
+      ],
+      "narration": "Membership provides a position and account within the network. The token application serves a different purpose: reviewing FTI information and preparing token operations. Purchasing membership units does not itself mint FTI into your wallet. Each component has its own role.",
+      "seconds": 15,
+      "source_paths": [
+        "contracts/FundedBinaryPlanUpgradeable.sol",
+        "frontend/main.jsx",
+        "landing/src/main.jsx"
+      ]
+    },
+    {
+      "id": "scene-03",
+      "title": "Start with Your Wallet",
+      "kicker": "YOUR ACCOUNT CONTEXT",
+      "screen_lines": [
+        "Connect the intended account.",
+        "BNB Smart Chain · Chain ID 56",
+        "Review collateral and BNB for gas."
+      ],
+      "narration": "Open the member application and connect the wallet account you intend to use. Confirm BNB Smart Chain, chain ID 56, in both the application and wallet. The getting-started view explains the selected collateral and BNB required for network fees.",
+      "seconds": 16,
+      "source_paths": [
+        "frontend/main.jsx",
+        "config/telegram-launch-posts.en.json"
+      ]
+    },
+    {
+      "id": "scene-04",
+      "title": "Join through Your Referral",
+      "kicker": "REGISTRATION",
+      "screen_lines": [
+        "Begin with your referral link.",
+        "Check the sponsor and placement.",
+        "Confirm each required wallet step."
+      ],
+      "narration": "When a referral link has been provided, use it to begin registration. Review the sponsor address and the proposed position before continuing. The application checks the purchase requirements and prepares the necessary steps; each required approval remains a separate wallet confirmation.",
+      "seconds": 16,
+      "source_paths": [
+        "frontend/main.jsx",
+        "contracts/FundedBinaryPlanUpgradeable.sol",
+        "frontend/controller.js"
+      ]
+    },
+    {
+      "id": "scene-05",
+      "title": "Choose Membership Units",
+      "kicker": "YOUR PARTICIPATION",
+      "screen_lines": [
+        "100 USDT per membership unit.",
+        "Review units and total contribution.",
+        "Additional units use the same position."
+      ],
+      "narration": "Each membership unit costs 100 USDT. Select the number of units and review the total contribution before confirming. Additional purchases increase the units associated with the same wallet position; they do not create a separate position or automatically mint FTI.",
+      "seconds": 15,
+      "source_paths": [
+        "frontend/main.jsx",
+        "contracts/FundedBinaryPlanUpgradeable.sol"
+      ]
+    },
+    {
+      "id": "scene-06",
+      "title": "Where a Unit Goes",
+      "kicker": "100 USDT · MEMBERSHIP ALLOCATION",
+      "screen_lines": [
+        "90% hourly binary pool",
+        "5% token support · 4% Builder funds",
+        "1% development"
+      ],
+      "narration": "The membership contribution is allocated across four purposes: 90% supports the hourly binary pool, 5% funds token support, 4% funds monthly Builder ranks and 1% supports development. Each allocation serves its own purpose within the connected FTI ecosystem.",
+      "seconds": 14,
+      "source_paths": [
+        "contracts/FundedBinaryPlanUpgradeable.sol",
+        "frontend/main.jsx"
+      ]
+    },
+    {
+      "id": "scene-07",
+      "title": "Understand the Two Branches",
+      "kicker": "THE BINARY NETWORK",
+      "screen_lines": [
+        "Eligible volume develops on both sides.",
+        "Balanced volume creates matched points.",
+        "Review lifetime and carried volume."
+      ],
+      "narration": "The binary network records eligible purchase volume across a left branch and a right branch. Matching the two sides creates the basis for points. The workspace separates lifetime volume from carried volume, helping you understand both progression and the current balance.",
+      "seconds": 16,
+      "source_paths": [
+        "contracts/FundedBinaryPlanUpgradeable.sol",
+        "frontend/main.jsx"
+      ]
+    },
+    {
+      "id": "scene-08",
+      "title": "Normal Hourly Point Caps",
+      "kicker": "POINT LIMITS · NOT EARNINGS",
+      "screen_lines": [
+        "Member 5 · Builder 1 10",
+        "Builder 2 15 · Builder 3 20",
+        "Builder 4 25 · Protection may reduce caps"
+      ],
+      "narration": "At the normal protection level, hourly point caps are 5 for a Member, then 10, 15, 20 and 25 for Builder ranks one through four. Protection can reduce Builder caps. These figures limit eligible points; they do not promise an income amount.",
+      "seconds": 14,
+      "source_paths": [
+        "contracts/FundedBinaryPlanUpgradeable.sol",
+        "frontend/hourly-caps.js"
+      ]
+    },
+    {
+      "id": "scene-09",
+      "title": "Caps, Matching and Carry",
+      "kicker": "HOW POINTS ARE COUNTED",
+      "screen_lines": [
+        "Rank and protection set point caps.",
+        "Excess matched volume is flushed.",
+        "Unmatched stronger-side volume carries."
+      ],
+      "narration": "The smaller branch determines how much volume is matched. A rank and protection cap then determines the eligible points for that settlement. Matched volume above the cap is flushed, while unmatched volume on the stronger side remains available as carry.",
+      "seconds": 16,
+      "source_paths": [
+        "contracts/FundedBinaryPlanUpgradeable.sol",
+        "frontend/hourly-caps.js"
+      ]
+    },
+    {
+      "id": "scene-10",
+      "title": "From Points to Allocation",
+      "kicker": "HOURLY SETTLEMENT",
+      "screen_lines": [
+        "The funded pool supports eligible points.",
+        "Allocation and payment are separate.",
+        "Review the completed settlement."
+      ],
+      "narration": "During hourly settlement, the funded pool is shared in proportion to eligible points. The amount depends on the pool and the total eligible points for that period. Allocation is followed by payment processing, so a time boundary alone does not complete a payout.",
+      "seconds": 16,
+      "source_paths": [
+        "contracts/FundedBinaryPlanUpgradeable.sol",
+        "frontend/main.jsx"
+      ]
+    },
+    {
+      "id": "scene-11",
+      "title": "Progress through Builder Ranks",
+      "kicker": "MEMBERSHIP PROGRESSION",
+      "screen_lines": [
+        "Build qualified lifetime volume.",
+        "Review progression across both branches.",
+        "Rank affects applicable limits."
+      ],
+      "narration": "Builder progression is based on qualified lifetime volume across both branches. The membership view presents the account's rank and progress. Rank is recorded through settlement and affects applicable limits; purchasing more personal units is separate from increasing the hourly point cap.",
+      "seconds": 16,
+      "source_paths": [
+        "contracts/FundedBinaryPlanUpgradeable.sol",
+        "frontend/main.jsx"
+      ]
+    },
+    {
+      "id": "scene-12",
+      "title": "Choose Your Auto-Buy Share",
+      "kicker": "OPTIONAL BUILDER PREFERENCE",
+      "screen_lines": [
+        "Default: 5% of eligible hourly rewards.",
+        "Builders can select their auto-buy share.",
+        "Monthly rank awards remain separate."
+      ],
+      "narration": "Auto-buy is optional for eligible Builders. The default allocation is 5% of their hourly binary reward, with a selectable share. Monthly rank awards are excluded. Pending auto-buy funds remain recorded and can be moved to the account's cash allocation.",
+      "seconds": 16,
+      "source_paths": [
+        "contracts/FundedBinaryPlanUpgradeable.sol",
+        "frontend/builder-view.js",
+        "frontend/controller.js"
+      ]
+    },
+    {
+      "id": "scene-13",
+      "title": "Monthly Rank Rewards",
+      "kicker": "A SEPARATE REWARD STREAM",
+      "screen_lines": [
+        "Separate funds for Builder ranks.",
+        "Eligibility is checked at month-end.",
+        "Each rank award pays once, not monthly."
+      ],
+      "narration": "Monthly Builder funds are separate from hourly rewards. An account can receive each qualified rank award only once. Eligibility uses the month-end cutoff, and unpaid funds carry forward within the same rank fund. Month-end eligibility and processing determine when an award is recorded and paid.",
+      "seconds": 16,
+      "source_paths": [
+        "contracts/FundedBinaryPlanUpgradeable.sol",
+        "frontend/builder-view.js",
+        "frontend/controller.js"
+      ]
+    },
+    {
+      "id": "scene-14",
+      "title": "The Reserve-Based Token",
+      "kicker": "UNDERSTAND THE MECHANICS",
+      "screen_lines": [
+        "Reserves and supply inform the quote.",
+        "Pricing and support reserves are distinct.",
+        "Review the current token application."
+      ],
+      "narration": "FTI uses a reserve-based internal pricing model. With a nonzero token supply, the pricing reserve and supply determine the internal quote. A separate support reserve follows its own rules. The token application provides the current information relevant to a proposed operation.",
+      "seconds": 16,
+      "source_paths": [
+        "contracts/FTIReserveTokenUpgradeable.sol",
+        "frontend/token-introduction.jsx",
+        "frontend/main.jsx"
+      ]
+    },
+    {
+      "id": "scene-15",
+      "title": "Buying FTI",
+      "kicker": "COLLATERAL TO TOKEN",
+      "screen_lines": [
+        "Enter an amount and review the quote.",
+        "Approve the required collateral.",
+        "A confirmed purchase mints FTI."
+      ],
+      "narration": "For a token purchase, enter the intended amount and review the current quote. Supported collateral enters the pricing reserve, while FTI is minted according to the amount and applicable fee mechanics. Membership eligibility and purchase allowance are checked as part of the process.",
+      "seconds": 16,
+      "source_paths": [
+        "contracts/FTIReserveTokenUpgradeable.sol",
+        "frontend/token-introduction.jsx",
+        "frontend/main.jsx"
+      ]
+    },
+    {
+      "id": "scene-16",
+      "title": "Selling and Transferring",
+      "kicker": "DISTINCT TOKEN ACTIONS",
+      "screen_lines": [
+        "Selling redeems FTI against the reserve.",
+        "Transfers show the recipient's net amount.",
+        "Fees, reserve and execution limits apply."
+      ],
+      "narration": "A sale burns the redeemed FTI and pays the quoted reserve amount after applicable fees, subject to available funds and contract limits. A transfer moves tokens to a recipient and includes a burn. Review the net amount for the specific action you select.",
+      "seconds": 16,
+      "source_paths": [
+        "contracts/FTIReserveTokenUpgradeable.sol",
+        "frontend/token-introduction.jsx",
+        "frontend/main.jsx"
+      ]
+    },
+    {
+      "id": "scene-17",
+      "title": "Review before Confirming",
+      "kicker": "INFORMED PARTICIPATION",
+      "screen_lines": [
+        "Real assets. No guaranteed returns.",
+        "Review the quote, fees and limits.",
+        "Confirm the final transaction receipt."
+      ],
+      "narration": "Participation uses real assets and does not guarantee returns or a token price. Quotes can change as contract conditions change. Review the amount, fees and execution limits, then use the confirmed transaction receipt to establish the result of an operation.",
+      "seconds": 15,
+      "source_paths": [
+        "frontend/main.jsx",
+        "landing/src/main.jsx",
+        "frontend/token-introduction.jsx"
+      ]
+    },
+    {
+      "id": "scene-18",
+      "title": "Governance with Defined Roles",
+      "kicker": "PROTOCOL DECISIONS",
+      "screen_lines": [
+        "Council proposals follow approval rules.",
+        "Some changes require a waiting period.",
+        "Authority depends on the wallet's role."
+      ],
+      "narration": "Governance is a separate part of the ecosystem. Council proposals and approved changes follow defined authorization and timing rules. Opening the governance interface does not grant authority; the connected wallet's role determines which actions it may perform within those rules.",
+      "seconds": 15,
+      "source_paths": [
+        "frontend/main.jsx",
+        "contracts/SevenGuardianCouncil.sol",
+        "contracts/Governance.sol"
+      ]
+    },
+    {
+      "id": "scene-19",
+      "title": "Keep Your Account in View",
+      "kicker": "ACTIVITY AND ASSISTANCE",
+      "screen_lines": [
+        "Track activity and settlement status.",
+        "Review data freshness and receipts.",
+        "Support@FTIProtocol.com"
+      ],
+      "narration": "Use the activity and rewards views to follow account information and settlement status. Read any freshness notice alongside the displayed data. For assistance, provide the page, action, exact message and approximate time, using the support contact published on the website.",
+      "seconds": 15,
+      "source_paths": [
+        "frontend/main.jsx",
+        "config/telegram-launch-posts.en.json",
+        "config/social-links.json"
+      ]
+    },
+    {
+      "id": "scene-20",
+      "title": "Your Next Step",
+      "kicker": "FTI PROTOCOL · OFFICIAL",
+      "screen_lines": [
+        "ftiprotocol.com",
+        "Explore the member and token applications.",
+        "@FTIProtocol_Official"
+      ],
+      "narration": "Begin at ftiprotocol.com. Explore the member workspace for account and membership information, and the token workspace for FTI operations. Follow the official Telegram channel for platform announcements and practical guidance as you become familiar with the connected FTI ecosystem.",
+      "seconds": 14,
+      "source_paths": [
+        "landing/src/main.jsx",
+        "config/social-links.json",
+        "config/telegram-launch-posts.en.json"
+      ]
+    }
+  ]
+}

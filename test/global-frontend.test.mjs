@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createRequire} from 'node:module';
+import {build} from 'esbuild';
 import {LANGUAGES,languageFrom,normalizeLanguage,withLanguage} from '../frontend/language-policy.js';
 import {coreTranslations,coreKeys} from '../frontend/core-translations.js';
 import {landingTranslations} from '../frontend/landing-translations.js';
@@ -57,11 +59,21 @@ test('untranslated detailed prose is not represented as a completed translation'
 });
 test('owner-supplied social accounts are exact and each URL matches its platform',()=>{
  assert.deepEqual(validatedSocialLinks(JSON.parse(read('config/social-links.json'))),[
-  {id:'telegram',name:'Telegram',href:'https://t.me/FTIProtocol'},
+  {id:'telegram',name:'Telegram',href:'https://t.me/FTIProtocol_Official'},
   {id:'x',name:'X',href:'https://x.com/FTIProtocol'}
  ]);
  const rows=validatedSocialLinks({telegram:'https://t.me/fti_demo',x:'https://x.com/fti_demo',instagram:'https://instagram.com/fti_demo',youtube:'https://youtube.com/@fti_demo',linkedin:'https://linkedin.com/company/fti_demo',discord:'https://discord.gg/test'});
  assert.equal(rows.length,6);assert(rows.every(r=>r.href.startsWith('https://')));
+});
+test('social cards pair the official Telegram and X links with their correct handles',async()=>{
+ const result=await build({stdin:{contents:`import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';import {SocialLinks} from './frontend/global-components.jsx';export const html=renderToStaticMarkup(React.createElement(SocialLinks));`,resolveDir:process.cwd(),loader:'jsx'},bundle:true,platform:'node',format:'cjs',write:false,define:{'process.env.NODE_ENV':'"production"'}});
+ const module={exports:{}};new Function('module','exports','require',result.outputFiles[0].text)(module,module.exports,createRequire(import.meta.url));
+ const cards=[...module.exports.html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)];
+ for(const [href,handle]of [['https://t.me/FTIProtocol_Official','@FTIProtocol_Official'],['https://x.com/FTIProtocol','@FTIProtocol']]){
+  const matches=cards.filter(([,url])=>url===href);assert.equal(matches.length,1);
+  assert.equal(matches[0][2].match(/<small[^>]*>([^<]+)<\/small>/)?.[1],handle);
+ }
+ assert(!cards.some(([,href])=>href==='https://t.me/FTIProtocol'));
 });
 for(const url of ['javascript:alert(1)','http://x.com/account','https://evil.test/x.com/account','https://x.com.evil.test/a','https://user:pass@x.com/a','https://x.com:123/a','https://x.com/','https://x.com/intent/tweet','https://x.com/\naccount'])test('social link rejects '+JSON.stringify(url),()=>assert.deepEqual(validatedSocialLinks({x:url}),[]));
 const contract=(functions,behavior={})=>({interface:{hasFunction:n=>functions.includes(n)},...behavior});
