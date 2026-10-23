@@ -29,6 +29,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm ci --prefix landing --ignore-scripts
       - run: npm run build:web
+      - run: npm run compile
       - name: History, wallet and member regressions
         run: >-
           node --test test/activity-events.test.mjs test/read-json.test.mjs
@@ -46,7 +47,6 @@ jobs:
           python3 tools/install-panel-reliability.py --package . --output /tmp/fti-panel-reliability-rebuilt.py
           cmp tools/install-panel-reliability-release.py /tmp/fti-panel-reliability-rebuilt.py
       - run: npm --prefix landing run build
-      - run: npm run compile
       - run: cd landing && npx playwright install --with-deps chromium webkit
       - name: Chromium layout, navigation and startup failures
         run: cd landing && npx playwright test tests/panel-identity.spec.mjs tests/member-reserve-panel.spec.mjs tests/boot-recovery.spec.mjs
