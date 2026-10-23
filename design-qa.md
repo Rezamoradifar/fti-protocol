@@ -64,7 +64,8 @@ Chromium manual review: the native settings disclosure opened but its language
 select did not render, and native focus scrolling left the membership input
 behind the fixed bottom dock. The settings widget now uses an accessible toggle button and a regular hidden
 panel instead of the native disclosure; its controller controls stay mounted.
-The language row/select also have explicit layout dimensions. The member viewport guard keeps the active form field above
+The language row/select also have explicit layout dimensions. Mobile header
+controls retain real layout boxes instead of a display-contents ancestor. The member viewport guard keeps the active form field above
 the measured dock and virtual keyboard after native focus/resize settles; root
 scroll padding also reserves dock space. This affects presentation only. The
 same browser assertions remain in place, with polling for settled focus geometry.

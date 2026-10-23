@@ -44,9 +44,9 @@ reports `FTI_MEMBER_RESERVE_PANEL_ALREADY_INSTALLED`.
 
 | Artifact | SHA-256 |
 | --- | --- |
-| Installer | `8f3856be21a7622311b4e020014799625038575eabde9a525dcdbf3de4948818` |
+| Installer | `e5989ca0a0dfd2e3ce5fd2c56d45c702b2a6f5ff39fef9447023175172895492` |
 | Application | `26a077538e86dc33fc5b7f9ca719730ef95c0df41203188747dd401681fb8835` |
-| Packaged stylesheet | `9a912fa848ae975e0282179381544f46f506494806b930884de8251be7f59048` |
+| Packaged stylesheet | `1b343e4eb4dee16373092cef8b9b89b59558583bd941bf79f74e53ab14cd5538` |
 | Illustration | `27f8968f3353a95e51b14df74943bfd723909a408043eff0a305cdb6892e705d` |
 
 The packaged stylesheet uses the installer's flat immutable image URL, so its
