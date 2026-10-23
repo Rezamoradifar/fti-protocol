@@ -1,0 +1,29 @@
+{
+  "asset_sha256": [
+    "4fba594c82f794316ec8e1cc449428a379d0bb8a5c0bf67fa5d7ff27a4eb1437",
+    "eb2c604f1e85dcca7d913a6d9b2495ebc5eb3371db3238f4af42a845d7e9567d",
+    "67fcae91cd0e9e492d2f397d39f15652f10f522d8755e7403634e94bc5383d5f",
+    "534c57f4059518bd527fecbc0eac90150eea6e71c87613335f566af7b9911137",
+    "ca5323d02418872f1f46acab2f08f4b88f36da6c3856ef82dbfce4b6f6af5f77",
+    "91014b6de9c797c010378894d0920322dbdea243cfda86b491a61987816ce24d"
+  ],
+  "bot_id": 8961425436,
+  "channel_id": -1003941034086,
+  "confirmed_at": "2026-10-23T23:13:39.157816+00:00",
+  "custom_emoji_ids": [
+    "5971897024289710004",
+    "5971887240354209370",
+    "5972088485341831259",
+    "5972250066306474990",
+    "5972004720594657575",
+    "5972210299204288898"
+  ],
+  "inline_channel_emoji_enabled": false,
+  "intent_at": "2026-10-23T23:13:34.720724+00:00",
+  "name": "FTIGlass20261024_by_FTIProtocol_OfficialBot",
+  "owner_verified_as_channel_creator": true,
+  "status": "created",
+  "updated_at": "2026-10-23T23:13:43.018532+00:00",
+  "url": "https://t.me/addemoji/FTIGlass20261024_by_FTIProtocol_OfficialBot",
+  "verified_at": "2026-10-23T23:13:43.018515+00:00"
+}

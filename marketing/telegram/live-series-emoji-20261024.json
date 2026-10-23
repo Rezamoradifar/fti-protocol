@@ -1,0 +1,16 @@
+{
+  "bot_id": 8961425436,
+  "channel_id": -1003941034086,
+  "plan_sha256": "d32c65cf430a48aa0ec4398145eff5f160cfe4489658b1cab7cf5abfa4b950aa",
+  "posts": {
+    "fti-series-20261024-01": {
+      "caption_sha256": "6d697acbf2001979d5ccce0cb8978454f99c90928d71023dec3e7dd642897071",
+      "confirmed_rejection_at": "2026-10-23T23:18:29.612639+00:00",
+      "intent_at": "2026-10-23T23:18:25.820014+00:00",
+      "message_id": 9,
+      "status": "rejected"
+    }
+  },
+  "status": "api_rejected",
+  "updated_at": "2026-10-23T23:18:29.612658+00:00"
+}

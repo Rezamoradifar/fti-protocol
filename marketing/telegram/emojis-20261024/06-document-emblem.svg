@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="100" viewBox="0 0 100 100">
+<!-- Exact website artwork is linked unchanged; only its surrounding composition varies. -->
+<defs>
+  <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e8fff4"/><stop offset=".45" stop-color="#80dfbe"/><stop offset="1" stop-color="#168668"/></linearGradient>
+  <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b9ffe8" stop-opacity=".25"/><stop offset="1" stop-color="#1e8068" stop-opacity=".2"/></linearGradient>
+</defs>
+<path d="M22 5h43l15 15v70a5 5 0 0 1-5 5H22a5 5 0 0 1-5-5V10a5 5 0 0 1 5-5Z" fill="#06241a" stroke="url(#edge)" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M65 5v15h15" fill="#0a4735" stroke="url(#edge)" stroke-width="2" stroke-linejoin="round"/>
+<defs><clipPath id="mark"><circle cx="50" cy="43" r="26"/></clipPath></defs>
+<image x="24" y="17" width="52" height="52" xlink:href="../assets/site-logo-profile.png" clip-path="url(#mark)"/>
+<g stroke="#a2e9cb" stroke-width="3" stroke-linecap="round"><path d="M31 76h36M31 84h28"/></g>
+</svg>
+

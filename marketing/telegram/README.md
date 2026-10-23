@@ -2,6 +2,12 @@
 
 Official channel: https://t.me/FTIProtocol_Official
 
+## Twenty-post editorial series
+
+On 24 October 2026 (Asia/Tehran), twenty distinct English photo posts were published and verified at https://t.me/FTIProtocol_Official/9 through https://t.me/FTIProtocol_Official/28. All have topic-specific glass cards, the exact website emblem, three hashtags and official-link buttons. The existing pin at that time, message 6, was preserved. See `series-20261024/README.md` for the full post index and reproducible assets. This batch did not activate a future publication timer.
+
+A real six-item custom emoji pack was created: https://t.me/addemoji/FTIGlass20261024_by_FTIProtocol_OfficialBot. The attempt to use a native emoji entity in a bot channel caption was explicitly rejected by Telegram; zero native caption edits succeeded. The series retains standard Unicode caption emoji and branded artwork. No username entitlement purchase was made.
+
 ## Verified live launch
 
 On 23 October 2026, the authorized channel setup completed and was verified through Telegram's API:

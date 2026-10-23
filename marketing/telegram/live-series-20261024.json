@@ -1,0 +1,372 @@
+{
+  "bot_id": 8961425436,
+  "channel_id": -1003941034086,
+  "pinned_message_id_baseline": 6,
+  "plan_sha256": "be3e7d359cb219ecb04a4aa839d495e38ce115efae97901dc0fbd5874a682051",
+  "posts": {
+    "fti-series-20261024-01": {
+      "asset_sha256": "93756fc23a6e05741c36fbf1abfb16d67c95fb0d2e000ca399a7392a7ebb0c1f",
+      "buttons_verified": true,
+      "caption_sha256": "b243cd2bebc70c443f46c237563db4fa32ecd3e7516a123ed17bca58405b38c1",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:14:05.483189+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "f7c854183a6285ff45c56cd98f6c7592fae1f7559ccc4797bf03c40a9ec44444",
+      "intent_at": "2026-10-23T23:14:01.011856+00:00",
+      "message_id": 9,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMJatvqPYzVmfhWG0eqtIYG7Qi0c4cAAgIPaxvK9-BSRN0yiTuBg5UBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMJatvqPYzVmfhWG0eqtIYG7Qi0c4cAAgIPaxvK9-BSRN0yiTuBg5UBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMJatvqPYzVmfhWG0eqtIYG7Qi0c4cAAgIPaxvK9-BSRN0yiTuBg5UBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMJatvqPYzVmfhWG0eqtIYG7Qi0c4cAAgIPaxvK9-BSRN0yiTuBg5UBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-02": {
+      "asset_sha256": "be3183e97143fc9ca211644926137765e3cd4f5b5afed3c8c5f8173685f6e0d1",
+      "buttons_verified": true,
+      "caption_sha256": "445e5554dcdb88a62b4215f91781957375f35a3c078866d561f459ec9650a07e",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:14:14.197671+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "5e4f2912f69e05c52bd6d12a162ad5ea77b20ad4ef2bfd75379801a97acce7a8",
+      "intent_at": "2026-10-23T23:14:09.485207+00:00",
+      "message_id": 10,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMKatvqRWhdgWo3fsA_E3uMbM-a3GgAAgMPaxvK9-BSXOK-fkk3kzEBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMKatvqRWhdgWo3fsA_E3uMbM-a3GgAAgMPaxvK9-BSXOK-fkk3kzEBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMKatvqRWhdgWo3fsA_E3uMbM-a3GgAAgMPaxvK9-BSXOK-fkk3kzEBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMKatvqRWhdgWo3fsA_E3uMbM-a3GgAAgMPaxvK9-BSXOK-fkk3kzEBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-03": {
+      "asset_sha256": "f5270cb007a44ab6961675147bc698fb53a38dd65c5c82320827a8a61bc19a27",
+      "buttons_verified": true,
+      "caption_sha256": "b2aebf57226a4da02ad8e9f3c61c2a98e6c77fe7fadc20fe47a8b069e31291b7",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:14:22.491623+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "7463f3c7142748faccd39c51c95ded710aaa40334ef0dbe776bbad09d39d9c4c",
+      "intent_at": "2026-10-23T23:14:18.200981+00:00",
+      "message_id": 11,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMLatvqTq_m7T4TAcEftVJGiwy5H38AAgQPaxvK9-BSht-gIJ_-a-cBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMLatvqTq_m7T4TAcEftVJGiwy5H38AAgQPaxvK9-BSht-gIJ_-a-cBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMLatvqTq_m7T4TAcEftVJGiwy5H38AAgQPaxvK9-BSht-gIJ_-a-cBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMLatvqTq_m7T4TAcEftVJGiwy5H38AAgQPaxvK9-BSht-gIJ_-a-cBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-04": {
+      "asset_sha256": "30392c04c4b6be953454edc559fbcf8e9f74b01fe6a63741119ce4aa41231606",
+      "buttons_verified": true,
+      "caption_sha256": "685dc16fe07c01413f5940794da646c84912984c9825e4cdd195fe47a5ee605b",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:14:30.504340+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "aec71d7ea8b31fc1cf1e3b7f4000fc0f28e6b6b8e2d1cfde210f943a1dad3120",
+      "intent_at": "2026-10-23T23:14:26.493913+00:00",
+      "message_id": 12,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMMatvqVimc0NTMqOpJstsAAa6z742QAAIFD2sbyvfgUq0m-Jrpmo7QAQADAgADcwADPQQ",
+        "AgACAgQAAyEGAATq52hmAAMMatvqVimc0NTMqOpJstsAAa6z742QAAIFD2sbyvfgUq0m-Jrpmo7QAQADAgADbQADPQQ",
+        "AgACAgQAAyEGAATq52hmAAMMatvqVimc0NTMqOpJstsAAa6z742QAAIFD2sbyvfgUq0m-Jrpmo7QAQADAgADeAADPQQ",
+        "AgACAgQAAyEGAATq52hmAAMMatvqVimc0NTMqOpJstsAAa6z742QAAIFD2sbyvfgUq0m-Jrpmo7QAQADAgADeQADPQQ"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-05": {
+      "asset_sha256": "e50b5b01e5ad87e63d0ffe88e9e36bd0d70c08f74cf0b4d38907abdf6bacb2f1",
+      "buttons_verified": true,
+      "caption_sha256": "38e2af05ac19febcb255a25195cd29dec7f3f14a65e64a85bd5b7c9f2ad1a438",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:14:38.681113+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "6ab44c86bba3b12ee372328825afebcaf686bea0877be94ed928f24ed1308af7",
+      "intent_at": "2026-10-23T23:14:34.507384+00:00",
+      "message_id": 13,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMNatvqXhgljeOiZLV26cjW6ogZPNcAAgYPaxvK9-BS093uUgHW3kYBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMNatvqXhgljeOiZLV26cjW6ogZPNcAAgYPaxvK9-BS093uUgHW3kYBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMNatvqXhgljeOiZLV26cjW6ogZPNcAAgYPaxvK9-BS093uUgHW3kYBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMNatvqXhgljeOiZLV26cjW6ogZPNcAAgYPaxvK9-BS093uUgHW3kYBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-06": {
+      "asset_sha256": "ea1ccecd56dc5260db077152eb3cfc7d471b7c2523c5bd0230701ceca586e65c",
+      "buttons_verified": true,
+      "caption_sha256": "7f0f8fcf11a2d66dfcdeed687c318e50dc2db8b293abed2cb6d306f9f1dbf640",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:14:46.821150+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "a722ecb4a4d0b858a9c82438b6a0d3aa93bcf97ad44307fa969da5f2206295ac",
+      "intent_at": "2026-10-23T23:14:42.683246+00:00",
+      "message_id": 14,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMOatvqZrlcYZwU1iEVNuYTvNmtsxYAAgcPaxvK9-BSnIIkbeJDUHABAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMOatvqZrlcYZwU1iEVNuYTvNmtsxYAAgcPaxvK9-BSnIIkbeJDUHABAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMOatvqZrlcYZwU1iEVNuYTvNmtsxYAAgcPaxvK9-BSnIIkbeJDUHABAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMOatvqZrlcYZwU1iEVNuYTvNmtsxYAAgcPaxvK9-BSnIIkbeJDUHABAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-07": {
+      "asset_sha256": "fc94568169705226462224b63a32a5b3e7c6838ee06a780e015f2c0efc0d172d",
+      "buttons_verified": true,
+      "caption_sha256": "d6a37860ca4eb16edb138ca2e6c2d40d9e736eef295f33c6b59a9fe8c0896f6c",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:14:55.602709+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "d2148b73632ef3bef5c556f6ae393b3312dac273dc1db3130cad7bd4e3d9739a",
+      "intent_at": "2026-10-23T23:14:50.824759+00:00",
+      "message_id": 15,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMPatvqb5xCR_G10nuDYE-JEunTumcAAggPaxvK9-BSRjW4eDSEprIBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMPatvqb5xCR_G10nuDYE-JEunTumcAAggPaxvK9-BSRjW4eDSEprIBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMPatvqb5xCR_G10nuDYE-JEunTumcAAggPaxvK9-BSRjW4eDSEprIBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMPatvqb5xCR_G10nuDYE-JEunTumcAAggPaxvK9-BSRjW4eDSEprIBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-08": {
+      "asset_sha256": "fe12dab14a928b009d72744ed4dee9257bca37a314fb9a51004317de7741cf4c",
+      "buttons_verified": true,
+      "caption_sha256": "2b2681a44da84f01c0899a5bfea85d18d87cf82af6b13ad726ee03d66c5e519a",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:15:03.943599+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "c7613625cae2df9f7ee238532c34383c900c8869fc0ee4487099766c83ab4dfe",
+      "intent_at": "2026-10-23T23:14:59.605068+00:00",
+      "message_id": 16,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMQatvqd-bhS-zd8MvsZTlNwIpoQi8AAgkPaxvK9-BSum4LmKFMeDcBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMQatvqd-bhS-zd8MvsZTlNwIpoQi8AAgkPaxvK9-BSum4LmKFMeDcBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMQatvqd-bhS-zd8MvsZTlNwIpoQi8AAgkPaxvK9-BSum4LmKFMeDcBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMQatvqd-bhS-zd8MvsZTlNwIpoQi8AAgkPaxvK9-BSum4LmKFMeDcBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-09": {
+      "asset_sha256": "a1e676fbf74a8473c0b757ee449abf44e4ffd124ee777f6b60babebc057b05a4",
+      "buttons_verified": true,
+      "caption_sha256": "637019bd39bd6eb110cca1d09fb5fa3c0f31692979077a8969be8d79b2eb000f",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:15:12.384324+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "9e7dd047a904aa64e2bdc6ec0d6f2f71a91d2b1cf7887e5fb8e3360c4f99bac9",
+      "intent_at": "2026-10-23T23:15:07.945890+00:00",
+      "message_id": 17,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMRatvqf5l6QtGzFC-39HofVSSf5esAAgoPaxvK9-BScwtFts4gFocBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMRatvqf5l6QtGzFC-39HofVSSf5esAAgoPaxvK9-BScwtFts4gFocBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMRatvqf5l6QtGzFC-39HofVSSf5esAAgoPaxvK9-BScwtFts4gFocBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMRatvqf5l6QtGzFC-39HofVSSf5esAAgoPaxvK9-BScwtFts4gFocBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-10": {
+      "asset_sha256": "d2726a72dd60f1601250e430cdcb67ee2ba0166ca127f61410887428829183f2",
+      "buttons_verified": true,
+      "caption_sha256": "3a6669aaa4b1152bec4073a7ee7f7871dd44a9226fd97ac442e506169fc4178c",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:15:21.196566+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "af889299447a83e67e60333d1b73dd501c164e2118591a6ccc1ccefa32e8d011",
+      "intent_at": "2026-10-23T23:15:16.386975+00:00",
+      "message_id": 18,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMSatvqiOEmaaiHhVtd5iUm1g1eKm8AAgsPaxvK9-BS5qHLa7at--8BAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMSatvqiOEmaaiHhVtd5iUm1g1eKm8AAgsPaxvK9-BS5qHLa7at--8BAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMSatvqiOEmaaiHhVtd5iUm1g1eKm8AAgsPaxvK9-BS5qHLa7at--8BAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMSatvqiOEmaaiHhVtd5iUm1g1eKm8AAgsPaxvK9-BS5qHLa7at--8BAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-11": {
+      "asset_sha256": "aaf118f30e5c82f2556e9c83c427dfaf624605ed54a7c1ea4d4d3939c80d7bbf",
+      "buttons_verified": true,
+      "caption_sha256": "16ff1d0c2817291e069de6b55964eefd0731298019b56ebe00c69a2bb20eb8e5",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:15:29.739902+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "67cc9ac04a47c31c69a9b9efd61a0374f2d9db7c09b3d00943bc7bbbb5d53613",
+      "intent_at": "2026-10-23T23:15:25.199432+00:00",
+      "message_id": 19,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMTatvqkQH9o4NShcrtI_61mScec2MAAgwPaxvK9-BS6SK5y2wLXswBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMTatvqkQH9o4NShcrtI_61mScec2MAAgwPaxvK9-BS6SK5y2wLXswBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMTatvqkQH9o4NShcrtI_61mScec2MAAgwPaxvK9-BS6SK5y2wLXswBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMTatvqkQH9o4NShcrtI_61mScec2MAAgwPaxvK9-BS6SK5y2wLXswBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-12": {
+      "asset_sha256": "955af02424072a392dd45d13c1d8392f3ee41628d34920faa5761a5ee468da54",
+      "buttons_verified": true,
+      "caption_sha256": "d6eb36cce68bf16662da4e874ee6f85d036700980389fbba007b6701b518e501",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:15:38.034556+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "179bacf551a53afefcee5916e74226adeb1ef46a78936caf5f1e0ec46a6b823f",
+      "intent_at": "2026-10-23T23:15:33.742785+00:00",
+      "message_id": 20,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMUatvqmVigaK2OYuzBDO5N62fOWiUAAg0PaxvK9-BSuGeJSMKFeTQBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMUatvqmVigaK2OYuzBDO5N62fOWiUAAg0PaxvK9-BSuGeJSMKFeTQBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMUatvqmVigaK2OYuzBDO5N62fOWiUAAg0PaxvK9-BSuGeJSMKFeTQBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMUatvqmVigaK2OYuzBDO5N62fOWiUAAg0PaxvK9-BSuGeJSMKFeTQBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-13": {
+      "asset_sha256": "bdb296266dcc068c358ad717c27c77eb56c70d9d8bde507216436d4171f32e4e",
+      "buttons_verified": true,
+      "caption_sha256": "f46329eb35fea96a5316e78dcdcb0e67b7310f760724e31b312b20ba17fbb1ff",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:15:46.180644+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "c92b340e97d7547cb65e8bb0864d5bb6d9cfb6374f1ea02b6ef68ca3cf130b41",
+      "intent_at": "2026-10-23T23:15:42.040512+00:00",
+      "message_id": 21,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMVatvqof6PnUYc4MzjEN_ykTmTK_oAAg4PaxvK9-BSsM6i0PiPGH8BAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMVatvqof6PnUYc4MzjEN_ykTmTK_oAAg4PaxvK9-BSsM6i0PiPGH8BAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMVatvqof6PnUYc4MzjEN_ykTmTK_oAAg4PaxvK9-BSsM6i0PiPGH8BAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMVatvqof6PnUYc4MzjEN_ykTmTK_oAAg4PaxvK9-BSsM6i0PiPGH8BAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-14": {
+      "asset_sha256": "eb9b58bf2358a5d89414ec071b10829a1093d3af0f07a765e758a569ab5a2a88",
+      "buttons_verified": true,
+      "caption_sha256": "4698851c6992fca44d74fe48497086e40a5c89976c0b0061b1de318da4a51752",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:15:54.284999+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "1c9d4beb0fd24353033d0fa7c94670c1db4672dbba6befb15500867d65d906e8",
+      "intent_at": "2026-10-23T23:15:50.185615+00:00",
+      "message_id": 22,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMWatvqqt0hX4yK4CG9NxMQNxADiQYAAg8PaxvK9-BSSuvNc-1usb0BAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMWatvqqt0hX4yK4CG9NxMQNxADiQYAAg8PaxvK9-BSSuvNc-1usb0BAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMWatvqqt0hX4yK4CG9NxMQNxADiQYAAg8PaxvK9-BSSuvNc-1usb0BAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMWatvqqt0hX4yK4CG9NxMQNxADiQYAAg8PaxvK9-BSSuvNc-1usb0BAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-15": {
+      "asset_sha256": "331337b8cad35b58e501be0ed59649d7dfff3de4e6917db0edae069b5a371986",
+      "buttons_verified": true,
+      "caption_sha256": "a2fa6762bb7523dba4505bf31685216d45bae9db1df553c9462ea90eb49a7d0b",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:16:02.578649+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "5f85bc5b13f9b80170429e0223a0e1ea7d06310921392eeda96cab29e1959420",
+      "intent_at": "2026-10-23T23:15:58.286956+00:00",
+      "message_id": 23,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMXatvqshnpuTD6vGJsDP3VMEoW1Q4AAhAPaxvK9-BSaSqY_WFO5sABAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMXatvqshnpuTD6vGJsDP3VMEoW1Q4AAhAPaxvK9-BSaSqY_WFO5sABAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMXatvqshnpuTD6vGJsDP3VMEoW1Q4AAhAPaxvK9-BSaSqY_WFO5sABAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMXatvqshnpuTD6vGJsDP3VMEoW1Q4AAhAPaxvK9-BSaSqY_WFO5sABAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-16": {
+      "asset_sha256": "c27f42b9851fe0b809a1ccf5f56891e6b59f71c24d60c06fe36e557cf7e801fd",
+      "buttons_verified": true,
+      "caption_sha256": "083fa0c6bfd33282b2de7f550878d29c9c83efa2f46620a75bd83db67f45590b",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:16:11.069346+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "033e4f447a281f3e42ce21d790ad8f2af2beffd4bb6422c950d16b7c79cacb1f",
+      "intent_at": "2026-10-23T23:16:06.580511+00:00",
+      "message_id": 24,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMYatvquoFMb1xzTsAs5XkF9hjDSvkAAhEPaxvK9-BSCrntQjJ1NXUBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMYatvquoFMb1xzTsAs5XkF9hjDSvkAAhEPaxvK9-BSCrntQjJ1NXUBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMYatvquoFMb1xzTsAs5XkF9hjDSvkAAhEPaxvK9-BSCrntQjJ1NXUBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMYatvquoFMb1xzTsAs5XkF9hjDSvkAAhEPaxvK9-BSCrntQjJ1NXUBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-17": {
+      "asset_sha256": "45d7f3e4b4f7eee86d56fbab7d46e8ca3150d3ff3dc177c222aa8a17c734670f",
+      "buttons_verified": true,
+      "caption_sha256": "a290bc31a38c1ec6514033ade12a63a451a2750f07fc046061742d824c2b6bf9",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:16:19.384804+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "3de521d602640fc7d89f3f4a6c50a3a277eb98034c4f18c559d80200a5715d34",
+      "intent_at": "2026-10-23T23:16:15.071390+00:00",
+      "message_id": 25,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMZatvqw2tEB4_9J0VmVAUeCcE13p0AAhIPaxvK9-BSWthuzz6LOeIBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMZatvqw2tEB4_9J0VmVAUeCcE13p0AAhIPaxvK9-BSWthuzz6LOeIBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMZatvqw2tEB4_9J0VmVAUeCcE13p0AAhIPaxvK9-BSWthuzz6LOeIBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMZatvqw2tEB4_9J0VmVAUeCcE13p0AAhIPaxvK9-BSWthuzz6LOeIBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-18": {
+      "asset_sha256": "a6d8e4663583af8e65e24bfd1df9a342bbbb38fcd3fa5b7a58174383ae46fbb0",
+      "buttons_verified": true,
+      "caption_sha256": "18c353f3390ac837b25ffe431929c28b64a276e58ca6cca0e3defc50ec0f2844",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:16:27.948051+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "3a333bca00e5b9fd9ff7619f90b4488acecd4198c940a3b9014920c0bc890461",
+      "intent_at": "2026-10-23T23:16:23.389580+00:00",
+      "message_id": 26,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMaatvqy9xFQNrP9c4zvNVXfuSZnJUAAhMPaxvK9-BSnp2cVfruWFEBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMaatvqy9xFQNrP9c4zvNVXfuSZnJUAAhMPaxvK9-BSnp2cVfruWFEBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMaatvqy9xFQNrP9c4zvNVXfuSZnJUAAhMPaxvK9-BSnp2cVfruWFEBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMaatvqy9xFQNrP9c4zvNVXfuSZnJUAAhMPaxvK9-BSnp2cVfruWFEBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-19": {
+      "asset_sha256": "d45b12e6e1329bd856eaa9a2e793e919846768cfaf5cd2f602126fab238dc9b3",
+      "buttons_verified": true,
+      "caption_sha256": "d6c1694cc825e6a1ac59eab4d3de32763d87b099b15241da6f3cc8091c871baf",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:16:36.138603+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "6421427fd7b90d2b8098839f2deeed8bce37defda6c9f60c4f5ef556ca29a35e",
+      "intent_at": "2026-10-23T23:16:31.952102+00:00",
+      "message_id": 27,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMbatvq0ynYPpElnQELhwvBlnstnfwAAhQPaxvK9-BSx1eIt3AJ10EBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMbatvq0ynYPpElnQELhwvBlnstnfwAAhQPaxvK9-BSx1eIt3AJ10EBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMbatvq0ynYPpElnQELhwvBlnstnfwAAhQPaxvK9-BSx1eIt3AJ10EBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMbatvq0ynYPpElnQELhwvBlnstnfwAAhQPaxvK9-BSx1eIt3AJ10EBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    },
+    "fti-series-20261024-20": {
+      "asset_sha256": "63445904738e7cf35549e3fcd9b9987b687202b357def873643bc3276ef617cf",
+      "buttons_verified": true,
+      "caption_sha256": "0cfae28648cba3ba0f6b447e2279d325489f8f6fbb16859da51c360619d343bf",
+      "caption_verified": true,
+      "confirmed_at": "2026-10-23T23:16:44.335165+00:00",
+      "custom_emoji_verified": false,
+      "fingerprint": "ff8d2813f981c7998001552f5d850c58115a462b208bf7029f958991e29b519d",
+      "intent_at": "2026-10-23T23:16:40.141932+00:00",
+      "message_id": 28,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMcatvq3ImczKqUXFlQW62khCPWnTAAAhUPaxvK9-BSs8hOQqsZ8AoBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMcatvq3ImczKqUXFlQW62khCPWnTAAAhUPaxvK9-BSs8hOQqsZ8AoBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMcatvq3ImczKqUXFlQW62khCPWnTAAAhUPaxvK9-BSs8hOQqsZ8AoBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMcatvq3ImczKqUXFlQW62khCPWnTAAAhUPaxvK9-BSs8hOQqsZ8AoBAAMCAAN5AAM9BA"
+      ],
+      "status": "sent"
+    }
+  },
+  "schema_version": 1,
+  "updated_at": "2026-10-23T23:16:48.402481+00:00",
+  "verified_at": "2026-10-23T23:16:48.402464+00:00",
+  "workflow": "english-series-20261024"
+}
