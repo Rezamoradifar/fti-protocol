@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "language": "en",
+  "timezone": "Asia/Tehran",
+  "suggested_channel_title": "FTI Protocol | Official",
+  "suggested_channel_username": "FTIProtocol",
+  "suggested_channel_description": "FTI Protocol announcements, platform updates and user guidance.\nWebsite: ftiprotocol.com",
+  "username_reserved": false,
+  "posts": [
+    {
+      "id": "fti-launch-01",
+      "title": "Welcome to FTI Protocol",
+      "text": "Welcome to FTI Protocol.\n\nThis channel provides project announcements, platform updates and guidance on using the FTI ecosystem.\n\nWebsite: https://ftiprotocol.com/\nMember application: https://ftiprotocol.com/app/\nToken application: https://ftiprotocol.com/token/\n\nFTI operates on BNB Smart Chain mainnet. Review the details presented by the application and your wallet before authorizing any operation.\n\n#FTI #FTIProtocol"
+    },
+    {
+      "id": "fti-launch-02",
+      "title": "Introducing the FTI Ecosystem",
+      "text": "FTI connects membership, a binary structure and a token model based on reserves.\n\nThe member application provides account information and management features. The token application presents token information and related operations.\n\nExplore the platform:\nhttps://ftiprotocol.com/\n\nFurther guidance will explain each component and its role within the ecosystem.\n\n#FTI #PlatformOverview"
+    },
+    {
+      "id": "fti-launch-03",
+      "title": "Connecting Your Wallet",
+      "text": "Access the member application:\nhttps://ftiprotocol.com/app/\n\n1. Select the wallet connection option.\n2. Choose the connection method supported by your wallet.\n3. Confirm the network: BNB Smart Chain mainnet, chain ID 56.\n\nConnecting a wallet does not complete registration or authorize a transaction. Review each subsequent request separately before approving it.\n\n#FTI #UserGuide"
+    },
+    {
+      "id": "fti-launch-04",
+      "title": "Using a Referral Link",
+      "text": "If you received an FTI referral link, begin your registration process through that link.\n\nBefore confirming registration, compare the referrer address displayed in the application with the address provided to you. Resolve any discrepancy before proceeding.\n\nIf assistance is required, retain the referral link and the exact error message so the entry process can be reviewed.\n\n#FTI #Registration"
+    },
+    {
+      "id": "fti-launch-05",
+      "title": "Understanding the Reserve Model",
+      "text": "Reserves and token supply contribute to the calculation of the FTI token's internal price.\n\nThis calculation does not guarantee returns or a fixed token price. Review current token information and the terms displayed for each operation.\n\nToken application:\nhttps://ftiprotocol.com/token/\n\n#FTI #TokenEducation"
+    },
+    {
+      "id": "fti-launch-06",
+      "title": "Identifying the FTI Token",
+      "text": "A token name or symbol alone does not establish its identity. Verify both the network and the contract address.\n\nNetwork: BNB Smart Chain mainnet\nFTI token contract:\n\n0x43755B1E813b2d41F669ea08bcf859De07195eA1\n\nCompare this address with the current information published in the token application:\nhttps://ftiprotocol.com/token/\n\n#FTI #TokenContract"
+    },
+    {
+      "id": "fti-launch-07",
+      "title": "Viewing Activity History",
+      "text": "The activity history section displays the status of its data request.\n\nIn the updated application, leaving this section cancels a pending request. If new information cannot be retrieved, the notice appears within the history section.\n\nWhen previously retrieved information is displayed, check the accompanying freshness notice. Confirm a transaction's final status in your wallet and the network explorer.\n\n#FTI #MemberApplication"
+    },
+    {
+      "id": "fti-launch-08",
+      "title": "Member Application Update",
+      "text": "The FTI member application has been updated.\n\nThis release introduces clearer loading states and retry controls, improved activity request handling, a more compact membership card and updated light and dark theme controls.\n\nFollowing installation, all 10 live browser checks passed across Chromium and WebKit. These checks were read-only and did not include a signed wallet registration or a real transaction.\n\nMember application:\nhttps://ftiprotocol.com/app/\n\n#FTI #PlatformUpdate"
+    },
+    {
+      "id": "fti-launch-09",
+      "title": "Requesting Technical Assistance",
+      "text": "When reporting an issue, include the following information:\n\n- The page you were using\n- The action you attempted\n- The exact error message\n- Your device and browser\n- The approximate time of the incident\n\nA screenshot may help, provided confidential information has been removed. Do not disclose a wallet recovery phrase or private key.\n\nContact address listed on the website:\nSupport@FTIProtocol.com\n\n#FTI #Support"
+    },
+    {
+      "id": "fti-launch-10",
+      "title": "Getting Started: Common Questions",
+      "text": "Is a wallet required to view public information?\nPublic information in the member and token applications can be viewed without connecting a wallet.\n\nDoes connecting a wallet complete registration?\nWallet connection, registration and transaction approval are separate steps.\n\nWhere should a new user begin?\nhttps://ftiprotocol.com/app/\n\nRefer to the introductory channel post for the main platform links.\n\n#FTI #GettingStarted"
+    }
+  ]
+}

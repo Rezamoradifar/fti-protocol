@@ -39,7 +39,7 @@ class InstallerTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix='fti-telegram-test-')
         self.root = Path(self.temp.name)
         self.root.chmod(0o755)
-        self.content = json.loads((ROOT / 'config/telegram-launch-posts.fa.json').read_text())
+        self.content = json.loads((ROOT / 'config/telegram-launch-posts.en.json').read_text())
         self.now = datetime.now(m.TZ)
         self.queue = m.build_queue(self.content, self.now)
         FakeAPI.calls = []

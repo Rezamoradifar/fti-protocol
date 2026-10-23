@@ -242,7 +242,7 @@ def main():
     parser.add_argument('--first-at', help='future ISO8601 timestamp with offset; default tomorrow 19:00 Asia/Tehran')
     args = parser.parse_args()
     os.umask(0o077)
-    content = json.loads((ROOT / 'config/telegram-launch-posts.fa.json').read_text())
+    content = json.loads((ROOT / 'config/telegram-launch-posts.en.json').read_text())
     queue = build_queue(content, datetime.now(TZ), args.first_at)
     if not args.apply:
         print(json.dumps({'result': 'FTI_TELEGRAM_INSTALL_PREVIEW', 'first_post': queue['posts'][0]['scheduled_at'], 'posts': len(queue['posts']), 'timezone': queue['timezone'], 'messages_sent': 0}))
