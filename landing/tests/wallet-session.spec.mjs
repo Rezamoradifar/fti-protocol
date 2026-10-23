@@ -16,6 +16,11 @@ for(const width of [320,390,844,1280])for(const lang of ['en','fa'])test(`connec
  await page.route('**/abi/*',r=>{const name=new URL(r.request().url()).pathname.split('/').pop();const artifact=JSON.parse(fs.readFileSync(new URL('../../artifacts/'+(name==='Collateral'?'MockUSD':name)+'.json',import.meta.url)));return r.fulfill({json:artifact.abi});});
  await page.route('**/api/config',r=>r.fulfill({json:cfg}));
  await page.route('**/api/state**',r=>r.fulfill({status:503,json:{error:'Read-only fixture'}}));
+ // Give ethers an explicit chain identity and reject all public contract reads
+ // immediately. This exercises a real data outage, without its network retries
+ // obscuring whether the independently authorized wallet stays connected.
+ await page.route('**/rpc',r=>{const q=r.request().postDataJSON();return r.fulfill({json:{jsonrpc:'2.0',id:q.id,
+  ...(q.method==='eth_chainId'?{result:'0x38'}:{error:{code:-32000,message:'Fixture contract read unavailable'}})}});});
  await page.goto('/app/?lang='+lang);
  await expectReadFailure(page,lang);
  await expect(page.locator('#disconnect')).toBeHidden();
@@ -24,6 +29,9 @@ for(const width of [320,390,844,1280])for(const lang of ['en','fa'])test(`connec
   await page.getByRole('button',{name:'MetaMask',exact:true}).click();
   await expect(page.locator('#disconnect')).toBeVisible();
   await expect(page.locator('#disconnect')).toBeEnabled();
+  await expect(page.locator('#register-button')).toBeDisabled();
+  await expect(page.locator('#wallet-address')).toHaveText('0x2bf894836cbBBb9b27A0394a3EdF340c66839322');
+  await expect(page.locator('#membership-status')).toHaveText(lang==='fa'?'در انتظار اطلاعات قرارداد':'Waiting for contract data');
   const boxes=await page.locator('.connection button,.connection select').evaluateAll(els=>els.map(el=>el.getBoundingClientRect()).filter(r=>r.width&&r.height).map(r=>({x:r.x,y:r.y,right:r.right,bottom:r.bottom})));
   for(const box of boxes){expect(box.x).toBeGreaterThanOrEqual(0);expect(box.right).toBeLessThanOrEqual(width);}
   for(let a=0;a<boxes.length;a++)for(let b=a+1;b<boxes.length;b++)expect(boxes[a].x<boxes[b].right&&boxes[a].right>boxes[b].x&&boxes[a].y<boxes[b].bottom&&boxes[a].bottom>boxes[b].y).toBe(false);

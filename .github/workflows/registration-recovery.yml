@@ -1,0 +1,51 @@
+name: Registration pending recovery
+on:
+  push:
+    branches: [fix/registration-pending-recovery-20261023]
+  pull_request:
+    paths:
+      - 'frontend/controller.js'
+      - 'frontend/core-translations.js'
+      - 'frontend/main.jsx'
+      - 'frontend/recover-pending.js'
+      - 'test/*pending*'
+      - 'test/*recovery*'
+      - 'tools/install-registration-recovery-ui*'
+      - '.github/workflows/registration-recovery.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix landing --ignore-scripts
+      - name: Recovery, wallet confirmation and membership regressions
+        run: >-
+          node --test test/recovery-hints.test.mjs test/controller-pending-monitor.test.mjs
+          test/recover-pending.test.mjs test/transaction-state.test.mjs
+          test/prepared-cancellation.test.mjs test/pending-monitor.test.mjs
+          test/membership-purchase-flow.test.mjs test/prepared-wallet-send.test.mjs
+          test/wallet-review.test.mjs test/transaction-hash.test.mjs
+          test/controller-safepal-connect.test.mjs test/controller-wallet-events.test.mjs
+          test/wallet-session.test.mjs test/membership-availability.test.mjs
+          test/state-reader.test.mjs
+      # The installer enforces root ownership for private production backups.
+      # Exercise those same checks in the isolated runner without weakening them.
+      - run: sudo env PYTHONDONTWRITEBYTECODE=1 FTI_REQUIRE_SERVICE_UID_HTTP_TEST=1 python3 test/registration-recovery-ui-install.test.py -q
+      - run: npm run build:web
+      - name: Reproduce the exact packaged installer
+        run: |
+          python3 tools/install-registration-recovery-ui.py --package . --output /tmp/fti-registration-recovery-rebuilt.py
+          cmp tools/install-registration-recovery-ui-release.py /tmp/fti-registration-recovery-rebuilt.py
+      - name: Syntax checks
+        run: |
+          node --check frontend/controller.js
+          node --check frontend/recover-pending.js
+          python3 -m py_compile tools/install-registration-recovery-ui.py tools/install-registration-recovery-ui-release.py

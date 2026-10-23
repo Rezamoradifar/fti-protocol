@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
+import {setTimeout as delay} from 'node:timers/promises';
 import ganache from 'ganache';
 import {JsonRpcProvider,Wallet,MaxUint256,parseEther as E,keccak256} from 'ethers';
 import {deployOne} from '../scripts/lib.mjs';
@@ -70,8 +71,17 @@ test('new V3 deployment is readable by the panel API without legacy locks or tim
   assert(abi.some(x=>x.name==='TRANSFER_FEE_BPS'));
   await(await usd.approve(token.target,MaxUint256)).wait();
   await(await token.buy(E('100'),0,MaxUint256)).wait();
-  await(await token.transfer(addresses[39],E('10'))).wait();
-  const recipient=await(await fetch(origin+'/api/state?wallet='+addresses[39])).json();
+  const transferred=await(await token.transfer(addresses[39],E('10'))).wait();
+  // Public and wallet fields deliberately share one canonical anchor, cached
+  // for up to five seconds. Wait for that anchor to include the confirmed
+  // transfer; never accept a balance from an older block as its result.
+  const deadline=Date.now()+20000;let recipient;
+  do{
+   const response=await fetch(origin+'/api/state?wallet='+addresses[39]);assert.equal(response.status,200);
+   recipient=await response.json();if(recipient.block>=transferred.blockNumber)break;
+   await delay(250);
+  }while(Date.now()<deadline);
+  assert.ok(recipient.block>=transferred.blockNumber,'API snapshot must include the confirmed transfer block');
   assert.equal(recipient.wallet.ftiBalance,E('9.7').toString());
   assert.equal(recipient.wallet.unlocked,E('9.7').toString());
   assert.equal(recipient.supply,E('969.7').toString());

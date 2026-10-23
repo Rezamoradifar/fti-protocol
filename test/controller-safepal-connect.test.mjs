@@ -28,7 +28,7 @@ function fixture({silent=false,selection=true,accounts=[address],permissionError
   observeWallet:provider=>{context.walletProvider=provider;listeners.set('accountsChanged',()=>{context.detachWallet();context.clearWallet();});},preparationDeadline,readWalletIdentity,isAddress,
   sessionStorage:{setItem:(key,value)=>storage.set(key,value)},localStorage:{},transactionState:()=>({read:()=>null}),hashView:{restore(){}},$:selector=>nodes[selector.slice(1)],
   refresh:async()=>{throw Error('Contract data service HTTP 400');},refreshMembershipState:async()=>{fallback++;},refreshTokenState:async()=>assert.fail('Member connection uses membership data'),
-  purchaseError:(_,error)=>error.message,startPendingChecks(){}};
+  purchaseError:(_,error)=>error.message,renderWallet(){},startPendingChecks(){}};
  vm.runInNewContext(source.slice(start,end),context);
  return {context,calls,labels,messages,storage,listeners,detached:()=>detached,signers:()=>signers,fallback:()=>fallback,run:()=>context.connect({silent})};
 }
@@ -80,4 +80,20 @@ test('identity rejection after observer registration detaches the failed provide
  const f=fixture({currentAccounts:[other]});await f.run();
  assert.equal(f.context.walletProvider,null);assert.equal(f.context.selectedWallet,null);assert.equal(f.listeners.size,0);
  assert.equal(f.context.address,null);assert.equal(f.storage.size,0);assert(f.detached()>=2);
+});
+
+test('public dashboard and membership read failures retain an already verified wallet without sending',async()=>{
+ const f=fixture();f.context.refreshMembershipState=async()=>{throw Error('RPC unavailable');};
+ await f.run();
+ assert.equal(f.context.address,address);assert.equal(f.signers(),1);
+ assert.equal(f.context.selectedWallet.name,'SafePal');assert.equal(f.storage.get('fti-wallet-connected'),'yes');
+ assert.equal(f.listeners.has('accountsChanged'),true);assert.equal(f.context.connecting,false);
+ assert.equal(f.messages.at(-1)[1],true);assert.match(f.messages.at(-1)[0],/Contract data is unavailable/);
+ assert(!f.calls.includes('eth_sendTransaction'));
+});
+
+test('a wallet change during a failed fallback still discards the stale account',async()=>{
+ const f=fixture();f.context.refreshMembershipState=async()=>{f.listeners.get('accountsChanged')();throw Error('old fallback');};
+ await f.run();assert.equal(f.context.address,null);assert.equal(f.context.signer,null);assert.equal(f.storage.size,0);
+ assert(!f.messages.some(([value])=>value.startsWith('Wallet connected.')));
 });

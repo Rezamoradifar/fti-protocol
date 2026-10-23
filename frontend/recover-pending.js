@@ -8,7 +8,12 @@ export async function recoverPending(tracker,provider,address,chainId,{logAddres
  const addresses=[...new Set(logAddresses.map(value=>String(value).toLowerCase()))].sort();
  if(addresses.length>8||addresses.some(value=>!/^0x[0-9a-f]{40}$/.test(value)))throw Error('Invalid recovery contract addresses.');
  if(!Array.isArray(candidateHashes)||candidateHashes.length>16||candidateHashes.some(value=>!/^0x[0-9a-f]{64}$/i.test(value)))throw Error('Invalid recovery transaction hints.');
- const candidates=[...new Set(candidateHashes.map(value=>value.toLowerCase()))].sort();
+ // Cancellation remembers its hash while the uncertain nonce stays protected.
+ // Verify that saved hash before relying on archive state or indexed logs.
+ let remembered;try{remembered=tracker.last?.();}catch{}
+ const candidates=[...new Set([remembered,...candidateHashes]
+  .filter(value=>/^0x[0-9a-f]{64}$/i.test(value||''))
+  .map(value=>value.toLowerCase()))].slice(0,16);
  const key=JSON.stringify([address.toLowerCase(),chainId,nonce,addresses,candidates]);
  let jobs=searches.get(provider);if(!jobs){jobs=new Map();searches.set(provider,jobs);}
  let job=jobs.get(key);
