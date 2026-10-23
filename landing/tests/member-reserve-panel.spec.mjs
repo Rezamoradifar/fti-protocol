@@ -61,13 +61,27 @@ for (const width of [320, 390, 1280]) for (const lang of ['fa', 'en']) for (cons
   });
 }
 
-test('member settings expose language, appearance and refresh; theme persists', async ({page}) => {
-  await panel(page);
+for (const width of [320, 390]) for (const lang of ['fa', 'en']) test(`member settings remain inside the viewport ${width} ${lang}`, async ({page}) => {
+  await panel(page, {width, lang});
   await expect(page.locator('#language-select')).toBeHidden();
   await page.locator('.member-settings > summary').click();
   await expect(page.locator('#language-select')).toBeVisible();
   await expect(page.locator('.member-settings .fti-appearance')).toBeVisible();
   await expect(page.locator('#refresh-state')).toBeVisible();
+  const popup = await page.locator('.member-settings-panel').boundingBox();
+  expect(popup).not.toBeNull();
+  expect(popup.x).toBeGreaterThanOrEqual(0);
+  expect(popup.y).toBeGreaterThanOrEqual(0);
+  expect(popup.x + popup.width).toBeLessThanOrEqual(width + 1);
+  expect(popup.y + popup.height).toBeLessThanOrEqual(845);
+  for (const selector of ['#language-select', '.member-settings .fti-appearance', '#refresh-state']) {
+    const control = await page.locator(selector).boundingBox();
+    expect(control, selector).not.toBeNull();
+    expect(control.x, selector).toBeGreaterThanOrEqual(popup.x - 1);
+    expect(control.y, selector).toBeGreaterThanOrEqual(popup.y - 1);
+    expect(control.x + control.width, selector).toBeLessThanOrEqual(popup.x + popup.width + 1);
+    expect(control.y + control.height, selector).toBeLessThanOrEqual(popup.y + popup.height + 1);
+  }
   const requests = [];
   page.on('request', request => {if (new URL(request.url()).pathname === '/api/state') requests.push(request.url());});
   await page.locator('#refresh-state').click();

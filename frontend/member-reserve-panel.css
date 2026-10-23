@@ -70,6 +70,9 @@ body[data-surface="member"] .member-settings-panel .fti-language { grid-column: 
 body[data-surface="member"] .member-settings-panel .fti-language select { width: 100%; max-width: none; min-height: 44px; font-size: 16px; }
 body[data-surface="member"] .member-settings-panel .fti-appearance { width: auto; min-height: 44px; gap: 8px; }
 body[data-surface="member"] .member-settings-panel .fti-appearance span { display: inline; }
+/* The shared connection row is LTR. Anchor an RTL settings sheet from its
+   left edge so it grows into the viewport rather than beyond the screen. */
+html[dir="rtl"] body[data-surface="member"] .member-settings-panel { direction: rtl; }
 body[data-surface="member"] .member-network-info { margin-bottom: 0; border: 1px solid var(--line); border-radius: 12px; }
 body[data-surface="member"] .member-network-info > summary {
   display: flex;
