@@ -117,9 +117,12 @@ class PublisherTests(unittest.TestCase):
     def test_editorial_format_escapes_copy_and_uses_official_buttons(self):
         data = m.message_payload(CONFIG['expected_channel_id'], 'FTI <Guide>\n\nReserve & supply')
         self.assertEqual(data['text'], '<b>FTI &lt;Guide&gt;</b>\n\nReserve &amp; supply')
-        buttons = [button for row in data['reply_markup']['inline_keyboard'] for button in row]
-        self.assertEqual([button['url'] for button in buttons], [
-            'https://ftiprotocol.com/app/', 'https://ftiprotocol.com/', 'https://ftiprotocol.com/token/'])
+        self.assertEqual(data['reply_markup']['inline_keyboard'], [
+            [{'text': 'Launch App', 'url': 'https://ftiprotocol.com/app/', 'style': 'success'}],
+            [{'text': 'Token Market', 'url': 'https://ftiprotocol.com/token/', 'style': 'primary'},
+             {'text': 'Whitepaper', 'url': 'https://ftiprotocol.com/whitepaper/'}],
+            [{'text': 'Website', 'url': 'https://ftiprotocol.com/'},
+             {'text': 'Official Channel', 'url': 'https://t.me/FTIProtocol_Official'}]])
 
     def test_future_and_expired_not_sent(self):
         self.arm()

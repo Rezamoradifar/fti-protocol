@@ -202,9 +202,11 @@ def message_payload(channel_id, text):
     return {'chat_id': channel_id, 'text': formatted, 'parse_mode': 'HTML',
             'link_preview_options': {'is_disabled': True},
             'reply_markup': {'inline_keyboard': [
-                [{'text': 'Open Member App', 'url': 'https://ftiprotocol.com/app/'}],
+                [{'text': 'Launch App', 'url': 'https://ftiprotocol.com/app/', 'style': 'success'}],
+                [{'text': 'Token Market', 'url': 'https://ftiprotocol.com/token/', 'style': 'primary'},
+                 {'text': 'Whitepaper', 'url': 'https://ftiprotocol.com/whitepaper/'}],
                 [{'text': 'Website', 'url': 'https://ftiprotocol.com/'},
-                 {'text': 'Token Application', 'url': 'https://ftiprotocol.com/token/'}]]}}
+                 {'text': 'Official Channel', 'url': 'https://t.me/FTIProtocol_Official'}]]}}
 
 
 def publish(config, posts, db, api=None, now=None):

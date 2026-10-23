@@ -108,8 +108,12 @@ class ChannelSetupTests(unittest.TestCase):
                 self.assertTrue(params['caption'].startswith('<b>'))
                 self.assertEqual(params['parse_mode'], 'HTML')
                 self.assertEqual(len(m.re.findall(r'#[A-Za-z][A-Za-z0-9_]*', params['caption'])), 3)
-                self.assertTrue(all(b['url'].startswith('https://ftiprotocol.com/')
-                                    for row in params['reply_markup']['inline_keyboard'] for b in row))
+                self.assertEqual(params['reply_markup']['inline_keyboard'], [
+                    [{'text': 'Launch App', 'url': 'https://ftiprotocol.com/app/', 'style': 'success'}],
+                    [{'text': 'Token Market', 'url': 'https://ftiprotocol.com/token/', 'style': 'primary'},
+                     {'text': 'Whitepaper', 'url': 'https://ftiprotocol.com/whitepaper/'}],
+                    [{'text': 'Website', 'url': 'https://ftiprotocol.com/'},
+                     {'text': 'Official Channel', 'url': 'https://t.me/FTIProtocol_Official'}]])
         first_checks = sum(c[0] == 'getChatMember' for c in self.api.calls)
         self.assertEqual(m.apply(self.api, self.plan, self.receipt)['status'], 'VERIFIED')
         self.assertEqual(self.api.sent, 2)

@@ -48,3 +48,4 @@ __pycache__/
 
 # Local lock for token-free Telegram launch receipts
 /marketing/telegram/live-channel-setup.json.lock
+/marketing/telegram/live-channel-glass-edit.json.lock

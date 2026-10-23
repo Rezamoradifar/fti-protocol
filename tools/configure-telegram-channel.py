@@ -23,9 +23,12 @@ TITLE = 'FTI Protocol | Official'
 DESCRIPTION = ('Official FTI Protocol announcements, platform updates and user guidance. '
                'Explore the platform and applications at https://ftiprotocol.com/')
 POST_ASSETS = {'fti-launch-01': 'welcome.png', 'fti-launch-03': 'first-steps.png'}
-BUTTONS = {'inline_keyboard': [[{'text': label, 'url': 'https://ftiprotocol.com/' + suffix}]
-                              for label, suffix in [('Website', ''), ('Member Application', 'app/'),
-                                                    ('Token Application', 'token/')]]}
+BUTTONS = {'inline_keyboard': [
+    [{'text': 'Launch App', 'url': 'https://ftiprotocol.com/app/', 'style': 'success'}],
+    [{'text': 'Token Market', 'url': 'https://ftiprotocol.com/token/', 'style': 'primary'},
+     {'text': 'Whitepaper', 'url': 'https://ftiprotocol.com/whitepaper/'}],
+    [{'text': 'Website', 'url': 'https://ftiprotocol.com/'},
+     {'text': 'Official Channel', 'url': 'https://t.me/FTIProtocol_Official'}]]}
 METHODS = {'getMe', 'getChat', 'getChatMember', 'setMyName', 'setMyDescription',
            'setMyShortDescription', 'setChatTitle', 'setChatDescription', 'setChatPhoto',
            'sendPhoto', 'pinChatMessage'}
