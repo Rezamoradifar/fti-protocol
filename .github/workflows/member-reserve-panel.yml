@@ -1,0 +1,56 @@
+name: Member reserve panel
+on:
+  push:
+    branches: [feat/member-reserve-panel-20261023]
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'web/index.html'
+      - 'scripts/build-web.mjs'
+      - 'tools/install-member-reserve-panel*'
+      - 'test/member-reserve-panel*'
+      - 'landing/tests/member-reserve-panel.spec.mjs'
+      - '.github/workflows/member-reserve-panel.yml'
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix landing --ignore-scripts
+      - run: npm run build:web
+      - name: Wallet, membership, recovery and member display regressions
+        run: >-
+          node --test test/member-reserve-panel.test.mjs
+          test/member-landing-theme.test.mjs test/controller-price.test.mjs
+          test/controller-wallet-events.test.mjs test/controller-pending-monitor.test.mjs
+          test/membership-purchase-flow.test.mjs test/simple-purchase-ui.test.mjs
+          test/shared-wallet-navigation.test.mjs test/complete-translations.test.mjs
+      - name: Installer and actual service UID HTTP readability
+        run: sudo env PYTHONDONTWRITEBYTECODE=1 FTI_REQUIRE_SERVICE_UID_HTTP_TEST=1 python3 test/member-reserve-panel-install.test.py -q
+      - name: Reproduce the exact self-contained installer
+        run: |
+          python3 tools/install-member-reserve-panel.py --package . --output /tmp/fti-member-reserve-rebuilt.py
+          cmp tools/install-member-reserve-panel-release.py /tmp/fti-member-reserve-rebuilt.py
+      - run: npm --prefix landing run build
+      - run: npm run compile
+      - run: cd landing && npx playwright install --with-deps chromium webkit
+      - name: Chromium member layout and interactions
+        run: cd landing && npx playwright test tests/panel-identity.spec.mjs tests/member-reserve-panel.spec.mjs
+      - name: WebKit member layout and interactions
+        run: cd landing && FTI_BROWSER=webkit npx playwright test tests/panel-identity.spec.mjs tests/member-reserve-panel.spec.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: member-reserve-panel-browser
+          path: landing/test-results

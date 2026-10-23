@@ -8,6 +8,9 @@ for(const [lang,[notice,membership,unitPrice,unitsLabel]] of Object.entries(copy
  await page.route('**/api/config',r=>r.fulfill({json:cfg}));
  await page.route('**/api/state',r=>r.fulfill({status:503,json:{error:'Read-only fixture'}}));
  await page.goto('/app/?lang='+lang);
+ // The member panel keeps network details and the financial notice in the
+ // discoverable network disclosure; verify the actual expanded user content.
+ await page.locator('.member-network-info > summary').click();
  await expect(page.getByText(notice,{exact:false})).toBeVisible();
  await expectReadFailure(page,lang);
  await page.getByRole('button',{name:membership,exact:true}).click();

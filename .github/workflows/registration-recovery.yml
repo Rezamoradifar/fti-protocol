@@ -41,6 +41,9 @@ jobs:
       - run: sudo env PYTHONDONTWRITEBYTECODE=1 FTI_REQUIRE_SERVICE_UID_HTTP_TEST=1 python3 test/registration-recovery-ui-install.test.py -q
       - run: npm run build:web
       - name: Reproduce the exact packaged installer
+        # This historical installer embeds its reviewed recovery bundle. Later
+        # member-UI releases have their own deterministic package check.
+        if: (github.head_ref || github.ref_name) == 'fix/registration-pending-recovery-20261023'
         run: |
           python3 tools/install-registration-recovery-ui.py --package . --output /tmp/fti-registration-recovery-rebuilt.py
           cmp tools/install-registration-recovery-ui-release.py /tmp/fti-registration-recovery-rebuilt.py

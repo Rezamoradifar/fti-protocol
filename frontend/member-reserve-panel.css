@@ -1,0 +1,215 @@
+/* Member account layout. All amounts and transaction controls remain owned by
+   the existing controller; the reserve artwork is purely illustrative. */
+body[data-surface="member"] {
+  --bg: #050908;
+  --panel: #0b1712;
+  --panel2: #14231b;
+  --line: #2b4034;
+  --member-border: #36533e;
+  --member-nav: #0a1711f5;
+  background: var(--bg) !important;
+}
+body[data-surface="member"].light {
+  --bg: #f4f6f0;
+  --panel: #ffffff;
+  --panel2: #e8eee4;
+  --line: #ccd7cc;
+  --member-border: #b7cbb9;
+  --member-nav: #f8fcf6f5;
+}
+body[data-surface="member"] .member-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+body[data-surface="member"] .workspace-header { align-items: center; padding-bottom: 16px; }
+body[data-surface="member"] .workspace-header h1 { font-size: 27px; font-weight: 650; line-height: 1.5; }
+body[data-surface="member"] .workspace-header .eyebrow { font-size: 11px; }
+body[data-surface="member"] .connection { gap: 8px; }
+body[data-surface="member"] .connection #connect { border-radius: 14px; min-height: 48px; }
+body[data-surface="member"] .member-settings { position: relative; width: 44px; min-width: 0; overflow: visible; }
+body[data-surface="member"] .member-settings-toggle {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+}
+body[data-surface="member"] .member-settings[data-open] > .member-settings-toggle { border-color: var(--accent); }
+body[data-surface="member"] .member-settings-panel {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 10px);
+  z-index: 65;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  display: none;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--member-border);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 12px 32px #0003;
+}
+body[data-surface="member"] .member-settings[data-open] > .member-settings-panel { display: grid; }
+/* Keep the native language control consistently sized in the settings panel. */
+body[data-surface="member"] .member-settings-panel .fti-language { display: block; grid-column: 1 / -1; width: 100%; min-width: 0; }
+body[data-surface="member"] .member-settings-panel .fti-language select { display: block; box-sizing: border-box; width: 100%; max-width: none; min-width: 0; height: 44px; min-height: 44px; font-size: 16px; }
+body[data-surface="member"] .member-settings-panel .fti-appearance { width: auto; min-height: 44px; gap: 8px; }
+body[data-surface="member"] .member-settings-panel .fti-appearance span { display: inline; }
+/* The shared connection row is LTR. Anchor an RTL settings sheet from its
+   left edge so it grows into the viewport rather than beyond the screen. */
+html[dir="rtl"] body[data-surface="member"] .member-settings-panel { direction: rtl; }
+body[data-surface="member"] .member-network-info { margin-bottom: 0; border: 1px solid var(--line); border-radius: 12px; }
+body[data-surface="member"] .member-network-info > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 8px 16px;
+  list-style: none;
+  cursor: pointer;
+  color: var(--muted);
+}
+body[data-surface="member"] .member-network-info > summary::-webkit-details-marker { display: none; }
+body[data-surface="member"] .member-network-info .network-pill { padding: 0; color: var(--accent); font-size: 12px; }
+body[data-surface="member"] .member-network-info > div { padding: 0 16px 16px; font-size: 13px; color: var(--muted); }
+body[data-surface="member"] .member-network-info p { margin: 8px 0 12px; line-height: 1.9; }
+body[data-surface="member"] .member-network-info nav { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+body[data-surface="member"] .member-network-info a { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); }
+body[data-surface="member"] .status-bar { margin: 0; min-height: 0; padding: 8px 0; font-size: 11px; line-height: 1.8; color: var(--muted); }
+body[data-surface="member"] .status-bar:has(.error) { padding: 12px; border: 1px solid var(--error); border-radius: 12px; margin-block: 10px; }
+body[data-surface="member"] .member-summary-grid { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr); gap: 20px; align-items: start; }
+body[data-surface="member"] .member-balance-region { min-width: 0; }
+body[data-surface="member"] .member-balance-card {
+  padding: 24px 24px 14px;
+  border: 1px solid var(--member-border);
+  border-radius: 22px;
+  overflow: hidden;
+  background: var(--panel);
+}
+html[data-appearance="glass"] body[data-surface="member"] .member-balance-card { background: #0b1c15cc; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+html[data-appearance="glass"] body[data-surface="member"].light .member-balance-card { background: #ffffffd9; }
+body[data-surface="member"] .member-balance-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+body[data-surface="member"] .member-balance-heading h2 { margin: 0; font-size: 16px; font-weight: 500; }
+body[data-surface="member"] .member-balance-heading > svg { color: var(--muted); width: 22px; height: 22px; }
+body[data-surface="member"] .member-main-balance { display: flex; align-items: baseline; gap: 12px; margin-top: 8px; direction: ltr; justify-content: flex-start; font-variant-numeric: tabular-nums; }
+body[data-surface="member"] .member-main-balance strong { font-family: 'FTI Manrope', sans-serif; font-size: clamp(32px, 4vw, 44px); font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; min-width: 0; }
+body[data-surface="member"] .member-main-balance > span { color: var(--muted); font-size: 18px; }
+body[data-surface="member"] .member-reserve-figure { position: relative; margin: 4px -24px 0; overflow: hidden; background: #081410; }
+body[data-surface="member"] .member-reserve-art { aspect-ratio: 12 / 5; width: 100%; background: url('./assets/member-reserve-flow.webp') center / cover no-repeat; transform-origin: center; animation: member-reserve-drift 12s ease-in-out infinite alternate; animation-play-state: paused; }
+body[data-surface="member"] .member-reserve-figure.is-visible:not(.is-paused) .member-reserve-art { animation-play-state: running; }
+body[data-surface="member"] .member-art-toggle { position: absolute; inset-inline-end: 12px; top: 8px; padding: 4px 10px; min-height: 44px; max-width: calc(100% - 24px); font: 11px/1.5 var(--member-font); color: #dce9df; background: #081410df; border: 1px solid #375741; border-radius: 10px; }
+body[data-surface="member"] .member-balance-secondary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+body[data-surface="member"] .member-balance-secondary > div { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding-inline: 16px; }
+body[data-surface="member"] .member-balance-secondary > div:first-child { padding-inline-start: 0; border-inline-end: 1px solid var(--line); }
+body[data-surface="member"] .member-balance-secondary > div:last-child { padding-inline-end: 0; }
+body[data-surface="member"] .member-balance-secondary > div > span { color: var(--muted); font-size: 12px; line-height: 1.6; }
+body[data-surface="member"] .member-balance-secondary strong { font-size: 24px; font-weight: 600; line-height: 1.5; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+body[data-surface="member"] .member-balance-secondary small { font-size: 10px; line-height: 1.7; color: var(--muted); }
+body[data-surface="member"] .member-balance-secondary .metric-link { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 8px 0; color: var(--accent); border: 0; background: transparent; font-size: 11px; gap: 5px; }
+body[data-surface="member"] .member-balance-secondary .metric-link:disabled { color: var(--muted); opacity: .7; }
+/* Before connection these are explanations of absent balances and disabled
+   duplicate reward actions. Keep the controller hooks mounted; show the full
+   actionable account details as soon as a wallet is connected. */
+body[data-surface="member"]:not(:has(#disconnect:not([hidden]))) .member-balance-secondary :is(small, .metric-link) { display: none; }
+body[data-surface="member"] .member-balance-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 10px; color: var(--muted); }
+body[data-surface="member"] .member-trade-action { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 48px; margin-top: 12px; padding: 12px 20px; border: 1px solid var(--member-border); border-radius: 14px; background: transparent; color: var(--text); text-align: start; font-size: 14px; }
+body[data-surface="member"] .member-trade-action svg { color: var(--accent); }
+body[data-surface="member"] .member-rank-card { min-width: 0; padding: 24px; background: var(--panel) !important; border-radius: 20px; }
+body[data-surface="member"] .member-rank-card .panel-head { align-items: center; margin-bottom: 14px; }
+body[data-surface="member"] .member-rank-card .panel-head svg { color: var(--accent); }
+body[data-surface="member"] .member-rank-card h2 { font-size: 25px; font-weight: 650; line-height: 1.5; margin-block: 0 8px; }
+body[data-surface="member"] .member-rank-card p { color: var(--muted); font-size: 12px; line-height: 1.9; }
+body[data-surface="member"] .member-rank-card progress { height: 4px; margin-top: 10px; }
+body[data-surface="member"] .member-rank-card .progress-label { gap: 10px; font-size: 10px; flex-wrap: wrap; margin-top: 8px; }
+body[data-surface="member"] .member-network-action { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 44px; padding: 10px 0 0; margin-top: 10px; background: transparent; color: var(--accent); border: 0; text-align: start; font-size: 13px; }
+body[data-surface="member"] :is(.member-account-details, .member-protocol-details) { margin-top: 16px; padding: 0; border-block: 1px solid var(--line); }
+body[data-surface="member"] :is(.member-account-details, .member-protocol-details) > summary { display: flex; align-items: center; justify-content: space-between; min-height: 52px; gap: 12px; padding-block: 12px; cursor: pointer; list-style: none; font-weight: 500; font-size: 14px; }
+body[data-surface="member"] :is(.member-account-details, .member-protocol-details) > summary::-webkit-details-marker { display: none; }
+body[data-surface="member"] .member-account-details .split { margin-block: 0 16px; }
+body[data-surface="member"] .member-protocol-details .protocol-strip { margin-block: 12px 16px; }
+body[data-surface="member"] .member-overview-copy { color: var(--muted); font-size: 12px; line-height: 1.9; max-width: 70ch; margin: 18px 0; }
+body[data-surface="member"] :is(.member-trade-action, .member-network-action, .member-settings-toggle) { transition: border-color .18s, background-color .18s; }
+body[data-surface="member"] :is(.member-trade-action, .member-network-action):hover { background: var(--panel2); }
+body[data-surface="member"] :is(summary, .member-settings-toggle, .member-art-toggle):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+@keyframes member-reserve-drift { from { transform: scale(1); opacity: .9; } to { transform: scale(1.025); opacity: 1; } }
+@media(max-width: 1100px) {
+  body[data-surface="member"] .member-summary-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
+@media(max-width: 900px) {
+  html:has(body[data-surface="member"]) { scroll-padding-block-end: calc(112px + env(safe-area-inset-bottom, 0px)); }
+  body[data-surface="member"] .sidebar { display: flex !important; flex-direction: row !important; justify-content: space-between; padding: 12px 16px !important; border: 0; min-height: 64px; }
+  body[data-surface="member"] .sidebar .side-foot { display: none; }
+  body[data-surface="member"] .sidebar .brand { font-size: 22px; }
+  body[data-surface="member"] .sidebar .brand .fti-hologram { width: 36px !important; height: 36px !important; }
+  body[data-surface="member"] .sidebar nav { position: fixed; inset-inline: 14px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 40; display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); width: auto !important; margin: 0 !important; padding: 5px !important; gap: 4px; background: var(--member-nav); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 8px 28px #0003; }
+  body[data-surface="member"] .sidebar nav button { flex-direction: column; min-height: 62px; gap: 5px; padding: 8px 3px; font-size: 11px; border-radius: 14px; line-height: 1.4; }
+  body[data-surface="member"] .sidebar nav button svg { display: block; width: 21px; height: 21px; }
+  body[data-surface="member"] .sidebar nav button.active { background: var(--panel2) !important; border-color: var(--member-border) !important; color: var(--accent) !important; }
+  body[data-surface="member"] main, html[dir="rtl"] body[data-surface="member"] main { margin: 0; padding: 0 16px calc(112px + env(safe-area-inset-bottom, 0px)); width: auto; scroll-margin-bottom: 112px; }
+  body[data-surface="member"] .workspace-header { position: relative; display: block; margin: 0; padding: 8px 0 14px; }
+  body[data-surface="member"] .workspace-header > div:first-child { min-height: 44px; padding-inline-end: 104px; margin-bottom: 10px; }
+  body[data-surface="member"] .workspace-header h1 { font-size: 25px; }
+  body[data-surface="member"] .workspace-header .eyebrow { display: block; font-size: 10px; line-height: 1.3; }
+  body[data-surface="member"] .workspace-header h1 { margin-top: 4px; line-height: 1.3; }
+  body[data-surface="member"] .workspace-header .connection { direction: inherit; position: static; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; width: 100%; max-width: none; }
+  body[data-surface="member"] .connection .member-settings { position: absolute; top: 8px; inset-inline-end: 52px; }
+  body[data-surface="member"] .connection #theme { position: absolute; top: 8px; inset-inline-end: 0; width: 44px; height: 44px; border-radius: 12px; }
+  body[data-surface="member"] .connection #connect { grid-column: 1 / -1 !important; grid-row: auto; min-height: 48px; width: 100%; padding: 10px 16px; font-size: 14px; }
+  body[data-surface="member"] .connection #disconnect { grid-column: 1 / -1 !important; grid-row: auto; }
+  body[data-surface="member"] .connection #local-accounts { grid-column: 1 / -1; grid-row: auto; }
+  /* Keep real layout boxes around native controls on mobile WebKit.
+     The trigger is 52px from the header edge; extend the popup to that edge. */
+  body[data-surface="member"] .member-settings-panel { inset-inline-start: auto; inset-inline-end: -52px; top: calc(100% + 10px); margin-top: 0; width: min(288px, calc(100vw - 32px)); max-width: calc(100vw - 32px); }
+  body[data-surface="member"] .member-settings-panel .fti-language > span { display: none; }
+  body[data-surface="member"] .member-settings-panel #refresh-state { width: 44px; }
+  body[data-surface="member"] .member-balance-card { padding: 18px 18px 12px; border-radius: 20px; }
+  body[data-surface="member"] .member-main-balance strong { font-size: 34px; }
+  body[data-surface="member"] .member-reserve-figure { margin: 4px -18px 0; }
+  body[data-surface="member"] .member-reserve-art { height: 128px; aspect-ratio: auto; }
+  body[data-surface="member"] .member-balance-secondary { padding-top: 12px; margin-top: 12px; }
+  body[data-surface="member"] .member-balance-secondary > div { padding-inline: 12px; }
+  body[data-surface="member"] .member-balance-secondary strong { font-size: 24px; }
+  body[data-surface="member"] .member-balance-secondary small { font-size: 10px; }
+  body[data-surface="member"] .member-balance-footer { font-size: 9px; }
+  body[data-surface="member"] .member-balance-footer > span:first-child { display: none; }
+  body[data-surface="member"] .member-balance-footer { margin-top: 6px; padding-top: 6px; justify-content: flex-end; }
+  body[data-surface="member"] .member-rank-card { padding: 20px; }
+  body[data-surface="member"] .member-rank-card h2 { font-size: 24px; }
+  body[data-surface="member"] :is(button, a, input, select, summary) { scroll-margin-block: 24px 110px; }
+}
+@media(max-width: 360px) {
+  body[data-surface="member"] .sidebar nav { inset-inline: 10px; }
+  body[data-surface="member"] .sidebar nav button { font-size: 10px; }
+  body[data-surface="member"] .member-balance-card { padding-inline: 14px; }
+  body[data-surface="member"] .member-reserve-figure { margin-inline: -14px; }
+  body[data-surface="member"] .member-balance-secondary > div { padding-inline: 9px; }
+  body[data-surface="member"] .member-balance-secondary > div > span { font-size: 11px; }
+}
+@media(prefers-reduced-motion: reduce) {
+  body[data-surface="member"] .member-reserve-art { animation: none !important; transform: none; opacity: 1; }
+  body[data-surface="member"] .member-art-toggle { display: none; }
+  body[data-surface="member"] :is(.member-trade-action, .member-network-action, .member-settings-toggle) { transition: none; }
+}
+@media(prefers-reduced-transparency: reduce) {
+  html[data-appearance="glass"] body[data-surface="member"] .member-balance-card { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--panel); }
+}
+@media print {
+  body[data-surface="member"] :is(.sidebar, .member-art-toggle, .member-settings) { display: none !important; }
+  body[data-surface="member"] main { margin: 0 !important; padding: 0 !important; }
+}

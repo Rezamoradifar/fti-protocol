@@ -42,3 +42,6 @@ __pycache__/
 
 /web/fonts/
 /web/panel-identity.css
+/web/member-reserve-panel.css
+/web/assets/
+/web/vendor/ethers.js
