@@ -59,6 +59,18 @@ install verifies the existing result without another switch.
 No build, service restart, RPC change, contract deployment, keeper activation or
 release fingerprint modification is performed by this installer.
 
+The initial production attempt passed preflight but stopped before switching
+HTML: the private `0077` umask also made the new public entry directory `0700`.
+The unprivileged web service therefore returned 404 for its existing entry file.
+The installer now explicitly publishes that verified entry directory as `0755`,
+including the matching directory left by the failed attempt, while preserving
+private backup permissions. Unexpected private contents are never published.
+Five additional regressions cover the production umask, retry, private contents,
+exact HTTP error location and a real HTTP read by an unprivileged Node process.
+The latter is mandatory in root CI; the local restricted executor cannot switch
+service UID/GID. The packaged application bytes are unchanged by this installer
+repair.
+
 ## Validation and limits
 
 - The remembered-hash and controller-guard regressions failed on the baseline

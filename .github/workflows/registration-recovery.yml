@@ -38,7 +38,7 @@ jobs:
           test/state-reader.test.mjs
       # The installer enforces root ownership for private production backups.
       # Exercise those same checks in the isolated runner without weakening them.
-      - run: sudo env PYTHONDONTWRITEBYTECODE=1 python3 test/registration-recovery-ui-install.test.py -q
+      - run: sudo env PYTHONDONTWRITEBYTECODE=1 FTI_REQUIRE_SERVICE_UID_HTTP_TEST=1 python3 test/registration-recovery-ui-install.test.py -q
       - run: npm run build:web
       - name: Reproduce the exact packaged installer
         run: |

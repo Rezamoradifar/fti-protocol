@@ -4,6 +4,8 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import select
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -119,6 +121,99 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(len(backups), 1)
         self.assertEqual((backups[0] / 'before.html').read_bytes(), self.before)
         self.assertEqual((backups[0] / 'before.html').stat().st_mode & 0o777, 0o600)
+
+    def install_with_private_umask(self):
+        previous = os.umask(0o077)
+        try:
+            m.install(release(), apply=True)
+        finally:
+            os.umask(previous)
+
+    def entry_asset(self):
+        _, assets = m.plan(self.before, APP)
+        url = next(url for url in assets if url.endswith('/entry.js'))
+        return url, self.root / ('web' + url), assets[url]
+
+    def test_main_umask_publishes_readable_entry_and_keeps_backups_private(self):
+        self.install_with_private_umask()
+        _, entry, data = self.entry_asset()
+        self.assertEqual(entry.parent.stat().st_mode & 0o777, 0o755)
+        self.assertEqual(entry.stat().st_mode & 0o777, 0o644)
+        self.assertEqual(entry.read_bytes(), data)
+        backup = next(m.BACKUPS.glob('install-*'))
+        self.assertEqual(backup.stat().st_mode & 0o777, 0o700)
+        self.assertEqual((backup / 'installer.py').stat().st_mode & 0o777, 0o600)
+
+    def test_retry_repairs_matching_private_entry_left_by_older_installer(self):
+        _, entry, data = self.entry_asset()
+        entry.parent.mkdir(mode=0o700)
+        entry.write_bytes(data)
+        entry.chmod(0o644)
+        before_inode = entry.stat().st_ino
+        self.install_with_private_umask()
+        self.assertEqual(entry.parent.stat().st_mode & 0o777, 0o755)
+        self.assertEqual(entry.stat().st_ino, before_inode)
+        self.assertEqual(entry.read_bytes(), data)
+
+    def test_retry_never_publishes_unexpected_private_directory_contents(self):
+        _, entry, _ = self.entry_asset()
+        entry.parent.mkdir(mode=0o700)
+        (entry.parent / 'operator-private.txt').write_bytes(b'private fixture')
+        with self.assertRaisesRegex(RuntimeError, 'UNSAFE_PRIVATE_ASSET_DIRECTORY'):
+            self.install_with_private_umask()
+        self.assertEqual(entry.parent.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(self.target.read_bytes(), self.before)
+
+    def test_http_failure_identifies_the_exact_failed_asset_url(self):
+        url = 'http://127.0.0.1:3110/fti-registration-recovery-fixture/entry.js'
+        error = m.urllib.error.HTTPError(url, 404, 'Not found', {}, None)
+        with patch.object(m.urllib.request, 'build_opener') as opener:
+            opener.return_value.open.side_effect = error
+            with self.assertRaisesRegex(RuntimeError, 'HTTP_STATUS_404: ' + url):
+                m.fetch(url)
+
+    @unittest.skipUnless(os.geteuid() == 0, 'production permission check requires root')
+    def test_unprivileged_http_service_can_read_entry_after_main_umask(self):
+        self.root.chmod(0o755)
+        self.install_with_private_umask()
+        url, _, data = self.entry_asset()
+        # Match the production Node static file checks under an unprivileged
+        # service identity. Root-only mocked reads cannot detect a 0700 parent.
+        code = '''
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+const root=process.argv[1];
+const server=http.createServer((req,res)=>{
+ const pathname=new URL(req.url,'http://localhost').pathname;
+ const file=path.resolve(root,pathname.slice(1));
+ if(!file.startsWith(root+path.sep)){res.writeHead(403);return res.end();}
+ if(!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);return res.end('Not found');}
+ res.writeHead(200,{'Content-Type':'text/javascript'});fs.createReadStream(file).pipe(res);
+});
+server.listen(0,'127.0.0.1',()=>console.log(server.address().port));
+'''
+        try:
+            process = subprocess.Popen([shutil.which('node'), '--input-type=module', '-e', code,
+                str(self.root / 'web')], cwd=self.root, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                text=True, user=65534, group=65534, extra_groups=())
+        except PermissionError:
+            if os.environ.get('FTI_REQUIRE_SERVICE_UID_HTTP_TEST') == '1':
+                raise
+            self.skipTest('Executor cannot switch service UID/GID; exercised by root CI')
+        try:
+            self.assertTrue(select.select([process.stdout], [], [], 10)[0], 'HTTP service did not start')
+            port = process.stdout.readline().strip()
+            self.assertTrue(port.isdecimal(), 'Unprivileged Node service did not report a port')
+            opener = m.urllib.request.build_opener(m.urllib.request.ProxyHandler({}))
+            with opener.open('http://127.0.0.1:' + port + url, timeout=5) as response:
+                self.assertEqual(response.status, 200)
+                self.assertEqual(response.read(), data)
+        finally:
+            process.terminate()
+            process.wait(timeout=5)
+            process.stdout.close()
+            process.stderr.close()
 
     def test_failed_post_switch_verification_restores_original_html(self):
         self.failure_mode = 'served'

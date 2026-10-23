@@ -19,6 +19,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import urllib.error
 import urllib.request
 
 UNIT = 'fti-continuity-web.service'
@@ -128,10 +129,13 @@ def fetch(url):
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
     request = urllib.request.Request(url, headers={'Cache-Control': 'no-cache',
         'Accept-Encoding': 'identity', 'User-Agent': 'FTI-Registration-Recovery/1'})
-    with opener.open(request, timeout=20) as response:
-        data = response.read(LIMIT + 1)
-        require(response.status == 200 and len(data) <= LIMIT, 'INVALID_HTTP_RESPONSE')
-        return data, response.headers.get_content_type()
+    try:
+        with opener.open(request, timeout=20) as response:
+            data = response.read(LIMIT + 1)
+            require(response.status == 200 and len(data) <= LIMIT, 'INVALID_HTTP_RESPONSE')
+            return data, response.headers.get_content_type()
+    except urllib.error.HTTPError as error:
+        raise RuntimeError('HTTP_STATUS_' + str(error.code) + ': ' + url) from None
 
 
 def served(url, data, javascript=False):
@@ -202,6 +206,32 @@ def plan(before, app):
             len(re.findall(rb'<script\b', before)) == 1 and
             b'<base' not in before.lower(), 'UNRECOGNIZED_INSTALLED_ENTRY')
     return before.replace(old, new, 1), {app_url: app, entry_url: entry}
+
+
+def public_asset_directory(path, expected):
+    safe_path(path)
+    path.mkdir(mode=0o755, exist_ok=True)
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        info = os.fstat(fd)
+        require(stat.S_ISDIR(info.st_mode) and not info.st_mode & 0o022,
+                'UNSAFE_ASSET_DIRECTORY')
+        # The pre-existing base directory has already been served successfully
+        # in preflight; preserve its operator-selected owner/group permissions.
+        if not re.fullmatch(r'fti-registration-recovery-[0-9a-f]{20}', path.name):
+            return
+        if info.st_mode & 0o005 != 0o005:
+            # main() deliberately uses umask 0077 for private backups. Public
+            # entry directories need explicit traversal/read permissions, also
+            # when retrying the 0700 directory left by an older installer.
+            names = set(os.listdir(fd))
+            require(info.st_uid == 0 and names <= set(expected), 'UNSAFE_PRIVATE_ASSET_DIRECTORY')
+            for name in names:
+                require(regular(path / name)[0] == expected[name], 'IMMUTABLE_ASSET_MISMATCH')
+            os.fchmod(fd, 0o755)
+        require(os.fstat(fd).st_mode & 0o005 == 0o005, 'ASSET_DIRECTORY_NOT_PUBLIC')
+    finally:
+        os.close(fd)
 
 
 def switch(target, before, after, info, verify):
@@ -286,8 +316,7 @@ def install(release, apply=False):
     print('ROLLBACK_COMMAND=python3 ' + str(backup / 'installer.py') + ' --restore ' + str(backup), flush=True)
     for url, data in assets.items():
         file = safe_path(root / ('web' + url))
-        file.parent.mkdir(mode=0o755, exist_ok=True)
-        require(not file.parent.stat().st_mode & 0o022, 'UNSAFE_ASSET_DIRECTORY')
+        public_asset_directory(file.parent, {file.name: data})
         if file.exists():
             require(regular(file)[0] == data, 'IMMUTABLE_ASSET_MISMATCH')
         else:
