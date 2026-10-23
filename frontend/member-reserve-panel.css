@@ -155,6 +155,7 @@ body[data-surface="member"] :is(summary, .member-art-toggle):focus-visible { out
   body[data-surface="member"] .sidebar { display: flex !important; flex-direction: row !important; justify-content: space-between; padding: 12px 16px !important; border: 0; min-height: 64px; }
   body[data-surface="member"] .sidebar .side-foot { display: none; }
   body[data-surface="member"] .sidebar .brand { font-size: 22px; }
+  body[data-surface="member"] .sidebar .brand .fti-hologram { width: 36px !important; height: 36px !important; }
   body[data-surface="member"] .sidebar nav { position: fixed; inset-inline: 14px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 40; display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); width: auto !important; margin: 0 !important; padding: 5px !important; gap: 4px; background: var(--member-nav); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 8px 28px #0003; }
   body[data-surface="member"] .sidebar nav button { flex-direction: column; min-height: 62px; gap: 5px; padding: 8px 3px; font-size: 11px; border-radius: 14px; line-height: 1.4; }
   body[data-surface="member"] .sidebar nav button svg { display: block; width: 21px; height: 21px; }

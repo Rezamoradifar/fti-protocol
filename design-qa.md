@@ -1,51 +1,112 @@
-# Design QA — pure-black exchange
+# Member reserve panel design QA
 
-Final result: passed
+final result: passed
 
-Selected source: first exchange concept, revised to pure black (exec-c4ddc22c-21aa-4339-baf8-e317bc91c6ca.png). Existing production application updated, retaining the existing FTI brand and financial rules.
+The user selected the reserve-flow style and clarified that the target was the
+member account panel. The accepted target is the revised member dashboard,
+not the earlier public landing concept. This review covers visual and manual
+interaction acceptance; final automated CI evidence is recorded in PR #45.
 
-Comparison: revised reference 1487×1058, browser implementation 1363×936; compared at equivalent overall width and checked individual order-panel/chart regions. Mobile checked at 390×844. Screenshots and side-by-side comparison were inspected locally.
+## Evidence and normalization
 
-- Layout: order entry left, chart right; stacked chart/order entry on mobile. Quick registration, wallet, genealogy and token actions remain accessible.
-- Typography: existing Persian-friendly UI font retained; numeric OHLC and addresses use left-to-right layout. Source Latin copy replaced by real application translations.
-- Spacing: compact exchange cards and controls; mobile navigation wraps without overlap or horizontal overflow.
-- Colors: body background verified as rgb(0,0,0); panels pure black, white actions, thin neutral borders. Chart green/red indicates observed upward/downward candles.
-- Assets: existing FTI logo retained. Existing landing illustration rendered in grayscale; fixed its preview route. No custom CSS logo recreation.
-- Data/copy: no invented orderbook, volume, unsupported limit orders or fabricated price history. OHLC represents observed on-chain reserve price samples while the page is open, with browser cache; it is not a complete exchange trade feed. Intervals 1m/5m/15m. Preview explicitly uses captured TESTNET data and cannot transact.
+- Source visual truth: `docs/design/member-reserve/approved-mobile.jpg`, from
+  the selected generated member-panel design (original 853 × 1844 pixels).
+- Implementation: `docs/design/member-reserve/mobile-dark.jpg` and
+  `mobile-light.jpg`; desktop: `desktop-dark.jpg`.
+- Full comparison: `docs/design/member-reserve/comparison.jpg` (source left,
+  implementation right). Focused balance/art/action comparison:
+  `balance-comparison.jpg`, with each crop taken from its own actual region.
+- Mobile CSS viewport: 390 × 844, density 1. The browser's 405-pixel iframe has
+  a 15-pixel classic RTL scrollbar, leaving 390 CSS pixels. The complete
+  1363 × 936 browser capture was cropped to the content, without the scrollbar
+  or surrounding canvas. The source is scaled proportionally to width 390 and
+  padded by its one-pixel rounding difference to a 390 × 844 comparison frame.
+- State: Persian, disconnected wallet, dark appearance, overview, read-only
+  captured testnet preview. The 20-pixel preview banner, chain 97 and older
+  captured network data explicitly identify this as a preview. No real account
+  balances or financial results are asserted. Empty balances remain `—`.
+- Final manual preview additionally used the exact installed shared identity
+  stylesheet, SHA-256
+  `12f294040117dd35e4e2c0d30b4e1f08e8da9727487b6a96458d089e5c95fece`.
+  New browser cases load that fixture; the existing identity matrix separately
+  covers freshly built shared styles.
 
-Iteration history: fixed wallet/header overlap; reserved desktop navigation space; stacked mobile brand/navigation; removed remaining green landing panel; fixed preview illustration route.
+## Findings and fixes
 
-Validation: nine candle, settlement-view and wallet-discovery tests passed. Web and landing production builds passed. Browser verified Buy/Sell tabs, 5m selection, pure-black background and desktop/mobile overflow. No application console errors observed. Real wallet signing and server deployment were not performed in this environment.
+- Resolved P1: the RTL settings sheet originally extended beyond the left
+  edge. Setting the sheet's text direction and anchoring mobile sheets to the
+  header fixes both directions. Closed sheets now have no layout boxes.
+  Post-fix 320-pixel evidence: `mobile-settings-320.jpg`; the measured sheet
+  bounds are x31–319 in the classic-scrollbar viewport, with 320 content pixels.
+  Language, appearance and refresh controls remain reachable.
+- Resolved P2: the first balance card was about 458 pixels tall, placing both
+  the trade action and membership summary too far down. The empty-wallet view
+  now omits redundant balance explanations and disabled duplicate actions,
+  retains their mounted controller hooks, and uses a 128-pixel mobile artwork
+  region. Connected wallets reveal the original actionable account controls.
+  The trade action is fully visible in the final initial viewport.
+- Resolved clipping uncertainty: the membership card begins below the first
+  viewport's main balance/action region. A natural scroll exposes the entire
+  card and network action above the fixed dock, as shown in
+  `mobile-membership-scroll.jpg`. Measured card y390.23–653.53 and network
+  action y588.53–632.53 are above dock y758–832. They are not trapped behind it.
 
-No unresolved visual P0/P1/P2 issues. Intentional deviations from the mock are documented above; exact mock financial numbers/history are not production data.
+There are no remaining P0/P1/P2 usability findings. The additional vertical
+scroll compared with the mock is intentional: the real controller's read
+status, data freshness, rank progression and 44-pixel network disclosure are
+retained. This is an adaptation of the selected style to the existing product,
+not a claim that every viewport has identical pixel placement to the mock.
 
-## Candles and volume follow-up
-Added recent 300-block token trade history, execution-price OHLC, actual buy/sell USD volume bars and recent trade rows. Buy USD is usdIn; sale USD is actual usdOut (after fee). This is explicitly recent-block volume, not a fabricated 24h number. RPC batches disabled for browser reads; history requests shared and cached on server. Invalid/unavailable history shows unavailable instead of zero. Historical execution candles are separate from spot-price fallback samples. Twelve relevant tests and production web build passed. Local captured-data preview has no trade-history fixture, so live server retrieval remains to be verified after installation.
+## Required fidelity surfaces
 
-## 2026-10-10: coordinated public sites and subdomains
-- Four destinations: protocol landing, member app, token public site/market, council.
-- Added bilingual whitepaper and staged roadmap, with current code rules and pending validation clearly separated.
-- Fixed landing acceptance of continuity upgradeable contract models.
-- Desktop browser checked token public site, whitepaper and member panel. Token public mobile at 390px had body width/scroll width 375/375; menu expanded with all links.
-- Fifteen focused routing, wallet discovery, candles, market and settled-points tests pass. Web and landing builds pass. Shell syntax checked for subdomain installer.
-- No contracts changed or network transactions signed. Preview uses captured testnet data with a visible label.
-- Production activation still requires server installation, DNS A records and TLS issuance. WalletConnect origin allowlist must include the three subdomains in the existing Reown project.
+- Fonts/typography: existing local FTI Vazirmatn and Manrope are preserved;
+  Persian RTL wrapping, clear value hierarchy and tabular amounts were checked.
+  Latin headings retain the product's existing Orbitron style. No rasterized
+  interface text or financial data is used.
+- Spacing/layout: grouped balances, secondary trade action, membership summary
+  and four-tab dock match the selected hierarchy. Mobile settings, 44-pixel
+  controls, safe-area bottom spacing, full-card scrolling and desktop sidebar
+  were checked. Operational text creates documented extra vertical content.
+- Colors/tokens: obsidian/forest surfaces, lime actions and warm white text use
+  the current product palette. Existing accessible green/light tokens remain
+  active in day mode; the dark illustration remains an intentional artwork
+  window inside the light balance surface.
+- Images: the local 1200 × 500 WebP is 50,598 bytes and follows the selected
+  FTI-medallion/USDT-vessel stream composition. It is a real generated raster
+  asset. The supplied brand mark and established product icons are reused.
+  No placeholder art or invented financial graphic replaces the target.
+- Copy/content: the actual wallet, collateral, claimable reward and membership
+  fields remain bound to their existing IDs. Collateral is named generically
+  because the controller identifies the selected collateral. The illustration
+  has an educational caption for assistive technology and implies no automatic
+  token purchase when membership units are purchased.
 
-## 2026-10-10: restore original green/gold identity
-- Restored source palette (#101817 / #182321 / #1e2d29, pale-green #c5e8a4, gold #d4b87b) across landing, member, token, council, whitepaper and roadmap.
-- Preserved all routes, UI controls, read/write handlers and contract sources.
-- Web and landing builds pass. Desktop member, council and token public screens reviewed; member mobile body width equals scroll width (375px), with no horizontal overflow.
-- Preview financial responses are captured fixtures; council/market fixture limitations remain, not a live-network validation.
-- Server deployment prepared only; existing HTTPS/subdomain configuration is preserved by frontend installer.
+## Manual browser interactions and console
 
-## 2026-10-10: restore the first complete landing
-- Restored the original layout from 4ca08073fc9b60f8cf5081b24fce0caf6016a171: mint ring hero, architecture cards, light allocation section, point lab, conceptual funding flow, journey, development cards, FAQ and oversized footer. English presentation matches the initial landing.
-- Updated obsolete economic copy to the current R/S model, retained unpaid matches, 16 USD protection trigger, funded 20 USD gross points, 500 USD steps and current rank thresholds. Removed old fixed contract address, legacy server URL and GitHub links. Token address is read from validated chain-97 configuration; unavailable data is not invented.
-- Kept current member/token/council destinations and bilingual public documents. Scoped public/initial styles to avoid cross-page restyling.
-- Production landing build passed. Desktop and 390px mobile hero reviewed; FAQ expansion and mobile menu verified. Token public page retains its layout. Preview uses captured testnet configuration, not live transaction evidence.
-- No contract, keeper, user data or money changed. Server activation requires the existing frontend-only installer.
+Verified in the cloud browser: all four member navigation tabs and page titles;
+settings open/close and bounds; day/night switching; pause of the decorative
+motion, paused CSS state and persistence after reload; wallet chooser open and
+cancel; membership form availability; and scrolling the full membership action
+above the dock. No wallet authorization or transaction was sent. Desktop and
+mobile rendered with the installed shared stylesheet.
 
-## 2026-10-10: genealogy contract-data clarification
-- Node cards distinguish remaining branch units from lifetime units. Root detail shows purchased units, test-USD equivalent, actual contract rank, historical/remaining L/R and raw remaining matches explicitly distinct from settled paid points.
-- Missing historical RPC state falls back to current reads with a visible multi-block warning; contract errors clear stale tree/details rather than displaying missing values as zero.
-- Three focused data/fallback tests pass; production web build passes. No contracts or economic behavior changed. Browser visual and live server validation are pending installation.
+No application JavaScript error was observed. The browser logged one unrelated
+extension metadata error from its own `chrome-extension://` content script.
+Automated tests separately cover unavailable-data states, real controller
+snapshot rendering, disconnect clearing, reduced motion and broader languages.
+
+## Follow-up polish
+
+- P3: feather the illustration's horizontal background edges more closely to
+  the surrounding glass surface.
+- P3: increase the optical size of the existing theme glyph.
+- P3: a later compact rank summary could reduce the first screen's scroll.
+
+## Implementation checklist
+
+- [x] Inspect the selected panel target and the live existing member surface.
+- [x] Use the real artwork and preserve all controller/transaction hooks.
+- [x] Compare normalized full-view and focused visual evidence together.
+- [x] Fix actionable layout/settings findings and capture their corrected states.
+- [x] Check mobile/desktop, day/night and the primary account interactions.
+- [x] Keep production installation separate from preview and CI verification.

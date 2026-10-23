@@ -3,6 +3,10 @@ import fs from 'node:fs';
 import {COLLATERAL_ABI} from '../../core/deployment-network.mjs';
 
 const cfg = JSON.parse(fs.readFileSync(new URL('../../deployments/mainnet-20261016.json', import.meta.url)));
+// Actual installed shared CSS from bbe304272f1c014425e29c80fe7be375dd3137b1.
+// The no-restart panel installer publishes only app.js and the new member skin;
+// it does not replace the existing panel-identity.css with a fresh local build.
+const installedIdentity = fs.readFileSync(new URL('./fixtures/member-panel-installed-identity.css', import.meta.url));
 const requiredHooks = ['fti-balance', 'usd-balance', 'claimable', 'unlocked', 'locked-summary', 'rank', 'rank-description', 'rank-progress', 'rank-points', 'rank-next', 'updated-at', 'welcome-copy', 'membership-status', 'wallet-address', 'allowance', 'account-units', 'account-network', 'copy-address', 'claim', 'faucet', 'step-wallet', 'step-funds', 'step-member', 'price', 'price-status', 'reserve', 'members', 'accounting'];
 
 // Explicit unavailable-data fixture: exercises the real mounted controller and
@@ -13,6 +17,7 @@ async function panel(page, {width = 390, lang = 'en', theme = 'dark'} = {}) {
     localStorage.setItem('fti-language', lang);
     localStorage.setItem('fti-theme', theme);
   }, {lang, theme});
+  await page.route('**/panel-identity.css', route => route.fulfill({contentType: 'text/css', body: installedIdentity}));
   await page.route('**/api/config', route => route.fulfill({json: cfg}));
   await page.route('**/api/state*', route => route.fulfill({status: 503, json: {error: 'Unavailable-data UI fixture'}}));
   await page.route('**/api/events', route => route.fulfill({json: []}));
