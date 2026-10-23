@@ -2,6 +2,8 @@ import {test, expect} from '@playwright/test';
 import fs from 'node:fs';
 import {COLLATERAL_ABI} from '../../core/deployment-network.mjs';
 
+test.use({screenshot: 'only-on-failure', trace: 'retain-on-failure'});
+
 const cfg = JSON.parse(fs.readFileSync(new URL('../../deployments/mainnet-20261016.json', import.meta.url)));
 // Actual installed shared CSS from bbe304272f1c014425e29c80fe7be375dd3137b1.
 // The no-restart panel installer publishes only app.js and the new member skin;
@@ -74,7 +76,8 @@ for (const width of [320, 390, 1280]) for (const lang of ['fa', 'en']) for (cons
 for (const width of [320, 390]) for (const lang of ['fa', 'en']) test(`member settings remain inside the viewport ${width} ${lang}`, async ({page}) => {
   await panel(page, {width, lang});
   await expect(page.locator('#language-select')).toBeHidden();
-  await page.locator('.member-settings > summary').click();
+  await page.locator('.member-settings-toggle').click();
+  await expect(page.locator('.member-settings-toggle')).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('#language-select')).toBeVisible();
   await expect(page.locator('.member-settings .fti-appearance')).toBeVisible();
   await expect(page.locator('#refresh-state')).toBeVisible();
@@ -100,7 +103,13 @@ for (const width of [320, 390]) for (const lang of ['fa', 'en']) test(`member se
   const wasGlass = await glass.getAttribute('aria-pressed');
   await glass.click();
   await expect(glass).toHaveAttribute('aria-pressed', wasGlass === 'true' ? 'false' : 'true');
-  await page.locator('.member-settings > summary').click();
+  await page.locator('.member-settings-toggle').click();
+  await expect(page.locator('.member-settings-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await page.locator('.member-settings-toggle').press('Enter');
+  await expect(page.locator('#language-select')).toBeVisible();
+  await page.locator('.member-settings-toggle').press('Escape');
+  await expect(page.locator('.member-settings-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('.member-settings-toggle')).toBeFocused();
   await page.locator('#theme').click();
   await expect(page.locator('body')).toHaveClass(/light/);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('fti-theme'))).toBe('light');

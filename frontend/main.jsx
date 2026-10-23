@@ -4,8 +4,9 @@ import {LanguageSelect,SocialLinks,TranslationNotice} from './global-components.
 import {BrandMark,TokenSeal} from './brand.jsx';
 import {HeaderMark} from './header-mark.jsx';
 import {AppearanceToggle} from './site-shell.jsx';
-import {MemberReserveArt,panelText} from './member-reserve-art.jsx';
+import {MemberReserveArt} from './member-reserve-art.jsx';
 import {MemberViewport} from './member-viewport.jsx';
+import {MemberSettings} from './member-settings.jsx';
 initializeLanguage();
 import {deploymentConfiguration} from './deployment.js';
 import {deploymentNetwork} from '../core/deployment-network.mjs';
@@ -30,7 +31,7 @@ function Header(){
  useEffect(()=>{document.body.classList.toggle('light',light);try{localStorage.setItem('fti-theme',light?'light':'dark')}catch{}},[light]);
  const tools=<><LanguageSelect/><AppearanceToggle/><button id="refresh-state" className="icon-button" aria-label={t('Refresh contract data')}>↻</button></>;
  return <header className="workspace-header"><div><span className="eyebrow">FTI / {t(surfaceTitle)}</span><h1 id="page-title" tabIndex="-1">{t(pages[0][1])}</h1></div><div className="connection">
-  {surface==='member'?<details className="member-settings"><summary className="icon-button" aria-label={panelText('settings')}><Icon name="overview"/><span className="member-sr-only">{panelText('settings')}</span></summary><div className="member-settings-panel">{tools}</div></details>:tools}
+  {surface==='member'?<MemberSettings icon={<Icon name="overview"/>}>{tools}</MemberSettings>:tools}
   <button id="theme" className="icon-button" aria-pressed={light} onClick={()=>setLight(value=>!value)} aria-label={t('Toggle color theme')}>◐</button><select id="local-accounts" aria-label={t('Test wallet')} hidden/>
   <button id="connect" disabled><Icon name="wallet"/><span id="connect-label">{t('Connect wallet')}</span></button><button id="disconnect" className="secondary" hidden>{t('Disconnect wallet')}</button>
  </div></header>;

@@ -34,7 +34,7 @@ body[data-surface="member"] .workspace-header .eyebrow { font-size: 11px; }
 body[data-surface="member"] .connection { gap: 8px; }
 body[data-surface="member"] .connection #connect { border-radius: 14px; min-height: 48px; }
 body[data-surface="member"] .member-settings { position: relative; width: 44px; min-width: 0; overflow: visible; }
-body[data-surface="member"] .member-settings > summary {
+body[data-surface="member"] .member-settings-toggle {
   list-style: none;
   display: flex;
   justify-content: center;
@@ -48,8 +48,7 @@ body[data-surface="member"] .member-settings > summary {
   background: var(--panel);
   color: var(--text);
 }
-body[data-surface="member"] .member-settings > summary::-webkit-details-marker { display: none; }
-body[data-surface="member"] .member-settings[open] > summary { border-color: var(--accent); }
+body[data-surface="member"] .member-settings[data-open] > .member-settings-toggle { border-color: var(--accent); }
 body[data-surface="member"] .member-settings-panel {
   position: absolute;
   inset-inline-end: 0;
@@ -66,9 +65,8 @@ body[data-surface="member"] .member-settings-panel {
   background: var(--panel);
   box-shadow: 0 12px 32px #0003;
 }
-body[data-surface="member"] .member-settings[open] > .member-settings-panel { display: grid; }
-/* Give the native select a real block box when WebKit opens the disclosure.
-   A flex language row inside the absolutely positioned grid can stay unpainted. */
+body[data-surface="member"] .member-settings[data-open] > .member-settings-panel { display: grid; }
+/* Keep the native language control consistently sized in the settings panel. */
 body[data-surface="member"] .member-settings-panel .fti-language { display: block; grid-column: 1 / -1; width: 100%; min-width: 0; }
 body[data-surface="member"] .member-settings-panel .fti-language select { display: block; box-sizing: border-box; width: 100%; max-width: none; min-width: 0; height: 44px; min-height: 44px; font-size: 16px; }
 body[data-surface="member"] .member-settings-panel .fti-appearance { width: auto; min-height: 44px; gap: 8px; }
@@ -146,9 +144,9 @@ body[data-surface="member"] :is(.member-account-details, .member-protocol-detail
 body[data-surface="member"] .member-account-details .split { margin-block: 0 16px; }
 body[data-surface="member"] .member-protocol-details .protocol-strip { margin-block: 12px 16px; }
 body[data-surface="member"] .member-overview-copy { color: var(--muted); font-size: 12px; line-height: 1.9; max-width: 70ch; margin: 18px 0; }
-body[data-surface="member"] :is(.member-trade-action, .member-network-action, .member-settings > summary) { transition: border-color .18s, background-color .18s; }
+body[data-surface="member"] :is(.member-trade-action, .member-network-action, .member-settings-toggle) { transition: border-color .18s, background-color .18s; }
 body[data-surface="member"] :is(.member-trade-action, .member-network-action):hover { background: var(--panel2); }
-body[data-surface="member"] :is(summary, .member-art-toggle):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+body[data-surface="member"] :is(summary, .member-settings-toggle, .member-art-toggle):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 @keyframes member-reserve-drift { from { transform: scale(1); opacity: .9; } to { transform: scale(1.025); opacity: 1; } }
 @media(max-width: 1100px) {
   body[data-surface="member"] .member-summary-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
@@ -206,7 +204,7 @@ body[data-surface="member"] :is(summary, .member-art-toggle):focus-visible { out
 @media(prefers-reduced-motion: reduce) {
   body[data-surface="member"] .member-reserve-art { animation: none !important; transform: none; opacity: 1; }
   body[data-surface="member"] .member-art-toggle { display: none; }
-  body[data-surface="member"] :is(.member-trade-action, .member-network-action, .member-settings > summary) { transition: none; }
+  body[data-surface="member"] :is(.member-trade-action, .member-network-action, .member-settings-toggle) { transition: none; }
 }
 @media(prefers-reduced-transparency: reduce) {
   html[data-appearance="glass"] body[data-surface="member"] .member-balance-card { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--panel); }

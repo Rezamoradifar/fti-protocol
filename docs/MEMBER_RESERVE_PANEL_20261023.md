@@ -44,9 +44,9 @@ reports `FTI_MEMBER_RESERVE_PANEL_ALREADY_INSTALLED`.
 
 | Artifact | SHA-256 |
 | --- | --- |
-| Installer | `4c38d3d9ed38f386a7d79c3315caef734aa09e62750cfae6e82b3631aa8788ff` |
-| Application | `ffd767350eed3b147a87e3d0830cdf9862d347a2fb8e4b490f21d8390978d414` |
-| Packaged stylesheet | `1d670f8b0bbd177367896e4f2f3f1e0f4ec4d74c42e0872b5be2f821fe05f023` |
+| Installer | `8f3856be21a7622311b4e020014799625038575eabde9a525dcdbf3de4948818` |
+| Application | `26a077538e86dc33fc5b7f9ca719730ef95c0df41203188747dd401681fb8835` |
+| Packaged stylesheet | `9a912fa848ae975e0282179381544f46f506494806b930884de8251be7f59048` |
 | Illustration | `27f8968f3353a95e51b14df74943bfd723909a408043eff0a305cdb6892e705d` |
 
 The packaged stylesheet uses the installer's flat immutable image URL, so its
@@ -69,7 +69,8 @@ digest differs from the locally built stylesheet that refers to `assets/`.
   base stylesheet (SHA-256
   `12f294040117dd35e4e2c0d30b4e1f08e8da9727487b6a96458d089e5c95fece`).
   Final Chromium/WebKit CI status and links are recorded in the PR description.
-- Mobile WebKit follow-up fixes explicitly size the disclosure language control
+- Mobile WebKit follow-up uses an accessible mounted settings panel, explicitly
+  sizes its language control
   and keep a focused form control above the fixed dock and virtual keyboard.
 - This is a UI update. The running server dependencies, contracts, RPC,
   deployment identity and keeper are unchanged by the installer.
