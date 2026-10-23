@@ -139,9 +139,13 @@ test('mobile bottom navigation leaves a focused membership input unobscured', as
   await units.focus();
   await units.scrollIntoViewIfNeeded();
   await expect(units).toBeFocused();
-  const input = await units.boundingBox();
-  const nav = await page.locator('.sidebar nav').boundingBox();
-  expect(input.y + input.height).toBeLessThanOrEqual(nav.y);
+  // WebKit settles native focus/keyboard scrolling on animation frames.
+  // Assert the resulting usable position, including our fixed navigation dock.
+  await expect.poll(async () => {
+    const input = await units.boundingBox();
+    const nav = await page.locator('.sidebar nav').boundingBox();
+    return input.y + input.height - nav.y;
+  }).toBeLessThanOrEqual(0);
   await expect(page.locator('#register-button')).toBeDisabled();
   await expect(page.locator('#retry-pending-check')).toHaveCount(1);
 });

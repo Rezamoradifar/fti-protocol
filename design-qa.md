@@ -51,11 +51,23 @@ interaction acceptance; final automated CI evidence is recorded in PR #45.
   `mobile-membership-scroll.jpg`. Measured card y390.23–653.53 and network
   action y588.53–632.53 are above dock y758–832. They are not trapped behind it.
 
-There are no remaining P0/P1/P2 usability findings. The additional vertical
+The initial final Chromium manual review had no remaining P0/P1/P2 usability findings. The additional vertical
 scroll compared with the mock is intentional: the real controller's read
 status, data freshness, rank progression and 44-pixel network disclosure are
 retained. This is an adaptation of the selected style to the existing product,
 not a claim that every viewport has identical pixel placement to the mock.
+
+## Mobile WebKit follow-up
+
+The dedicated WebKit run exposed two additional interaction findings after the
+Chromium manual review: the native settings disclosure opened but its language
+select did not render, and native focus scrolling left the membership input
+behind the fixed bottom dock. The settings language row/select now have explicit
+layout dimensions. The member viewport guard keeps the active form field above
+the measured dock and virtual keyboard after native focus/resize settles; root
+scroll padding also reserves dock space. This affects presentation only. The
+same browser assertions remain in place, with polling for settled focus geometry.
+Final cross-engine results are recorded in PR #45.
 
 ## Required fidelity surfaces
 

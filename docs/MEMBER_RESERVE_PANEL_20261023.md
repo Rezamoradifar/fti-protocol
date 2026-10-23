@@ -44,9 +44,9 @@ reports `FTI_MEMBER_RESERVE_PANEL_ALREADY_INSTALLED`.
 
 | Artifact | SHA-256 |
 | --- | --- |
-| Installer | `d26d2305c86bfe1b2225964ae0f9f41fbdb62bc947cc70ebdc812b454e8ee04a` |
-| Application | `8de0283c2433ab56334e106e29267eadae14924a5c59d7e86c538c8ffa7dd715` |
-| Packaged stylesheet | `f3c154cf6da6ad4fa01e4e966f8d0869cd43e0261f5f94de7d78655f58b2b85f` |
+| Installer | `4c38d3d9ed38f386a7d79c3315caef734aa09e62750cfae6e82b3631aa8788ff` |
+| Application | `ffd767350eed3b147a87e3d0830cdf9862d347a2fb8e4b490f21d8390978d414` |
+| Packaged stylesheet | `1d670f8b0bbd177367896e4f2f3f1e0f4ec4d74c42e0872b5be2f821fe05f023` |
 | Illustration | `27f8968f3353a95e51b14df74943bfd723909a408043eff0a305cdb6892e705d` |
 
 The packaged stylesheet uses the installer's flat immutable image URL, so its
@@ -54,9 +54,9 @@ digest differs from the locally built stylesheet that refers to `assets/`.
 
 ## Validation and limits
 
-- Local focused Node checks: 47 passed.
+- Local focused Node checks: 62 passed.
 - Local installer suite: 28 passed, one skipped because this executor cannot
-  switch to an unprivileged service UID/GID.
+  switch to an unprivileged service UID/GID. CI runs all 29, with no skips.
 - CI service-UID HTTP readability and deterministic package reproduction:
   passed for the packaged code revision. This checks JS, CSS and WebP reads
   under the private installation umask.
@@ -64,10 +64,13 @@ digest differs from the locally built stylesheet that refers to `assets/`.
   day/night, all four member tabs, settings bounds at 320 CSS px, wallet chooser
   open/cancel, motion pause/persistence and scrolling the complete membership
   card/network action above the fixed dock. See `design-qa.md`.
-- The 19 new browser interactions passed at revision `0489411…` using the current
-  source baseline; the final suite additionally loads the exact installed base
-  stylesheet (SHA-256 `12f294040117dd35e4e2c0d30b4e1f08e8da9727487b6a96458d089e5c95fece`).
+- The dedicated browser matrix contains 35 cases per engine (19 new member
+  interactions and 16 existing identity cases), including the exact installed
+  base stylesheet (SHA-256
+  `12f294040117dd35e4e2c0d30b4e1f08e8da9727487b6a96458d089e5c95fece`).
   Final Chromium/WebKit CI status and links are recorded in the PR description.
+- Mobile WebKit follow-up fixes explicitly size the disclosure language control
+  and keep a focused form control above the fixed dock and virtual keyboard.
 - This is a UI update. The running server dependencies, contracts, RPC,
   deployment identity and keeper are unchanged by the installer.
 - No real-wallet mainnet registration, purchase, reward claim or signature is
