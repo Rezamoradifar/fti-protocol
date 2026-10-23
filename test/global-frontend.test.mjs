@@ -57,7 +57,7 @@ test('untranslated detailed prose is not represented as a completed translation'
 });
 test('owner-supplied social accounts are exact and each URL matches its platform',()=>{
  assert.deepEqual(validatedSocialLinks(JSON.parse(read('config/social-links.json'))),[
-  {id:'telegram',name:'Telegram',href:'https://t.me/FTIProtocol'},
+  {id:'telegram',name:'Telegram',href:'https://t.me/FTIProtocol_Official'},
   {id:'x',name:'X',href:'https://x.com/FTIProtocol'}
  ]);
  const rows=validatedSocialLinks({telegram:'https://t.me/fti_demo',x:'https://x.com/fti_demo',instagram:'https://instagram.com/fti_demo',youtube:'https://youtube.com/@fti_demo',linkedin:'https://linkedin.com/company/fti_demo',discord:'https://discord.gg/test'});

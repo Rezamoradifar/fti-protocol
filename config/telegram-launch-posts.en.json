@@ -3,9 +3,13 @@
   "language": "en",
   "timezone": "Asia/Tehran",
   "suggested_channel_title": "FTI Protocol | Official",
-  "suggested_channel_username": "FTIProtocol",
+  "suggested_channel_username": "FTIProtocol_Official",
+  "channel_url": "https://t.me/FTIProtocol_Official",
+  "channel_id": -1003941034086,
+  "bot_username": "FTIProtocol_OfficialBot",
   "suggested_channel_description": "FTI Protocol announcements, platform updates and user guidance.\nWebsite: ftiprotocol.com",
-  "username_reserved": false,
+  "channel_discovered": true,
+  "posting_permission_verified": false,
   "posts": [
     {
       "id": "fti-launch-01",
