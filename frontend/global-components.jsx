@@ -13,7 +13,7 @@ export function SocialLinks(){
  const email=typeof socialConfig.email==='string'&&/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(socialConfig.email)?socialConfig.email:null;
  return <section className="fti-social" aria-label={t('Official social channels')}>
   <h2>{t('Official social channels')}</h2>
-  {links.length||email?<nav aria-label={t('Official social channels')}>{links.map(l=><a key={l.id} href={l.href} target="_blank" rel="noopener noreferrer"><SocialIcon name={l.id}/><span>{l.name}<small dir="ltr">@FTIProtocol</small></span><span aria-hidden="true">↗</span></a>)}{email&&<a className="fti-email" href={'mailto:'+email}><SocialIcon name="email"/><span>{t('Contact support','ارتباط با پشتیبانی')}<small dir="ltr">{email}</small></span><span aria-hidden="true">↗</span></a>}</nav>
+  {links.length||email?<nav aria-label={t('Official social channels')}>{links.map(l=><a key={l.id} href={l.href} target="_blank" rel="noopener noreferrer"><SocialIcon name={l.id}/><span>{l.name}<small dir="ltr">{l.id==='telegram'?'@FTIProtocol_Official':'@FTIProtocol'}</small></span><span aria-hidden="true">↗</span></a>)}{email&&<a className="fti-email" href={'mailto:'+email}><SocialIcon name="email"/><span>{t('Contact support','ارتباط با پشتیبانی')}<small dir="ltr">{email}</small></span><span aria-hidden="true">↗</span></a>}</nav>
    :<p className="muted">{t('Official links have not been configured. No account address is assumed.')}</p>}
  </section>;
 }

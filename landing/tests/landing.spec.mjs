@@ -26,7 +26,7 @@ for(const width of [320,390,768,1440]){
         expect(broken).toEqual([]);
         expect(await page.locator('a[href="/app/"]').count()).toBeGreaterThan(0);
         expect(await page.locator('a[href="/token/"]').count()).toBeGreaterThan(0);
-        await expect(page.locator('a[href="https://t.me/FTIProtocol"]')).toHaveCount(1);
+        await expect(page.locator('a[href="https://t.me/FTIProtocol_Official"]')).toHaveCount(1);
         await expect(page.locator('a[href="mailto:Support@FTIProtocol.com"]')).toHaveCount(2);
         await page.screenshot({path:`test-results/${width}-${lang}-${theme}.png`,fullPage:true});
         expect(errors).toEqual([]);expect(failed).toEqual([]);
