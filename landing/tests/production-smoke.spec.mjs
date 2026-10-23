@@ -93,7 +93,13 @@ async function workspace(page, path = '/app/', language = 'en') {
   expect(response?.status()).toBe(200);
   productionOrigin(new URL(page.url()).origin);
   diagnostics.get(page).workspace = true;
-  await expect(page.locator('#page-title')).toBeVisible({timeout: 35000});
+  if (path === '/token/') {
+    // The token layout deliberately hides the shared workspace title at desktop
+    // and mobile widths; its visible content starts with the token hero instead.
+    await expect(page.locator('#token-home')).toBeVisible({timeout: 35000});
+    await expect(page.locator('#token-home .token-hero h2')).toBeVisible();
+    await expect(page.locator('#token-home .token-hero h2')).toHaveText(/A token with\s*visible mechanics\./);
+  } else await expect(page.locator('#page-title')).toBeVisible({timeout: 35000});
   await expect(page.locator('#connect')).toBeEnabled({timeout: 35000});
   await expect(page.locator('#global-network')).toHaveText('BNB Mainnet · 56');
   await expect(page.locator('#wallet-review-panel')).toBeHidden();
