@@ -31,6 +31,10 @@ settings/language/theme, wallet chooser open/cancel, token workspace and admin
 workspace. Script/stylesheet and requested WebP HTTP and MIME failures, application JavaScript
 errors and CSP errors fail the check. Successful member captures and diagnostic
 JSON, plus failure screenshots/traces, are retained as workflow artifacts.
+Workspace readiness includes the actual public read success notice, including
+after a language reload, before further controls are exercised. This prevents
+the language check from cancelling an unfinished startup read; JavaScript and
+CSP diagnostics remain strict.
 
 Each case starts with a fresh browser context. An HTTP/RPC tripwire blocks
 non-read requests and unknown/signing/transaction methods before forwarding;

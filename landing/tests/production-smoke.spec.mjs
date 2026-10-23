@@ -16,6 +16,10 @@ test.setTimeout(90000);
 test.use({screenshot: 'only-on-failure', trace: 'retain-on-failure', serviceWorkers: 'block'});
 const diagnostics = new WeakMap();
 const appBundle = /\/(?:fti-[^/]+\/app-[^/]+\.js|app\.js)$/;
+const publicReadReady = {
+  en: 'Contract data loaded. Connect a wallet to manage your account.',
+  fa: 'اطلاعات قرارداد خوانده شد. برای مدیریت حساب، ولت را متصل کنید.',
+};
 
 test.beforeEach(async ({page, context}) => {
   const state = {unsafe: [], errors: [], assets: [], appHashes: [], pending: [], workspace: false};
@@ -101,6 +105,9 @@ async function workspace(page, path = '/app/', language = 'en') {
     await expect(page.locator('#token-home .token-hero h2')).toHaveText(/A token with\s*visible mechanics\./);
   } else await expect(page.locator('#page-title')).toBeVisible({timeout: 35000});
   await expect(page.locator('#connect')).toBeEnabled({timeout: 35000});
+  // Enabled wallet controls do not imply the initial public data read finished.
+  // Wait for real read success before a language change reloads the document.
+  await expect(page.locator('#status')).toHaveText(publicReadReady[language], {timeout: 35000});
   await expect(page.locator('#global-network')).toHaveText('BNB Mainnet · 56');
   await expect(page.locator('#wallet-review-panel')).toBeHidden();
   await page.evaluate(() => document.fonts.ready);
@@ -127,6 +134,7 @@ test('actual mobile member navigation, settings, language and theme work', async
   await page.locator('#language-select').selectOption('en');
   await expect.poll(() => page.locator('html').getAttribute('lang')).toBe('en');
   await expect(page.locator('#connect')).toBeEnabled({timeout: 35000});
+  await expect(page.locator('#status')).toHaveText(publicReadReady.en, {timeout: 35000});
   await toggle.click();
   await expect(page.locator('#language-select')).toBeVisible();
   await toggle.press('Escape');
