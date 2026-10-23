@@ -1,5 +1,6 @@
 import {test, expect} from '@playwright/test';
 import fs from 'node:fs';
+import {COLLATERAL_ABI} from '../../core/deployment-network.mjs';
 
 const cfg = JSON.parse(fs.readFileSync(new URL('../../deployments/mainnet-20261016.json', import.meta.url)));
 const requiredHooks = ['fti-balance', 'usd-balance', 'claimable', 'unlocked', 'locked-summary', 'rank', 'rank-description', 'rank-progress', 'rank-points', 'rank-next', 'updated-at', 'welcome-copy', 'membership-status', 'wallet-address', 'allowance', 'account-units', 'account-network', 'copy-address', 'claim', 'faucet', 'step-wallet', 'step-funds', 'step-member', 'price', 'price-status', 'reserve', 'members', 'accounting'];
@@ -17,6 +18,10 @@ async function panel(page, {width = 390, lang = 'en', theme = 'dark'} = {}) {
   await page.route('**/api/events', route => route.fulfill({json: []}));
   await page.route('**/abi/*', route => {
     const name = new URL(route.request().url()).pathname.split('/').at(-1);
+    // Match scripts/server.mjs: real mainnet collateral has a shared ERC20 ABI,
+    // not a Solidity artifact named Collateral (and never the test faucet ABI).
+    if (name === 'Collateral') return route.fulfill({json: COLLATERAL_ABI});
+    if (name === 'MockUSD' && cfg.chainId === 56) return route.fulfill({status: 404, json: {error: 'Test ABI unavailable on mainnet'}});
     const artifact = JSON.parse(fs.readFileSync(new URL(`../../artifacts/${name}.json`, import.meta.url)));
     return route.fulfill({json: artifact.abi});
   });
