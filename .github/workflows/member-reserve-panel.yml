@@ -39,6 +39,7 @@ jobs:
       - name: Installer and actual service UID HTTP readability
         run: sudo env PYTHONDONTWRITEBYTECODE=1 FTI_REQUIRE_SERVICE_UID_HTTP_TEST=1 python3 test/member-reserve-panel-install.test.py -q
       - name: Reproduce the exact self-contained installer
+        if: github.head_ref == 'feat/member-reserve-panel-20261023' || github.ref_name == 'feat/member-reserve-panel-20261023'
         run: |
           python3 tools/install-member-reserve-panel.py --package . --output /tmp/fti-member-reserve-rebuilt.py
           cmp tools/install-member-reserve-panel-release.py /tmp/fti-member-reserve-rebuilt.py

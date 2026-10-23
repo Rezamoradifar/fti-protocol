@@ -1,0 +1,86 @@
+name: Panel loading reliability
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'core/history-read-policy.mjs'
+      - 'scripts/**'
+      - 'web/**'
+      - 'tools/install-panel-reliability*'
+      - 'test/**'
+      - 'landing/tests/**'
+      - '.github/workflows/panel-reliability.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix landing --ignore-scripts
+      - run: npm run build:web
+      - run: npm run compile
+      - name: History, wallet and member regressions
+        run: >-
+          node --test test/activity-events.test.mjs test/read-json.test.mjs
+          test/event-server.test.mjs test/event-history-source.test.mjs
+          test/history-cache.test.mjs test/production-smoke-policy.test.mjs
+          test/member-reserve-panel.test.mjs test/member-landing-theme.test.mjs
+          test/controller-price.test.mjs test/controller-wallet-events.test.mjs
+          test/controller-pending-monitor.test.mjs test/membership-purchase-flow.test.mjs
+          test/simple-purchase-ui.test.mjs test/shared-wallet-navigation.test.mjs
+          test/complete-translations.test.mjs
+      - name: Installer including actual service UID HTTP readability
+        run: sudo env PYTHONDONTWRITEBYTECODE=1 FTI_REQUIRE_SERVICE_UID_HTTP_TEST=1 python3 test/panel-reliability-install.test.py -q
+      - name: Reproduce the exact incremental installer
+        run: |
+          python3 tools/install-panel-reliability.py --package . --output /tmp/fti-panel-reliability-rebuilt.py
+          cmp tools/install-panel-reliability-release.py /tmp/fti-panel-reliability-rebuilt.py
+      - run: npm --prefix landing run build
+      - run: cd landing && npx playwright install --with-deps chromium webkit
+      - name: Chromium layout, navigation and startup failures
+        run: cd landing && npx playwright test tests/panel-identity.spec.mjs tests/member-reserve-panel.spec.mjs tests/boot-recovery.spec.mjs
+      - name: WebKit layout, navigation and startup failures
+        run: cd landing && FTI_BROWSER=webkit npx playwright test tests/panel-identity.spec.mjs tests/member-reserve-panel.spec.mjs tests/boot-recovery.spec.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: panel-reliability-browser
+          path: landing/test-results
+  production-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    env:
+      FTI_PRODUCTION_SMOKE: '1'
+      FTI_TEST_ORIGIN: https://ftiprotocol.com
+      FTI_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+      - run: npm ci --prefix landing --ignore-scripts
+      - run: cd landing && npx playwright install --with-deps "$FTI_BROWSER"
+      - name: Current production pages and real public-data readiness (read only)
+        run: cd landing && npx playwright test tests/production-smoke.spec.mjs --workers=1 --retries=0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: panel-production-baseline-${{ matrix.browser }}
+          path: landing/test-results

@@ -20,6 +20,7 @@ function fixture(readPrice=async()=>market()){
   Date:class extends Date{static now(){return 2000*1000;}},
   preparationDeadline:async promise=>promise,readTokenPriceSnapshot:async options=>{calls.push(options);return readPrice();},
   status:()=>assert.fail('Public price reads must not overwrite wallet status'),
+  cancelEvents(){},
   readTokenSnapshot:async()=>({...market({block:124,price:parseEther('0.11')}),tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,wallet:{address,exists:true,units:1n,ftiBalance:parseEther('1'),unlocked:parseEther('1'),remaining:parseEther('499'),usdBalance:parseEther('40')}}),
   syncActions(){},wallet:()=>context.state.wallet,
  };

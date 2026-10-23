@@ -18,7 +18,7 @@ import {createRoot} from 'react-dom/client';
 import {surface,surfaceTitle,surfacePages,defaultPage} from './surfaces.js';
 
 function Icon({name}) {
- const paths={overview:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',network:'M12 8v5 M5 17v-4h14v4 M9 2h6v6H9z M2 17h6v5H2z M16 17h6v5h-6z',trade:'M4 7h16m-5-5 5 5-5 5 M20 17H4m5-5-5 5 5 5',rewards:'M12 3v18 M7 7c0-5 10-5 10 0s-10 5-10 10 10 5 10 0',activity:'M3 12h4l3-8 4 16 3-8h4',admin:'M12 2 3 6v6c0 5 9 10 9 10s9-5 9-10V6z M8 12l3 3 5-6',arrow:'M5 12h14 M13 6l6 6-6 6',wallet:'M3 5h17v15H3z M3 5l14-3v3 M16 11h5v5h-5z'};
+ const paths={sun:'M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4',moon:'M20.7 13.4A8.5 8.5 0 0 1 10.6 3.3a8.5 8.5 0 1 0 10.1 10.1z',overview:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',network:'M12 8v5 M5 17v-4h14v4 M9 2h6v6H9z M2 17h6v5H2z M16 17h6v5h-6z',trade:'M4 7h16m-5-5 5 5-5 5 M20 17H4m5-5-5 5 5 5',rewards:'M12 3v18 M7 7c0-5 10-5 10 0s-10 5-10 10 10 5 10 0',activity:'M3 12h4l3-8 4 16 3-8h4',admin:'M12 2 3 6v6c0 5 9 10 9 10s9-5 9-10V6z M8 12l3 3 5-6',arrow:'M5 12h14 M13 6l6 6-6 6',wallet:'M3 5h17v15H3z M3 5l14-3v3 M16 11h5v5h-5z'};
  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]||paths.arrow}/></svg>;
 }
 document.body.dataset.surface=surface;
@@ -32,7 +32,7 @@ function Header(){
  const tools=<><LanguageSelect/><AppearanceToggle/><button id="refresh-state" className="icon-button" aria-label={t('Refresh contract data')}>↻</button></>;
  return <header className="workspace-header"><div><span className="eyebrow">FTI / {t(surfaceTitle)}</span><h1 id="page-title" tabIndex="-1">{t(pages[0][1])}</h1></div><div className="connection">
   {surface==='member'?<MemberSettings icon={<Icon name="overview"/>}>{tools}</MemberSettings>:tools}
-  <button id="theme" className="icon-button" aria-pressed={light} onClick={()=>setLight(value=>!value)} aria-label={t('Toggle color theme')}>◐</button><select id="local-accounts" aria-label={t('Test wallet')} hidden/>
+  <button id="theme" className="icon-button" aria-pressed={light} onClick={()=>setLight(value=>!value)} aria-label={t('Toggle color theme')}><Icon name={light?'sun':'moon'}/></button><select id="local-accounts" aria-label={t('Test wallet')} hidden/>
   <button id="connect" disabled><Icon name="wallet"/><span id="connect-label">{t('Connect wallet')}</span></button><button id="disconnect" className="secondary" hidden>{t('Disconnect wallet')}</button>
  </div></header>;
 }

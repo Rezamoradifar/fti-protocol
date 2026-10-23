@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {startWeb} from '../scripts/server.mjs';
+import {HISTORY_SERVER_TIMEOUT_MS} from '../core/history-read-policy.mjs';
 
 test('separate event RPC validates network and caches successful results',async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'fti-events-'));
@@ -25,6 +26,8 @@ test('separate event RPC validates network and caches successful results',async(
   fs.writeFileSync(file,JSON.stringify({mode:'testnet',chainId:97,deployedBlock:99,binary:addr,token:addr,usd:addr,council:addr,timelock:addr}));
   web=await startWeb(file);let url=`http://127.0.0.1:${web.address().port}/api/events`;
   let response=await fetch(url);assert.equal(response.status,200);assert.deepEqual(await response.json(),[]);
+  assert.equal(response.headers.get('x-fti-read-timeout-ms'),String(HISTORY_SERVER_TIMEOUT_MS));
+  assert.equal((await (await fetch(new URL('/api/config',url))).json()).eventHistoryTimeoutMs,HISTORY_SERVER_TIMEOUT_MS);
   const before=calls;response=await fetch(url);assert.equal(response.status,200);assert.equal(calls,before);
   await new Promise(r=>web.close(r));web=null;
   chain='0x38';web=await startWeb(file);url=`http://127.0.0.1:${web.address().port}/api/events`;

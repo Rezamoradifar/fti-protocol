@@ -1,0 +1,51 @@
+name: Panel production smoke
+on:
+  workflow_dispatch:
+    inputs:
+      origin:
+        description: FTI production HTTPS origin
+        type: choice
+        required: true
+        default: https://ftiprotocol.com
+        options:
+          - https://ftiprotocol.com
+          - https://www.ftiprotocol.com
+      expected_app_sha:
+        description: Optional installed application SHA-256 (not the installer digest)
+        type: string
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: panel-production-smoke-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    env:
+      FTI_PRODUCTION_SMOKE: '1'
+      FTI_TEST_ORIGIN: ${{ inputs.origin }}
+      FTI_EXPECTED_APP_SHA: ${{ inputs.expected_app_sha }}
+      FTI_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+      - run: npm ci --prefix landing --ignore-scripts
+      - run: cd landing && npx playwright install --with-deps "$FTI_BROWSER"
+      - name: Real pages and read-only wallet chooser (no API stubs or signing)
+        run: cd landing && npx playwright test tests/production-smoke.spec.mjs --workers=1 --retries=0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: panel-production-${{ matrix.browser }}
+          path: landing/test-results
+          retention-days: 7

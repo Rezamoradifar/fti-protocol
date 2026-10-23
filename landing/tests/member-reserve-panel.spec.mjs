@@ -5,7 +5,7 @@ import {COLLATERAL_ABI} from '../../core/deployment-network.mjs';
 test.use({screenshot: 'only-on-failure', trace: 'retain-on-failure'});
 
 const cfg = JSON.parse(fs.readFileSync(new URL('../../deployments/mainnet-20261016.json', import.meta.url)));
-// Actual installed shared CSS from bbe304272f1c014425e29c80fe7be375dd3137b1.
+// Actual shared CSS served by production on 2026-10-23 (SHA-256 754e5c9c…).
 // The no-restart panel installer publishes only app.js and the new member skin;
 // it does not replace the existing panel-identity.css with a fresh local build.
 const installedIdentity = fs.readFileSync(new URL('./fixtures/member-panel-installed-identity.css', import.meta.url));
