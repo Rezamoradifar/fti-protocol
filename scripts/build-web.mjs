@@ -9,4 +9,6 @@ await build({entryPoints:['frontend/global-interface.css'],bundle:true,minify:tr
 
 await build({entryPoints:['frontend/panel-identity.css'],bundle:true,minify:true,outfile:'web/panel-identity.css',loader:{'.woff2':'file'},assetNames:'fonts/[name]-[hash]'});
 
+await build({entryPoints:['frontend/member-reserve-panel.css'],bundle:true,minify:true,outfile:'web/member-reserve-panel.css',loader:{'.webp':'file'},assetNames:'assets/[name]-[hash]'});
+
 await fs.copyFile('node_modules/ethers/dist/ethers.min.js','web/vendor/ethers.js');
