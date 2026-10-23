@@ -111,7 +111,15 @@ class PublisherTests(unittest.TestCase):
         sent = [p for method, p in self.api.calls if method == 'sendMessage']
         self.assertEqual(len(sent), 1)
         self.assertEqual(sent[0]['chat_id'], CONFIG['expected_channel_id'])
-        self.assertNotIn('parse_mode', sent[0])
+        self.assertEqual(sent[0]['parse_mode'], 'HTML')
+        self.assertTrue(sent[0]['text'].startswith('<b>'))
+
+    def test_editorial_format_escapes_copy_and_uses_official_buttons(self):
+        data = m.message_payload(CONFIG['expected_channel_id'], 'FTI <Guide>\n\nReserve & supply')
+        self.assertEqual(data['text'], '<b>FTI &lt;Guide&gt;</b>\n\nReserve &amp; supply')
+        buttons = [button for row in data['reply_markup']['inline_keyboard'] for button in row]
+        self.assertEqual([button['url'] for button in buttons], [
+            'https://ftiprotocol.com/app/', 'https://ftiprotocol.com/', 'https://ftiprotocol.com/token/'])
 
     def test_future_and_expired_not_sent(self):
         self.arm()

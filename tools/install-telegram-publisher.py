@@ -56,14 +56,28 @@ def build_queue(content, now, first_at=None):
     first = first.astimezone(TZ)
     posts = content.get('posts')
     require(isinstance(posts, list) and 1 <= len(posts) <= 100, 'CONTENT_POSTS_INVALID')
+    delivered = content.get('published_posts', {})
+    require(isinstance(delivered, dict), 'PUBLISHED_RECEIPTS_INVALID')
     queue = {'version': 1, 'timezone': 'Asia/Tehran', 'posts': []}
     ids = set()
-    for index, post in enumerate(posts):
+    for post in posts:
         key, text = post.get('id'), post.get('text')
         require(isinstance(key, str) and re.fullmatch(r'[a-zA-Z0-9_-]{1,80}', key) and key not in ids, 'POST_ID_INVALID')
         require(isinstance(text, str) and text.strip() and len(text.encode('utf-16-le')) // 2 <= 4096, 'POST_TEXT_INVALID')
         ids.add(key)
+        if key in delivered:
+            receipt = delivered[key]
+            require(isinstance(receipt, dict) and receipt.get('status') == 'sent'
+                    and receipt.get('channel_id') == content.get('channel_id')
+                    and receipt.get('bot_id') == content.get('bot_id')
+                    and type(receipt.get('message_id')) is int and receipt['message_id'] > 0
+                    and receipt.get('text_sha256') == hashlib.sha256(text.encode()).hexdigest(),
+                    'PUBLISHED_RECEIPT_REQUIRES_REVIEW')
+            continue
+        index = len(queue['posts'])
         queue['posts'].append({'id': key, 'text': text, 'scheduled_at': (first + timedelta(days=index)).isoformat()})
+    require(set(delivered).issubset(ids), 'PUBLISHED_RECEIPT_UNKNOWN_POST')
+    require(bool(queue['posts']), 'NO_UNPUBLISHED_POSTS')
     return queue
 
 

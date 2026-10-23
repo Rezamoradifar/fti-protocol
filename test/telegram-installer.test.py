@@ -1,7 +1,9 @@
 import contextlib
+import copy
 from datetime import datetime, timedelta
 import importlib.util
 import io
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -40,6 +42,7 @@ class InstallerTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.root.chmod(0o755)
         self.content = json.loads((ROOT / 'config/telegram-launch-posts.en.json').read_text())
+        self.content.pop('published_posts', None)
         self.now = datetime.now(m.TZ)
         self.queue = m.build_queue(self.content, self.now)
         FakeAPI.calls = []
@@ -65,6 +68,36 @@ class InstallerTests(unittest.TestCase):
         self.content['posts'][1]['id'] = self.content['posts'][0]['id']
         with self.assertRaises(m.InstallError):
             m.build_queue(self.content, self.now)
+
+    def test_live_publication_receipts_prevent_reposting(self):
+        content = copy.deepcopy(self.content)
+        content['bot_id'] = 8961425436
+        delivered = [content['posts'][0], content['posts'][2]]
+        content['published_posts'] = {
+            post['id']: {'status': 'sent', 'channel_id': content['channel_id'],
+                         'bot_id': content['bot_id'], 'message_id': index + 1,
+                         'text_sha256': hashlib.sha256(post['text'].encode()).hexdigest()}
+            for index, post in enumerate(delivered)}
+        queue = m.build_queue(content, self.now)
+        self.assertEqual(len(queue['posts']), 8)
+        self.assertNotIn('fti-launch-01', [post['id'] for post in queue['posts']])
+        self.assertNotIn('fti-launch-03', [post['id'] for post in queue['posts']])
+        self.assertEqual(queue['posts'][0]['id'], 'fti-launch-02')
+        dates = [datetime.fromisoformat(post['scheduled_at']).date() for post in queue['posts']]
+        self.assertTrue(all(b - a == timedelta(days=1) for a, b in zip(dates, dates[1:])))
+
+    def test_receipts_require_same_channel_and_exact_copy(self):
+        for field, value in [('channel_id', -999), ('text_sha256', 'changed')]:
+            content = copy.deepcopy(self.content)
+            content['bot_id'] = 8961425436
+            post = content['posts'][0]
+            receipt = {'status': 'sent', 'channel_id': content['channel_id'],
+                       'bot_id': content['bot_id'], 'message_id': 1,
+                       'text_sha256': hashlib.sha256(post['text'].encode()).hexdigest()}
+            receipt[field] = value
+            content['published_posts'] = {post['id']: receipt}
+            with self.assertRaisesRegex(m.InstallError, 'PUBLISHED_RECEIPT_REQUIRES_REVIEW'):
+                m.build_queue(content, self.now)
 
     def install_in_temporary_root(self, fail_verify=False):
         module = m.publisher()

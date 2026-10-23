@@ -1,0 +1,43 @@
+{
+  "actions": {
+    "applied_at": "2026-10-23T21:25:20.652514+00:00",
+    "channel_description": "Official FTI Protocol announcements, platform updates and user guidance. Explore the platform and applications at https://ftiprotocol.com/",
+    "channel_title": "FTI Protocol | Official",
+    "profile_sha256": "f8f229b21a090742b827f68fcb64356745379548df2a05325b2519a1f5c6dd9c"
+  },
+  "bot_id": 8961425436,
+  "channel_id": -1003941034086,
+  "posts": {
+    "fti-launch-01": {
+      "asset_sha256": "46a31c5b18fa42a9723243bea6b522af33eabf557b5d0d2a0b3360ddf1907a30",
+      "caption_sha256": "9e7019b18b5e2821dbe24f80649bb0e6f922b09e022e1d198907a73a8e3f3c14",
+      "intent_at": "2026-10-23T21:25:20.654284+00:00",
+      "message_id": 4,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMEatvQxVjFBpjazkKhl1XMpwAB0jVTAALiDmsbyvfgUhPRiCEr7DRHAQADAgADcwADPQQ",
+        "AgACAgQAAyEGAATq52hmAAMEatvQxVjFBpjazkKhl1XMpwAB0jVTAALiDmsbyvfgUhPRiCEr7DRHAQADAgADbQADPQQ",
+        "AgACAgQAAyEGAATq52hmAAMEatvQxVjFBpjazkKhl1XMpwAB0jVTAALiDmsbyvfgUhPRiCEr7DRHAQADAgADeAADPQQ",
+        "AgACAgQAAyEGAATq52hmAAMEatvQxVjFBpjazkKhl1XMpwAB0jVTAALiDmsbyvfgUhPRiCEr7DRHAQADAgADeQADPQQ"
+      ],
+      "sent_at": "2026-10-23T21:25:25.922769+00:00",
+      "status": "sent"
+    },
+    "fti-launch-03": {
+      "asset_sha256": "ac3c5ad9c0822c727b63e749e93eb77eed325511e4259ceef53cdbe2dea5f19b",
+      "caption_sha256": "da8566a09f130274ab0d19a1420e1b68ff665613284e4540814f9f43db30aed0",
+      "intent_at": "2026-10-23T21:25:30.252083+00:00",
+      "message_id": 6,
+      "photo_file_ids": [
+        "AgACAgQAAyEGAATq52hmAAMGatvQzngcYBSU1qOPUIrBTzZ0xqoAAuMOaxvK9-BSgmxOIYoZlQoBAAMCAANzAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMGatvQzngcYBSU1qOPUIrBTzZ0xqoAAuMOaxvK9-BSgmxOIYoZlQoBAAMCAANtAAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMGatvQzngcYBSU1qOPUIrBTzZ0xqoAAuMOaxvK9-BSgmxOIYoZlQoBAAMCAAN4AAM9BA",
+        "AgACAgQAAyEGAATq52hmAAMGatvQzngcYBSU1qOPUIrBTzZ0xqoAAuMOaxvK9-BSgmxOIYoZlQoBAAMCAAN5AAM9BA"
+      ],
+      "sent_at": "2026-10-23T21:25:34.914974+00:00",
+      "status": "sent"
+    }
+  },
+  "schema_version": 1,
+  "updated_at": "2026-10-23T21:25:39.226904+00:00",
+  "verified_at": "2026-10-23T21:25:39.226885+00:00"
+}

@@ -7,7 +7,11 @@ All channel-facing copy is in formal English, including the channel name, descri
 - Proposed bot name: **FTI Protocol Publisher**
 - Verified bot username: **FTIProtocol_OfficialBot**
 
-The operator supplied this channel, and the Telegram API confirmed its existence with numeric ID `-1003941034086`. The bot identity was also verified. The membership check did not confirm posting permission; add the bot as a channel administrator with **Post Messages** before installation. The public website sources now use the supplied channel URL; this source update does not deploy the website or enable posting.
+The operator supplied this channel, and the Telegram API confirmed its existence with numeric ID `-1003941034086`. The bot identity and administrator rights have now been verified, including **Post Messages**. The public website sources use the supplied channel URL; a source update alone does not deploy the website or install a recurring publisher.
+
+The professional launch assets and editorial format are documented in `marketing/telegram/README.md`. The setup helper uses the official logo, formal English copy, three relevant hashtags per post and fixed official-link buttons. Successful photo publications are recorded in the token-free `marketing/telegram/live-channel-setup.json` receipt. The initial welcome and wallet-guide posts are excluded from the future queue only after successful receipts are verified against the exact canonical copy.
+
+The live launch was verified on 23 October 2026: [welcome post](https://t.me/FTIProtocol_Official/4), pinned, and [wallet guide](https://t.me/FTIProtocol_Official/6). Channel branding and both photo-message receipts were confirmed by Telegram. Eight launch posts remain for the VPS queue; its recurring timer still requires operator installation.
 
 ## Telegram setup
 
@@ -40,7 +44,7 @@ The token is read through a hidden prompt. The installer verifies the bot identi
 
 Installation adds the separate `fti-telegram-publisher.service` and timer. It does not change or restart the website, contracts or Keeper. The initial service check uses read-only `--validate` mode and sends no test message. The publisher's first run also only arms the queue.
 
-Default schedule: the first post tomorrow at 19:00 **Asia/Tehran**, then one post per day, ten posts in total. The English channel language does not change the schedule's time zone. The queue does not generate new content or repeat previous posts. Continued publication requires additional approved content. A custom start must be explicitly in the future, using `--first-at 'YYYY-MM-DDT19:00:00+03:30'`.
+Default schedule: the first unpublished post tomorrow at 19:00 **Asia/Tehran**, then one post per day. There are ten approved launch posts in total; after two successful visual launch posts, eight remain for the daily queue. The English channel language does not change the schedule's time zone. Titles are rendered in bold with official application buttons. The queue does not generate new content or repeat posts with matching successful receipts. Continued publication requires additional approved content. A custom start must be explicitly in the future, using `--first-at 'YYYY-MM-DDT19:00:00+03:30'`.
 
 ## Status and pause
 
@@ -79,9 +83,10 @@ The installer refuses to overwrite an existing configuration, service or ledger.
 ```bash
 python3 test/telegram-publisher.test.py -v
 python3 test/telegram-installer.test.py -v
+python3 test/telegram-channel-setup.test.py -v
 python3 tools/install-telegram-publisher-release.py
 ```
 
-Publisher tests use simulated responses; they do not contact a real bot or send live Telegram messages. Installer tests check file permissions, initial read-only validation and recovery after failed unit verification. Actual systemd installation and channel posting require the token and an operator-run VPS installation.
+Automated tests use simulated responses and do not send live Telegram messages. Installer tests check file permissions, initial read-only validation, recovery after failed unit verification and exact-copy publication receipts. The channel setup helper separately verifies real channel identity, administrator rights and the result of authorized live publications. The recurring systemd service requires a separate operator-run VPS installation; channel setup does not activate it.
 
 Official references: [BotFather](https://core.telegram.org/bots/features#botfather), [Bot API](https://core.telegram.org/bots/api), [Telegram channels](https://telegram.org/faq_channels).

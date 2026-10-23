@@ -4,6 +4,7 @@ import argparse
 import datetime as dt
 import fcntl
 import hashlib
+import html
 import json
 import os
 from pathlib import Path
@@ -193,6 +194,19 @@ def sync_queue(db, posts):
     db.commit()
 
 
+def message_payload(channel_id, text):
+    heading, separator, body = text.partition('\n')
+    formatted = '<b>' + html.escape(heading) + '</b>'
+    if separator:
+        formatted += '\n' + html.escape(body)
+    return {'chat_id': channel_id, 'text': formatted, 'parse_mode': 'HTML',
+            'link_preview_options': {'is_disabled': True},
+            'reply_markup': {'inline_keyboard': [
+                [{'text': 'Open Member App', 'url': 'https://ftiprotocol.com/app/'}],
+                [{'text': 'Website', 'url': 'https://ftiprotocol.com/'},
+                 {'text': 'Token Application', 'url': 'https://ftiprotocol.com/token/'}]]}}
+
+
 def publish(config, posts, db, api=None, now=None):
     now = now or dt.datetime.now(UTC)
     timestamp = now.timestamp()
@@ -237,8 +251,7 @@ def publish(config, posts, db, api=None, now=None):
     db.execute("UPDATE posts SET state='sending',attempted_at=? WHERE id=? AND state='pending'", (timestamp, post['id']))
     db.commit()
     try:
-        message = api.call('sendMessage', {'chat_id': config['expected_channel_id'], 'text': post['text'],
-                                         'link_preview_options': {'is_disabled': True}})
+        message = api.call('sendMessage', message_payload(config['expected_channel_id'], post['text']))
         if type(message.get('message_id')) is not int or message.get('chat', {}).get('id') != config['expected_channel_id']:
             raise DeliveryUnknown('TELEGRAM_RESPONSE_UNKNOWN')
     except APIRejected as error:

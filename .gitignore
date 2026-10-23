@@ -45,3 +45,6 @@ __pycache__/
 /web/member-reserve-panel.css
 /web/assets/
 /web/vendor/ethers.js
+
+# Local lock for token-free Telegram launch receipts
+/marketing/telegram/live-channel-setup.json.lock
