@@ -1,0 +1,20 @@
+{
+  "bot_id": 8961425436,
+  "buttons_verified": true,
+  "caption_sha256": "f05ae16b5db0f724e1ca652d399fa9a47f043a99c0ba2ee0d323d9bf916430c0",
+  "caption_verified": true,
+  "channel_id": -1003941034086,
+  "confirmation_source": "channel_post_update",
+  "confirmed_at": "2026-10-23T23:52:49.005584+00:00",
+  "fingerprint": "e03106a86ec13133876f5d0acabccabc97888bd1abfcc02d1419cf4401c3f130",
+  "intent_at": "2026-10-23T23:51:16.383200+00:00",
+  "media_verified": true,
+  "message_id": 29,
+  "schema_version": 1,
+  "status": "sent",
+  "updated_at": "2026-10-23T23:52:49.005605+00:00",
+  "url": "https://t.me/FTIProtocol_Official/29",
+  "video_file_id": "BAACAgQAAyEGAATq52hmAAMBatvy_f9hBuP_-e4opsk08TegsjkAAg4eAALK9-BSYub6mBQ3UJ89BA",
+  "video_file_unique_id": "AgADDh4AAsr34FI",
+  "video_sha256": "40f229328303aae9f2717dcd62f6b228ee651213e3f345bc0cd3b3a196175b8f"
+}

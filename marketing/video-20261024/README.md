@@ -53,3 +53,21 @@ python3 tools/render-fti-user-video.py --mux-audio-only --audio marketing/video-
 ```
 
 This requires `intermediate/fti-user-presentation-silent.mp4`; video is copied without re-encoding. Add `--preview` when using the 720p silent master. Generated frames, intermediates, audio, MP4s and temporary QA data are ignored locally; the source JSON, backgrounds, fonts and this README remain trackable.
+
+## Published user guide
+
+The authorized English video post was confirmed at https://t.me/FTIProtocol_Official/29, with the full 305-second video, six relevant hashtags and five official-link buttons. Approved copy and video fingerprint are in `telegram-post.en.json`; the token-free delivery receipt is `../telegram/live-user-video-20261024.json`.
+
+To reproduce the two previews from the exact encoded video:
+
+```sh
+ffmpeg -y -v error -ss 2 -i marketing/video-20261024/fti-user-presentation.mp4 -frames:v 1 -vf scale=320:180 -q:v 2 marketing/video-20261024/frames/telegram-thumbnail.jpg
+ffmpeg -y -v error -ss 2 -i marketing/video-20261024/fti-user-presentation.mp4 -frames:v 1 -vf scale=1280:720 -q:v 2 marketing/video-20261024/frames/telegram-cover.jpg
+python3 tools/publish-telegram-user-video.py --video marketing/video-20261024/fti-user-presentation.mp4
+```
+
+The default mode only previews. `--apply` reads the token through a hidden terminal prompt, validates the exact bot/channel and approved video hash, then sends once. Existing receipts prevent another send. Preserve the receipt: do not remove it to force publication.
+
+Telegram can accept large videos with a temporary message ID of zero while processing. `--recover` reads channel-post updates without an offset, acknowledges no updates, changes no webhook and never sends another video. The live post was confirmed through its final positive message ID, exact caption, hashtag entities, official buttons and video metadata.
+
+Recovery only observes the oldest 100 unacknowledged updates; a backlog can hide a newer post. An absent match is a pending observation, not proof that delivery failed, and never authorizes resending.
