@@ -22,7 +22,7 @@ function fixture(readPrice=async()=>market()){
   status:()=>assert.fail('Public price reads must not overwrite wallet status'),
   cancelEvents(){},
   readTokenSnapshot:async()=>({...market({block:124,price:parseEther('0.11')}),tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,wallet:{address,exists:true,units:1n,ftiBalance:parseEther('1'),unlocked:parseEther('1'),remaining:parseEther('499'),usdBalance:parseEther('40')}}),
-  syncActions(){},wallet:()=>context.state.wallet,
+  memberReadSucceeded(){},syncActions(){},wallet:()=>context.state.wallet,
  };
  vm.runInNewContext(source.slice(priceStart,priceEnd)+'\n'+source.slice(walletStart,walletEnd),context);
  return {context,calls,node,elements};

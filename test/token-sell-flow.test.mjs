@@ -105,7 +105,7 @@ test('existing unknown or pending-hash records block sales before fresh reads or
 test('actual token refresh updates the available-sale balance independently of full dashboard data',async()=>{
  const labels={},state={wallet:{address:A}},context={address:A,signer:{},state,cfg:{chainId:56,token:TOKEN},v3Model:true,rpc:{},read:{binary:{},usd:{},token:{}},refreshSequence:0,
   wallet:()=>state.wallet,preparationDeadline:promise=>promise,readTokenSnapshot:async()=>({timestamp:2000,block:10,tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,wallet:{address:A,exists:false,units:0n,ftiBalance:parseEther('0.125'),unlocked:parseEther('0.125'),usdBalance:0n,remaining:0n}}),
-  renderTokenPrice(){},syncActions(){},text:(key,value)=>labels[key]=value,fmt:formatEther,integer:String,t:value=>value};
+  memberReadSucceeded(){},renderTokenPrice(){},syncActions(){},text:(key,value)=>labels[key]=value,fmt:formatEther,integer:String,t:value=>value};
  vm.runInNewContext(section('async function refreshTokenState(','async function transaction('),context);await context.refreshTokenState();
  assert.equal(labels['sell-available'],'Available: 0.125 FTI');assert.match(labels['trade-notice'],/before buying FTI/);
 });
@@ -121,6 +121,7 @@ test('actual action gates freeze sale fields while busy and allow a funded nonme
  const context={busy:true,connecting:false,signer:{},address:A,state:{tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,phase:0},
   wallet:()=>({exists:false,units:0n,ftiBalance:UNIT,unlocked:UNIT}),councilOwner:false,lockOffset:0,selectableAuto:false,builderMode:'legacy',cfg:{},
   $:selector=>node(selector.slice(1)),document:{querySelectorAll:()=>[buy,sell]},membershipBlock:()=>null,t:value=>value,builderMonthState:()=>({canBegin:false,canProcess:false})};
+ context.publishMemberPanel=()=>{};
  vm.runInNewContext(section('function syncActions(){','function write('),context);context.syncActions();
  assert.ok(node('sell-form').elements.every(field=>field.disabled));assert.equal(sell.disabled,true);
  context.busy=false;context.syncActions();assert.ok(node('sell-form').elements.every(field=>!field.disabled));assert.equal(sell.disabled,false);assert.equal(buy.disabled,true);

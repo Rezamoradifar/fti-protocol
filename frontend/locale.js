@@ -1,10 +1,12 @@
 import {completeTranslations} from './complete-translations.js';
+import {memberTranslations} from './member-translations.js';
 import {landingTranslations} from './landing-translations.js';
 import {coreTranslations} from './core-translations.js';
 import {language,initializeLanguage} from './language-policy.js';
 export {language,initializeLanguage,LANGUAGES,languageInfo,changeLanguage,withLanguage,displayNumber,displayUTC} from './language-policy.js';
 export function translate(value,lang=language,fa){
  const text=String(value);if(lang==='en')return text;
+ if(memberTranslations[lang]?.[text])return memberTranslations[lang][text];
  if(completeTranslations[lang]?.[text])return completeTranslations[lang][text];
  const landing=landingTranslations[lang];if(landing&&Object.hasOwn(landing,text))return landing[text];
  const core=coreTranslations[lang];if(core&&Object.hasOwn(core,text))return core[text];
@@ -319,6 +321,7 @@ Close month|بستن ماه بیلدر
 Process monthly rewards|پردازش پاداش ماهانه
 `.trim().split('\n').map(row=>{const i=row.indexOf('|');return[row.slice(0,i),row.slice(i+1)];}));
 Object.assign(translations,{
+ 'Help center':'مرکز راهنما',
  'Your next step, in one place.':'قدم بعدی، همین‌جا در دسترس شماست.',
  'Access follows your role.':'دسترسی بر اساس نقش ولت شماست.',
  'Understand the token.':'سازوکار توکن را بشناسید.',
