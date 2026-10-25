@@ -1,14 +1,14 @@
-import React,{useEffect,useRef,useState} from 'react';
+import React,{useEffect,useRef,useState,useSyncExternalStore} from 'react';
 import {t} from './locale.js';
 import {Brand} from './brand.jsx';
 import {LanguageSelect,SocialLinks} from './global-components.jsx';
 import {siteLinks} from './site-links.js';
+import {appearance} from './appearance.js';
 
-function initialAppearance(){try{return localStorage.getItem('fti-appearance')!=='solid';}catch{return true;}}
 export function AppearanceToggle(){
- const [glass,setGlass]=useState(initialAppearance);
- useEffect(()=>{document.documentElement.dataset.appearance=glass?'glass':'solid';try{localStorage.setItem('fti-appearance',glass?'glass':'solid');}catch{}},[glass]);
- return <button type="button" className="fti-appearance" aria-pressed={glass} aria-label={t('Glass appearance','ظاهر شیشه‌ای')} title={t('Glass appearance','ظاهر شیشه‌ای')} onClick={()=>setGlass(v=>!v)}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="3" width="13" height="13" rx="4"/><rect x="8" y="8" width="13" height="13" rx="4" fill="currentColor" fillOpacity=".15"/></svg><span>{t('Glass','شیشه‌ای')}</span></button>;
+ const mode=useSyncExternalStore(appearance.subscribe,appearance.get,()=> 'glass'),glass=mode==='glass';
+ useEffect(()=>appearance.initialize(),[]);
+ return <button type="button" className="fti-appearance" aria-pressed={glass} aria-label={t('Glass appearance','ظاهر شیشه‌ای')} title={t('Glass appearance','ظاهر شیشه‌ای')} onClick={()=>appearance.set(glass?'solid':'glass')}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="3" width="13" height="13" rx="4"/><rect x="8" y="8" width="13" height="13" rx="4" fill="currentColor" fillOpacity=".15"/></svg><span>{t('Glass','شیشه‌ای')}</span></button>;
 }
 export function SiteHeader({token=false}){
  const sites=siteLinks(location.href),[open,setOpen]=useState(false),button=useRef(null),header=useRef(null);

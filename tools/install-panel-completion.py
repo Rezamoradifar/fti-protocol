@@ -346,8 +346,13 @@ SERVER_BASES = (
 CACHE_BASES = ('b45b788405ad1d601d55fb2c16bb9feb1bba91acdea316b928102371043b21f3',)
 IDENTITY_KEYS = ('WorkingDirectory', 'User', 'Group', 'FragmentPath')
 DROP_FOLDER = Path('/etc/systemd/system/fti-continuity-web.service.d')
-DROP_NAME = 'zzzzzz-fti-panel-completion.conf'
+DROP_NAME = 'zzzzzzz-fti-market-panel.conf'
+PREVIOUS_DROP_NAME = 'zzzzzz-fti-panel-completion.conf'
+BASE_GLOBAL_CSS = '/' + BASE + '/global-interface.css'
+BASE_GLOBAL_CSS_SHA = '08c083262991d5387882b6d86b1930e69b5a7a3e67a998191017625caae2516b'
 NEW_CONFIG_KEYS = ('supportTicketVersion', 'memberHistoryVersion', 'stateReaderVersion', 'eventHistoryVersion')
+# Exact public assets and runtime from reviewed installer commit 6f957513e3468061d5f30907d6acfef7773eec96.
+REVIEWED_COMPLETION = json.loads('{"assets": {"/fti-panel-completion-b81138bd421e256db99f/app.js": {"kind": "js", "sha256": "a82ce30be51b4981856e2a3f78af6c95319e4f54540d8ffb47191ea897671143"}, "/fti-panel-completion-b81138bd421e256db99f/entry.js": {"kind": "js", "sha256": "0fa632764c991d8982f44c79df32e09e3d52aca80744df06b305a24622f03ec5"}, "/fti-panel-completion-b81138bd421e256db99f/member-reserve-flow-27f8968f3353a95e51b1.webp": {"kind": "webp", "sha256": "27f8968f3353a95e51b14df74943bfd723909a408043eff0a305cdb6892e705d"}, "/fti-panel-completion-b81138bd421e256db99f/theme.css": {"kind": "css", "sha256": "788ff456fd5b7b9635c7d66edcf504f8292446ebd472ccfd03e21ef2eb58633a"}, "/fti-panel-completion-b81138bd421e256db99f/walletconnect.js": {"kind": "js", "sha256": "a194a12f36ca2a5453ecdb753c6b1a4b545121f311043ebcac002d24cacca6a8"}, "/fti-panel-completion-b81138bd421e256db99f/walletconnect.js.LEGAL.txt": {"kind": "text", "sha256": "82ac15123e29fcdbf906efba780c28b88b76db8ac2da6999d21056bf4376f375"}}, "css": "/fti-panel-completion-b81138bd421e256db99f/theme.css", "entry": "/fti-panel-completion-b81138bd421e256db99f/entry.js", "overlay": "fti-panel-completion-runtime-87a3acc4c4190459ef70", "release": "panel-completion-f88dfccf8fd93b34052a", "runtime": {"content-security-policy.mjs": "30fefc98d19a95e424433ef9d0b5538b15599c52d02311f3bd2ba42fa49961ad", "event-history-source.mjs": "ca89f0ec0dbab0dd23e28a07bc4f32b415f7eba0938551eb8e7db019de54aea4", "event-reader.mjs": "69c85004d5cfd002240c350191167821bb329feb4f3ae380514fed1bd069f39d", "history-cache.mjs": "0f85c0cf27ea01aa0a7bc23dad9cb2b862e80101b0b19cc5764bfa0d04688733", "history-read-policy.mjs": "58b63c88fefbd7322abc0b1ba901a659064fe979275e635ea86adb6259b55090", "market-reader.mjs": "36c990571c3a4fe5b7f78d06ed3c88b1a7fd1ce03a6a19ddafbbb7f28991097e", "member-history.mjs": "b859c1471cc9fa0a6ddc565351034b8b552d68336c8530f8b8f590e42ba6604f", "referral-placement-index.mjs": "fd08f3c82b4b588409ffd049f8c532eab80868fb73a9f141fa2680c8ec2cffac", "server.mjs": "5cd25dad56bc1d2fdcb7a4c25c6185d62656b4c86c9df4446d5b535e5056ee3d", "state-reader.mjs": "405eca8bc7e0bebf3aeb36ae06066511ffd5653f594dba16ce49d00a83c4f6c3", "support-tickets.mjs": "ab1333136bc7030686afc9eda2a9ca4fdb39d338f900f8c26b77531f1633e800"}}')
 # BEGIN EMBEDDED RELEASE
 RELEASE = None
 # END EMBEDDED RELEASE
@@ -405,7 +410,7 @@ def same_identity(saved, root, metadata):
 
 def completion_payload(release):
     expected = {'schema', 'app', 'sdk', 'sdkLegal', 'css', 'image', 'runtime', 'required', 'professional', 'canonical'}
-    require(isinstance(release, dict) and set(release) == expected and
+    require(isinstance(release, dict) and set(release) in (expected, expected | {'globalCSS'}) and
             release['schema'] == 'FTI_PANEL_COMPLETION_V1', 'PACKAGED_INSTALLER_REQUIRED')
     app, sdk, sdk_legal, css, image = (unpack(release[key]) for key in ('app', 'sdk', 'sdkLegal', 'css', 'image'))
     require(all(marker in app for marker in (b'./vendor/ethers.js', b'./vendor/walletconnect.js',
@@ -416,6 +421,11 @@ def completion_payload(release):
     validate_image(image)
     require(sha(image) == IMAGE_SHA, 'REVIEWED_ARTWORK_REQUIRED')
     validate_css(css, image)
+    if 'globalCSS' in release:
+        shared = unpack(release['globalCSS'])
+        require(100 <= len(shared) <= 1_000_000 and b'.market-chart' in shared and
+                b'@import' not in shared.lower(), 'UNEXPECTED_SHARED_STYLESHEET')
+        shared.decode('utf8')
     require(isinstance(release['runtime'], dict) and set(release['runtime']) == set(RUNTIME_FILES),
             'UNEXPECTED_RUNTIME_MANIFEST')
     runtime = {name: unpack(item) for name, item in release['runtime'].items()}
@@ -437,8 +447,8 @@ def completion_payload(release):
     return app, sdk, sdk_legal, css, image, runtime, (old_app, old_css, old_image)
 
 
-def completion_destinations(app, sdk, sdk_legal, css, image):
-    prefix = '/fti-panel-completion-' + sha(app + sdk + css + image)[:20] + '/'
+def completion_destinations(app, sdk, sdk_legal, css, image, global_css=None):
+    prefix = '/fti-panel-completion-' + sha(app + sdk + css + image + (global_css or b''))[:20] + '/'
     sdk_url = prefix + 'walletconnect.js'
     # Absolute imports bind the new app to the reviewed installed ethers runtime
     # and this release's immutable patched bridge. Old SDK URLs remain untouched.
@@ -451,6 +461,8 @@ def completion_destinations(app, sdk, sdk_legal, css, image):
     assets = {app_url: (new_app, 'js'), entry_url: (entry_code(app_url), 'js'),
               sdk_url: (sdk, 'js'), prefix + 'walletconnect.js.LEGAL.txt': (sdk_legal, 'text'),
               css_url: (css, 'css'), prefix + image_name(image): (image, 'webp')}
+    if global_css is not None:
+        assets[prefix + 'global-interface.css'] = (global_css, 'css')
     return entry_url, css_url, assets
 
 
@@ -469,12 +481,26 @@ def completion_baselines(professional):
     return result
 
 
-def completion_plan(before, entry_url, css_url, professional):
+def reviewed_completion_baseline():
+    prior = REVIEWED_COMPLETION
+    base = dict(BASELINES['panel-reliability'])
+    folder = prior['entry'].rsplit('/', 1)[0] + '/'
+    image = next(url for url, item in prior['assets'].items() if item['kind'] == 'webp')
+    for key, url in (('app', folder + 'app.js'), ('css', prior['css']), ('image', image)):
+        base[key] = url
+        base[key + 'SHA'] = prior['assets'][url]['sha256']
+    base['entry'] = prior['entry']
+    return base
+
+
+def completion_plan(before, entry_url, css_url, professional, global_css_url=None):
     require(b'<base' not in before.lower() and before.count(b'</head>') == 1 and
             before.count(b'<div id="root">') == 1, 'UNRECOGNIZED_INSTALLED_ENTRY')
     overlay = official_overlay(before)
     candidates = []
     baselines = completion_baselines(professional)
+    previous = reviewed_completion_baseline()
+    baselines['reviewed-completion'] = previous
     for key, baseline in baselines.items():
         boot = 'boot' in baseline
         old = script_tag(baseline['entry'], boot)
@@ -493,7 +519,7 @@ def completion_plan(before, entry_url, css_url, professional):
                 if b'data-fti-boot' in before:
                     continue
             # The professional predecessor shares the reliability bootstrap.
-            if key == 'professional-user-panel':
+            if key in ('professional-user-panel', 'reviewed-completion'):
                 continue
         require(len(re.findall(rb'<script\b', before, flags=re.I)) == (2 if boot else 1) + int(overlay),
                 'UNRECOGNIZED_INSTALLED_ENTRY')
@@ -512,12 +538,18 @@ def completion_plan(before, entry_url, css_url, professional):
             require(other['entry'].encode() not in before and other['css'].encode() not in before,
                     'AMBIGUOUS_PANEL_BASELINE')
         after = before.replace(old, new, 1).replace(css_link(baseline['css']), css_link(css_url), 1) if original else before
+        if global_css_url is not None:
+            old_shared, new_shared = css_link(BASE_GLOBAL_CSS), css_link(global_css_url)
+            require(before.count(old_shared) == int(original) and
+                    before.count(new_shared) == int(installed), 'UNRECOGNIZED_SHARED_STYLESHEET')
+            if original:
+                after = after.replace(old_shared, new_shared, 1)
         candidates.append((key, baseline, after, original))
     require(len(candidates) == 1, 'UNRECOGNIZED_INSTALLED_ENTRY')
     return candidates[0]
 
 
-def ethers_runtime_path(root):
+def dependency_root(root):
     modules = root / 'node_modules'
     if modules.is_symlink():
         # Only the reviewed staged release's one deliberate dependency link is
@@ -527,8 +559,36 @@ def ethers_runtime_path(root):
         source = safe_path(Path(json.loads(marker)['originalRoot']))
         require(source != root and source.parent == root.parent, 'UNEXPECTED_DEPENDENCY_ROOT')
         validate_stage(root, source, root.name)
-        modules = source / 'node_modules'
-    return safe_path(modules / 'ethers/dist/ethers.min.js')
+        modules = safe_path(source / 'node_modules')
+        require(modules.is_dir(), 'UNEXPECTED_DEPENDENCY_ROOT')
+        return source
+    safe_path(modules)
+    return root
+
+
+def ethers_runtime_path(root):
+    return safe_path(dependency_root(root) / 'node_modules/ethers/dist/ethers.min.js')
+
+
+def reviewed_completion_pins(root, saved, node, cfg):
+    prior = REVIEWED_COMPLETION
+    require(root.name == prior['release'], 'UNREVIEWED_COMPLETION_RELEASE')
+    source = dependency_root(root)
+    validate_stage(root, source, prior['release'])
+    folder = safe_path(root / prior['overlay'])
+    require(set(os.listdir(folder)) == set(prior['runtime']), 'UNREVIEWED_COMPLETION_RUNTIME')
+    pins = {'web' + url: item['sha256'] for url, item in prior['assets'].items()}
+    pins.update({prior['overlay'] + '/' + name: digest for name, digest in prior['runtime'].items()})
+    pins['.fti-panel-completion.json'] = sha(regular(root / '.fti-panel-completion.json')[0])
+    for name, digest in pins.items():
+        require(sha(regular(root / name)[0]) == digest, 'UNREVIEWED_COMPLETION_CONTENT: ' + name)
+    previous_drop = safe_path(DROP_FOLDER / PREVIOUS_DROP_NAME)
+    support = safe_path(SUPPORT_ROOT / (str(cfg['chainId']) + '-' + cfg['binary'].lower()))
+    expected = dropin_code(node, root, folder, support)
+    require(str(previous_drop) in saved.get('DropInPaths', '').split() and
+            regular(previous_drop)[0] == expected and
+            str(folder / 'server.mjs') in saved.get('ExecStart', ''), 'UNREVIEWED_COMPLETION_SERVICE')
+    return pins
 
 
 def capture_protected(root, required, baseline, overlay):
@@ -622,6 +682,12 @@ def overlay_files(runtime):
 CANONICAL_REVISION = 'ba82373a83d63fba0643332371cfb6d62903c849'
 FROZEN_DIRS = ('contracts', 'frontend', 'scripts', 'core', 'landing/src')
 STAGE_COPY_DIRS = ('web', 'landing/dist', 'artifacts')
+PUBLIC_COPY_MAX_BYTES = 1024 ** 3
+PUBLIC_COPY_MAX_ENTRIES = 12_000
+PUBLIC_COPY_HEADROOM_BYTES = 64 * 1024 ** 2
+STAGE_EXTRA_INODES = 1000
+PUBLIC_FILE_SUFFIXES = ('.html', '.js', '.mjs', '.css', '.json', '.txt', '.woff', '.woff2',
+                        '.webp', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.pdf')
 
 
 def canonical_payload(release):
@@ -641,38 +707,104 @@ def canonical_payload(release):
 
 def release_name(release):
     identity = {key: release[key]['sha256'] for key in ('app', 'sdk', 'css', 'image')}
+    if 'globalCSS' in release:
+        identity['globalCSS'] = release['globalCSS']['sha256']
     identity['runtime'] = {name: value['sha256'] for name, value in release['runtime'].items()}
     identity['canonical'] = {name: value['sha256'] for name, value in release['canonical'].items()}
     return 'panel-completion-' + sha(json.dumps(identity, sort_keys=True).encode())[:20]
 
 
-def copy_public_tree(source, destination):
+def public_entry_identity(path, directory=False):
+    safe_path(path)
+    info = path.lstat()
+    if directory:
+        require(stat.S_ISDIR(info.st_mode), 'INVALID_PUBLIC_DIRECTORY')
+    else:
+        require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= LIMIT,
+                'UNSAFE_FILE')
+    return tuple(getattr(info, name) for name in ('st_dev', 'st_ino', 'st_uid', 'st_gid',
+                 'st_mode', 'st_nlink', 'st_size', 'st_mtime_ns', 'st_ctime_ns'))
+
+
+def check_public_copy_budget(total, entries, source):
+    require(total <= PUBLIC_COPY_MAX_BYTES and entries <= PUBLIC_COPY_MAX_ENTRIES,
+            'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED: tree=' + str(source) +
+            ' bytes=' + str(total) + ' entries=' + str(entries) +
+            ' maxBytes=' + str(PUBLIC_COPY_MAX_BYTES) +
+            ' maxEntries=' + str(PUBLIC_COPY_MAX_ENTRIES))
+
+
+def public_copy_plan(source):
     safe_path(source)
     require(source.is_dir(), 'MISSING_PUBLIC_RUNTIME_DIRECTORY')
-    destination.mkdir(mode=0o755, parents=True, exist_ok=False)
-    os.chmod(destination, 0o755)
-    total = count = 0
-    for folder, directories, files in os.walk(source, followlinks=False):
+    plan = {'files': {}, 'directories': {'.': public_entry_identity(source, directory=True)},
+            'bytes': 0, 'entries': 1}
+    def failed(error):
+        raise error
+    for folder, directories, files in os.walk(source, followlinks=False, onerror=failed):
         relative = Path(folder).relative_to(source)
+        directories.sort()
         for name in directories:
             require(not name.startswith('.'), 'PRIVATE_PUBLIC_TREE_ENTRY_REJECTED')
-            src = safe_path(Path(folder) / name)
-            require(src.is_dir(), 'INVALID_PUBLIC_DIRECTORY')
-            target = destination / relative / name
-            target.mkdir(mode=0o755)
-            os.chmod(target, 0o755)
-        for name in files:
-            require(not name.startswith('.') and Path(name).suffix.lower() in
-                    ('.html', '.js', '.mjs', '.css', '.json', '.txt', '.woff', '.woff2',
-                     '.webp', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.pdf'),
+            plan['directories'][(relative / name).as_posix()] = public_entry_identity(
+                Path(folder) / name, directory=True)
+            plan['entries'] += 1
+            check_public_copy_budget(plan['bytes'], plan['entries'], source)
+        for name in sorted(files):
+            require(not name.startswith('.') and Path(name).suffix.lower() in PUBLIC_FILE_SUFFIXES,
                     'PRIVATE_OR_UNKNOWN_PUBLIC_FILE_REJECTED')
-            src = safe_path(Path(folder) / name)
-            data, _ = regular(src)
-            total += len(data)
-            count += 1
-            require(count <= 4000 and total <= 100_000_000, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED')
-            create(destination / relative / name, data, 0o644)
-    return total, count
+            identity = public_entry_identity(Path(folder) / name)
+            plan['files'][(relative / name).as_posix()] = identity
+            plan['bytes'] += identity[6]
+            plan['entries'] += 1
+            check_public_copy_budget(plan['bytes'], plan['entries'], source)
+    return plan
+
+
+def public_runtime_plan(root):
+    result = {}
+    total = entries = 0
+    for name in STAGE_COPY_DIRS:
+        plan = public_copy_plan(root / name)
+        total += plan['bytes']
+        entries += plan['entries']
+        check_public_copy_budget(total, entries, name)
+        result[name] = plan
+    return result
+
+
+def check_public_copy_space(root, plan, extra_bytes):
+    required_bytes = sum(item['bytes'] for item in plan.values()) + extra_bytes + PUBLIC_COPY_HEADROOM_BYTES
+    required_inodes = sum(item['entries'] for item in plan.values()) + STAGE_EXTRA_INODES
+    space = os.statvfs(root)
+    available_bytes = space.f_bavail * space.f_frsize
+    require(available_bytes >= required_bytes and space.f_favail >= required_inodes,
+            'INSUFFICIENT_FREE_SPACE_OR_INODES: requiredBytes=' + str(required_bytes) +
+            ' availableBytes=' + str(available_bytes) + ' requiredInodes=' + str(required_inodes) +
+            ' availableInodes=' + str(space.f_favail))
+
+
+def copy_public_tree(source, destination, expected=None):
+    plan = public_copy_plan(source)
+    require(expected is None or plan == expected, 'PUBLIC_RUNTIME_CHANGED_DURING_COPY')
+    safe_path(destination)
+    destination.mkdir(mode=0o755, parents=True, exist_ok=False)
+    os.chmod(destination, 0o755)
+    for name in plan['directories']:
+        if name == '.':
+            continue
+        target = destination / name
+        target.mkdir(mode=0o755)
+        os.chmod(target, 0o755)
+    for name, identity in plan['files'].items():
+        src = source / name
+        require(public_entry_identity(src) == identity, 'PUBLIC_RUNTIME_CHANGED_DURING_COPY')
+        data, _ = regular(src)
+        require(len(data) == identity[6] and public_entry_identity(src) == identity,
+                'PUBLIC_RUNTIME_CHANGED_DURING_COPY')
+        create(destination / name, data, 0o644)
+    require(public_copy_plan(source) == plan, 'PUBLIC_RUNTIME_CHANGED_DURING_COPY')
+    return plan['bytes'], len(plan['files'])
 
 
 def stage_inventory(stage):
@@ -706,12 +838,14 @@ def validate_stage(stage, source, name):
     return record
 
 
-def stage_release(source, stage, canonical, assets, overlay_name, overlay_content, before, after, release_id):
+def stage_release(source, stage, canonical, assets, overlay_name, overlay_content, before, after, release_id,
+                  copy_plan=None):
     require(stage.parent == source.parent and stage != source and stage.is_dir() and
             stage.stat().st_uid == 0 and not os.listdir(stage), 'UNSAFE_PRIVATE_STAGE')
     os.chmod(stage, 0o755)
+    copy_plan = public_runtime_plan(source) if copy_plan is None else copy_plan
     for name in STAGE_COPY_DIRS:
-        copy_public_tree(source / name, stage / name)
+        copy_public_tree(source / name, stage / name, copy_plan[name])
     for name, data in canonical.items():
         target = stage / name
         target.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
@@ -720,7 +854,8 @@ def stage_release(source, stage, canonical, assets, overlay_name, overlay_conten
                 break
             os.chmod(parent, 0o755)
         create(target, data, 0o644)
-    modules = safe_path(source / 'node_modules')
+    physical_source = dependency_root(source)
+    modules = safe_path(physical_source / 'node_modules')
     require(modules.is_dir() and modules.stat().st_uid == 0 and not modules.stat().st_mode & 0o022,
             'UNSAFE_EXISTING_NODE_MODULES')
     (stage / 'node_modules').symlink_to(modules, target_is_directory=True)
@@ -742,7 +877,7 @@ def stage_release(source, stage, canonical, assets, overlay_name, overlay_conten
     current, info = regular(target)
     require(current == before, 'STAGED_HTML_BASELINE_MISMATCH')
     replace(target, before, after, info)
-    record = {'schema': 'FTI_PANEL_COMPLETION_STAGE_V1', 'originalRoot': str(source),
+    record = {'schema': 'FTI_PANEL_COMPLETION_STAGE_V1', 'originalRoot': str(physical_source),
               'release': release_id, 'files': stage_inventory(stage)}
     create(stage / '.fti-panel-completion.json', json.dumps(record, sort_keys=True).encode(), 0o644)
     sync_directory(stage)
@@ -764,12 +899,13 @@ def publish_stage(temporary, stage):
     sync_directory(stage.parent)
 
 
-def prepare_stage(source, stage, canonical, assets, overlay_name, overlay_content, before, after, release_id):
+def prepare_stage(source, stage, canonical, assets, overlay_name, overlay_content, before, after, release_id,
+                  copy_plan=None):
     temporary = Path(tempfile.mkdtemp(prefix='.fti-panel-completion-stage-', dir=source.parent))
     try:
         stage_release(source, temporary, canonical, assets, overlay_name, overlay_content,
-                      before, after, release_id)
-        validate_stage(temporary, source, release_id)
+                      before, after, release_id, copy_plan)
+        validate_stage(temporary, dependency_root(source), release_id)
         publish_stage(temporary, stage)
     finally:
         # This random directory was created by this invocation and has never
@@ -1022,10 +1158,18 @@ def install_completion(release, apply=False):
     metadata = unit_metadata(saved)
     cfg = config()
     before, _ = regular(root / 'web/index.html')
-    entry, css_url, assets = completion_destinations(app, sdk, sdk_legal, css, image)
-    baseline_key, baseline, after, original = completion_plan(before, entry, css_url, professional)
+    global_css = unpack(release['globalCSS']) if 'globalCSS' in release else None
+    entry, css_url, assets = completion_destinations(app, sdk, sdk_legal, css, image, global_css)
+    shared_url = next((url for url in assets if url.endswith('/global-interface.css')), None)
+    baseline_key, baseline, after, original = completion_plan(before, entry, css_url, professional, shared_url)
     protected = capture_protected(root, release['required'], baseline, official_overlay(before))
     node = node_executable(saved)
+    if global_css is not None:
+        require(sha(regular(root / ('web' + BASE_GLOBAL_CSS))[0]) == BASE_GLOBAL_CSS_SHA,
+                'UNREVIEWED_SHARED_STYLESHEET')
+        protected['web' + BASE_GLOBAL_CSS] = BASE_GLOBAL_CSS_SHA
+    if baseline_key == 'reviewed-completion':
+        protected.update(reviewed_completion_pins(root, saved, node, cfg))
     user = pwd.getpwnam(saved['User'])
     account = SimpleNamespace(pw_uid=user.pw_uid, pw_gid=grp.getgrnam(saved['Group']).gr_gid)
     require(shutil.which('nsenter') and shutil.which('setpriv'), 'SERVICE_NAMESPACE_CHECK_TOOLS_REQUIRED')
@@ -1067,25 +1211,34 @@ def install_completion(release, apply=False):
         return
     require(original and not drop.exists(), 'MIXED_COMPLETION_INSTALLATION')
     if stage.exists():
-        validate_stage(stage, root, release_name(release))
+        validate_stage(stage, dependency_root(root), release_name(release))
     require(all(Path(value).name < DROP_NAME for value in saved.get('DropInPaths', '').split()),
             'LATER_SERVICE_OVERRIDE_REQUIRES_REVIEW')
+    copy_plan = None
+    if not stage.exists():
+        # Historical immutable public assets remain available to open browsers.
+        # Inventory them before any write and reserve space for this exact copy.
+        copy_plan = public_runtime_plan(root)
+        extra_bytes = (sum(map(len, canonical.values())) +
+                       sum(len(data) for data, _kind in assets.values()) +
+                       sum(map(len, overlay_content.values())))
+        check_public_copy_space(root, copy_plan, extra_bytes)
+        for name, item in copy_plan.items():
+            print('FTI_PANEL_COMPLETION_PUBLIC_COPY_PLAN tree=' + name +
+                  ' bytes=' + str(item['bytes']) + ' files=' + str(len(item['files'])) +
+                  ' directories=' + str(len(item['directories'])), flush=True)
     print('FTI_PANEL_COMPLETION_PREFLIGHT_OK', flush=True)
     if not apply:
         return
     support_directory(cfg, account.pw_uid, account.pw_gid)
-    # Public/runtime copy is bounded to <=300MB plus the small canonical/overlay
-    # payload. No node_modules duplication, credentials or user data is required.
-    space = os.statvfs(root)
-    require(space.f_bavail * space.f_frsize > 350 * 1024 * 1024 and space.f_favail > 13_000,
-            'INSUFFICIENT_FREE_SPACE_OR_INODES')
     backup, record = backup_record(root, stage, before, after, saved, metadata, cfg, protected, drop_bytes)
     print('ROLLBACK_COMMAND=python3 ' + str(backup / 'installer.py') + ' --restore ' + str(backup), flush=True)
     restarted = False
     try:
         if not stage.exists():
-            prepare_stage(root, stage, canonical, assets, folder_name, overlay_content, before, after, release_name(release))
-        validate_stage(stage, root, release_name(release))
+            prepare_stage(root, stage, canonical, assets, folder_name, overlay_content,
+                          before, after, release_name(release), copy_plan)
+        validate_stage(stage, dependency_root(root), release_name(release))
         require(unit_properties() == saved and unit_metadata(saved) == metadata, 'WEB_PROCESS_CHANGED')
         check_protected(root, protected)
         require(regular(root / 'web/index.html')[0] == before, 'CONCURRENT_ORIGINAL_HTML_EDIT')
@@ -1153,6 +1306,7 @@ def package_completion(root, output):
     sdk = regular(root / 'web/vendor/walletconnect.js')[0]
     sdk_legal = regular(root / 'web/vendor/walletconnect.js.LEGAL.txt')[0]
     css = regular(root / 'web/member-reserve-panel.css')[0]
+    global_css = regular(root / 'web/global-interface.css')[0]
     text = css.decode('utf8')
     urls = re.findall(r'url\(([^)]+)\)', text, flags=re.I)
     require(len(urls) == 1, 'EXPECTED_ONE_PANEL_IMAGE')
@@ -1176,7 +1330,7 @@ def package_completion(root, output):
     old_app, old_css, old_image = module.payload(module.RELEASE)
     canonical = {name: compressed(data) for name, data in canonical_bytes.items()}
     release = {'schema': 'FTI_PANEL_COMPLETION_V1', 'app': compressed(app), 'sdk': compressed(sdk),
-        'sdkLegal': compressed(sdk_legal), 'css': compressed(css), 'image': compressed(image),
+        'sdkLegal': compressed(sdk_legal), 'css': compressed(css), 'globalCSS': compressed(global_css), 'image': compressed(image),
         'runtime': runtime, 'required': required, 'canonical': canonical,
         'professional': {key: compressed(value) for key, value in
                          zip(('app', 'css', 'image'), (old_app, old_css, old_image))}}

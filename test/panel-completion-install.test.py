@@ -26,6 +26,8 @@ STYLE = b'<style data-fti-boot-style>body{color:white}</style>'
 SHELL = b'<div id="root"><!-- FTI_BOOT_FALLBACK_BEGIN --><section>Loading</section><!-- FTI_BOOT_FALLBACK_END --></div><noscript>Enable JavaScript</noscript>'
 OVERLAY = b"const channel='https://t.me/FTIProtocol_Official';"
 ETHERS = b'reviewed ethers runtime fixture'
+GLOBAL = b'.market-chart text{display:block}.market-axis-labels{display:flex}' + b'/* reviewed shared styles */' * 4
+OLD_GLOBAL = b'original reviewed shared interface'
 RUNTIME = {name: ("export const name=" + repr(name) + ';').encode() for name in m.RUNTIME_FILES}
 RUNTIME[m.ENTRY] = b"import './member-history.mjs';import './support-tickets.mjs';import './operational-release.mjs';export const startWeb=()=>{};"
 
@@ -91,6 +93,7 @@ class CompletionTests(unittest.TestCase):
             'web/' + m.BASE + '/vendor/ethers.js': ETHERS,
             'web/' + m.BASE + '/vendor/walletconnect.js': b'unchanged immutable wallet bridge',
             'web/' + m.BASE + '/style.css': b'unchanged original shared style',
+            'web/' + m.BASE + '/global-interface.css': OLD_GLOBAL,
             'web' + m.REFERRAL + 'referral-context.js': b'preserved referral context',
             'web' + m.REFERRAL + 'entry.js': b'preserved referral entry',
             'web' + m.OFFICIAL_OVERLAY: OVERLAY,
@@ -115,6 +118,7 @@ class CompletionTests(unittest.TestCase):
         patches = [patch.object(m, 'BASELINES', self.baselines),
             patch.object(m, 'BASE_APP', m.sha(b'original base app')),
             patch.object(m, 'ETHERS_SHA', m.sha(ETHERS)),
+            patch.object(m, 'BASE_GLOBAL_CSS_SHA', m.sha(OLD_GLOBAL)),
             patch.object(m, 'LEGAL', m.sha(b'original legal')),
             patch.object(m, 'REFERRAL_BLOB', referral_hash),
             patch.object(m, 'OFFICIAL_OVERLAY_SHA', m.sha(OVERLAY)),
@@ -154,6 +158,7 @@ class CompletionTests(unittest.TestCase):
         b = m.completion_baselines(PRO)[key]
         boot = 'boot' in b
         return (b'<html><head><link rel="stylesheet" href="/' + m.BASE.encode() + b'/style.css">' +
+            m.css_link(m.BASE_GLOBAL_CSS) +
             m.css_link(b['css']) + (STYLE if boot else b'') + b'</head><body>' +
             (SHELL if boot else b'<div id="root"></div>') +
             (('<script defer src="' + b['boot'] + '" data-fti-boot-guard></script>').encode() if boot else b'') +
@@ -204,8 +209,7 @@ class CompletionTests(unittest.TestCase):
 
     def unit_metadata(self, saved):
         result = dict(self.metadata)
-        drop = m.dropin_path()
-        if drop.exists():
+        for drop in m.DROP_FOLDER.glob('*.conf'):
             info = drop.stat()
             result[str(drop)] = [info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns,
                                  info.st_uid, info.st_gid, info.st_mode & 0o777]
@@ -213,11 +217,14 @@ class CompletionTests(unittest.TestCase):
 
     def reload(self):
         drop = m.dropin_path()
+        previous = m.DROP_FOLDER / m.PREVIOUS_DROP_NAME
+        if not drop.exists() and previous.exists():
+            drop = previous
         if drop.exists():
             text = drop.read_text()
             self.saved['WorkingDirectory'] = next(line.split('=', 1)[1] for line in text.splitlines() if line.startswith('WorkingDirectory='))
             self.saved['ExecStart'] = next(line.split('=', 1)[1] for line in reversed(text.splitlines()) if line.startswith('ExecStart='))
-            self.saved['DropInPaths'] = str(drop)
+            self.saved['DropInPaths'] = ' '.join(str(p) for p in sorted(m.DROP_FOLDER.glob('*.conf')))
         else:
             self.saved['WorkingDirectory'] = str(self.root)
             self.saved['ExecStart'] = '/test/node ' + str(self.root / 'scripts/server.mjs')
@@ -494,12 +501,12 @@ class CompletionTests(unittest.TestCase):
     def test_interrupted_public_copy_does_not_block_clean_retry(self):
         copy = m.copy_public_tree
         calls = 0
-        def interrupted(source, target):
+        def interrupted(source, target, expected=None):
             nonlocal calls
             calls += 1
             if calls == 2:
                 raise RuntimeError('fixture interrupted public copy')
-            return copy(source, target)
+            return copy(source, target, expected)
         with patch.object(m, 'copy_public_tree', side_effect=interrupted):
             with self.assertRaisesRegex(RuntimeError, 'interrupted public copy'):
                 m.install_completion(self.release, apply=True)
@@ -510,6 +517,167 @@ class CompletionTests(unittest.TestCase):
         self.assert_original()
         m.install_completion(self.release, apply=True)
         self.assertEqual(self.restart_count, 1)
+
+    def assert_no_install_writes(self):
+        self.assertFalse(m.BACKUPS.exists())
+        self.assertFalse(m.SUPPORT_ROOT.exists())
+        self.assertFalse(self.stage().exists())
+        self.assertFalse(m.dropin_path().exists())
+        self.assertFalse(list(self.workspace.glob('.fti-panel-completion-stage-*')))
+        self.assertEqual(self.restart_count, 0)
+        self.assert_original()
+
+    def test_public_history_over_legacy_byte_limit_is_preserved(self):
+        source = self.workspace / 'large-public-history'
+        source.mkdir()
+        data = b'/* retained immutable public asset */' + b'x' * 2_999_961
+        for index in range(34):
+            (source / ('old-%03d.js' % index)).write_bytes(data)
+        plan = m.public_copy_plan(source)
+        self.assertGreater(plan['bytes'], 100_000_000)
+        destination = self.workspace / 'large-public-copy'
+        m.copy_public_tree(source, destination, plan)
+        self.assertEqual(len(list(destination.iterdir())), 34)
+        self.assertEqual(sum(file.stat().st_size for file in destination.iterdir()), plan['bytes'])
+        self.assertTrue(all(file.read_bytes() == data for file in destination.iterdir()))
+
+    def test_public_history_over_legacy_file_limit_is_preserved(self):
+        source = self.workspace / 'many-public-history'
+        source.mkdir()
+        for index in range(4001):
+            (source / ('old-%04d.js' % index)).write_bytes(b'/* retained */')
+        plan = m.public_copy_plan(source)
+        self.assertGreater(len(plan['files']), 4000)
+        destination = self.workspace / 'many-public-copy'
+        m.copy_public_tree(source, destination, plan)
+        self.assertEqual(len(list(destination.iterdir())), 4001)
+        self.assertTrue(all(file.read_bytes() == b'/* retained */' for file in destination.iterdir()))
+
+    def test_public_byte_budget_is_global_and_checked_before_writes(self):
+        plan = m.public_runtime_plan(self.root)
+        largest_tree = max(item['bytes'] for item in plan.values())
+        total = sum(item['bytes'] for item in plan.values())
+        self.assertLess(largest_tree, total)
+        with patch.object(m, 'PUBLIC_COPY_MAX_BYTES', largest_tree):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED'):
+                m.install_completion(self.release, apply=True)
+        self.assert_no_install_writes()
+
+    def test_public_entry_budget_is_global_and_checked_before_writes(self):
+        plan = m.public_runtime_plan(self.root)
+        largest_tree = max(item['entries'] for item in plan.values())
+        total = sum(item['entries'] for item in plan.values())
+        self.assertLess(largest_tree, total)
+        with patch.object(m, 'PUBLIC_COPY_MAX_ENTRIES', largest_tree):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED'):
+                m.install_completion(self.release, apply=True)
+        self.assert_no_install_writes()
+
+    def test_public_directory_entries_consume_budget(self):
+        source = self.workspace / 'public-directories'
+        source.mkdir()
+        for index in range(30):
+            (source / ('empty-%03d' % index)).mkdir()
+        plan = m.public_copy_plan(source)
+        self.assertEqual(plan['bytes'], 0)
+        self.assertEqual(plan['files'], {})
+        self.assertEqual(len(plan['directories']), 31)
+        self.assertGreaterEqual(plan['entries'], 30)
+        with patch.object(m, 'PUBLIC_COPY_MAX_ENTRIES', 20):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED'):
+                m.public_copy_plan(source)
+
+    def test_public_budget_error_identifies_tree_and_measured_totals(self):
+        source = self.workspace / 'oversized-public-history'
+        source.mkdir()
+        (source / 'public.js').write_bytes(b'123456789')
+        with patch.object(m, 'PUBLIC_COPY_MAX_BYTES', 8):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED') as failure:
+                m.public_copy_plan(source)
+        diagnostic = str(failure.exception)
+        self.assertIn(source.name, diagnostic)
+        self.assertIn('bytes', diagnostic)
+        self.assertIn('entries', diagnostic)
+
+    def test_public_copy_space_uses_measured_bytes_and_payload_headroom(self):
+        plan = m.public_runtime_plan(self.root)
+        extra = 123_456
+        required_bytes = sum(item['bytes'] for item in plan.values()) + extra + m.PUBLIC_COPY_HEADROOM_BYTES
+        required_inodes = sum(item['entries'] for item in plan.values()) + m.STAGE_EXTRA_INODES
+        space = types.SimpleNamespace(f_bavail=required_bytes, f_frsize=1, f_favail=required_inodes)
+        with patch.object(m.os, 'statvfs', return_value=space):
+            m.check_public_copy_space(self.root, plan, extra)
+            with self.assertRaisesRegex(RuntimeError, 'INSUFFICIENT_FREE_SPACE_OR_INODES'):
+                m.check_public_copy_space(self.root, plan, extra + 1)
+        space.f_bavail += 1
+        space.f_favail -= 1
+        with patch.object(m.os, 'statvfs', return_value=space):
+            with self.assertRaisesRegex(RuntimeError, 'INSUFFICIENT_FREE_SPACE_OR_INODES'):
+                m.check_public_copy_space(self.root, plan, extra)
+
+    def test_insufficient_public_copy_space_or_inodes_stops_preflight_before_writes(self):
+        for available_bytes, available_inodes in ((0, 100_000), (10**12, 0)):
+            with self.subTest(bytes=available_bytes, inodes=available_inodes):
+                space = types.SimpleNamespace(f_bavail=available_bytes, f_frsize=1, f_favail=available_inodes)
+                with patch.object(m.os, 'statvfs', return_value=space):
+                    with self.assertRaisesRegex(RuntimeError, 'INSUFFICIENT_FREE_SPACE_OR_INODES'):
+                        m.install_completion(self.release)
+                self.assert_no_install_writes()
+
+    def test_changed_public_source_is_rejected_before_destination_writes(self):
+        for change in ('edit', 'add', 'remove', 'directory', 'permissions'):
+            with self.subTest(change=change):
+                source = self.workspace / ('public-source-' + change)
+                source.mkdir()
+                file = source / 'public.js'
+                file.write_bytes(b'original')
+                plan = m.public_copy_plan(source)
+                if change == 'edit':
+                    info = file.stat()
+                    file.write_bytes(b'modified')
+                    os.utime(file, ns=(info.st_atime_ns, info.st_mtime_ns + 1_000_000_000))
+                elif change == 'add':
+                    (source / 'new.js').write_bytes(b'added')
+                elif change == 'remove':
+                    file.unlink()
+                elif change == 'directory':
+                    (source / 'new-directory').mkdir()
+                else:
+                    file.chmod(0o600)
+                destination = self.workspace / ('changed-public-copy-' + change)
+                with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_CHANGED_DURING_COPY'):
+                    m.copy_public_tree(source, destination, plan)
+                self.assertFalse(destination.exists())
+
+    def test_install_uses_preflight_public_plan_and_rolls_back_source_drift(self):
+        prepare = m.prepare_stage
+        def changed_after_preflight(*args, **kwargs):
+            self.write('web/late-public.js', b'concurrent public file')
+            return prepare(*args, **kwargs)
+        with patch.object(m, 'prepare_stage', side_effect=changed_after_preflight):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_CHANGED_DURING_COPY'):
+                m.install_completion(self.release, apply=True)
+        self.assertFalse(self.stage().exists())
+        self.assertFalse(list(self.workspace.glob('.fti-panel-completion-stage-*')))
+        self.assertFalse(m.dropin_path().exists())
+        self.assertEqual(self.restart_count, 0)
+        self.assertEqual((self.root / 'web/late-public.js').read_bytes(), b'concurrent public file')
+        self.assert_original()
+
+    def test_unsafe_public_hardlink_and_oversized_file_stop_before_install_writes(self):
+        file = self.root / 'web/public-extra.js'
+        file.write_bytes(b'public fixture')
+        hardlink = self.workspace / 'linked-public.js'
+        os.link(file, hardlink)
+        with self.assertRaisesRegex(RuntimeError, 'UNSAFE_FILE'):
+            m.install_completion(self.release, apply=True)
+        self.assert_no_install_writes()
+        hardlink.unlink()
+        with file.open('wb') as stream:
+            stream.truncate(m.LIMIT + 1)
+        with self.assertRaisesRegex(RuntimeError, 'UNSAFE_FILE'):
+            m.install_completion(self.release, apply=True)
+        self.assert_no_install_writes()
 
     def test_atomic_stage_publish_preserves_foreign_empty_directory(self):
         temporary = self.workspace / 'temporary-stage'
@@ -563,15 +731,13 @@ class CompletionTests(unittest.TestCase):
         (self.root / 'web/foreign.js').symlink_to(self.root / '.env')
         with self.assertRaisesRegex(RuntimeError, 'SYMLINK_REJECTED'):
             m.install_completion(self.release, apply=True)
-        self.assertEqual(self.restart_count, 0)
-        self.assertFalse(m.dropin_path().exists())
+        self.assert_no_install_writes()
 
     def test_private_file_in_public_tree_rejected_without_switch(self):
         self.write('web/.env', b'private fixture')
         with self.assertRaisesRegex(RuntimeError, 'PRIVATE_OR_UNKNOWN_PUBLIC_FILE_REJECTED'):
             m.install_completion(self.release, apply=True)
-        self.assertEqual(self.restart_count, 0)
-        self.assertFalse(m.dropin_path().exists())
+        self.assert_no_install_writes()
 
     def test_sdk_rewritten_to_new_immutable_url(self):
         _, _, assets = m.completion_destinations(APP, SDK, b'legal', PRO[1], PRO[2])
@@ -612,6 +778,136 @@ class CompletionTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'BACKUP_HTML_HASH_MISMATCH'):
             m.restore_completion(self.backup())
         self.assertEqual(self.restart_count, 1)
+
+    def market_release(self):
+        release = copy.deepcopy(self.release)
+        release['app'] = m.compressed(APP + b"const market='opening quote and dated observations';")
+        release['globalCSS'] = m.compressed(GLOBAL)
+        return release
+
+    def reviewed_predecessor(self):
+        prior_release = copy.deepcopy(self.release)
+        entry, css, assets = m.completion_destinations(APP, SDK, b'reviewed legal notice', PRO[1], PRO[2])
+        folder, content = m.overlay_files(RUNTIME)
+        pins = {'release': m.release_name(prior_release), 'entry': entry, 'css': css,
+            'assets': {url: {'sha256': m.sha(data), 'kind': kind} for url, (data, kind) in assets.items()},
+            'overlay': folder, 'runtime': {name: m.sha(data) for name, data in content.items()}}
+        with patch.object(m, 'DROP_NAME', m.PREVIOUS_DROP_NAME):
+            m.install_completion(prior_release, apply=True)
+        reviewed = patch.object(m, 'REVIEWED_COMPLETION', pins)
+        reviewed.start(); self.addCleanup(reviewed.stop)
+        return Path(self.saved['WorkingDirectory']), dict(self.saved)
+
+    def test_market_shared_css_is_immutable_and_rollback_preserves_original(self):
+        release = self.market_release()
+        original = (self.root / ('web' + m.BASE_GLOBAL_CSS)).read_bytes()
+        m.install_completion(release, apply=True)
+        stage = Path(self.saved['WorkingDirectory'])
+        html = (stage / 'web/index.html').read_bytes()
+        _, _, assets = m.completion_destinations(APP + b"const market='opening quote and dated observations';", SDK,
+            b'reviewed legal notice', PRO[1], PRO[2], GLOBAL)
+        url = next(url for url in assets if url.endswith('/global-interface.css'))
+        self.assertIn(m.css_link(url), html)
+        self.assertNotIn(m.css_link(m.BASE_GLOBAL_CSS), html)
+        self.assertEqual((stage / ('web' + url)).read_bytes(), GLOBAL)
+        self.assertEqual((self.root / ('web' + m.BASE_GLOBAL_CSS)).read_bytes(), original)
+        m.install_completion(release)
+        m.restore_completion(self.backup())
+        self.assert_original()
+
+    def test_unreviewed_shared_css_stops_before_staging(self):
+        self.write('web' + m.BASE_GLOBAL_CSS, b'foreign shared css')
+        with self.assertRaisesRegex(RuntimeError, 'UNREVIEWED_SHARED_STYLESHEET'):
+            m.install_completion(self.market_release(), apply=True)
+        self.assertFalse(m.BACKUPS.exists())
+        self.assertEqual(self.restart_count, 0)
+
+    def test_missing_or_ambiguous_shared_css_link_stops_before_writes(self):
+        old = m.css_link(m.BASE_GLOBAL_CSS)
+        for replacement in (b'', old + old):
+            self.write('web/index.html', self.before_html.replace(old, replacement))
+            with self.assertRaisesRegex(RuntimeError, 'UNRECOGNIZED_SHARED_STYLESHEET'):
+                m.install_completion(self.market_release(), apply=True)
+        self.assertEqual(self.restart_count, 0)
+        self.assertFalse(m.BACKUPS.exists())
+
+    def test_reviewed_completion_upgrade_reuses_physical_dependencies_and_rolls_back(self):
+        prior, previous = self.reviewed_predecessor()
+        before = m.stage_inventory(prior)
+        original_backups = set(m.BACKUPS.glob('install-*'))
+        release = self.market_release()
+        m.install_completion(release)
+        self.assertEqual(self.restart_count, 1)
+        self.assertEqual(set(m.BACKUPS.glob('install-*')), original_backups)
+        m.install_completion(release, apply=True)
+        self.assertEqual(self.restart_count, 2)
+        current = Path(self.saved['WorkingDirectory'])
+        self.assertNotEqual(current, prior)
+        self.assertEqual(os.readlink(current / 'node_modules'), str(self.root / 'node_modules'))
+        marker = json.loads((current / '.fti-panel-completion.json').read_text())
+        self.assertEqual(marker['originalRoot'], str(self.root))
+        self.assertEqual(m.stage_inventory(prior), before)
+        self.assertTrue((m.DROP_FOLDER / m.PREVIOUS_DROP_NAME).exists())
+        m.install_completion(release, apply=True)
+        self.assertEqual(self.restart_count, 2)
+        new_backup = next(iter(set(m.BACKUPS.glob('install-*')) - original_backups))
+        m.restore_completion(new_backup)
+        self.assertEqual(self.restart_count, 3)
+        for name in ('WorkingDirectory', 'ExecStart', 'DropInPaths'):
+            self.assertEqual(self.saved[name], previous[name])
+        self.assertFalse(m.dropin_path().exists())
+        self.assertEqual(m.stage_inventory(prior), before)
+
+    def test_modified_completion_runtime_is_not_an_upgrade_predecessor(self):
+        prior, _ = self.reviewed_predecessor()
+        name = m.REVIEWED_COMPLETION['overlay'] + '/market-reader.mjs'
+        file = prior / name
+        file.write_bytes(b'foreign runtime')
+        # Even a refreshed operator inventory cannot turn unknown content into
+        # the reviewed predecessor accepted by this installer.
+        marker = prior / '.fti-panel-completion.json'
+        value = json.loads(marker.read_text()); value['files'] = m.stage_inventory(prior)
+        marker.write_text(json.dumps(value))
+        with self.assertRaisesRegex(RuntimeError, 'UNREVIEWED_COMPLETION_CONTENT'):
+            m.install_completion(self.market_release(), apply=True)
+        self.assertEqual(self.restart_count, 1)
+        self.assertFalse(m.dropin_path().exists())
+
+    def test_modified_completion_service_override_is_preserved(self):
+        self.reviewed_predecessor()
+        old = m.DROP_FOLDER / m.PREVIOUS_DROP_NAME
+        old.write_bytes(old.read_bytes() + b'Environment=UNREVIEWED=1\n')
+        with self.assertRaisesRegex(RuntimeError, 'UNREVIEWED_COMPLETION_SERVICE'):
+            m.install_completion(self.market_release(), apply=True)
+        self.assertEqual(self.restart_count, 1)
+        self.assertFalse(m.dropin_path().exists())
+
+    def test_failed_market_upgrade_restores_reviewed_completion_service(self):
+        prior, previous = self.reviewed_predecessor()
+        old_drop = m.DROP_FOLDER / m.PREVIOUS_DROP_NAME
+        old_bytes = old_drop.read_bytes()
+        before = m.stage_inventory(prior)
+        self.fail_new_web = True
+        with self.assertRaisesRegex(RuntimeError, 'new web API'):
+            m.install_completion(self.market_release(), apply=True)
+        self.assertEqual(self.restart_count, 3)
+        self.assertEqual(Path(self.saved['WorkingDirectory']), prior)
+        self.assertEqual(self.saved['ExecStart'], previous['ExecStart'])
+        self.assertEqual(self.saved['DropInPaths'], previous['DropInPaths'])
+        self.assertEqual(old_drop.read_bytes(), old_bytes)
+        self.assertFalse(m.dropin_path().exists())
+        self.assertEqual(m.stage_inventory(prior), before)
+
+    def test_unreviewed_completion_stage_name_is_rejected(self):
+        prior, _ = self.reviewed_predecessor()
+        pins = copy.deepcopy(m.REVIEWED_COMPLETION)
+        pins['release'] = 'panel-completion-unreviewed'
+        with patch.object(m, 'REVIEWED_COMPLETION', pins):
+            with self.assertRaisesRegex(RuntimeError, 'UNREVIEWED_COMPLETION_RELEASE'):
+                m.install_completion(self.market_release(), apply=True)
+        self.assertEqual(self.restart_count, 1)
+        self.assertEqual(Path(self.saved['WorkingDirectory']), prior)
+        self.assertFalse(m.dropin_path().exists())
 
 
 class OriginProbeTests(unittest.TestCase):

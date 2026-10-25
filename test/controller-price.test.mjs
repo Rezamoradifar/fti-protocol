@@ -3,28 +3,39 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {formatEther,parseEther} from 'ethers';
+import {formatAssetAmount,exactAssetAmount,tokenValuation} from '../frontend/asset-display.js';
+import {networkPopulation} from '../frontend/network-data.mjs';
 
 const source=fs.readFileSync(new URL('../frontend/controller.js',import.meta.url),'utf8');
 const priceStart=source.indexOf('let tokenPriceSnapshot,'),priceEnd=source.indexOf('async function refreshMembershipState()',priceStart);
 const walletStart=source.indexOf('async function refreshTokenState()'),walletEnd=source.indexOf('async function transaction(',walletStart);
+const valuesStart=source.indexOf('function renderWalletValues(){'),valuesEnd=source.indexOf('function renderWallet(){',valuesStart);
+const accessorStart=source.indexOf('function wallet(){'),accessorEnd=source.indexOf('\nfunction stopPendingChecks()',accessorStart);
 const navStart=source.indexOf('function navigate('),navEnd=source.indexOf("document.querySelectorAll('[data-page],[data-go]')",navStart);
+assert.ok(priceStart>0&&priceEnd>priceStart&&walletStart>priceEnd&&walletEnd>walletStart&&valuesStart>0&&valuesEnd>valuesStart&&accessorStart>0&&accessorEnd>accessorStart);
 const market=(overrides={})=>({block:123,timestamp:2000,price:parseEther('0.103092783505154639'),reserve:parseEther('41.31'),supply:parseEther('400.707'),cycleStartPrice:parseEther('0.1'),...overrides});
 const address='0x'+'1'.repeat(40);
+const clock=2000*1000;
 function fixture(readPrice=async()=>market()){
  const elements=new Map(),calls=[];
- const node=id=>{if(!elements.has(id))elements.set(id,{textContent:'—',dataset:{}});return elements.get(id);};
+ const node=id=>{if(!elements.has(id))elements.set(id,{textContent:'—',dataset:{},elements:{sponsor:{}}});return elements.get(id);};
  const context={cfg:{token:'0x'+'2'.repeat(40),chainId:56,tokenContract:'FTIReserveTokenUpgradeable'},v3Model:true,rpc:{},read:{token:{},binary:{},usd:{}},
   state:{tokenStateVerified:false,wallet:null},address:null,signer:null,refreshSequence:0,
   $:selector=>node(selector.slice(1)),text:(id,value)=>{node(id).textContent=value;},t:value=>value,
-  displayNumber:(value,options)=>new Intl.NumberFormat('en-US',options).format(value),formatEther,fmt:value=>formatEther(value),integer:String,utc:value=>'time:'+value,
-  Date:class extends Date{static now(){return 2000*1000;}},
+  displayNumber:(value,options)=>new Intl.NumberFormat('en-US',options).format(value),formatEther,fmt:(value,digits=2)=>formatAssetAmount(value,{digits}),integer:String,utc:value=>'time:'+value,
+  exactAssetAmount,tokenValuation:(state,address)=>tokenValuation(state,address,{now:clock}),networkPopulation,networkProfile:{testAssets:false},
+  Date:class extends Date{static now(){return clock;}},
   preparationDeadline:async promise=>promise,readTokenPriceSnapshot:async options=>{calls.push(options);return readPrice();},
   status:()=>assert.fail('Public price reads must not overwrite wallet status'),
   cancelEvents(){},
-  readTokenSnapshot:async()=>({...market({block:124,price:parseEther('0.11')}),tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,wallet:{address,exists:true,units:1n,ftiBalance:parseEther('1'),unlocked:parseEther('1'),remaining:parseEther('499'),usdBalance:parseEther('40')}}),
-  memberReadSucceeded(){},syncActions(){},wallet:()=>context.state.wallet,
+  // The post-purchase reserve/supply/price belong to one consistent block.
+  // Import the actual valuation and formatting helpers, with an explicit clock;
+  // a VM Date does not replace Date inside an imported module.
+  readTokenSnapshot:async()=>({...market({block:124,price:parseEther('0.11'),reserve:parseEther('44.07777')}),tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,wallet:{address,exists:true,units:1n,ftiBalance:parseEther('1'),unlocked:parseEther('1'),remaining:parseEther('499'),usdBalance:parseEther('40')}}),
+  readMembershipSnapshot:async()=>({block:125,timestamp:2001,paused:false,wallet:{address,exists:true,units:2n,usdBalance:parseEther('80')}}),
+  memberReadSucceeded(){},syncActions(){},
  };
- vm.runInNewContext(source.slice(priceStart,priceEnd)+'\n'+source.slice(walletStart,walletEnd),context);
+ vm.runInNewContext(source.slice(accessorStart,accessorEnd)+'\n'+source.slice(priceStart,walletEnd)+'\n'+source.slice(valuesStart,valuesEnd),context);
  return {context,calls,node,elements};
 }
 
@@ -32,7 +43,7 @@ test('anonymous canonical prices populate member, token and trade displays with 
  const f=fixture();await f.context.refreshTokenPrice();
  for(const id of ['price','token-spot','trade-price']){assert.equal(f.node(id).textContent,'0.10309278');assert.equal(f.node(id).dataset.state,'verified');}
  for(const id of ['price-status','token-price-status','trade-price-status'])assert.match(f.node(id).textContent,/Live.*time:2000.*Block 123/);
- assert.equal(f.node('token-reserve').textContent,'41.31');assert.equal(f.node('token-supply').textContent,'400.707');
+ assert.equal(f.node('token-reserve').textContent,'41.31');assert.equal(f.node('token-supply').textContent,'400.71');
  assert.equal(f.context.address,null);assert.equal(f.context.state.wallet,null);assert.equal(f.context.state.tokenStateVerified,false);
  assert.equal('address' in f.calls[0],false);
 });
@@ -41,16 +52,43 @@ test('the actual post-purchase wallet refresh immediately updates visible price 
  let release;const f=fixture(()=>new Promise(resolve=>{release=resolve;})),pending=f.context.refreshTokenPrice();
  f.context.address=address;f.context.signer={};await f.context.refreshTokenState();
  assert.equal(f.node('trade-price').textContent,'0.11');assert.equal(f.context.state.wallet.ftiBalance,parseEther('1'));
+ assert.equal(f.node('fti-estimated-value').textContent,'0.11 USDT');assert.match(f.node('fti-estimate-note').textContent,/Block 124.*time:2000/);
+ assert.equal(f.node('fti-balance').title,'1');assert.equal(f.node('usd-balance').title,'40');
  release(market());await pending;
  assert.equal(f.node('price').textContent,'0.11');assert.match(f.node('price-status').textContent,/Block 124/);
+ assert.equal(f.node('fti-estimated-value').textContent,'0.11 USDT');
+});
+
+test('a membership-only refresh cannot value a newer collateral snapshot with an older FTI balance and price',async()=>{
+ const f=fixture();f.context.address=address;f.context.signer={};await f.context.refreshTokenState();
+ assert.equal(f.node('fti-estimated-value').textContent,'0.11 USDT');
+ await f.context.refreshMembershipState();
+ assert.equal(f.context.state.block,125);assert.equal(f.context.state.wallet.ftiBalance,parseEther('1'));
+ assert.equal(f.context.state.tokenValuationVerified,false);assert.equal(f.node('usd-balance').textContent,'80');
+ assert.equal(f.node('fti-estimated-value').textContent,'—');
+ assert.equal(f.node('fti-estimate-note').textContent,'A fresh wallet balance and contract price are required.');
+ await f.context.refreshTokenState();
+ assert.equal(f.node('fti-estimated-value').textContent,'0.11 USDT');assert.match(f.node('fti-estimate-note').textContent,/Block 124/);
+});
+
+test('a delayed token snapshot from a previous account cannot publish price or valuation for a replacement account',async()=>{
+ const f=fixture();f.context.address=address;f.context.signer={};
+ const snapshot=await f.context.readTokenSnapshot();let release;
+ f.context.readTokenSnapshot=()=>new Promise(resolve=>{release=resolve;});
+ const pending=f.context.refreshTokenState();
+ f.context.address='0x'+'3'.repeat(40);f.context.signer={};
+ release(snapshot);await assert.rejects(pending,/Wallet changed/);
+ assert.equal(f.context.state.wallet,null);assert.equal(f.node('price').textContent,'—');
+ assert.equal(f.node('fti-estimated-value').textContent,'—');
 });
 
 test('a slow full dashboard render cannot overwrite the canonical V3 price, reserve or supply',async()=>{
  const f=fixture();await f.context.refreshTokenPrice();
- f.context.d={price:parseEther('999'),reserve:parseEther('999'),supply:parseEther('999'),bb:0n,floor:0n,count:1n,pointPool:0n,epoch:1n,phase:0,level:0n,epochEnd:2001,account1:[0n,0n],account2:[0n,0n],jobCursor:0n,jobCount:0n,cursor:0n,clock:0n,cycle:1n,ath:parseEther('0.1'),builderMultiplier:1n};
+ f.context.d={block:122,timestamp:1990,price:parseEther('999'),reserve:parseEther('999'),supply:parseEther('999'),bb:0n,floor:0n,count:1n,pointPool:0n,epoch:1n,phase:0,level:0n,epochEnd:2001,account1:[0n,0n],account2:[0n,0n],jobCursor:0n,jobCount:0n,cursor:0n,clock:0n,cycle:1n,ath:parseEther('0.1'),builderMultiplier:1n};
  const start=source.indexOf('const legacyPriceValues='),end=source.indexOf("$('#emergency-panel').hidden",start);
  assert.ok(start>0&&end>start);vm.runInNewContext(source.slice(start,end),f.context);
- assert.equal(f.node('price').textContent,'0.10309278');assert.equal(f.node('token-reserve').textContent,'41.31');assert.equal(f.node('token-supply').textContent,'400.707');
+ assert.equal(f.node('price').textContent,'0.10309278');assert.equal(f.node('token-reserve').textContent,'41.31');assert.equal(f.node('token-supply').textContent,'400.71');
+ assert.equal(f.node('members').textContent,'1');assert.equal(f.node('members-source').textContent,'Block 122 · time:1990');
 });
 
 test('a failed later refresh retains the last verified price but visibly marks it unavailable',async()=>{
