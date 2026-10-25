@@ -36,7 +36,7 @@ test('mainnet planning requires explicit public inputs; cannot reuse testnet def
   assert.notEqual(spawnSync(process.execPath,['scripts/prepare-mainnet.mjs',...args],{encoding:'utf8'}).status,0);
  }
 });
-test('unsigned chain-56 plan makes no writes and its exact payloads deploy the approved contract model on a local EVM',{timeout:300000},async()=>{
+test('unsigned chain-56 plan makes no writes and its exact payloads deploy the approved contract model on a local EVM',{timeout:300000},async t=>{
  // Chain ID 56 is simulated locally; this test never connects to BNB mainnet.
  const approved=loadWallets();
  // The local production payload exercises purchases before an explicit hourly
@@ -119,7 +119,23 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   await assert.rejects(()=>verifyOperationalDeployment({...cfg,codeHashes:{...cfg.codeHashes,usd:'0x'+'0'.repeat(64)}},provider),/code mismatch/);
   const sourceFile=path.join(directory,'deployment.json');fs.writeFileSync(sourceFile,JSON.stringify(cfg));
   process.env.RPC_URL='http://127.0.0.1:'+chainServer.address().port;process.env.PORT='0';process.env.HOST='127.0.0.1';
-  web=await startWeb(sourceFile);const base='http://127.0.0.1:'+web.address().port;
+  // The production state reader captures Date.now when the server is created.
+  // Give only this local fixture a wall clock aligned with its deterministic
+  // EVM; retain real elapsed time so its paced RPC scheduler still advances.
+  // Restore the global clock immediately after construction, even on failure.
+  const realNow=Date.now;
+  let stateClock={chainMs:(await provider.getBlock('latest')).timestamp*1000,realMs:realNow()};
+  const clock=t.mock.method(Date,'now',()=>stateClock.chainMs+realNow()-stateClock.realMs);
+  try{web=await startWeb(sourceFile);}finally{clock.mock.restore();}
+  assert.equal(Date.now,realNow);
+  const base='http://127.0.0.1:'+web.address().port;
+  const localState=async who=>{
+   const anchor=await provider.getBlock('latest');stateClock={chainMs:anchor.timestamp*1000,realMs:realNow()};
+   const response=await fetch(base+'/api/state?wallet='+who),body=await response.text();
+   assert.equal(response.status,200,'Local mainnet state HTTP '+response.status+': '+body);
+   const result=JSON.parse(body);assert.equal(result.timestamp,anchor.timestamp);
+   return result;
+  };
   for(const route of ['/','/token-site/','/whitepaper/','/roadmap/']){
    const response=await fetch(base+route);assert.equal(response.status,200);
    const html=await response.text();
@@ -146,7 +162,7 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   await checkAccounting({binary,token});
   const report=await inspectContinuity({binary,token,blockTag:await provider.getBlockNumber()});assert.equal(report.critical,false);assert.equal(report.submitted,false);
   await keeperStep(binary.connect(w[38]),provider,{batchedRewards:true});await checkAccounting({binary,token});
-  const state=await(await fetch(base+'/api/state?wallet='+a[0])).json();assert.equal(state.wallet.units,'1');assert(BigInt(state.wallet.ftiBalance)>0n);
+  const state=await localState(a[0]);assert.equal(state.wallet.units,'1');assert(BigInt(state.wallet.ftiBalance)>0n);
   // Exercise the exact mainnet payload through a funded hourly close and
   // direct wallet payment, including a repeated Keeper call. Local EVM only.
   for(const i of [1,2]){
@@ -176,6 +192,8 @@ test('unsigned chain-56 plan makes no writes and its exact payloads deploy the a
   await keeperStep(operator,provider,{batchedRewards:true});
   assert.equal(await usd.balanceOf(a[0])-walletCash,hourlyPool,'No duplicate hourly payment');
   await checkAccounting({binary,token});
+  const settledState=await localState(a[0]);
+  assert.equal(settledState.epoch,String(await binary.epoch()));assert.equal(settledState.wallet.units,'1');assert.equal(settledState.wallet.claimable,'0');
   // Every remaining approved position must pay the same ordinary unit price.
   for(let i=3;i<31;i++){
    await sent(usd.mintTo(a[i],parseEther('100')));
