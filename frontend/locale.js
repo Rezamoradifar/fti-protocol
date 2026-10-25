@@ -1,6 +1,7 @@
 import {completeTranslations} from './complete-translations.js';
 import {memberTranslations} from './member-translations.js';
 import {panelCompletionTranslations} from './panel-completion-translations.js';
+import {panelMarketTranslations} from './panel-market-translations.js';
 import {landingTranslations} from './landing-translations.js';
 import {coreTranslations} from './core-translations.js';
 import {language,initializeLanguage} from './language-policy.js';
@@ -14,6 +15,7 @@ export function translate(value,lang=language,fa){
  // wallet and financial labels keep the same wording across every surface.
  if(memberTranslations[lang]?.[text])return memberTranslations[lang][text];
  if(panelCompletionTranslations[lang]?.[text])return panelCompletionTranslations[lang][text];
+ if(panelMarketTranslations[lang]?.[text])return panelMarketTranslations[lang][text];
  if(lang==='fa')return fa||translations[text]||dynamicText(text);
  return dynamicLocale(text,lang);
 }

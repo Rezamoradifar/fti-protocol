@@ -26,6 +26,8 @@ STYLE = b'<style data-fti-boot-style>body{color:white}</style>'
 SHELL = b'<div id="root"><!-- FTI_BOOT_FALLBACK_BEGIN --><section>Loading</section><!-- FTI_BOOT_FALLBACK_END --></div><noscript>Enable JavaScript</noscript>'
 OVERLAY = b"const channel='https://t.me/FTIProtocol_Official';"
 ETHERS = b'reviewed ethers runtime fixture'
+GLOBAL = b'.market-chart text{display:block}.market-axis-labels{display:flex}' + b'/* reviewed shared styles */' * 4
+OLD_GLOBAL = b'original reviewed shared interface'
 RUNTIME = {name: ("export const name=" + repr(name) + ';').encode() for name in m.RUNTIME_FILES}
 RUNTIME[m.ENTRY] = b"import './member-history.mjs';import './support-tickets.mjs';import './operational-release.mjs';export const startWeb=()=>{};"
 
@@ -91,6 +93,7 @@ class CompletionTests(unittest.TestCase):
             'web/' + m.BASE + '/vendor/ethers.js': ETHERS,
             'web/' + m.BASE + '/vendor/walletconnect.js': b'unchanged immutable wallet bridge',
             'web/' + m.BASE + '/style.css': b'unchanged original shared style',
+            'web/' + m.BASE + '/global-interface.css': OLD_GLOBAL,
             'web' + m.REFERRAL + 'referral-context.js': b'preserved referral context',
             'web' + m.REFERRAL + 'entry.js': b'preserved referral entry',
             'web' + m.OFFICIAL_OVERLAY: OVERLAY,
@@ -115,6 +118,7 @@ class CompletionTests(unittest.TestCase):
         patches = [patch.object(m, 'BASELINES', self.baselines),
             patch.object(m, 'BASE_APP', m.sha(b'original base app')),
             patch.object(m, 'ETHERS_SHA', m.sha(ETHERS)),
+            patch.object(m, 'BASE_GLOBAL_CSS_SHA', m.sha(OLD_GLOBAL)),
             patch.object(m, 'LEGAL', m.sha(b'original legal')),
             patch.object(m, 'REFERRAL_BLOB', referral_hash),
             patch.object(m, 'OFFICIAL_OVERLAY_SHA', m.sha(OVERLAY)),
@@ -154,6 +158,7 @@ class CompletionTests(unittest.TestCase):
         b = m.completion_baselines(PRO)[key]
         boot = 'boot' in b
         return (b'<html><head><link rel="stylesheet" href="/' + m.BASE.encode() + b'/style.css">' +
+            m.css_link(m.BASE_GLOBAL_CSS) +
             m.css_link(b['css']) + (STYLE if boot else b'') + b'</head><body>' +
             (SHELL if boot else b'<div id="root"></div>') +
             (('<script defer src="' + b['boot'] + '" data-fti-boot-guard></script>').encode() if boot else b'') +
@@ -204,8 +209,7 @@ class CompletionTests(unittest.TestCase):
 
     def unit_metadata(self, saved):
         result = dict(self.metadata)
-        drop = m.dropin_path()
-        if drop.exists():
+        for drop in m.DROP_FOLDER.glob('*.conf'):
             info = drop.stat()
             result[str(drop)] = [info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns,
                                  info.st_uid, info.st_gid, info.st_mode & 0o777]
@@ -213,11 +217,14 @@ class CompletionTests(unittest.TestCase):
 
     def reload(self):
         drop = m.dropin_path()
+        previous = m.DROP_FOLDER / m.PREVIOUS_DROP_NAME
+        if not drop.exists() and previous.exists():
+            drop = previous
         if drop.exists():
             text = drop.read_text()
             self.saved['WorkingDirectory'] = next(line.split('=', 1)[1] for line in text.splitlines() if line.startswith('WorkingDirectory='))
             self.saved['ExecStart'] = next(line.split('=', 1)[1] for line in reversed(text.splitlines()) if line.startswith('ExecStart='))
-            self.saved['DropInPaths'] = str(drop)
+            self.saved['DropInPaths'] = ' '.join(str(p) for p in sorted(m.DROP_FOLDER.glob('*.conf')))
         else:
             self.saved['WorkingDirectory'] = str(self.root)
             self.saved['ExecStart'] = '/test/node ' + str(self.root / 'scripts/server.mjs')
@@ -612,6 +619,136 @@ class CompletionTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'BACKUP_HTML_HASH_MISMATCH'):
             m.restore_completion(self.backup())
         self.assertEqual(self.restart_count, 1)
+
+    def market_release(self):
+        release = copy.deepcopy(self.release)
+        release['app'] = m.compressed(APP + b"const market='opening quote and dated observations';")
+        release['globalCSS'] = m.compressed(GLOBAL)
+        return release
+
+    def reviewed_predecessor(self):
+        prior_release = copy.deepcopy(self.release)
+        entry, css, assets = m.completion_destinations(APP, SDK, b'reviewed legal notice', PRO[1], PRO[2])
+        folder, content = m.overlay_files(RUNTIME)
+        pins = {'release': m.release_name(prior_release), 'entry': entry, 'css': css,
+            'assets': {url: {'sha256': m.sha(data), 'kind': kind} for url, (data, kind) in assets.items()},
+            'overlay': folder, 'runtime': {name: m.sha(data) for name, data in content.items()}}
+        with patch.object(m, 'DROP_NAME', m.PREVIOUS_DROP_NAME):
+            m.install_completion(prior_release, apply=True)
+        reviewed = patch.object(m, 'REVIEWED_COMPLETION', pins)
+        reviewed.start(); self.addCleanup(reviewed.stop)
+        return Path(self.saved['WorkingDirectory']), dict(self.saved)
+
+    def test_market_shared_css_is_immutable_and_rollback_preserves_original(self):
+        release = self.market_release()
+        original = (self.root / ('web' + m.BASE_GLOBAL_CSS)).read_bytes()
+        m.install_completion(release, apply=True)
+        stage = Path(self.saved['WorkingDirectory'])
+        html = (stage / 'web/index.html').read_bytes()
+        _, _, assets = m.completion_destinations(APP + b"const market='opening quote and dated observations';", SDK,
+            b'reviewed legal notice', PRO[1], PRO[2], GLOBAL)
+        url = next(url for url in assets if url.endswith('/global-interface.css'))
+        self.assertIn(m.css_link(url), html)
+        self.assertNotIn(m.css_link(m.BASE_GLOBAL_CSS), html)
+        self.assertEqual((stage / ('web' + url)).read_bytes(), GLOBAL)
+        self.assertEqual((self.root / ('web' + m.BASE_GLOBAL_CSS)).read_bytes(), original)
+        m.install_completion(release)
+        m.restore_completion(self.backup())
+        self.assert_original()
+
+    def test_unreviewed_shared_css_stops_before_staging(self):
+        self.write('web' + m.BASE_GLOBAL_CSS, b'foreign shared css')
+        with self.assertRaisesRegex(RuntimeError, 'UNREVIEWED_SHARED_STYLESHEET'):
+            m.install_completion(self.market_release(), apply=True)
+        self.assertFalse(m.BACKUPS.exists())
+        self.assertEqual(self.restart_count, 0)
+
+    def test_missing_or_ambiguous_shared_css_link_stops_before_writes(self):
+        old = m.css_link(m.BASE_GLOBAL_CSS)
+        for replacement in (b'', old + old):
+            self.write('web/index.html', self.before_html.replace(old, replacement))
+            with self.assertRaisesRegex(RuntimeError, 'UNRECOGNIZED_SHARED_STYLESHEET'):
+                m.install_completion(self.market_release(), apply=True)
+        self.assertEqual(self.restart_count, 0)
+        self.assertFalse(m.BACKUPS.exists())
+
+    def test_reviewed_completion_upgrade_reuses_physical_dependencies_and_rolls_back(self):
+        prior, previous = self.reviewed_predecessor()
+        before = m.stage_inventory(prior)
+        original_backups = set(m.BACKUPS.glob('install-*'))
+        release = self.market_release()
+        m.install_completion(release)
+        self.assertEqual(self.restart_count, 1)
+        self.assertEqual(set(m.BACKUPS.glob('install-*')), original_backups)
+        m.install_completion(release, apply=True)
+        self.assertEqual(self.restart_count, 2)
+        current = Path(self.saved['WorkingDirectory'])
+        self.assertNotEqual(current, prior)
+        self.assertEqual(os.readlink(current / 'node_modules'), str(self.root / 'node_modules'))
+        marker = json.loads((current / '.fti-panel-completion.json').read_text())
+        self.assertEqual(marker['originalRoot'], str(self.root))
+        self.assertEqual(m.stage_inventory(prior), before)
+        self.assertTrue((m.DROP_FOLDER / m.PREVIOUS_DROP_NAME).exists())
+        m.install_completion(release, apply=True)
+        self.assertEqual(self.restart_count, 2)
+        new_backup = next(iter(set(m.BACKUPS.glob('install-*')) - original_backups))
+        m.restore_completion(new_backup)
+        self.assertEqual(self.restart_count, 3)
+        for name in ('WorkingDirectory', 'ExecStart', 'DropInPaths'):
+            self.assertEqual(self.saved[name], previous[name])
+        self.assertFalse(m.dropin_path().exists())
+        self.assertEqual(m.stage_inventory(prior), before)
+
+    def test_modified_completion_runtime_is_not_an_upgrade_predecessor(self):
+        prior, _ = self.reviewed_predecessor()
+        name = m.REVIEWED_COMPLETION['overlay'] + '/market-reader.mjs'
+        file = prior / name
+        file.write_bytes(b'foreign runtime')
+        # Even a refreshed operator inventory cannot turn unknown content into
+        # the reviewed predecessor accepted by this installer.
+        marker = prior / '.fti-panel-completion.json'
+        value = json.loads(marker.read_text()); value['files'] = m.stage_inventory(prior)
+        marker.write_text(json.dumps(value))
+        with self.assertRaisesRegex(RuntimeError, 'UNREVIEWED_COMPLETION_CONTENT'):
+            m.install_completion(self.market_release(), apply=True)
+        self.assertEqual(self.restart_count, 1)
+        self.assertFalse(m.dropin_path().exists())
+
+    def test_modified_completion_service_override_is_preserved(self):
+        self.reviewed_predecessor()
+        old = m.DROP_FOLDER / m.PREVIOUS_DROP_NAME
+        old.write_bytes(old.read_bytes() + b'Environment=UNREVIEWED=1\n')
+        with self.assertRaisesRegex(RuntimeError, 'UNREVIEWED_COMPLETION_SERVICE'):
+            m.install_completion(self.market_release(), apply=True)
+        self.assertEqual(self.restart_count, 1)
+        self.assertFalse(m.dropin_path().exists())
+
+    def test_failed_market_upgrade_restores_reviewed_completion_service(self):
+        prior, previous = self.reviewed_predecessor()
+        old_drop = m.DROP_FOLDER / m.PREVIOUS_DROP_NAME
+        old_bytes = old_drop.read_bytes()
+        before = m.stage_inventory(prior)
+        self.fail_new_web = True
+        with self.assertRaisesRegex(RuntimeError, 'new web API'):
+            m.install_completion(self.market_release(), apply=True)
+        self.assertEqual(self.restart_count, 3)
+        self.assertEqual(Path(self.saved['WorkingDirectory']), prior)
+        self.assertEqual(self.saved['ExecStart'], previous['ExecStart'])
+        self.assertEqual(self.saved['DropInPaths'], previous['DropInPaths'])
+        self.assertEqual(old_drop.read_bytes(), old_bytes)
+        self.assertFalse(m.dropin_path().exists())
+        self.assertEqual(m.stage_inventory(prior), before)
+
+    def test_unreviewed_completion_stage_name_is_rejected(self):
+        prior, _ = self.reviewed_predecessor()
+        pins = copy.deepcopy(m.REVIEWED_COMPLETION)
+        pins['release'] = 'panel-completion-unreviewed'
+        with patch.object(m, 'REVIEWED_COMPLETION', pins):
+            with self.assertRaisesRegex(RuntimeError, 'UNREVIEWED_COMPLETION_RELEASE'):
+                m.install_completion(self.market_release(), apply=True)
+        self.assertEqual(self.restart_count, 1)
+        self.assertEqual(Path(self.saved['WorkingDirectory']), prior)
+        self.assertFalse(m.dropin_path().exists())
 
 
 class OriginProbeTests(unittest.TestCase):

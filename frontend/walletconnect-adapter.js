@@ -2,7 +2,7 @@
 // This module never signs, authorizes an account or starts a pairing on import.
 const ADDRESS=/^0x[0-9a-f]{40}$/i;
 const REQUIRED_METHODS=['eth_sendTransaction','personal_sign'];
-const OPTIONAL_METHODS=['eth_requestAccounts','wallet_switchEthereumChain','wallet_addEthereumChain','eth_signTypedData','eth_signTypedData_v3','eth_signTypedData_v4','wallet_getPermissions','wallet_requestPermissions','wallet_getCapabilities','wallet_sendCalls','wallet_getCallsStatus'];
+const OPTIONAL_METHODS=['eth_requestAccounts','wallet_switchEthereumChain','wallet_addEthereumChain','wallet_watchAsset','eth_signTypedData','eth_signTypedData_v3','eth_signTypedData_v4','wallet_getPermissions','wallet_requestPermissions','wallet_getCapabilities','wallet_sendCalls','wallet_getCallsStatus'];
 const WALLET_METHODS=new Set([...REQUIRED_METHODS,...OPTIONAL_METHODS,'eth_sign','eth_signTransaction']);
 const READ_METHODS=new Set(['eth_blockNumber','eth_call','eth_estimateGas','eth_gasPrice','eth_feeHistory','eth_maxPriorityFeePerGas','eth_getBalance','eth_getCode','eth_getTransactionCount','eth_getTransactionReceipt','eth_getTransactionByHash','eth_getTransactionByBlockHashAndIndex','eth_getTransactionByBlockNumberAndIndex','eth_getBlockByNumber','eth_getBlockByHash','eth_getBlockTransactionCountByHash','eth_getBlockTransactionCountByNumber','eth_getLogs','eth_getStorageAt','eth_getProof','net_version','web3_clientVersion']);
 const failure=(message,code)=>Object.assign(Error(message),{code});
@@ -63,6 +63,13 @@ export function createWalletConnectAdapter(client,options,{showPairing,timeoutMs
    if(!data||typeof data!=='object'||Array.isArray(data)||!data.domain||typeof data.domain!=='object'||Array.isArray(data.domain))throw failure('Invalid typed-data domain.',-32602);
    payloadChain(data.domain.chainId);
   }else if(args.method==='wallet_getCapabilities')activeAccount(args.params?.[0]);
+  else if(args.method==='wallet_watchAsset'){
+   // This workspace imports only its ERC20 FTI asset. Do not forward arbitrary
+   // URLs, extra metadata, other token standards or price claims to the wallet.
+   const params=args.params,asset=params?.options;
+   if(!params||typeof params!=='object'||Array.isArray(params)||Object.keys(params).some(key=>!['type','options'].includes(key))||params.type!=='ERC20'||!asset||typeof asset!=='object'||Array.isArray(asset)||Object.keys(asset).some(key=>!['address','symbol','decimals'].includes(key))||!ADDRESS.test(asset.address||'')||/^0x0{40}$/i.test(asset.address)||asset.symbol!=='FTI'||asset.decimals!==18)throw failure('Invalid FTI token metadata.',-32602);
+   activeAccount(accounts[0]);
+  }
  };
  const adapter={
   get isWalletConnect(){return true;},

@@ -26,4 +26,61 @@ html[dir="rtl"] .initial-landing :is(h1,h2,h3){font-family:inherit;letter-spacin
 html[dir="rtl"] .initial-landing em{font-family:inherit;font-style:normal;letter-spacing:normal}
 @media(max-width:640px){.fti-language>span{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}.fti-language select{max-width:142px;font-size:16px}.initial-landing .nav .fti-language{margin-inline-start:auto}.initial-landing .nav{gap:12px}}
 
-@media(max-width:640px){.market-chart text{display:none}.candle-readout{font-size:13px;line-height:1.8;overflow-wrap:anywhere}.market-chart{min-height:180px}}
+.market-axis-labels{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 20px;margin-block:8px 14px;color:var(--muted,#9aa79f);font-size:12px;line-height:1.8;font-variant-numeric:tabular-nums}
+.market-axis-labels>span{min-width:0;overflow-wrap:anywhere}
+.market-axis-labels>div{display:flex;flex-direction:column;gap:3px;min-width:0;overflow-wrap:anywhere}
+.market-axis-labels strong{color:var(--text,#eaf1ed);font-size:12px;font-weight:500}
+.market-opening-quote{padding:14px 16px;border:1px solid var(--line,#29342d);border-radius:14px;color:var(--muted,#9aa79f);font-size:12px;line-height:1.9;overflow-wrap:anywhere;background:var(--panel2,#14231b)}
+.market-opening-quote strong,.market-opening-quote b{color:var(--text,#eaf1ed);font-variant-numeric:tabular-nums}
+.market-price-table{margin-block:16px;font-size:12px;max-width:100%;min-width:0;overflow:auto;border:1px solid var(--line,#29342d);border-radius:14px}
+.market-price-table>summary{cursor:pointer;min-height:44px;padding:12px 16px;color:var(--text,#eaf1ed)}
+.market-price-table table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.market-price-table :is(th,td){text-align:start;padding:10px 14px;border-block-end:1px solid var(--line,#29342d);white-space:nowrap;font-size:12px}
+.market-price-table th{color:var(--muted,#9aa79f);font-weight:500}
+.market-price-table tr:last-child td{border-block-end:0}
+.market-price-history{margin-block:16px;border:1px solid var(--line,#29342d);border-radius:14px;min-width:0}
+.market-price-history>summary{cursor:pointer;min-height:44px;padding:12px 16px;font-size:12px;color:var(--text,#eaf1ed)}
+.market-price-table-wrap{max-width:100%;overflow:auto}
+table.market-price-table{display:table;width:100%;border:0;margin:0;border-collapse:collapse}
+@media(max-width:640px){.market-chart text{display:block;font-size:12px}.candle-readout{font-size:13px;line-height:1.8;overflow-wrap:anywhere}.market-chart{min-height:180px}.market-axis-labels{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;font-size:11px}.market-opening-quote{font-size:11px;padding:12px}.market-price-table :is(th,td){font-size:11px;padding:10px}}
+
+/* Branch placement is always LTR; each card follows the selected UI language. */
+#network-explorer{min-width:0}
+#network-explorer .binary-tree-search{gap:12px;align-items:end}
+#network-explorer .binary-tree-actions{display:flex;flex-wrap:wrap;gap:8px;margin-block:14px}
+#network-explorer .binary-tree-actions button{min-height:44px;padding:10px 14px;border-radius:12px}
+#network-explorer .tree-details{padding:18px;border-radius:18px}
+#network-explorer .tree-details dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#network-explorer .tree-details dl>div{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;padding:12px;border:1px solid var(--line);border-radius:12px;min-width:0}
+#network-explorer .binary-root-detail{grid-column:1/-1;padding-bottom:12px;border-bottom:1px solid var(--line)}
+#network-explorer .binary-root-detail dd{font-family:ui-monospace,monospace;font-size:12px;direction:ltr;text-align:start;word-break:break-all}
+#network-explorer .tree-details dt{font-size:11px;line-height:1.8}
+#network-explorer .tree-details dd{font-size:15px;font-variant-numeric:tabular-nums;line-height:1.7}
+#network-explorer .tree-details p{padding-top:14px;border-top:1px solid var(--line);font-size:12px;line-height:2;margin-bottom:0}
+#network-explorer .binary-tree-scroll{border:1px solid var(--line);border-radius:20px;margin-top:20px;padding:24px 16px;max-width:100%;overflow:auto;background:linear-gradient(135deg,rgba(139,190,157,.05),transparent 60%),var(--bg)}
+#network-explorer .binary-tree-scroll:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+#network-explorer .binary-tree-scroll[aria-busy=true]{opacity:.65}
+#network-explorer .binary-tree,#network-explorer .binary-tree ul{display:flex;gap:16px;justify-content:center;list-style:none;min-width:max-content;direction:ltr;padding:0;margin:0}
+#network-explorer .binary-tree li{position:relative;flex:1;padding:0;text-align:center}
+#network-explorer .binary-tree ul{padding-top:32px;margin-top:0;position:relative}
+#network-explorer .binary-tree ul:before{content:'';display:block;position:absolute;left:50%;top:0;width:0;height:16px;border-left:1px solid var(--member-border,var(--line))}
+#network-explorer .binary-tree ul>li:before{content:'';position:absolute;top:-16px;height:16px;border-top:1px solid var(--member-border,var(--line));border-left:1px solid var(--member-border,var(--line));left:50%;right:-8px}
+#network-explorer .binary-tree ul>li:last-child:before{left:-8px;right:50%;border-left:0;border-right:1px solid var(--member-border,var(--line))}
+#network-explorer .binary-node{display:flex;flex-direction:column;align-items:stretch;text-align:start;gap:8px;width:208px;min-width:208px;min-height:170px;box-sizing:border-box;padding:14px;margin:auto;border-radius:16px;border:1px solid var(--member-border,var(--line));position:relative;box-shadow:0 6px 18px #0001}
+#network-explorer .binary-node[data-branch=root]{border-color:var(--accent)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 15%,transparent),0 8px 24px #0002}
+#network-explorer .binary-node:hover{transform:translateY(-2px);border-color:var(--accent)!important}
+#network-explorer .binary-node:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+#network-explorer .binary-node-heading{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#network-explorer .binary-side{position:static;font-size:10px;color:var(--accent);font-weight:500}
+#network-explorer .binary-rank{font-size:9px;color:var(--muted);padding:3px 6px;border:1px solid var(--line);border-radius:6px;white-space:nowrap}
+#network-explorer .binary-node .binary-node-address{font-size:15px;line-height:1.6;letter-spacing:.15px;font-family:ui-monospace,monospace;unicode-bidi:isolate}
+#network-explorer .binary-node small{font-size:10px;font-weight:400;color:var(--muted);line-height:1.8}
+#network-explorer .binary-node-metrics{display:grid;gap:7px;padding-top:10px;border-top:1px solid var(--line)}
+#network-explorer .binary-metric-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:9px;line-height:1.7}
+#network-explorer .binary-metric-row>span{color:var(--muted);min-width:0}
+#network-explorer .binary-metric-row>b{font-weight:500;font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap;unicode-bidi:isolate}
+#network-explorer .binary-empty{width:208px;min-height:54px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;margin:auto;padding:12px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);font-size:10px;opacity:.7}
+html[dir=rtl] #network-explorer .binary-node{direction:rtl}
+@media(max-width:720px){#network-explorer{padding:0}#network-explorer .binary-tree-search>label:first-child{flex-basis:100%;min-width:0}#network-explorer .tree-details{padding:14px}#network-explorer .tree-details dl{grid-template-columns:1fr}#network-explorer .binary-tree-scroll{padding:14px 10px;overflow-x:hidden;border-radius:16px}#network-explorer .binary-tree,#network-explorer .binary-tree ul{display:block;min-width:0;width:100%;text-align:left}#network-explorer .binary-tree li{padding:4px 0;text-align:left}#network-explorer .binary-tree ul{padding:4px 0 0 14px;margin-left:8px;border-left:1px solid var(--member-border,var(--line));box-sizing:border-box;width:calc(100% - 8px)}#network-explorer .binary-tree ul:before,#network-explorer .binary-tree ul>li:before{display:none}#network-explorer .binary-node{width:100%;min-width:0;min-height:142px;padding:12px;border-radius:14px}#network-explorer .binary-node-metrics{gap:5px}#network-explorer .binary-metric-row{font-size:10px}#network-explorer .binary-empty{width:100%;min-height:38px;padding:8px 12px;text-align:start;justify-content:flex-start}.binary-empty-branch:has(+.binary-empty-branch){margin-bottom:0}}
+@media(prefers-reduced-motion:reduce){#network-explorer .binary-node:hover{transform:none}}
+@media(min-width:360px) and (max-width:720px){#network-explorer .tree-details dl{grid-template-columns:repeat(2,minmax(0,1fr))}}

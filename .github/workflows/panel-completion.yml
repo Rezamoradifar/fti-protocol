@@ -1,9 +1,9 @@
 name: Panel completion and wallet security
 on:
   push:
-    branches: [fix/panel-completion-20261025]
+    branches: [fix/panel-completion-20261025, feat/live-panel-market-20261025]
   pull_request:
-    paths: ['frontend/**', 'scripts/**', 'core/**', 'package*.json', 'web/**', 'test/**', 'landing/tests/**', 'tools/install-panel-completion*', '.github/workflows/panel-completion.yml']
+    paths: ['frontend/**', 'scripts/**', 'core/**', 'package*.json', 'web/**', 'test/**', 'landing/tests/**', 'tools/install-panel-completion*', 'tools/fti-official-bot.py', '.github/workflows/panel-completion.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -36,6 +36,11 @@ jobs:
           test/member-history-view.test.mjs test/support-tickets.test.mjs
           test/support-ticket-ui.test.mjs test/walletconnect-adapter.test.mjs
           test/controller-safepal-connect.test.mjs test/activity-events.test.mjs
+          test/appearance.test.mjs test/asset-display.test.mjs test/network-data.test.mjs
+          test/market-opening-history.test.mjs test/panel-market-translations.test.mjs
+          test/wallet-discovery.test.mjs test/wallet-token.test.mjs
+      - name: Official multilingual Telegram bot and verified channel price table
+        run: python3 test/official-telegram-bot.test.py -q
       - name: Installer publication, cold start, rollback and data retention
         run: sudo env PYTHONDONTWRITEBYTECODE=1 python3 test/panel-completion-install.test.py -q
       - name: Reproduce the exact completion installer
@@ -45,9 +50,9 @@ jobs:
       - run: npm --prefix landing run build
       - run: cd landing && npx playwright install --with-deps chromium webkit
       - name: Chromium user, guardian, mobile pairing and installed-style regressions
-        run: cd landing && npx playwright test tests/panel-completion.spec.mjs tests/walletconnect-pairing.spec.mjs tests/mainnet-copy.spec.mjs tests/professional-member-panel.spec.mjs tests/boot-recovery.spec.mjs
+        run: cd landing && npx playwright test tests/panel-completion.spec.mjs tests/walletconnect-pairing.spec.mjs tests/mainnet-copy.spec.mjs tests/professional-member-panel.spec.mjs tests/boot-recovery.spec.mjs tests/live-panel-market.spec.mjs tests/price-history-chart.spec.mjs tests/genealogy-glass.spec.mjs
       - name: WebKit user, guardian, mobile pairing and installed-style regressions
-        run: cd landing && FTI_BROWSER=webkit npx playwright test tests/panel-completion.spec.mjs tests/walletconnect-pairing.spec.mjs tests/mainnet-copy.spec.mjs tests/professional-member-panel.spec.mjs tests/boot-recovery.spec.mjs
+        run: cd landing && FTI_BROWSER=webkit npx playwright test tests/panel-completion.spec.mjs tests/walletconnect-pairing.spec.mjs tests/mainnet-copy.spec.mjs tests/professional-member-panel.spec.mjs tests/boot-recovery.spec.mjs tests/live-panel-market.spec.mjs tests/price-history-chart.spec.mjs tests/genealogy-glass.spec.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

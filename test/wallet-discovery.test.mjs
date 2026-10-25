@@ -82,3 +82,23 @@ test('silent reads never start another permission request while interactive auth
  assert.deepEqual(await requestWalletAccounts(selected,true),[]);assert.deepEqual(calls,['eth_requestAccounts','eth_accounts']);
  complete(['connected']);assert.deepEqual(await pending,['connected']);
 });
+
+test('changing accounts explicitly requests account selection and reads only the granted identity',async()=>{
+ const calls=[],selected={changeAccount:true,provider:{request:async args=>{calls.push(args);return args.method==='wallet_requestPermissions'?[{parentCapability:'eth_accounts'}]:['new-account'];}}};
+ assert.deepEqual(await requestWalletAccounts(selected),['new-account']);
+ assert.deepEqual(calls,[{method:'wallet_requestPermissions',params:[{eth_accounts:{}}]},{method:'eth_accounts'}]);
+});
+test('unsupported account selection falls back, while rejection never opens another approval',async()=>{
+ for(const code of [4200,-32601]){
+  const calls=[],selected={changeAccount:true,provider:{request(args){calls.push(args.method);if(args.method==='wallet_requestPermissions')throw Object.assign(Error('Unsupported'),{code});return Promise.resolve(['existing-account']);}}};
+  assert.deepEqual(await requestWalletAccounts(selected),['existing-account']);assert.deepEqual(calls,['wallet_requestPermissions','eth_requestAccounts']);
+ }
+ const calls=[],rejected={changeAccount:true,provider:{request:async args=>{calls.push(args.method);throw Object.assign(Error('Declined'),{code:4001});}}};
+ await assert.rejects(requestWalletAccounts(rejected),error=>error.code===4001);assert.deepEqual(calls,['wallet_requestPermissions']);
+});
+test('a pending change-account permission is reused across UI retries and never clears transaction storage',async()=>{
+ let complete;const calls=[],selected={changeAccount:true,provider:{request:args=>{calls.push(args.method);return args.method==='wallet_requestPermissions'?new Promise(resolve=>{complete=resolve;}):Promise.resolve(['new-account']);}}};
+ await assert.rejects(requestWalletAccounts(selected,false,5),error=>error.code==='FTI_WALLET_AUTHORIZATION_TIMEOUT');
+ const retry=requestWalletAccounts({...selected},false,100);complete([{parentCapability:'eth_accounts'}]);
+ assert.deepEqual(await retry,['new-account']);assert.deepEqual(calls,['wallet_requestPermissions','eth_accounts']);
+});
