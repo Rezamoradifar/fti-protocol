@@ -501,12 +501,12 @@ class CompletionTests(unittest.TestCase):
     def test_interrupted_public_copy_does_not_block_clean_retry(self):
         copy = m.copy_public_tree
         calls = 0
-        def interrupted(source, target):
+        def interrupted(source, target, expected=None):
             nonlocal calls
             calls += 1
             if calls == 2:
                 raise RuntimeError('fixture interrupted public copy')
-            return copy(source, target)
+            return copy(source, target, expected)
         with patch.object(m, 'copy_public_tree', side_effect=interrupted):
             with self.assertRaisesRegex(RuntimeError, 'interrupted public copy'):
                 m.install_completion(self.release, apply=True)
@@ -517,6 +517,167 @@ class CompletionTests(unittest.TestCase):
         self.assert_original()
         m.install_completion(self.release, apply=True)
         self.assertEqual(self.restart_count, 1)
+
+    def assert_no_install_writes(self):
+        self.assertFalse(m.BACKUPS.exists())
+        self.assertFalse(m.SUPPORT_ROOT.exists())
+        self.assertFalse(self.stage().exists())
+        self.assertFalse(m.dropin_path().exists())
+        self.assertFalse(list(self.workspace.glob('.fti-panel-completion-stage-*')))
+        self.assertEqual(self.restart_count, 0)
+        self.assert_original()
+
+    def test_public_history_over_legacy_byte_limit_is_preserved(self):
+        source = self.workspace / 'large-public-history'
+        source.mkdir()
+        data = b'/* retained immutable public asset */' + b'x' * 2_999_961
+        for index in range(34):
+            (source / ('old-%03d.js' % index)).write_bytes(data)
+        plan = m.public_copy_plan(source)
+        self.assertGreater(plan['bytes'], 100_000_000)
+        destination = self.workspace / 'large-public-copy'
+        m.copy_public_tree(source, destination, plan)
+        self.assertEqual(len(list(destination.iterdir())), 34)
+        self.assertEqual(sum(file.stat().st_size for file in destination.iterdir()), plan['bytes'])
+        self.assertTrue(all(file.read_bytes() == data for file in destination.iterdir()))
+
+    def test_public_history_over_legacy_file_limit_is_preserved(self):
+        source = self.workspace / 'many-public-history'
+        source.mkdir()
+        for index in range(4001):
+            (source / ('old-%04d.js' % index)).write_bytes(b'/* retained */')
+        plan = m.public_copy_plan(source)
+        self.assertGreater(len(plan['files']), 4000)
+        destination = self.workspace / 'many-public-copy'
+        m.copy_public_tree(source, destination, plan)
+        self.assertEqual(len(list(destination.iterdir())), 4001)
+        self.assertTrue(all(file.read_bytes() == b'/* retained */' for file in destination.iterdir()))
+
+    def test_public_byte_budget_is_global_and_checked_before_writes(self):
+        plan = m.public_runtime_plan(self.root)
+        largest_tree = max(item['bytes'] for item in plan.values())
+        total = sum(item['bytes'] for item in plan.values())
+        self.assertLess(largest_tree, total)
+        with patch.object(m, 'PUBLIC_COPY_MAX_BYTES', largest_tree):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED'):
+                m.install_completion(self.release, apply=True)
+        self.assert_no_install_writes()
+
+    def test_public_entry_budget_is_global_and_checked_before_writes(self):
+        plan = m.public_runtime_plan(self.root)
+        largest_tree = max(item['entries'] for item in plan.values())
+        total = sum(item['entries'] for item in plan.values())
+        self.assertLess(largest_tree, total)
+        with patch.object(m, 'PUBLIC_COPY_MAX_ENTRIES', largest_tree):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED'):
+                m.install_completion(self.release, apply=True)
+        self.assert_no_install_writes()
+
+    def test_public_directory_entries_consume_budget(self):
+        source = self.workspace / 'public-directories'
+        source.mkdir()
+        for index in range(30):
+            (source / ('empty-%03d' % index)).mkdir()
+        plan = m.public_copy_plan(source)
+        self.assertEqual(plan['bytes'], 0)
+        self.assertEqual(plan['files'], {})
+        self.assertEqual(len(plan['directories']), 31)
+        self.assertGreaterEqual(plan['entries'], 30)
+        with patch.object(m, 'PUBLIC_COPY_MAX_ENTRIES', 20):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED'):
+                m.public_copy_plan(source)
+
+    def test_public_budget_error_identifies_tree_and_measured_totals(self):
+        source = self.workspace / 'oversized-public-history'
+        source.mkdir()
+        (source / 'public.js').write_bytes(b'123456789')
+        with patch.object(m, 'PUBLIC_COPY_MAX_BYTES', 8):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED') as failure:
+                m.public_copy_plan(source)
+        diagnostic = str(failure.exception)
+        self.assertIn(source.name, diagnostic)
+        self.assertIn('bytes', diagnostic)
+        self.assertIn('entries', diagnostic)
+
+    def test_public_copy_space_uses_measured_bytes_and_payload_headroom(self):
+        plan = m.public_runtime_plan(self.root)
+        extra = 123_456
+        required_bytes = sum(item['bytes'] for item in plan.values()) + extra + m.PUBLIC_COPY_HEADROOM_BYTES
+        required_inodes = sum(item['entries'] for item in plan.values()) + m.STAGE_EXTRA_INODES
+        space = types.SimpleNamespace(f_bavail=required_bytes, f_frsize=1, f_favail=required_inodes)
+        with patch.object(m.os, 'statvfs', return_value=space):
+            m.check_public_copy_space(self.root, plan, extra)
+            with self.assertRaisesRegex(RuntimeError, 'INSUFFICIENT_FREE_SPACE_OR_INODES'):
+                m.check_public_copy_space(self.root, plan, extra + 1)
+        space.f_bavail += 1
+        space.f_favail -= 1
+        with patch.object(m.os, 'statvfs', return_value=space):
+            with self.assertRaisesRegex(RuntimeError, 'INSUFFICIENT_FREE_SPACE_OR_INODES'):
+                m.check_public_copy_space(self.root, plan, extra)
+
+    def test_insufficient_public_copy_space_or_inodes_stops_preflight_before_writes(self):
+        for available_bytes, available_inodes in ((0, 100_000), (10**12, 0)):
+            with self.subTest(bytes=available_bytes, inodes=available_inodes):
+                space = types.SimpleNamespace(f_bavail=available_bytes, f_frsize=1, f_favail=available_inodes)
+                with patch.object(m.os, 'statvfs', return_value=space):
+                    with self.assertRaisesRegex(RuntimeError, 'INSUFFICIENT_FREE_SPACE_OR_INODES'):
+                        m.install_completion(self.release)
+                self.assert_no_install_writes()
+
+    def test_changed_public_source_is_rejected_before_destination_writes(self):
+        for change in ('edit', 'add', 'remove', 'directory', 'permissions'):
+            with self.subTest(change=change):
+                source = self.workspace / ('public-source-' + change)
+                source.mkdir()
+                file = source / 'public.js'
+                file.write_bytes(b'original')
+                plan = m.public_copy_plan(source)
+                if change == 'edit':
+                    info = file.stat()
+                    file.write_bytes(b'modified')
+                    os.utime(file, ns=(info.st_atime_ns, info.st_mtime_ns + 1_000_000_000))
+                elif change == 'add':
+                    (source / 'new.js').write_bytes(b'added')
+                elif change == 'remove':
+                    file.unlink()
+                elif change == 'directory':
+                    (source / 'new-directory').mkdir()
+                else:
+                    file.chmod(0o600)
+                destination = self.workspace / ('changed-public-copy-' + change)
+                with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_CHANGED_DURING_COPY'):
+                    m.copy_public_tree(source, destination, plan)
+                self.assertFalse(destination.exists())
+
+    def test_install_uses_preflight_public_plan_and_rolls_back_source_drift(self):
+        prepare = m.prepare_stage
+        def changed_after_preflight(*args, **kwargs):
+            self.write('web/late-public.js', b'concurrent public file')
+            return prepare(*args, **kwargs)
+        with patch.object(m, 'prepare_stage', side_effect=changed_after_preflight):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_CHANGED_DURING_COPY'):
+                m.install_completion(self.release, apply=True)
+        self.assertFalse(self.stage().exists())
+        self.assertFalse(list(self.workspace.glob('.fti-panel-completion-stage-*')))
+        self.assertFalse(m.dropin_path().exists())
+        self.assertEqual(self.restart_count, 0)
+        self.assertEqual((self.root / 'web/late-public.js').read_bytes(), b'concurrent public file')
+        self.assert_original()
+
+    def test_unsafe_public_hardlink_and_oversized_file_stop_before_install_writes(self):
+        file = self.root / 'web/public-extra.js'
+        file.write_bytes(b'public fixture')
+        hardlink = self.workspace / 'linked-public.js'
+        os.link(file, hardlink)
+        with self.assertRaisesRegex(RuntimeError, 'UNSAFE_FILE'):
+            m.install_completion(self.release, apply=True)
+        self.assert_no_install_writes()
+        hardlink.unlink()
+        with file.open('wb') as stream:
+            stream.truncate(m.LIMIT + 1)
+        with self.assertRaisesRegex(RuntimeError, 'UNSAFE_FILE'):
+            m.install_completion(self.release, apply=True)
+        self.assert_no_install_writes()
 
     def test_atomic_stage_publish_preserves_foreign_empty_directory(self):
         temporary = self.workspace / 'temporary-stage'
@@ -570,15 +731,13 @@ class CompletionTests(unittest.TestCase):
         (self.root / 'web/foreign.js').symlink_to(self.root / '.env')
         with self.assertRaisesRegex(RuntimeError, 'SYMLINK_REJECTED'):
             m.install_completion(self.release, apply=True)
-        self.assertEqual(self.restart_count, 0)
-        self.assertFalse(m.dropin_path().exists())
+        self.assert_no_install_writes()
 
     def test_private_file_in_public_tree_rejected_without_switch(self):
         self.write('web/.env', b'private fixture')
         with self.assertRaisesRegex(RuntimeError, 'PRIVATE_OR_UNKNOWN_PUBLIC_FILE_REJECTED'):
             m.install_completion(self.release, apply=True)
-        self.assertEqual(self.restart_count, 0)
-        self.assertFalse(m.dropin_path().exists())
+        self.assert_no_install_writes()
 
     def test_sdk_rewritten_to_new_immutable_url(self):
         _, _, assets = m.completion_destinations(APP, SDK, b'legal', PRO[1], PRO[2])

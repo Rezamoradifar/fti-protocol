@@ -682,6 +682,12 @@ def overlay_files(runtime):
 CANONICAL_REVISION = 'ba82373a83d63fba0643332371cfb6d62903c849'
 FROZEN_DIRS = ('contracts', 'frontend', 'scripts', 'core', 'landing/src')
 STAGE_COPY_DIRS = ('web', 'landing/dist', 'artifacts')
+PUBLIC_COPY_MAX_BYTES = 1024 ** 3
+PUBLIC_COPY_MAX_ENTRIES = 12_000
+PUBLIC_COPY_HEADROOM_BYTES = 64 * 1024 ** 2
+STAGE_EXTRA_INODES = 1000
+PUBLIC_FILE_SUFFIXES = ('.html', '.js', '.mjs', '.css', '.json', '.txt', '.woff', '.woff2',
+                        '.webp', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.pdf')
 
 
 def canonical_payload(release):
@@ -708,33 +714,97 @@ def release_name(release):
     return 'panel-completion-' + sha(json.dumps(identity, sort_keys=True).encode())[:20]
 
 
-def copy_public_tree(source, destination):
+def public_entry_identity(path, directory=False):
+    safe_path(path)
+    info = path.lstat()
+    if directory:
+        require(stat.S_ISDIR(info.st_mode), 'INVALID_PUBLIC_DIRECTORY')
+    else:
+        require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= LIMIT,
+                'UNSAFE_FILE')
+    return tuple(getattr(info, name) for name in ('st_dev', 'st_ino', 'st_uid', 'st_gid',
+                 'st_mode', 'st_nlink', 'st_size', 'st_mtime_ns', 'st_ctime_ns'))
+
+
+def check_public_copy_budget(total, entries, source):
+    require(total <= PUBLIC_COPY_MAX_BYTES and entries <= PUBLIC_COPY_MAX_ENTRIES,
+            'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED: tree=' + str(source) +
+            ' bytes=' + str(total) + ' entries=' + str(entries) +
+            ' maxBytes=' + str(PUBLIC_COPY_MAX_BYTES) +
+            ' maxEntries=' + str(PUBLIC_COPY_MAX_ENTRIES))
+
+
+def public_copy_plan(source):
     safe_path(source)
     require(source.is_dir(), 'MISSING_PUBLIC_RUNTIME_DIRECTORY')
-    destination.mkdir(mode=0o755, parents=True, exist_ok=False)
-    os.chmod(destination, 0o755)
-    total = count = 0
-    for folder, directories, files in os.walk(source, followlinks=False):
+    plan = {'files': {}, 'directories': {'.': public_entry_identity(source, directory=True)},
+            'bytes': 0, 'entries': 1}
+    def failed(error):
+        raise error
+    for folder, directories, files in os.walk(source, followlinks=False, onerror=failed):
         relative = Path(folder).relative_to(source)
+        directories.sort()
         for name in directories:
             require(not name.startswith('.'), 'PRIVATE_PUBLIC_TREE_ENTRY_REJECTED')
-            src = safe_path(Path(folder) / name)
-            require(src.is_dir(), 'INVALID_PUBLIC_DIRECTORY')
-            target = destination / relative / name
-            target.mkdir(mode=0o755)
-            os.chmod(target, 0o755)
-        for name in files:
-            require(not name.startswith('.') and Path(name).suffix.lower() in
-                    ('.html', '.js', '.mjs', '.css', '.json', '.txt', '.woff', '.woff2',
-                     '.webp', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.pdf'),
+            plan['directories'][(relative / name).as_posix()] = public_entry_identity(
+                Path(folder) / name, directory=True)
+            plan['entries'] += 1
+            check_public_copy_budget(plan['bytes'], plan['entries'], source)
+        for name in sorted(files):
+            require(not name.startswith('.') and Path(name).suffix.lower() in PUBLIC_FILE_SUFFIXES,
                     'PRIVATE_OR_UNKNOWN_PUBLIC_FILE_REJECTED')
-            src = safe_path(Path(folder) / name)
-            data, _ = regular(src)
-            total += len(data)
-            count += 1
-            require(count <= 4000 and total <= 100_000_000, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED')
-            create(destination / relative / name, data, 0o644)
-    return total, count
+            identity = public_entry_identity(Path(folder) / name)
+            plan['files'][(relative / name).as_posix()] = identity
+            plan['bytes'] += identity[6]
+            plan['entries'] += 1
+            check_public_copy_budget(plan['bytes'], plan['entries'], source)
+    return plan
+
+
+def public_runtime_plan(root):
+    result = {}
+    total = entries = 0
+    for name in STAGE_COPY_DIRS:
+        plan = public_copy_plan(root / name)
+        total += plan['bytes']
+        entries += plan['entries']
+        check_public_copy_budget(total, entries, name)
+        result[name] = plan
+    return result
+
+
+def check_public_copy_space(root, plan, extra_bytes):
+    required_bytes = sum(item['bytes'] for item in plan.values()) + extra_bytes + PUBLIC_COPY_HEADROOM_BYTES
+    required_inodes = sum(item['entries'] for item in plan.values()) + STAGE_EXTRA_INODES
+    space = os.statvfs(root)
+    available_bytes = space.f_bavail * space.f_frsize
+    require(available_bytes >= required_bytes and space.f_favail >= required_inodes,
+            'INSUFFICIENT_FREE_SPACE_OR_INODES: requiredBytes=' + str(required_bytes) +
+            ' availableBytes=' + str(available_bytes) + ' requiredInodes=' + str(required_inodes) +
+            ' availableInodes=' + str(space.f_favail))
+
+
+def copy_public_tree(source, destination, expected=None):
+    plan = public_copy_plan(source)
+    require(expected is None or plan == expected, 'PUBLIC_RUNTIME_CHANGED_DURING_COPY')
+    safe_path(destination)
+    destination.mkdir(mode=0o755, parents=True, exist_ok=False)
+    os.chmod(destination, 0o755)
+    for name in plan['directories']:
+        if name == '.':
+            continue
+        target = destination / name
+        target.mkdir(mode=0o755)
+        os.chmod(target, 0o755)
+    for name, identity in plan['files'].items():
+        src = source / name
+        require(public_entry_identity(src) == identity, 'PUBLIC_RUNTIME_CHANGED_DURING_COPY')
+        data, _ = regular(src)
+        require(len(data) == identity[6] and public_entry_identity(src) == identity,
+                'PUBLIC_RUNTIME_CHANGED_DURING_COPY')
+        create(destination / name, data, 0o644)
+    require(public_copy_plan(source) == plan, 'PUBLIC_RUNTIME_CHANGED_DURING_COPY')
+    return plan['bytes'], len(plan['files'])
 
 
 def stage_inventory(stage):
@@ -768,12 +838,14 @@ def validate_stage(stage, source, name):
     return record
 
 
-def stage_release(source, stage, canonical, assets, overlay_name, overlay_content, before, after, release_id):
+def stage_release(source, stage, canonical, assets, overlay_name, overlay_content, before, after, release_id,
+                  copy_plan=None):
     require(stage.parent == source.parent and stage != source and stage.is_dir() and
             stage.stat().st_uid == 0 and not os.listdir(stage), 'UNSAFE_PRIVATE_STAGE')
     os.chmod(stage, 0o755)
+    copy_plan = public_runtime_plan(source) if copy_plan is None else copy_plan
     for name in STAGE_COPY_DIRS:
-        copy_public_tree(source / name, stage / name)
+        copy_public_tree(source / name, stage / name, copy_plan[name])
     for name, data in canonical.items():
         target = stage / name
         target.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
@@ -827,11 +899,12 @@ def publish_stage(temporary, stage):
     sync_directory(stage.parent)
 
 
-def prepare_stage(source, stage, canonical, assets, overlay_name, overlay_content, before, after, release_id):
+def prepare_stage(source, stage, canonical, assets, overlay_name, overlay_content, before, after, release_id,
+                  copy_plan=None):
     temporary = Path(tempfile.mkdtemp(prefix='.fti-panel-completion-stage-', dir=source.parent))
     try:
         stage_release(source, temporary, canonical, assets, overlay_name, overlay_content,
-                      before, after, release_id)
+                      before, after, release_id, copy_plan)
         validate_stage(temporary, dependency_root(source), release_id)
         publish_stage(temporary, stage)
     finally:
@@ -1141,21 +1214,30 @@ def install_completion(release, apply=False):
         validate_stage(stage, dependency_root(root), release_name(release))
     require(all(Path(value).name < DROP_NAME for value in saved.get('DropInPaths', '').split()),
             'LATER_SERVICE_OVERRIDE_REQUIRES_REVIEW')
+    copy_plan = None
+    if not stage.exists():
+        # Historical immutable public assets remain available to open browsers.
+        # Inventory them before any write and reserve space for this exact copy.
+        copy_plan = public_runtime_plan(root)
+        extra_bytes = (sum(map(len, canonical.values())) +
+                       sum(len(data) for data, _kind in assets.values()) +
+                       sum(map(len, overlay_content.values())))
+        check_public_copy_space(root, copy_plan, extra_bytes)
+        for name, item in copy_plan.items():
+            print('FTI_PANEL_COMPLETION_PUBLIC_COPY_PLAN tree=' + name +
+                  ' bytes=' + str(item['bytes']) + ' files=' + str(len(item['files'])) +
+                  ' directories=' + str(len(item['directories'])), flush=True)
     print('FTI_PANEL_COMPLETION_PREFLIGHT_OK', flush=True)
     if not apply:
         return
     support_directory(cfg, account.pw_uid, account.pw_gid)
-    # Public/runtime copy is bounded to <=300MB plus the small canonical/overlay
-    # payload. No node_modules duplication, credentials or user data is required.
-    space = os.statvfs(root)
-    require(space.f_bavail * space.f_frsize > 350 * 1024 * 1024 and space.f_favail > 13_000,
-            'INSUFFICIENT_FREE_SPACE_OR_INODES')
     backup, record = backup_record(root, stage, before, after, saved, metadata, cfg, protected, drop_bytes)
     print('ROLLBACK_COMMAND=python3 ' + str(backup / 'installer.py') + ' --restore ' + str(backup), flush=True)
     restarted = False
     try:
         if not stage.exists():
-            prepare_stage(root, stage, canonical, assets, folder_name, overlay_content, before, after, release_name(release))
+            prepare_stage(root, stage, canonical, assets, folder_name, overlay_content,
+                          before, after, release_name(release), copy_plan)
         validate_stage(stage, dependency_root(root), release_name(release))
         require(unit_properties() == saved and unit_metadata(saved) == metadata, 'WEB_PROCESS_CHANGED')
         check_protected(root, protected)
