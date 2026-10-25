@@ -19,7 +19,7 @@ function fixture({silent=false,selection=true,accounts=[address],permissionError
  },on:(name,fn)=>listeners.set(name,fn),removeListener:(name,fn)=>{if(listeners.get(name)===fn)listeners.delete(name);}}};
  const context={connecting:false,busy:false,signer:null,address:null,selectedWallet:null,walletProvider:null,walletGeneration:0,autoDirty:false,councilOwner:false,
   cfg:{mode:'bnb-mainnet',chainId:56,tokenContract:'FTIReserveTokenUpgradeable'},networkProfile:{name:'BNB Smart Chain'},v3Model:true,surface:'member',location:{hash:'#network'},
-  syncActions(){},text:(id,value)=>labels.push([id,value]),status:(value,error)=>messages.push([value,error]),t:value=>value,short:value=>value.slice(0,6)+'…'+value.slice(-4),
+  memberReadFailed(){context.memberReadUnavailable=true;},syncActions(){},text:(id,value)=>labels.push([id,value]),status:(value,error)=>messages.push([value,error]),t:value=>value,short:value=>value.slice(0,6)+'…'+value.slice(-4),
   chooseWallet:async options=>{calls.push(['choose',options]);return selection?selected:null;},
   requestWalletAccounts:async(value,quiet)=>{assert.equal(value,selected);assert.equal(quiet,silent);if(permissionError)throw permissionError;return accounts;},
   detachWallet(){detached++;context.walletProvider=null;listeners.clear();},clearWallet(){context.walletGeneration++;context.selectedWallet=null;context.signer=null;context.address=null;storage.delete('fti-wallet-connected');},
@@ -88,6 +88,7 @@ test('public dashboard and membership read failures retain an already verified w
  assert.equal(f.context.address,address);assert.equal(f.signers(),1);
  assert.equal(f.context.selectedWallet.name,'SafePal');assert.equal(f.storage.get('fti-wallet-connected'),'yes');
  assert.equal(f.listeners.has('accountsChanged'),true);assert.equal(f.context.connecting,false);
+ assert.equal(f.context.memberReadUnavailable,true);
  assert.equal(f.messages.at(-1)[1],true);assert.match(f.messages.at(-1)[0],/Contract data is unavailable/);
  assert(!f.calls.includes('eth_sendTransaction'));
 });

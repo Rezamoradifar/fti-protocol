@@ -12,6 +12,9 @@ import {readWalletIdentity,preparationDeadline} from './wallet-preflight.js';
 import {readJson,initializeReadSession} from './read-json.js';
 import {createActivityEvents} from './activity-events.js';
 import {activityText} from './activity-copy.js';
+import {memberAccountView} from './member-account-view.js';
+import {publishMemberView} from './member-panel-store.js';
+import {createMemberActivity} from './member-activity.js';
 import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,preparedWalletSend} from './transaction-state.js';
 import {membershipBlock,walletError} from './membership-availability.js';
 import {deploymentConfiguration} from './deployment.js';
@@ -77,12 +80,20 @@ if(cfg.poolDistributionVersion===1){
  text('builder-pool-policy',t('Each rank pool includes its previous monthly remainder. Eligible ranks share equally, with the existing 20% per-wallet limit and one payment per rank. Unpaid funds and rounding remain available for later months.','مانده ماه قبل به صندوق همان رنک اضافه می‌شود. واجدین شرایط سهم برابر با سقف قبلی ۲۰٪ صندوق و یک‌بار پرداخت هر رنک دارند. مبلغ پرداخت‌نشده و گردکردن برای ماه‌های بعد قابل استفاده است.'));
  document.getElementById('wallet-credits-row').hidden=true;
 }
-initNetworkTree(read.binary,rpc,cfg.hourlyCapFlushVersion,cfg.poolDistributionVersion);
+initNetworkTree(read.binary,rpc,cfg.hourlyCapFlushVersion,cfg.poolDistributionVersion,networkProfile);
 if(v3Model)initLiveMarket(read.token,rpc,cfg);
 let activeTransaction;
 let transactionStage='';
 let signer,address,state,busy=false,connecting=false,transactionAddress,refreshSequence=0,autoDirty=false,councilOwner=false;
 let pendingWatch;
+let memberUpdatedAt=null,memberReadError=false,memberActivity,memberPanelState=null;
+function publishMemberPanel(){
+ memberActivity?.refresh();
+ if(surface!=='member')return;
+ publishMemberView(memberAccountView({state:memberPanelState||state,address,networkProfile,selectableAuto,cfg,busy:busy||connecting,updatedAt:memberUpdatedAt,readError:memberReadError}));
+}
+function memberReadSucceeded(snapshot=state){memberUpdatedAt=Date.now();memberReadError=false;memberPanelState=snapshot;}
+function memberReadFailed(){memberReadError=true;publishMemberPanel();}
 let lockOffset=0;
 const ranks=['Member','Builder 1','Builder 2','Builder 3','Builder 4'].map(x=>t(x));
 const thresholds=[100n,200n,500n,1000n];
@@ -166,6 +177,7 @@ function syncActions(){
  const month=builderMonthState(state,builderMode);
  $('#begin-month').disabled=busy||!signer||!month.canBegin;
  $('#process-month').disabled=busy||!signer||!month.canProcess;
+ publishMemberPanel();
 }
 
 function write(key){if(!signer||!address)throw Error('Connect your wallet first.');if(transactionAddress&&address!==transactionAddress)throw Error('Wallet changed. Please review the action and try again.');return read[key].connect(signer);}
@@ -210,6 +222,7 @@ async function refreshMembershipState(){
  if(address!==expectedAddress||signer!==expectedSigner)throw Error('Wallet changed. Try again.');
  refreshSequence++;
  state={...state,...next,tokenStateVerified:state?.tokenPaused!==undefined&&state?.emergencyUnwind!==undefined,wallet:{...(wallet()||{}),...next.wallet}};
+ memberReadSucceeded(next);
  text('units',integer(next.wallet.units));text('account-units',integer(next.wallet.units));text('usd-balance',fmt(next.wallet.usdBalance));text('wallet-address',expectedAddress);
  text('membership-status',next.wallet.exists?'Registered member':'Not registered');text('registration-title',next.wallet.exists?'Add membership units':'Join the network');$('#register-form').elements.sponsor.disabled=next.wallet.exists;
  syncActions();
@@ -219,7 +232,7 @@ async function refreshTokenState(){
  const expectedAddress=address,expectedSigner=signer;
  const next=await preparationDeadline(readTokenSnapshot({rpc,binary:read.binary,usd:read.usd,token:read.token,tokenAddress:cfg.token,address:expectedAddress,chainId:cfg.chainId,recoveryFrozen:cfg.tokenContract==='FTIReserveTokenUpgradeable'}),25000);
  if(address!==expectedAddress||signer!==expectedSigner)throw Error('Wallet changed. Try again.');
- refreshSequence++;state={...state,...next,wallet:{...(wallet()||{}),...next.wallet}};
+ refreshSequence++;state={...state,...next,wallet:{...(wallet()||{}),...next.wallet}};memberReadSucceeded(next);
  renderTokenPrice(next);
  for(const [id,value]of Object.entries({'fti-balance':fmt(next.wallet.ftiBalance,5),unlocked:fmt(next.wallet.unlocked,5),'trade-balance':fmt(next.wallet.ftiBalance,5),'trade-unlocked':fmt(next.wallet.unlocked,5),'trade-locked':fmt(0n,5),'usd-balance':fmt(next.wallet.usdBalance),allowance:fmt(next.wallet.remaining),units:integer(next.wallet.units),'account-units':integer(next.wallet.units),'buy-available':`Balance: ${fmt(next.wallet.usdBalance)} USD · Allowance: ${fmt(next.wallet.remaining)} USD`,'sell-available':'Available: '+fmt(next.wallet.unlocked,6)+' FTI','wallet-address':expectedAddress}))text(id,value);
  text('trade-notice',!next.wallet.exists?'Register your wallet in Membership before buying FTI.':next.wallet.units===0n?'Add at least one membership unit before buying FTI.':next.tokenPaused||next.emergencyUnwind?'Token trading is currently paused by the contract.':t('Enter the USDT amount. Required checks and approvals continue automatically.','مبلغ تتر را وارد کن؛ بررسی‌ها و مراحل لازم به‌صورت خودکار ادامه پیدا می‌کنند.'));
@@ -388,7 +401,7 @@ async function approve(spender,amount){
  if(current<amount){status(networkProfile.testAssets?'Approve test USD spending in your wallet.':'Approve collateral spending in your wallet.');if(current>0n)await sendContract('usd','approve',spender,0);await sendContract('usd','approve',spender,amount);}
 }
 let walletProvider,providerListeners,selectedWallet,walletGeneration=0;
-function clearWallet(){walletGeneration++;selectedWallet=null;try{sessionStorage.removeItem('fti-wallet-connected');}catch{}stopPendingChecks();review.cancel();$('#unknown-send-form').hidden=true;$('#cancel-unknown').hidden=false;const smartHelp=$('#smart-account-help');if(smartHelp)smartHelp.hidden=true;const description=$('#pending-cancellation-description');if(description)description.textContent=v3Model&&(surface==='token'||location.hash==='#trade')?t('Cancellation only resolves the previous request and costs the network fee. It does not sell FTI.','لغو فقط درخواست قبلی را تعیین‌تکلیف می‌کند و کارمزد شبکه دارد؛ فروش FTI نیست.'):t('Cancellation only costs the network fee; it does not buy units.','لغو درخواست فقط کارمزد شبکه دارد و خرید یونیت نیست.');const details=$('#transaction-recovery-details');if(details)details.open=false;hashView.hide();$('#unknown-send-form').elements.hash.value='';$('#hash-lookup-result').textContent='';const local=$('#membership-flow-status');if(local)local.hidden=true;signer=null;address=null;state=null;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
+function clearWallet(){walletGeneration++;selectedWallet=null;try{sessionStorage.removeItem('fti-wallet-connected');}catch{}stopPendingChecks();review.cancel();$('#unknown-send-form').hidden=true;$('#cancel-unknown').hidden=false;const smartHelp=$('#smart-account-help');if(smartHelp)smartHelp.hidden=true;const description=$('#pending-cancellation-description');if(description)description.textContent=v3Model&&(surface==='token'||location.hash==='#trade')?t('Cancellation only resolves the previous request and costs the network fee. It does not sell FTI.','لغو فقط درخواست قبلی را تعیین‌تکلیف می‌کند و کارمزد شبکه دارد؛ فروش FTI نیست.'):t('Cancellation only costs the network fee; it does not buy units.','لغو درخواست فقط کارمزد شبکه دارد و خرید یونیت نیست.');const details=$('#transaction-recovery-details');if(details)details.open=false;hashView.hide();$('#unknown-send-form').elements.hash.value='';$('#hash-lookup-result').textContent='';const local=$('#membership-flow-status');if(local)local.hidden=true;signer=null;address=null;state=null;memberPanelState=null;memberUpdatedAt=null;memberReadError=false;autoDirty=false;councilOwner=false;refreshSequence++;renderWallet();syncActions();text('connect-label','Connect wallet');}
 function detachWallet(){if(providerListeners){walletProvider?.removeListener?.('accountsChanged',providerListeners.accounts);walletProvider?.removeListener?.('chainChanged',providerListeners.chain);walletProvider?.removeListener?.('disconnect',providerListeners.disconnect);}providerListeners=null;walletProvider=null;}
 function observeWallet(provider,expectedAddress=address){
  detachWallet();walletProvider=provider;
@@ -452,6 +465,7 @@ async function connect({silent=false}={}){
   }
   if(!current()||signer!==nextSigner||address!==nextAddress)return;
   if(dataError){
+   memberReadFailed();
    // Authorization succeeded. A public read outage must not revoke that wallet
    // or enable a purchase without a fresh verified membership/token snapshot.
    renderWallet();
@@ -480,7 +494,7 @@ if(cfg.mode==='local'){
  $('#local-accounts').onchange=connect;
 }
 const network=networkProfile.label;text('global-network',network);text('network-name',network);text('account-network',network);text('token-network',network);
-const titles={'token-home':'FTI token',overview:'Overview',network:'Membership & network',trade:'Buy & sell FTI',rewards:'Your rewards',activity:'Protocol activity',admin:'Governance & settlement'};
+const titles={'token-home':'FTI token',overview:'Overview',network:'Membership & network',trade:'Buy & sell FTI',rewards:'Your rewards',activity:'Protocol activity',support:t('Help center','مرکز راهنما'),admin:'Governance & settlement'};
 function navigate(page,focus=false){
  if(!titles[page])page=defaultPage;
  if(!surfacePages.some(([id])=>id===page)){location.assign(withLanguage(pagePath(page)));return;}document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==page);
@@ -513,7 +527,7 @@ async function refresh(){
  const note=$('#auto-capability');note.dataset.state=builderMode;
  note.textContent=t(builderMode==='selectable'?'Installed contract: selectable hourly auto-buy.':builderMode==='legacy'?'Installed contract: legacy 5% auto-buy with a maximum-price setting.':'Contract capabilities could not be verified. Auto-buy changes are disabled.');
  text('auto-policy',selectableAuto?'Choose 5–100% of your eligible hourly binary income for FTI purchases at the current price. Monthly Builder funds are not used. Existing pending funds are unchanged; purchase allowance and fees still apply.':builderMode==='legacy'?'When enabled, 5% of eligible hourly rewards is reserved for FTI purchases. Set the highest price you are willing to pay.':'Checking installed contract capabilities…');
- state=d;councilOwner=isOwner;if(cfg.batchedRewards)text('reward-queue',integer(d.rewardQueue||0)+' wallets awaiting cash payout');if(reserveModel)text('token-anchor',fmt(d.anchorSupply,6));
+ state=d;memberReadSucceeded();councilOwner=isOwner;if(cfg.batchedRewards)text('reward-queue',integer(d.rewardQueue||0)+' wallets awaiting cash payout');if(reserveModel)text('token-anchor',fmt(d.anchorSupply,6));
  if(fundedModel){text('point-retained',fmt(d.pointRetained));text('builder-retained',fmt(d.builderRetained));}
  const month=builderMonthState(d,builderMode);
  const monthLabels={'unknown':'Monthly status is unavailable; no date or readiness is assumed.','waiting-month':'Waiting for the next Gregorian month boundary.','waiting-hour':'Month boundary reached; hourly settlement must finish first.','ready':'Ready for monthly processing. A transaction is still required.','processing':'Monthly processing is in progress.'};
@@ -555,7 +569,7 @@ function renderWallet(){
 }
 $('#reward-all-panel').hidden=!cfg.batchedRewards;
 $('#reward-all').onclick=()=>transaction(()=>send(()=>write('binary').payRewards(100)));
-$('#refresh-state').onclick=async()=>{if(v3Model)void refreshTokenPrice().catch(()=>{});try{await refresh();status('Contract data refreshed.');}catch(e){status(reason(e),true);}};
+$('#refresh-state').onclick=async()=>{if(v3Model)void refreshTokenPrice().catch(()=>{});try{await refresh();status('Contract data refreshed.');}catch(e){memberReadFailed();status(reason(e),true);}};
 for(const[id,step]of [['locks-prev',-64],['locks-next',64]])$('#'+id).onclick=async()=>{lockOffset=Math.max(0,lockOffset+step);try{await refresh();}catch(e){status(reason(e),true);}};
 async function copy(value,input){try{await navigator.clipboard.writeText(value);status('Copied to clipboard.');}catch{if(input){input.focus();input.select();status('The link is selected. Copy it from the text field.');}else{const range=document.createRange();range.selectNodeContents($('#wallet-address'));getSelection().removeAllRanges();getSelection().addRange(range);status('The address is selected. Copy the selected text.');}}}
 $('#copy-address').onclick=()=>copy(address);$('#copy-referral').onclick=()=>copy($('#referral-link').value,$('#referral-link'));
@@ -637,19 +651,12 @@ document.querySelectorAll('[data-time]').forEach(button=>button.onclick=()=>tran
 const eventsNotice=document.createElement('p');
 eventsNotice.id='events-status';eventsNotice.setAttribute('role','status');eventsNotice.setAttribute('aria-live','polite');
 $('#events').before(eventsNotice);
+memberActivity=createMemberActivity({container:$('#events'),document,explorer,translate:t,getAddress:()=>address,formatBlock:integer});
 const activityEvents=createActivityEvents({
  read:json,isActive:()=>!$('#activity').hidden,
  loading:value=>{$('#refresh-events').disabled=value;$('#events').setAttribute('aria-busy',String(value));},
  notice:state=>{eventsNotice.dataset.state=state;eventsNotice.textContent=activityText(state);$('#events').dataset.state=['ready','empty'].includes(state)?'verified':['stale','refreshing'].includes(state)?'stale':'unavailable';},
- render:rows=>{
-  const fragment=document.createDocumentFragment();
-  for(const row of rows){
-   if(!row||typeof row.name!=='string'||!Array.isArray(row.args))throw Error('Events are unavailable.');
-   const node=document.createElement('div');node.className='event';const title=document.createElement('strong');title.textContent=row.name+' · Block '+integer(row.block);const pre=document.createElement('pre');pre.textContent=row.args.map(arg=>arg.name+': '+arg.value).join('\n');node.append(title,pre);
-   if(explorer){const link=document.createElement('a');link.href=explorer+'/tx/'+row.hash;link.target='_blank';link.rel='noreferrer';link.textContent=t('View transaction ↗');node.append(link);}fragment.append(node);
-  }
-  $('#events').replaceChildren(fragment);
- }
+ render:rows=>memberActivity.render(rows)
 });
 function loadEvents(){return activityEvents.load();}
 function cancelEvents(){activityEvents.cancel();}
@@ -670,7 +677,7 @@ $('#proposal-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const 
 $('#timelock-form').onsubmit=e=>{e.preventDefault();transaction(async()=>{const p=await read.council.proposal(BigInt(e.target.elements.id.value));if(p[0].toLowerCase()!==cfg.timelock.toLowerCase()||!p[3])throw Error('The scheduling proposal has not been executed.');const args=read.timelock.interface.decodeFunctionData('schedule',p[1]);await send(()=>write('timelock').execute(args[0],args[1],args[2],args[3],args[4]));});};
 text('token-address',cfg.token);$('#token-explorer').hidden=!explorer;if(explorer)$('#token-explorer').href=explorer+'/address/'+cfg.token;
 renderWallet();syncActions();navigate(location.hash.slice(1)||((sponsor&&isAddress(sponsor))?'network':defaultPage));
-try{if(cfg.mode==='local')await connect();else await initializeReadSession({refresh,ready:()=>{if(!connecting&&!busy&&!signer)status('Contract data loaded. Connect a wallet to manage your account.');},failed:error=>{if(!connecting&&!busy&&!signer)status(reason(error),true);},reconnect:async()=>{let reconnect=false;try{reconnect=sessionStorage.getItem('fti-wallet-connected')==='yes';}catch{}if(reconnect)await connect({silent:true});}});}catch(error){if(!connecting&&!busy)status(reason(error),true);}
+try{if(cfg.mode==='local')await connect();else await initializeReadSession({refresh,ready:()=>{if(!connecting&&!busy&&!signer)status('Contract data loaded. Connect a wallet to manage your account.');},failed:error=>{memberReadFailed();if(!connecting&&!busy&&!signer)status(reason(error),true);},reconnect:async()=>{let reconnect=false;try{reconnect=sessionStorage.getItem('fti-wallet-connected')==='yes';}catch{}if(reconnect)await connect({silent:true});}});}catch(error){if(!connecting&&!busy)status(reason(error),true);}
 let backgroundRefreshRunning=false;
 setInterval(async()=>{
  if(busy||connecting||document.hidden||backgroundRefreshRunning)return;
@@ -680,6 +687,6 @@ setInterval(async()=>{
   if(address&&v3Model&&(surface==='token'||location.hash==='#trade'))await refreshTokenState();
   else if(address&&surface==='member'&&location.hash==='#network')await refreshMembershipState();
   else try{await refresh();}catch(error){if(address)await refreshMembershipState();else throw error;}
- }catch{/* Keep the current action visible; the next bounded refresh retries. */}
+ }catch{memberReadFailed();/* Keep the current action visible; the next bounded refresh retries. */}
  finally{backgroundRefreshRunning=false;}
 },30000);

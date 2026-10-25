@@ -1,0 +1,62 @@
+name: Professional user panel
+on:
+  push:
+    branches: [feat/professional-user-panel-20261025]
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'scripts/build-web.mjs'
+      - 'web/**'
+      - 'tools/install-professional-user-panel*'
+      - 'test/**'
+      - 'landing/tests/**'
+      - '.github/workflows/professional-user-panel.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix landing --ignore-scripts
+      - run: npm run build:web
+      - run: npm run compile
+      - name: Account identity, freshness, localization and transaction regressions
+        run: >-
+          node --test test/member-account-view.test.mjs test/member-panel-store.test.mjs
+          test/member-translations.test.mjs test/member-activity.test.mjs
+          test/activity-events.test.mjs test/member-reserve-panel.test.mjs
+          test/member-landing-theme.test.mjs test/controller-price.test.mjs
+          test/controller-wallet-events.test.mjs test/controller-pending-monitor.test.mjs
+          test/controller-safepal-connect.test.mjs test/membership-purchase-flow.test.mjs
+          test/membership-snapshot.test.mjs test/membership-availability.test.mjs
+          test/simple-purchase-ui.test.mjs test/shared-wallet-navigation.test.mjs
+          test/token-sell-flow.test.mjs test/token-purchase-flow.test.mjs
+          test/complete-translations.test.mjs test/network-data.test.mjs test/read-json.test.mjs
+      - name: Installer rollback, predecessor preservation and service UID HTTP reads
+        run: sudo env PYTHONDONTWRITEBYTECODE=1 FTI_REQUIRE_SERVICE_UID_HTTP_TEST=1 python3 test/professional-user-panel-install.test.py -q
+      - name: Reproduce the exact professional panel installer
+        run: |
+          python3 tools/install-professional-user-panel.py --package . --output /tmp/fti-professional-panel.py
+          cmp tools/install-professional-user-panel-release.py /tmp/fti-professional-panel.py
+      - run: npm --prefix landing run build
+      - run: cd landing && npx playwright install --with-deps chromium webkit
+      - name: Chromium user journeys, layouts and boot recovery
+        run: cd landing && npx playwright test tests/professional-member-panel.spec.mjs tests/panel-identity.spec.mjs tests/member-reserve-panel.spec.mjs tests/boot-recovery.spec.mjs
+      - name: WebKit user journeys, layouts and boot recovery
+        run: cd landing && FTI_BROWSER=webkit npx playwright test tests/professional-member-panel.spec.mjs tests/panel-identity.spec.mjs tests/member-reserve-panel.spec.mjs tests/boot-recovery.spec.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: professional-user-panel-browser
+          path: landing/test-results

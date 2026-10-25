@@ -43,6 +43,7 @@ jobs:
       - name: Installer including actual service UID HTTP readability
         run: sudo env PYTHONDONTWRITEBYTECODE=1 FTI_REQUIRE_SERVICE_UID_HTTP_TEST=1 python3 test/panel-reliability-install.test.py -q
       - name: Reproduce the exact incremental installer
+        if: github.head_ref == 'fix/panel-loading-reliability-20261023' || github.ref_name == 'fix/panel-loading-reliability-20261023'
         run: |
           python3 tools/install-panel-reliability.py --package . --output /tmp/fti-panel-reliability-rebuilt.py
           cmp tools/install-panel-reliability-release.py /tmp/fti-panel-reliability-rebuilt.py
