@@ -2,7 +2,7 @@
 
 روی همان VPS پروژه FTI، در ترمینال تعاملی و با کاربر root اجرا شود. وب و تلگرام دو مرحله مستقل دارند؛ خطای دسترسی تلگرام یا RPC پیش‌نمایش ربات نباید نصب وب را متوقف کند. خروجی `ROLLBACK_COMMAND` را نگه دارید.
 
-نسخه کد هر دو فایل: `e10a37a4a227666df4b821ee68ff27baed97ee87`. هر فایل با SHA256 بررسی می‌شود.
+نسخه نصب‌کننده وب: `5f82f09a519ead7ec03263ba47cfa15dcfbcf28e`؛ نسخه ربات: `e10a37a4a227666df4b821ee68ff27baed97ee87`. هر فایل با SHA256 بررسی می‌شود.
 
 ## ۱. نصب مستقل وب
 
@@ -16,15 +16,17 @@
   trap 'rm -f -- "$fti_panel_fix"' EXIT
   curl --fail --silent --show-error --location \
     --connect-timeout 10 --max-time 90 \
-    'https://raw.githubusercontent.com/Rezamoradifar/fti-protocol/e10a37a4a227666df4b821ee68ff27baed97ee87/tools/install-panel-completion-release.py' \
+    'https://raw.githubusercontent.com/Rezamoradifar/fti-protocol/5f82f09a519ead7ec03263ba47cfa15dcfbcf28e/tools/install-panel-completion-release.py' \
     --output "$fti_panel_fix"
   printf '%s  %s\n' \
-    '92bd4e7171d300ed47a3ca93ae097b917701c5fc035441460107208aa00e1ffd' \
+    'aeb26f34f6ca3d28b30d666f663f8c6c15f6ff4c77fd0fe1d34aed90366a31e8' \
     "$fti_panel_fix" | sha256sum --check -
   python3 "$fti_panel_fix"
   python3 "$fti_panel_fix" --apply
 )
 ```
+
+اصلاح ۲۶ اکتبر: سقف قدیمی ۱۰۰ مگابایت یا ۴۰۰۰ فایل برای هر پوشه، به بودجه کلی محدود ۱ گیگابایت و ۱۲۰۰۰ فایل و پوشه تبدیل شده است. نصب‌کننده پیش از هر نوشتن، مسیرهای عمومی را شمارش و فضای آزاد و inode لازم را از حجم واقعی و حاشیه ۶۴ مگابایت محاسبه می‌کند. خطوط `FTI_PANEL_COMPLETION_PUBLIC_COPY_PLAN` حجم و تعداد هر مسیر را نشان می‌دهند. فایل‌های نسخه‌های پیشین حذف نمی‌شوند؛ کنترل لینک، فایل پنهان، اندازه تک‌فایل و تغییر هم‌زمان منبع پابرجاست. این اصلاح فایل‌های برنامه، قرارداد و هویت نسخه را تغییر نمی‌دهد.
 
 علامت موفقیت `FTI_PANEL_COMPLETION_INSTALLED_WEB_RESTARTED` است؛ اجرای دوباره `FTI_PANEL_COMPLETION_ALREADY_INSTALLED` می‌دهد. نسخه عمومی باید entry زیر را ارائه کند:
 
