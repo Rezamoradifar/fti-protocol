@@ -30,7 +30,7 @@ Source checks and simulated browser tests do not prove a production installation
 ## Executed release checks
 
 - Both production builds passed.
-- 184 focused JavaScript checks passed.
+- 660 JavaScript checks across all 90 non-chain test files passed, including the price/sale controller fixtures and new snapshot-invalidation cases.
 - 58 Chromium browser checks passed, including mainnet copy, pairing, member/guardian support, installed-style regressions and the new chart/tree/wallet flows.
 - 51 installer checks and the real frozen-canonical-source local EVM cold boot passed.
 - The website installer was packaged reproducibly three times with identical bytes.

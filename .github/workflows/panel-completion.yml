@@ -36,6 +36,7 @@ jobs:
           test/member-history-view.test.mjs test/support-tickets.test.mjs
           test/support-ticket-ui.test.mjs test/walletconnect-adapter.test.mjs
           test/controller-safepal-connect.test.mjs test/activity-events.test.mjs
+          test/controller-price.test.mjs test/token-sell-flow.test.mjs
           test/appearance.test.mjs test/asset-display.test.mjs test/network-data.test.mjs
           test/market-opening-history.test.mjs test/panel-market-translations.test.mjs
           test/wallet-discovery.test.mjs test/wallet-token.test.mjs

@@ -6,6 +6,7 @@ import {setImmediate as tick} from 'node:timers/promises';
 import {Interface,parseEther,formatEther} from 'ethers';
 import {walletReview} from '../frontend/wallet-review.js';
 import {readWalletIdentity} from '../frontend/wallet-preflight.js';
+import {formatAssetAmount,exactAssetAmount,tokenValuation} from '../frontend/asset-display.js';
 import {transactionState,resolvePending,prepareContractRequest,preparedWalletSend,submitTracked,confirmedReceipt} from '../frontend/transaction-state.js';
 
 const source=fs.readFileSync(new URL('../frontend/controller.js',import.meta.url),'utf8');
@@ -103,11 +104,16 @@ test('existing unknown or pending-hash records block sales before fresh reads or
 });
 
 test('actual token refresh updates the available-sale balance independently of full dashboard data',async()=>{
- const labels={},state={wallet:{address:A}},context={address:A,signer:{},state,cfg:{chainId:56,token:TOKEN},v3Model:true,rpc:{},read:{binary:{},usd:{},token:{}},refreshSequence:0,
-  wallet:()=>state.wallet,preparationDeadline:promise=>promise,readTokenSnapshot:async()=>({timestamp:2000,block:10,tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,wallet:{address:A,exists:false,units:0n,ftiBalance:parseEther('0.125'),unlocked:parseEther('0.125'),usdBalance:0n,remaining:0n}}),
-  memberReadSucceeded(){},renderTokenPrice(){},syncActions(){},text:(key,value)=>labels[key]=value,fmt:formatEther,integer:String,t:value=>value};
- vm.runInNewContext(section('async function refreshTokenState(','async function transaction('),context);await context.refreshTokenState();
+ const labels={},nodes={},timestamp=Math.floor(Date.now()/1000),state={wallet:{address:A}},context={address:A,signer:{},state,cfg:{chainId:56,token:TOKEN},v3Model:true,rpc:{},read:{binary:{},usd:{},token:{}},refreshSequence:0,
+  wallet:()=>context.state.wallet,preparationDeadline:promise=>promise,readTokenSnapshot:async()=>({timestamp,block:10,price:parseEther('0.1'),reserve:parseEther('1'),supply:parseEther('10'),tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,wallet:{address:A,exists:false,units:0n,ftiBalance:parseEther('0.125'),unlocked:parseEther('0.125'),usdBalance:0n,remaining:0n}}),
+  $:selector=>nodes[selector]??=( {title:''} ),networkProfile:{testAssets:false},exactAssetAmount,tokenValuation,
+  utc:seconds=>new Date(Number(seconds)*1000).toISOString(),memberReadSucceeded(){},renderTokenPrice(){},syncActions(){},text:(key,value)=>labels[key]=value,
+  fmt:(value,digits=2)=>formatAssetAmount(value,{digits,locale:'en-US'}),integer:String,t:value=>value};
+ vm.runInNewContext(section('function renderWalletValues(){','function renderWallet(){')+'\n'+section('async function refreshTokenState(','async function transaction('),context);await context.refreshTokenState();
  assert.equal(labels['sell-available'],'Available: 0.125 FTI');assert.match(labels['trade-notice'],/before buying FTI/);
+ assert.equal(context.state.tokenValuationVerified,true);assert.equal(labels['fti-estimated-value'],'0.01 USDT');assert.match(labels['fti-estimate-note'],/Gross contract value before fees.*Block 10/);
+ assert.equal(nodes['#fti-balance'].title,'0.125');assert.equal(nodes['#trade-balance'].title,'0.125');assert.equal(nodes['#usd-balance'].title,'0');
+ context.state.tokenValuationVerified=false;context.renderWalletValues();assert.equal(labels['fti-estimated-value'],'—');assert.match(labels['fti-estimate-note'],/fresh wallet balance/);
 });
 
 test('actual action gates freeze sale fields while busy and allow a funded nonmember to sell when ready',()=>{
@@ -118,7 +124,7 @@ test('actual action gates freeze sale fields while busy and allow a funded nonme
   form.querySelectorAll=selector=>selector==='input,select'?form.elements:writeButton?[writeButton]:[];
  }
  node('unknown-send-form').elements.hash={};
- const context={busy:true,connecting:false,signer:{},address:A,state:{tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,phase:0},
+ const context={busy:true,connecting:false,importingToken:null,signer:{},address:A,state:{tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,phase:0},
   wallet:()=>({exists:false,units:0n,ftiBalance:UNIT,unlocked:UNIT}),councilOwner:false,lockOffset:0,selectableAuto:false,builderMode:'legacy',cfg:{},
   $:selector=>node(selector.slice(1)),document:{querySelectorAll:()=>[buy,sell]},membershipBlock:()=>null,t:value=>value,builderMonthState:()=>({canBegin:false,canProcess:false})};
  context.publishMemberPanel=()=>{};
