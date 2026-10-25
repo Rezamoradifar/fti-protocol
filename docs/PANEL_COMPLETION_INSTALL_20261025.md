@@ -2,14 +2,18 @@
 
 The self-contained installer combines the professional member UI, corrected
 shared translations, the patched Universal Provider wallet bridge, paginated
-personal protocol history with CSV export, and wallet-authenticated support
-threads. It performs one restart of `fti-continuity-web.service`. It does not
+personal protocol history with CSV export, wallet-authenticated support threads,
+and the current market, wallet and genealogy interface corrections. The shared
+global stylesheet is also delivered under a new immutable URL so that mobile
+chart labels and glass appearance fixes take effect on the installed runtime.
+It performs one restart of `fti-continuity-web.service`. It does not
 send blockchain transactions or publish support requests.
 
 ## Deployment boundary
 
 The active release is never modified. The installer accepts the reviewed member
-reserve, panel reliability or professional panel HTML and verifies their pinned
+reserve, panel reliability, professional panel, or the exact reviewed completion
+release from commit `6f957513e3468061d5f30907d6acfef7773eec96` and verifies their pinned
 assets, boot fallback, referral wrapper, optional official-channel overlay,
 mainnet addresses, source identity and existing runtime helper pins. The old
 release's full manifest and artifact identity must also match the live
@@ -37,7 +41,7 @@ therefore creates a sibling release with these boundaries:
   the fingerprinted source directories. Only their relative import paths change.
   Original contract creation, runtime code, proxy implementation, guardian,
   timelock, collateral and accounting verification still runs on normal startup.
-- The new UI, stylesheet, artwork and wallet bridge have immutable URLs. The new
+- The new UI, member stylesheet, shared global stylesheet, artwork and wallet bridge have immutable URLs. The new
   app binds directly to the new bridge URL and the reviewed existing ethers URL.
   Earlier immutable assets remain available for rollback.
 - The existing `node_modules` tree is shared through one deliberate link; no npm
@@ -49,6 +53,13 @@ No environment file, deployment file, credential, keeper setting or user-data
 directory is copied or overwritten. A dedicated web-only systemd drop-in sets
 only `WorkingDirectory`, `ExecStart`, and one additional `ReadWritePaths` grant
 for `/var/lib/fti-support/56-0x13ac3af4fe3e72dccffd52ab67e4d884b6d97df9`.
+For the market update this is the later
+`zzzzzzz-fti-market-panel.conf` override. An existing reviewed
+`zzzzzz-fti-panel-completion.conf` remains byte-identical underneath it, so
+rollback removes only the new override and restores the previous service entry.
+The predecessor's complete stage inventory, exact application/SDK/style bytes,
+eleven runtime overlay hashes, effective command and drop-in bytes are checked
+before accepting an upgrade. Unknown completion releases are rejected.
 Existing environment references and sandbox protections remain effective.
 The support directory is owned by the actual systemd user/group and has mode
 `0700`; backup records have mode `0600` in a root-only backup directory.
@@ -57,7 +68,10 @@ A random sibling build directory is published atomically with Linux
 `renameat2(RENAME_NOREPLACE)` only after a complete inventory exists. Interrupted
 copying leaves the live release and final destination intact. A completed stage
 retained after rollback can be reused only when its complete inventory matches.
-An operator-created final-directory collision is preserved.
+An operator-created final-directory collision is preserved. When upgrading a
+staged completion release, the new stage links directly to the original physical
+dependency tree, rather than creating a chain of dependency symlinks. Neither
+the original release nor the previous completion stage is modified.
 
 ## Verification and rollback
 
@@ -114,6 +128,33 @@ addresses or transactions. A separate `systemd-analyze verify` fixture confirmed
 the drop-in syntax with `ProtectSystem=strict`; this executor did not run the
 production systemd service or its mount namespace.
 
+## Operator command for the market update
+
+Run as root on the existing FTI VPS. The immutable publication commit is filled
+after the reviewed release is published; the checksum below identifies the
+fully reproduced package. The first Python invocation is read-only preflight.
+Keep the exact rollback command printed by the `--apply` invocation.
+
+```sh
+(
+  set -euo pipefail
+  fti_panel_completion="$(mktemp /tmp/fti-panel-completion.XXXXXX)"
+  trap 'rm -f -- "$fti_panel_completion"' EXIT
+
+  curl --fail --silent --show-error --location \
+    --connect-timeout 10 --max-time 90 \
+    'https://raw.githubusercontent.com/Rezamoradifar/fti-protocol/e10a37a4a227666df4b821ee68ff27baed97ee87/tools/install-panel-completion-release.py' \
+    --output "$fti_panel_completion"
+
+  printf '%s  %s\n' \
+    '92bd4e7171d300ed47a3ca93ae097b917701c5fc035441460107208aa00e1ffd' \
+    "$fti_panel_completion" | sha256sum --check -
+
+  python3 "$fti_panel_completion"
+  python3 "$fti_panel_completion" --apply
+)
+```
+
 ## Canonical ethers route compatibility
 
 The original runtime serves `/vendor/ethers.js` directly from
@@ -126,4 +167,7 @@ and immutable UI copy must both match the reviewed ethers SHA-256 from
 Regression fixtures use the real absent-copy layout through preflight, install,
 repeat and rollback. Extra checks cover optional-copy preservation, SDK mutation,
 symlink rejection and unexpected absolute paths. The canonical cold-start test
-removes the generated copy and verifies the actual server route.
+removes the generated copy and verifies the actual server route. Additional
+fixtures cover immutable shared-CSS delivery, source-stylesheet preservation,
+read-only upgrade preflight, the exact reviewed completion predecessor, direct
+physical dependency reuse, repeated invocation and rollback to that predecessor.
