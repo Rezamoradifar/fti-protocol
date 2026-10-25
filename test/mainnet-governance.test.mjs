@@ -6,7 +6,9 @@ import {BrowserProvider,Contract,MaxUint256,parseEther as E} from 'ethers';
 import {deployOne,artifact,checkAccounting} from '../scripts/lib.mjs';
 
 test('current proxy release: council-only roles, five votes, holder redemption and final exit',{timeout:180000},async t=>{
- const engine=ganache.provider({chain:{chainId:31337},logging:{quiet:true},wallet:{totalAccounts:46},miner:{blockGasLimit:30000000}});
+ // Deposits use hourly contract windows; keep this local fixture independent
+ // of the CI runner's wall clock and cross boundaries only explicitly.
+ const engine=ganache.provider({chain:{chainId:31337,time:new Date('2026-10-01T12:15:00Z')},logging:{quiet:true},wallet:{totalAccounts:46},miner:{blockGasLimit:30000000,timestampIncrement:1}});
  const p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
  try{
   const w=await Promise.all(Array.from({length:46},(_,i)=>p.getSigner(i))),a=await Promise.all(w.map(s=>s.getAddress()));
@@ -17,7 +19,7 @@ test('current proxy release: council-only roles, five votes, holder redemption a
   const bp=await deployOne('FTIProxy',[bi.target,bi.interface.encodeFunctionData('initialize',[usd.target,tp.target,lock.target,council.target,a[45],a.slice(0,31)])],w[0]);
   const token=new Contract(tp.target,artifact('FTIReserveTokenUpgradeable').abi,w[0]),binary=new Contract(bp.target,artifact('FundedBinaryPlanUpgradeable').abi,w[0]),suite={usd,token,binary};
   await send(token.bind(binary.target));
-  const isolated=async fn=>{const s=await p.send('evm_snapshot',[]);try{await fn();}finally{await p.send('evm_revert',[s]);}};
+  const isolated=async fn=>{const s=await p.send('evm_snapshot',[]);try{await fn();}finally{assert.equal(await p.send('evm_revert',[s]),true);}};
   const fund=async()=>{await send(usd.faucet());await send(usd.approve(binary.target,MaxUint256));await send(usd.approve(token.target,MaxUint256));await send(binary.addUnits(1));await send(token.buy(E('100'),0,MaxUint256));};
   await t.test('seven council wallets have no initial position, activation, rank or plan reward',()=>isolated(async()=>{
    assert.equal(await binary.memberCount(),31n);assert.equal(await lock.getMinDelay(),259200n);

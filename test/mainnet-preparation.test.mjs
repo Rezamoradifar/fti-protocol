@@ -39,7 +39,9 @@ test('mainnet planning requires explicit public inputs; cannot reuse testnet def
 test('unsigned chain-56 plan makes no writes and its exact payloads deploy the approved contract model on a local EVM',{timeout:300000},async()=>{
  // Chain ID 56 is simulated locally; this test never connects to BNB mainnet.
  const approved=loadWallets();
- const chainServer=ganache.server({chain:{chainId:56},logging:{quiet:true},wallet:{totalAccounts:40,unlockedAccounts:approved.genesis},miner:{blockGasLimit:30000000}});
+ // The local production payload exercises purchases before an explicit hourly
+ // close; block time must not depend on when a CI runner starts this test.
+ const chainServer=ganache.server({chain:{chainId:56,time:new Date('2026-10-01T12:15:00Z')},logging:{quiet:true},wallet:{totalAccounts:40,unlockedAccounts:approved.genesis},miner:{blockGasLimit:30000000,timestampIncrement:1}});
  await chainServer.listen(0,'127.0.0.1');const engine=chainServer.provider;
  const provider=new BrowserProvider(engine,undefined,{cacheTimeout:-1});provider.pollingInterval=10;
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fti-mainnet-integration-'));let web;

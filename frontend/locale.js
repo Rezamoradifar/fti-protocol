@@ -1,15 +1,19 @@
 import {completeTranslations} from './complete-translations.js';
 import {memberTranslations} from './member-translations.js';
+import {panelCompletionTranslations} from './panel-completion-translations.js';
 import {landingTranslations} from './landing-translations.js';
 import {coreTranslations} from './core-translations.js';
 import {language,initializeLanguage} from './language-policy.js';
 export {language,initializeLanguage,LANGUAGES,languageInfo,changeLanguage,withLanguage,displayNumber,displayUTC} from './language-policy.js';
 export function translate(value,lang=language,fa){
  const text=String(value);if(lang==='en')return text;
- if(memberTranslations[lang]?.[text])return memberTranslations[lang][text];
  if(completeTranslations[lang]?.[text])return completeTranslations[lang][text];
  const landing=landingTranslations[lang];if(landing&&Object.hasOwn(landing,text))return landing[text];
  const core=coreTranslations[lang];if(core&&Object.hasOwn(core,text))return core[text];
+ // New workspace copy supplements the shared catalog. Existing navigation,
+ // wallet and financial labels keep the same wording across every surface.
+ if(memberTranslations[lang]?.[text])return memberTranslations[lang][text];
+ if(panelCompletionTranslations[lang]?.[text])return panelCompletionTranslations[lang][text];
  if(lang==='fa')return fa||translations[text]||dynamicText(text);
  return dynamicLocale(text,lang);
 }

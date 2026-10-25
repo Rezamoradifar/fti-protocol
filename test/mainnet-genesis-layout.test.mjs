@@ -27,7 +27,11 @@ test('index distinguishes legacy complete trees and the approved six-row tree',a
  assert.throws(()=>genesisPlacementIndex(g,'unreviewed-layout'),/UNSUPPORTED/);
 });
 test('production proxy initializes the exact drawing and fills either free side without rewriting genesis',{timeout:240000},async t=>{
- const engine=ganache.provider({chain:{chainId:31337},logging:{quiet:true},wallet:{totalAccounts:46},miner:{blockGasLimit:30000000}});
+ // The production deposit window closes at each UTC hour. A wall-clock-backed
+ // fixture can cross that boundary between placement cases, even after an EVM
+ // snapshot revert. Advance this local chain only through deterministic blocks
+ // or an explicit time change; hourly settlement itself remains enforced below.
+ const engine=ganache.provider({chain:{chainId:31337,time:new Date('2026-10-01T12:15:00Z')},logging:{quiet:true},wallet:{totalAccounts:46},miner:{blockGasLimit:30000000,timestampIncrement:1}});
  const p=new BrowserProvider(engine,undefined,{cacheTimeout:-1});p.pollingInterval=10;
  try{
   const w=await Promise.all(Array.from({length:46},(_,i)=>p.getSigner(i))),a=await Promise.all(w.map(s=>s.getAddress()));
@@ -38,7 +42,7 @@ test('production proxy initializes the exact drawing and fills either free side 
   const bp=await deployOne('FTIProxy',[bi.target,bi.interface.encodeFunctionData('initialize',[usd.target,tp.target,lock.target,council.target,a[45],a.slice(0,31)])],w[0]);
   const token=new Contract(tp.target,artifact('FTIReserveTokenUpgradeable').abi,w[0]),binary=new Contract(bp.target,artifact('FundedBinaryPlanUpgradeable').abi,w[0]),suite={usd,token,binary};
   await send(token.bind(binary.target));const layout=approvedGenesisLayout();
-  const isolated=async fn=>{const s=await p.send('evm_snapshot',[]);try{await fn();}finally{await p.send('evm_revert',[s]);}};
+  const isolated=async fn=>{const s=await p.send('evm_snapshot',[]);try{await fn();}finally{assert.equal(await p.send('evm_revert',[s]),true);}};
   await t.test('all 31 wallets keep order, correct parent/side/depth, zero units and no council positions',async()=>{
    assert.equal(await assertFreshGenesisLayout(binary,a.slice(0,31)),layout.id);
    assert.equal(await binary.memberCount(),31n);
@@ -73,6 +77,25 @@ test('production proxy initializes the exact drawing and fills either free side 
    assert.equal(rootAfter.carryL,root.carryL+1n);assert.equal(rootAfter.carryR,root.carryR);
    assert.equal(await binary.pointPool(),pool+E('90'));assert.equal((await binary.members(a[39])).parent,a[8]);
    assert.equal(await binary.unitsOf(a[16]),0n);await checkAccounting(suite);
+  }));
+  await t.test('expired hourly window rejects deposits without moving funds or positions and reopens after settlement',()=>isolated(async()=>{
+   for(const i of [0,39]){await send(usd.connect(w[i]).faucet());await send(usd.connect(w[i]).approve(binary.target,MaxUint256));}
+   const before=await usd.balanceOf(a[39]),rootBefore=await usd.balanceOf(a[0]),parentBefore=await binary.members(a[8]);
+   const latest=await p.getBlock('latest'),end=Number(await binary.epochEnd());
+   await p.send('evm_increaseTime',[end-latest.timestamp]);await p.send('evm_mine',[]);
+   assert((await p.getBlock('latest')).timestamp>=end);
+   const closedWindow=error=>error.code==='CALL_EXCEPTION'&&error.data===binary.interface.getError('InvalidOperation').selector;
+   await assert.rejects(()=>binary.connect(w[39]).registerWithPlacement.staticCall(a[8],a[8],1),closedWindow);
+   await assert.rejects(()=>binary.addUnits.staticCall(1),closedWindow);
+   assert.equal(await binary.registered(a[39]),false);assert.equal(await binary.memberCount(),31n);
+   assert.equal(await usd.balanceOf(a[39]),before);assert.equal(await usd.balanceOf(a[0]),rootBefore);
+   assert.equal(await binary.unitsOf(a[0]),0n);assert.deepEqual(Array.from(await binary.members(a[8])),Array.from(parentBefore));
+   await send(binary.beginEpochClose());assert.equal(await binary.phase(),0n);
+   assert(Number(await binary.epochEnd())>(await p.getBlock('latest')).timestamp);
+   await send(binary.connect(w[39]).registerWithPlacement(a[8],a[8],1));
+   const parentAfter=await binary.members(a[8]);assert.equal(parentAfter.left,a[39]);assert.equal(parentAfter.right,a[16]);
+   assert.equal(await binary.unitsOf(a[39]),1n);assert.equal(before-await usd.balanceOf(a[39]),E('100'));
+   await checkAccounting(suite);
   }));
  }finally{await engine.disconnect();}
 });

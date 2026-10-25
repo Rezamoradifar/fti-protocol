@@ -403,3 +403,27 @@ body[data-surface="member"].light .member-volume-track span { background: linear
   body[data-surface="member"] :is(.sidebar, .member-art-toggle, .member-settings) { display: none !important; }
   body[data-surface="member"] main { margin: 0 !important; padding: 0 !important; }
 }
+
+/* Personal history and authenticated support share the member glass surface. */
+.member-history-panel,.member-support-tickets { margin-top: 20px; min-width: 0; }
+.member-history-tools,.member-history-controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.member-history-status,.member-support-status { line-height: 1.8; overflow-wrap: anywhere; }
+.member-history-results,.member-ticket-list,.member-ticket-thread { display: grid; gap: 12px; min-width: 0; }
+.member-history-event,.member-ticket-message { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: color-mix(in srgb,var(--panel) 85%,transparent); }
+.member-history-event :is(code,a),.member-ticket-thread code,.member-ticket-row small { overflow-wrap: anywhere; word-break: break-word; }
+.member-ticket-row { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 10px; width: 100%; text-align: start; min-height: 64px; }
+.member-ticket-row time,.member-ticket-message time { color: var(--muted); font-size: 12px; }
+.member-ticket-message { display: grid; gap: 8px; }
+.member-ticket-message p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.member-ticket-create,.member-ticket-thread form { margin-top: 20px; display: grid; gap: 14px; }
+.member-support-tickets :is(input,select,textarea) { box-sizing: border-box; min-width: 0; width: 100%; }
+.member-support-tickets textarea { resize: vertical; }
+.member-support-tickets .panel-head { flex-wrap: wrap; gap: 12px; }
+.member-support-tickets .actions { flex-wrap: wrap; }
+@media(max-width:640px) {
+ .member-support-tickets :is(input,select,textarea) { font-size: 16px; }
+ .member-support-tickets .panel-head > button { width: 100%; }
+ .member-history-tools > button,.member-history-controls > button { flex: 1 1 140px; }
+ .member-ticket-row { align-items: flex-start; }
+ .member-ticket-row b { flex-basis: 100%; }
+}
