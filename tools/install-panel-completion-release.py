@@ -49,6 +49,7 @@ ROUTES = ('/app/', '/token/', '/admin/')
 BASE = 'fti-mainnet-ui-eead15d141fbbc07'
 
 BASE_APP = 'a6ed0da9729698dd66d3db996e8d1dc370d0fd6bd088d0d1730c8f7ab3dcfacc'
+ETHERS_SHA = 'b016b0c3898c78fd8156466eb1ff1f42c9df951c2f0d64c9bdf799fe745b0a6c'
 
 LEGAL = '573cc95a6417c69a6ca44804f440f00965283c8cdcc50025305a7a50f53940ac'
 
@@ -516,6 +517,20 @@ def completion_plan(before, entry_url, css_url, professional):
     return candidates[0]
 
 
+def ethers_runtime_path(root):
+    modules = root / 'node_modules'
+    if modules.is_symlink():
+        # Only the reviewed staged release's one deliberate dependency link is
+        # allowed. Do not resolve arbitrary links in a live release tree.
+        marker, info = regular(root / '.fti-panel-completion.json')
+        require(info.st_uid == 0 and not info.st_mode & 0o022, 'UNSAFE_STAGED_MARKER')
+        source = safe_path(Path(json.loads(marker)['originalRoot']))
+        require(source != root and source.parent == root.parent, 'UNEXPECTED_DEPENDENCY_ROOT')
+        validate_stage(root, source, root.name)
+        modules = source / 'node_modules'
+    return safe_path(modules / 'ethers/dist/ethers.min.js')
+
+
 def capture_protected(root, required, baseline, overlay):
     pins = {}
     server = sha(regular(root / ENTRY)[0])
@@ -539,8 +554,17 @@ def capture_protected(root, required, baseline, overlay):
     referral = regular(root / ('web' + REFERRAL + 'referral-context.js'))[0]
     require(hashlib.sha1(b'blob ' + str(len(referral)).encode() + b'\0' + referral).hexdigest() == REFERRAL_BLOB,
             'REFERRAL_MODULE_MISMATCH')
+    runtime = ethers_runtime_path(root)
+    require(sha(regular(runtime)[0]) == ETHERS_SHA and
+            sha(regular(root / ('web/' + BASE + '/vendor/ethers.js'))[0]) == ETHERS_SHA,
+            'UNREVIEWED_ETHERS_RUNTIME')
+    pins[str(runtime)] = ETHERS_SHA
+    # The canonical server serves /vendor/ethers.js from node_modules. A root
+    # web/vendor copy is optional and is not part of the frozen fingerprint.
+    shadow = 'web/vendor/ethers.js'
+    pins[shadow] = sha(regular(root / shadow)[0]) if os.path.lexists(root / shadow) else None
     paths = ['scripts/continuity-release.mjs', 'scripts/keeper.mjs',
-        'web/app.js', 'web/vendor/ethers.js', 'web/vendor/walletconnect.js',
+        'web/app.js', 'web/vendor/walletconnect.js',
         'web/' + BASE + '/vendor/ethers.js', 'web/' + BASE + '/vendor/walletconnect.js',
         'web' + REFERRAL + 'referral-context.js', 'web' + REFERRAL + 'entry.js',
         'landing/dist/index.html']
@@ -555,8 +579,16 @@ def capture_protected(root, required, baseline, overlay):
 
 
 def check_protected(root, pins):
+    runtime = ethers_runtime_path(root)
     for name, digest in pins.items():
-        require(sha(regular(root / name)[0]) == digest, 'PROTECTED_RUNTIME_CHANGED: ' + name)
+        path = Path(name)
+        require((not path.is_absolute() and '..' not in path.parts) or path == runtime,
+                'UNSAFE_PROTECTED_PATH')
+        if digest is None:
+            require(name == 'web/vendor/ethers.js' and not os.path.lexists(root / name),
+                    'PROTECTED_RUNTIME_CHANGED: ' + name)
+        else:
+            require(sha(regular(root / path)[0]) == digest, 'PROTECTED_RUNTIME_CHANGED: ' + name)
 
 
 def overlay_files(runtime):
@@ -1009,6 +1041,9 @@ def install_completion(release, apply=False):
     drop_bytes = dropin_code(node, stage, overlay, support)
     already = root == stage and before == after and drop.exists() and regular(drop)[0] == drop_bytes
     for base in (LOCAL, PUBLIC):
+        ethers = regular(ethers_runtime_path(root))[0]
+        served(base + '/vendor/ethers.js', ethers, 'js')
+        served(base + '/' + BASE + '/vendor/ethers.js', ethers, 'js')
         for route in ROUTES:
             served(base + route, before)
         for key, kind in (('app', 'js'), ('entry', 'js'), ('css', 'css'), ('image', 'webp')):

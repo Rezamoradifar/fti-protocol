@@ -42,6 +42,7 @@ for name,expected in r.BASELINE.items():
  file=dest/name;file.parent.mkdir(parents=True,exist_ok=True);file.write_bytes(data)
 for name in ['web','artifacts']:
  shutil.copytree(root/name,dest/name)
+(dest/'web/vendor/ethers.js').unlink(missing_ok=True)
 (dest/'node_modules').symlink_to(root/'node_modules',target_is_directory=True)
 runtime={name:(root/name).read_bytes() for name in m.RUNTIME_FILES}
 name,files=m.overlay_files(runtime)
@@ -63,6 +64,10 @@ const {startWeb}=await import('./'+data.folder+'/server.mjs');
 let web;
 try{
  web=await startWeb(config);const base='http://127.0.0.1:'+web.address().port;
+ assert.equal(fs.existsSync('./web/vendor/ethers.js'),false,'canonical runtime must not invent a web ethers copy');
+ const ethersResponse=await fetch(base+'/vendor/ethers.js');assert.equal(ethersResponse.status,200);
+ assert.match(ethersResponse.headers.get('content-type'),/javascript/);
+ assert.deepEqual(Buffer.from(await ethersResponse.arrayBuffer()),fs.readFileSync('./node_modules/ethers/dist/ethers.min.js'));
  assert.equal((await fetch(base+'/health')).status,200);
  const publicCfg=await(await fetch(base+'/api/config')).json();
  assert.equal(publicCfg.sourceFingerprint,before.sourceFingerprint);assert.equal(publicCfg.supportTicketVersion,1);assert.equal(publicCfg.memberHistoryVersion,1);

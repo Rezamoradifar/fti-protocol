@@ -113,3 +113,17 @@ Its generated public bundles and wallets are fixture data, not production
 addresses or transactions. A separate `systemd-analyze verify` fixture confirmed
 the drop-in syntax with `ProtectSystem=strict`; this executor did not run the
 production systemd service or its mount namespace.
+
+## Canonical ethers route compatibility
+
+The original runtime serves `/vendor/ethers.js` directly from
+`node_modules/ethers/dist/ethers.min.js`; it does not need a physical
+`web/vendor/ethers.js`. The installer now preserves that optional file
+when present and records its absence when missing. The actual Node package
+and immutable UI copy must both match the reviewed ethers SHA-256 from
+`config/mainnet-ui-release.json`, and both HTTP routes are verified.
+
+Regression fixtures use the real absent-copy layout through preflight, install,
+repeat and rollback. Extra checks cover optional-copy preservation, SDK mutation,
+symlink rejection and unexpected absolute paths. The canonical cold-start test
+removes the generated copy and verifies the actual server route.

@@ -25,6 +25,7 @@ BOOT = b'/* preserved reviewed boot */'
 STYLE = b'<style data-fti-boot-style>body{color:white}</style>'
 SHELL = b'<div id="root"><!-- FTI_BOOT_FALLBACK_BEGIN --><section>Loading</section><!-- FTI_BOOT_FALLBACK_END --></div><noscript>Enable JavaScript</noscript>'
 OVERLAY = b"const channel='https://t.me/FTIProtocol_Official';"
+ETHERS = b'reviewed ethers runtime fixture'
 RUNTIME = {name: ("export const name=" + repr(name) + ';').encode() for name in m.RUNTIME_FILES}
 RUNTIME[m.ENTRY] = b"import './member-history.mjs';import './support-tickets.mjs';import './operational-release.mjs';export const startWeb=()=>{};"
 
@@ -82,12 +83,12 @@ class CompletionTests(unittest.TestCase):
             'scripts/continuity-release.mjs': b'unchanged release verifier',
             'scripts/keeper.mjs': b'unchanged keeper',
             'web/app.js': b'unchanged root app',
-            'web/vendor/ethers.js': b'unchanged root ethers',
+            'node_modules/ethers/dist/ethers.min.js': ETHERS,
             'web/vendor/walletconnect.js': b'unchanged root wallet bridge',
             'landing/dist/index.html': b'unchanged landing',
             'web/' + m.BASE + '/app.js': b'original base app',
             'web/' + m.BASE + '/app.js.LEGAL.txt': b'original legal',
-            'web/' + m.BASE + '/vendor/ethers.js': b'unchanged immutable ethers',
+            'web/' + m.BASE + '/vendor/ethers.js': ETHERS,
             'web/' + m.BASE + '/vendor/walletconnect.js': b'unchanged immutable wallet bridge',
             'web/' + m.BASE + '/style.css': b'unchanged original shared style',
             'web' + m.REFERRAL + 'referral-context.js': b'preserved referral context',
@@ -108,11 +109,12 @@ class CompletionTests(unittest.TestCase):
             file = self.root / name
             file.parent.mkdir(parents=True, exist_ok=True)
             file.write_bytes(data)
-        (self.root / 'node_modules').mkdir()
+        (self.root / 'node_modules').mkdir(exist_ok=True)
         blob = files['web' + m.REFERRAL + 'referral-context.js']
         referral_hash = m.hashlib.sha1(b'blob ' + str(len(blob)).encode() + b'\0' + blob).hexdigest()
         patches = [patch.object(m, 'BASELINES', self.baselines),
             patch.object(m, 'BASE_APP', m.sha(b'original base app')),
+            patch.object(m, 'ETHERS_SHA', m.sha(ETHERS)),
             patch.object(m, 'LEGAL', m.sha(b'original legal')),
             patch.object(m, 'REFERRAL_BLOB', referral_hash),
             patch.object(m, 'OFFICIAL_OVERLAY_SHA', m.sha(OVERLAY)),
@@ -171,7 +173,8 @@ class CompletionTests(unittest.TestCase):
         from urllib.parse import urlsplit
         path = urlsplit(url).path
         root = Path(self.saved['WorkingDirectory'])
-        actual = (root / 'web/index.html').read_bytes() if path in m.ROUTES else (root / ('web' + path)).read_bytes()
+        file = root / ('node_modules/ethers/dist/ethers.min.js' if path == '/vendor/ethers.js' else 'web/index.html' if path in m.ROUTES else 'web' + path)
+        actual = file.read_bytes()
         self.assertEqual(actual, data)
         if self.fail_asset and '/fti-panel-completion-' in path:
             raise RuntimeError('fixture asset verification failure')
@@ -255,6 +258,56 @@ class CompletionTests(unittest.TestCase):
         self.assertEqual(before, sorted(str(p.relative_to(self.root)) for p in self.root.rglob('*')))
         self.assertEqual(self.restart_count, 0)
         self.assert_original()
+
+    def test_canonical_ethers_route_needs_no_web_vendor_copy(self):
+        self.assertFalse((self.root / 'web/vendor/ethers.js').exists())
+        m.install_completion(self.release)
+        self.assertIn(m.PUBLIC + '/vendor/ethers.js', self.calls)
+        m.install_completion(self.release, apply=True)
+        self.assertFalse((self.stage() / 'web/vendor/ethers.js').exists())
+        m.install_completion(self.release)
+        m.restore_completion(self.backup())
+        self.assert_original()
+
+    def test_optional_web_vendor_copy_is_preserved(self):
+        shadow = self.root / 'web/vendor/ethers.js'
+        self.write('web/vendor/ethers.js', b'optional unused copy')
+        m.install_completion(self.release, apply=True)
+        m.install_completion(self.release)
+        m.restore_completion(self.backup())
+        self.assertEqual(shadow.read_bytes(), b'optional unused copy')
+
+    def test_missing_or_unreviewed_actual_ethers_fails_before_switch(self):
+        actual = self.root / 'node_modules/ethers/dist/ethers.min.js'
+        actual.write_bytes(b'unreviewed library')
+        with self.assertRaisesRegex(RuntimeError, 'UNREVIEWED_ETHERS_RUNTIME'):
+            m.install_completion(self.release, apply=True)
+        self.assertEqual(self.restart_count, 0)
+        self.assertFalse(self.stage().exists())
+
+    def test_ethers_concurrency_and_optional_presence_are_protected(self):
+        baseline = m.completion_baselines(PRO)['panel-reliability']
+        pins = m.capture_protected(self.root, self.release['required'], baseline, True)
+        self.assertIsNone(pins['web/vendor/ethers.js'])
+        self.write('web/vendor/ethers.js', b'concurrent new copy')
+        with self.assertRaisesRegex(RuntimeError, 'PROTECTED_RUNTIME_CHANGED'):
+            m.check_protected(self.root, pins)
+        (self.root / 'web/vendor/ethers.js').unlink()
+        self.write('node_modules/ethers/dist/ethers.min.js', b'concurrent SDK edit')
+        with self.assertRaisesRegex(RuntimeError, 'PROTECTED_RUNTIME_CHANGED'):
+            m.check_protected(self.root, pins)
+
+    def test_arbitrary_dependency_symlink_and_absolute_backup_pin_rejected(self):
+        other = self.workspace / 'other'; other.mkdir()
+        import shutil
+        shutil.rmtree(self.root / 'node_modules')
+        (self.root / 'node_modules').symlink_to(other, target_is_directory=True)
+        with self.assertRaises((OSError, RuntimeError, KeyError)):
+            m.install_completion(self.release, apply=True)
+        (self.root / 'node_modules').unlink()
+        self.write('node_modules/ethers/dist/ethers.min.js', ETHERS)
+        with self.assertRaisesRegex(RuntimeError, 'UNSAFE_PROTECTED_PATH'):
+            m.check_protected(self.root, {'/etc/shadow': 'untrusted'})
 
     def test_read_only_preflight_verifies_old_source_as_service_user(self):
         calls = []
