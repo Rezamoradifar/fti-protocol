@@ -15,6 +15,9 @@ import {activityText} from './activity-copy.js';
 import {memberAccountView} from './member-account-view.js';
 import {publishMemberView} from './member-panel-store.js';
 import {createMemberActivity} from './member-activity.js';
+import {createMemberHistory} from './member-history.js';
+import {createSupportTickets} from './support-tickets.js';
+import {panelService} from './panel-service.js';
 import {transactionState,confirmedReceipt,resolvePending,submitTracked,reconcileUnknown,prepareContractRequest,preparedWalletSend} from './transaction-state.js';
 import {membershipBlock,walletError} from './membership-availability.js';
 import {deploymentConfiguration} from './deployment.js';
@@ -86,9 +89,10 @@ let activeTransaction;
 let transactionStage='';
 let signer,address,state,busy=false,connecting=false,transactionAddress,refreshSequence=0,autoDirty=false,councilOwner=false;
 let pendingWatch;
-let memberUpdatedAt=null,memberReadError=false,memberActivity,memberPanelState=null;
+let memberUpdatedAt=null,memberReadError=false,memberActivity,memberPanelState=null,personalHistory,memberSupport,adminSupport;
 function publishMemberPanel(){
  memberActivity?.refresh();
+ personalHistory?.refresh();memberSupport?.refresh();adminSupport?.refresh();
  if(surface!=='member')return;
  publishMemberView(memberAccountView({state:memberPanelState||state,address,networkProfile,selectableAuto,cfg,busy:busy||connecting,updatedAt:memberUpdatedAt,readError:memberReadError}));
 }
@@ -542,7 +546,7 @@ async function refresh(){
  renderWallet();syncActions();
 }
 function renderWallet(){
- text('admin-role',!address?'READ ONLY':councilOwner?'COUNCIL OWNER':'PUBLIC CALLER');text('admin-access-copy',!address?'Connect a wallet to check its council role.':councilOwner?t('Your connected wallet can propose and approve council actions.')+' '+t(v3Model?'Five of seven guardian approvals are required.':'Three approvals are required to execute a proposal.')+'':'This wallet is not a council owner. You can process settlement and execute operations that are already authorized and ready.');
+ text('admin-role',!address?'READ ONLY':councilOwner?(v3Model?t('GUARDIAN','عضو شورا'):t('COUNCIL OWNER','عضو شورا')):'PUBLIC CALLER');text('admin-access-copy',!address?t('Connect a wallet to check its council role.','برای بررسی نقش شورا، ولت را متصل کنید.'):councilOwner?t('Your connected wallet can propose and approve council actions.','ولت متصل شما می‌تواند پیشنهادهای شورا را ثبت و تأیید کند.')+' '+t(v3Model?'Five of seven guardian approvals are required.':'Three approvals are required to execute a proposal.',v3Model?'اجرای پیشنهاد به تأیید پنج عضو از هفت عضو شورا نیاز دارد.':'اجرای پیشنهاد به سه تأیید نیاز دارد.'):t('This wallet is not a council guardian. Ready, already-authorized settlement operations remain available.','این ولت عضو شورای مدیریت نیست. عملیات تسویه‌ای که مجوز لازم را دارند و آمادهٔ اجرا هستند، در دسترس می‌مانند.'));
  const w=wallet();const locked=w?BigInt(w.ftiBalance)-BigInt(w.unlocked):0n;
  if(fundedModel)text('wallet-credits',w?fmt(w.creditL)+' / '+fmt(w.creditR):'—');
  const count=Number(w?.lockCount||0);$('#lock-pagination').hidden=cfg.lockVersion!==2||count<=64;$('#locks-prev').disabled=busy||lockOffset===0;$('#locks-next').disabled=busy||lockOffset+64>=count;text('lock-page-label',count?`${lockOffset+1}–${Math.min(lockOffset+64,count)} of ${count}`:'No active locks');
@@ -659,8 +663,28 @@ const activityEvents=createActivityEvents({
  render:rows=>memberActivity.render(rows)
 });
 function loadEvents(){return activityEvents.load();}
-function cancelEvents(){activityEvents.cancel();}
+function cancelEvents(){activityEvents.cancel();personalHistory?.cancel();}
 $('#refresh-events').onclick=loadEvents;
+if(cfg.memberHistoryVersion===1&&surface!=='admin'){
+ $('#member-history-panel').hidden=false;
+ personalHistory=createMemberHistory({container:$('#member-history'),document,getAddress:()=>address,chainId:cfg.chainId,translate:t,explorer,request:({wallet,cursor,limit,signal})=>{const query=new URLSearchParams({wallet,limit:String(limit)});if(cursor)query.set('cursor',cursor);return panelService('/api/member-history?'+query,{signal});}});
+}
+if(cfg.supportTicketVersion===1){
+ const signSupportMessage=async(message,expectedAddress)=>{
+  const selectedSigner=signer,selectedProvider=walletProvider,identity=address;
+  if(!selectedSigner||busy||connecting||!identity||identity.toLowerCase()!==expectedAddress.toLowerCase())throw Error('Reconnect your wallet before signing a support message.');
+  if(selectedProvider)await readWalletIdentity(selectedProvider,identity,cfg.chainId);
+  if(signer!==selectedSigner||address!==identity)throw Error('Wallet changed');
+  const signature=await selectedSigner.signMessage(message);
+  if(signer!==selectedSigner||address!==identity)throw Error('Wallet changed');
+  if(selectedProvider)await readWalletIdentity(selectedProvider,identity,cfg.chainId);
+  return signature;
+ };
+ const supportOptions={document,getAddress:()=>address,translate:t,request:panelService,signMessage:signSupportMessage,origin:location.origin};
+ if(surface==='member'){$('#member-support-panel').hidden=false;memberSupport=createSupportTickets({...supportOptions,container:$('#member-support-tickets'),isAdmin:()=>false});}
+ if(surface==='admin'){$('#admin-support-panel').hidden=false;adminSupport=createSupportTickets({...supportOptions,container:$('#admin-support-tickets'),isAdmin:()=>councilOwner});}
+}
+
 for(const[key,name]of Object.entries(names)){const el=document.createElement('div');el.textContent=name;const code=document.createElement('code');code.textContent=cfg[key];if(explorer){const a=document.createElement('a');a.href=explorer+'/address/'+cfg[key];a.target='_blank';a.rel='noreferrer';a.append(code);el.append(a);}else el.append(code);$('#contracts').append(el);}
 $('#begin-month').onclick=()=>transaction(async()=>{
  const readiness=builderMonthState(state,builderMode);if(!readiness.canBegin)throw Error('Monthly status is unavailable; no date or readiness is assumed.');

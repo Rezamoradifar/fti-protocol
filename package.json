@@ -1,7 +1,7 @@
 {
   "name": "fti-protocol",
   "version": "0.2.0",
-  "description": "FTI independent local/testnet release candidate \u2014 not audited",
+  "description": "FTI independent local/testnet release candidate — not audited",
   "main": "index.js",
   "directories": {
     "doc": "docs",
@@ -38,12 +38,13 @@
   "type": "module",
   "dependencies": {
     "@openzeppelin/contracts": "5.4.0",
-    "@walletconnect/ethereum-provider": "2.26.0",
     "ethers": "6.17.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "esbuild": "0.25.10",
-    "semver": "7.7.4"
+    "semver": "7.7.4",
+    "@walletconnect/universal-provider": "2.26.0",
+    "qrcode": "1.5.4"
   },
   "devDependencies": {
     "ganache": "7.9.2",

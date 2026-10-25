@@ -1,0 +1,55 @@
+name: Panel completion and wallet security
+on:
+  push:
+    branches: [fix/panel-completion-20261025]
+  pull_request:
+    paths: ['frontend/**', 'scripts/**', 'core/**', 'package*.json', 'web/**', 'test/**', 'landing/tests/**', 'tools/install-panel-completion*', '.github/workflows/panel-completion.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix landing --ignore-scripts
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run build:web
+      - run: npm run compile
+      - name: Registration boundaries, authenticated support and canonical wallet history
+        run: >-
+          node --test --test-concurrency=2
+          test/mainnet-genesis-layout.test.mjs test/mainnet-governance.test.mjs
+          test/global-frontend.test.mjs test/member-translations.test.mjs
+          test/panel-completion-translations.test.mjs test/panel-service.test.mjs
+          test/panel-services-server.test.mjs test/member-history-reader.test.mjs
+          test/panel-completion-runtime.test.mjs
+          test/member-history-view.test.mjs test/support-tickets.test.mjs
+          test/support-ticket-ui.test.mjs test/walletconnect-adapter.test.mjs
+          test/controller-safepal-connect.test.mjs test/activity-events.test.mjs
+      - name: Installer publication, cold start, rollback and data retention
+        run: sudo env PYTHONDONTWRITEBYTECODE=1 python3 test/panel-completion-install.test.py -q
+      - name: Reproduce the exact completion installer
+        run: |
+          python3 tools/install-panel-completion.py --package . --output /tmp/fti-panel-completion.py
+          cmp tools/install-panel-completion-release.py /tmp/fti-panel-completion.py
+      - run: npm --prefix landing run build
+      - run: cd landing && npx playwright install --with-deps chromium webkit
+      - name: Chromium user, guardian, mobile pairing and installed-style regressions
+        run: cd landing && npx playwright test tests/panel-completion.spec.mjs tests/walletconnect-pairing.spec.mjs tests/mainnet-copy.spec.mjs tests/professional-member-panel.spec.mjs tests/boot-recovery.spec.mjs
+      - name: WebKit user, guardian, mobile pairing and installed-style regressions
+        run: cd landing && FTI_BROWSER=webkit npx playwright test tests/panel-completion.spec.mjs tests/walletconnect-pairing.spec.mjs tests/mainnet-copy.spec.mjs tests/professional-member-panel.spec.mjs tests/boot-recovery.spec.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: panel-completion-browser
+          path: landing/test-results

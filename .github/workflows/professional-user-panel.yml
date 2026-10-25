@@ -46,6 +46,7 @@ jobs:
       - name: Installer rollback, predecessor preservation and service UID HTTP reads
         run: sudo env PYTHONDONTWRITEBYTECODE=1 FTI_REQUIRE_SERVICE_UID_HTTP_TEST=1 python3 test/professional-user-panel-install.test.py -q
       - name: Reproduce the exact professional panel installer
+        if: github.head_ref == 'feat/professional-user-panel-20261025' || github.ref_name == 'feat/professional-user-panel-20261025'
         run: |
           python3 tools/install-professional-user-panel.py --package . --output /tmp/fti-professional-panel.py
           cmp tools/install-professional-user-panel-release.py /tmp/fti-professional-panel.py

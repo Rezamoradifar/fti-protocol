@@ -6,6 +6,8 @@ import {createStateReader} from './state-reader.mjs';
 import {historyCache} from './history-cache.mjs';
 import {HISTORY_SERVER_TIMEOUT_MS} from '../core/history-read-policy.mjs';
 import {createEventHistoryReader,PUBLIC_EVENT_RPC} from './event-history-source.mjs';
+import {createMemberHistoryReader} from './member-history.mjs';
+import {createSupportService} from './support-tickets.mjs';
 import {networkPlacementIndexer,detectGenesisPlacementLayout} from './referral-placement-index.mjs';
 import {readHourlyCapFlushVersion} from '../core/hourly-cap-policy.mjs';
 import {readPoolDistributionVersion} from '../core/pool-distribution-policy.mjs';
@@ -47,10 +49,14 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  publicConfig.stateReaderVersion=1;
  publicConfig.eventHistoryVersion=1;
  publicConfig.eventHistoryTimeoutMs=HISTORY_SERVER_TIMEOUT_MS;
+ publicConfig.memberHistoryVersion=Number.isSafeInteger(cfg.deployedBlock)&&cfg.deployedBlock>=0?1:0;
+ publicConfig.supportTicketVersion=1;
  const readState=createStateReader({provider,contracts,cfg,publicConfig});
  let fallbackProvider;
  if(cfg.chainId===56){const fallbackTransport=new FetchRequest(PUBLIC_EVENT_RPC);fallbackTransport.timeout=8000;fallbackProvider=new JsonRpcProvider(fallbackTransport,undefined,{cacheTimeout:-1,batchMaxCount:1});}
  const readHistory=createEventHistoryReader({primary:provider,eventProvider,fallbackProvider,contracts,cfg});
+ const readMemberHistory=publicConfig.memberHistoryVersion?createMemberHistoryReader({provider,eventProvider,contracts,cfg}):null;
+ let supportService;
  const marketRead=historyCache(signal=>readHistory('market',signal));
  const eventsRead=historyCache(signal=>readHistory('events',signal),{ttlMs:15000});
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data,(_,v)=>typeof v==='bigint'?v.toString():v));};
@@ -60,6 +66,13 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Content-Security-Policy',contentSecurityPolicy(walletConnectProjectId));
   const url=new URL(req.url,'http://localhost');
+  if(url.pathname.startsWith('/api/support/')){
+   if(!supportService)return json(res,503,{error:'SUPPORT_UNAVAILABLE'});
+   if(req.headers.origin&&new URL(req.headers.origin).host!==req.headers.host)return json(res,403,{error:'SUPPORT_ORIGIN_DENIED'});
+   const requestOrigin=req.headers.origin||(cfg.mode==='local'?'http://':'https://')+req.headers.host;
+   const result=await supportService.handle({method:req.method,path:url.pathname+url.search,body:req.method==='POST'?await body(req):undefined,authorization:req.headers.authorization,origin:requestOrigin});
+   return json(res,result.status,result.data);
+  }
   if(req.method==='GET'&&url.pathname==='/'&&rootForHost(req.headers.host)){res.writeHead(302,{Location:rootForHost(req.headers.host)+url.search});return res.end();}
   if(req.method==='POST'){
    const origin=req.headers.origin;if(origin&&new URL(origin).host!==req.headers.host)return json(res,403,{error:'Cross-origin denied'});
@@ -110,11 +123,26 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
    try{return json(res,200,await eventsRead());}
    catch{res.setHeader('Retry-After','15');return json(res,503,{error:'Activity RPC unavailable. Retry later; no events have been fabricated.'});}
   }
+  if(url.pathname==='/api/member-history'){
+   if(!readMemberHistory)return json(res,409,{error:'MEMBER_HISTORY_UNAVAILABLE'});
+   const wallet=url.searchParams.get('wallet');
+   if(!isAddress(wallet))return json(res,400,{error:'INVALID_WALLET'});
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),40000);
+   const disconnected=()=>{if(!res.writableEnded)controller.abort();};
+   res.once('close',disconnected);
+   try{return json(res,200,await readMemberHistory({wallet,cursor:url.searchParams.get('cursor'),limit:Number(url.searchParams.get('limit')||50)},controller.signal));}
+   catch(error){const invalid=/^INVALID_HISTORY_/.test(error.code||'');return json(res,invalid?400:503,{error:invalid?'INVALID_HISTORY_PAGE':'MEMBER_HISTORY_UNAVAILABLE'});}
+   finally{clearTimeout(timer);res.removeListener('close',disconnected);}
+  }
   if(url.pathname.startsWith('/abi/')){const name=url.pathname.slice(5);if(name==='Collateral')return json(res,200,COLLATERAL_ABI);if(!network.testAssets&&name==='MockUSD')return json(res,404,{error:'Test ABI unavailable on mainnet'});if(!['BinaryPlan','FundedBinaryPlan','FTIToken','FTIReserveToken','FTIReserveTokenV3','MockUSD','Council','SevenGuardianCouncil','FTITimelock','FundedBinaryPlanUpgradeable','FTIReserveTokenUpgradeable'].includes(name))throw Error('Unknown ABI');return json(res,200,artifact(name).abi);}
   let file;if(url.pathname==='/vendor/ethers.js')file=path.join(root,'node_modules/ethers/dist/ethers.min.js');else {const entry=url.pathname.match(/^\/(app|token|admin)$/);if(entry){res.writeHead(301,{Location:url.pathname+'/'+url.search});return res.end();}const landingReady=fs.existsSync(path.join(root,'landing/dist/index.html'));const landingRoute=landingReady&&(url.pathname.startsWith('/assets/')||['/','/app.js','/app.css','/protocol-ring.webp',...PUBLIC_ROUTES].includes(url.pathname));const staticRoot=path.join(root,landingRoute?'landing/dist':'web');const staticPath=url.pathname.replace(/^\/(app|token|admin)\//,'/');const route=PUBLIC_ROUTES.includes(url.pathname)?url.pathname.slice(1)+'index.html':staticPath==='/'?'index.html':staticPath.slice(1);file=path.resolve(staticRoot,route);if(!file.startsWith(staticRoot+path.sep))return json(res,403,{error:'Denied'});}
   if(!fs.existsSync(file)||!fs.statSync(file).isFile())return json(res,404,{error:'Not found'});const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.webp':'image/webp','.woff2':'font/woff2'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
  }catch(e){json(res,400,{error:e.shortMessage||e.message});}});
  server.once('close',()=>{provider.destroy();if(eventProvider!==provider)eventProvider.destroy();fallbackProvider?.destroy();});
- await new Promise((resolve,reject)=>server.once('error',reject).listen(port,host,resolve));console.log(`FTI ${cfg.mode}: http://${host}:${port}`);return server;
+ await new Promise((resolve,reject)=>server.once('error',reject).listen(port,host,resolve));
+ const supportOrigin=cfg.mode==='local'?'http://'+host+':'+server.address().port:'https://ftiprotocol.com';
+ const supportDataDir=process.env.FTI_SUPPORT_DATA_DIR||(cfg.mode==='local'?path.resolve(path.dirname(configPath),'support-'+cfg.binary.toLowerCase()):'/var/lib/fti-support/'+cfg.chainId+'-'+cfg.binary.toLowerCase());
+ supportService=createSupportService({cfg,council:{isGuardian:address=>v3Model?contracts.council.isGuardian(address):contracts.council.isOwner(address)},dataDir:supportDataDir,origin:supportOrigin});
+ console.log(`FTI ${cfg.mode}: http://${host}:${port}`);return server;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url))startWeb().catch(e=>{console.error(e.message);process.exit(1);});

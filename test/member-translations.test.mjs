@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {memberTranslations} from '../frontend/member-translations.js';
+import {coreTranslations} from '../frontend/core-translations.js';
+import {completeTranslations} from '../frontend/complete-translations.js';
+import {landingTranslations} from '../frontend/landing-translations.js';
+import {translate} from '../frontend/locale.js';
 
 // Read the actual view copy, including event titles selected dynamically by
 // contract name. New untranslated member controls must fail this check.
@@ -22,4 +26,18 @@ for(const language of ['ar','tr','zh-CN'])test(language+': every new member cont
   assert.notEqual(catalog[key],key,key);
   if(key.includes('FTI'))assert.ok(catalog[key].includes('FTI'),key);
  }
+});
+
+for(const language of ['fa','en','ar','tr','zh-CN','ru','es'])test(language+': new member copy preserves established shared labels',()=>{
+ for(const key of Object.keys(memberTranslations.ar)){
+  const existing=completeTranslations[language]?.[key]??landingTranslations[language]?.[key]??coreTranslations[language]?.[key];
+  const expected=language==='en'?key:existing??memberTranslations[language]?.[key];
+  if(expected!==undefined)assert.equal(translate(key,language),expected,key);
+ }
+});
+
+test('wallet and Chinese membership navigation retain the canonical accessible names',()=>{
+ assert.equal(translate('Connect wallet','tr'),'Cüzdanı bağla');
+ assert.equal(translate('Membership','zh-CN'),'会员');
+ assert.equal(translate('Manage membership','zh-CN'),'管理会员信息');
 });

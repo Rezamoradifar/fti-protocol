@@ -10,7 +10,7 @@ const source=fs.readFileSync(new URL('../frontend/controller.js',import.meta.url
 const start=source.indexOf("const eventsNotice=document.createElement('p');");
 const end=source.indexOf("$('#refresh-events').onclick=loadEvents;",start)+"$('#refresh-events').onclick=loadEvents;".length;
 function fixture(){
- const nodes=new Map(),requests=[];
+ const nodes=new Map(),requests=[];let historyCanceled=0;
  function node(tag='div'){
   return {tag,children:[],dataset:{},attrs:{},disabled:false,hidden:false,value:'',_text:'',
    set textContent(value){this._text=String(value);this.children=[];},
@@ -23,7 +23,7 @@ function fixture(){
  }
  for(const id of ['events','refresh-events','activity','overview','status','page-title']){const item=node();item.id=id;nodes.set(id,item);}
  nodes.get('status').textContent='Wallet request is awaiting review';
- const context=vm.createContext({createActivityEvents,activityText,createMemberActivity,memberActivity:null,address:null,
+ const context=vm.createContext({createActivityEvents,activityText,createMemberActivity,memberActivity:null,address:null,personalHistory:{cancel(){historyCanceled++;}},
   $:selector=>nodes.get(selector.slice(1)),integer:String,t:value=>value,explorer:'https://explorer.example',
   document:{createElement:node,createDocumentFragment:()=>node('#fragment'),querySelectorAll:selector=>selector==='.page'?[nodes.get('activity'),nodes.get('overview')]:[]},
   text:(id,value)=>{nodes.get(id).textContent=value;},
@@ -35,7 +35,7 @@ function fixture(){
  assert.ok(start>0&&end>start);vm.runInContext(source.slice(start,end),context);
  const navStart=source.indexOf('function navigate('),navEnd=source.indexOf("document.querySelectorAll('[data-page],[data-go]')",navStart);
  vm.runInContext(source.slice(navStart,navEnd),context);
- return {context,nodes,requests,load:()=>context.loadEvents(),cancel:()=>context.cancelEvents()};
+ return {context,nodes,requests,historyCanceled:()=>historyCanceled,load:()=>context.loadEvents(),cancel:()=>context.cancelEvents()};
 }
 const row=name=>({name,block:123,args:[{name:'amount',value:'10'}],hash:'0x'+'a'.repeat(64)});
 const walk=node=>[node,...node.children.flatMap(walk)];
@@ -76,6 +76,7 @@ test('leaving the actual activity view cancels its read; late failure cannot aff
  f.context.navigate('overview');
  assert.equal(f.nodes.get('activity').hidden,true);
  assert.equal(f.requests[0].options.signal.aborted,true);
+ assert.equal(f.historyCanceled(),1);
  assert.equal(f.nodes.get('refresh-events').disabled,false);
  f.context.navigate('activity');
  const fresh=f.load();assert.equal(f.requests.length,2);
