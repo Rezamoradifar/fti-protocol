@@ -155,10 +155,10 @@ The final generated package is `tools/install-site-refresh-release.py`:
 
 | Item | Verified value |
 | --- | --- |
-| Release identifier | `site-refresh-fa6a42d6cf3c23efd8d5f6cb` |
-| File size | 11,487,395 bytes |
-| SHA-256 | `7117e0fd766e89122f29768e9fabe7e3125eabe1feb3211dec34679e0abea351` |
-| Git blob SHA-1 | `0a2ac3d308ef72e41de483a3cb93eefbbe9c84dd` |
+| Release identifier | `site-refresh-3380b7283878d16cc1341cfe` |
+| File size | 11,487,927 bytes |
+| SHA-256 | `30276370d44f2e1a2efb96144dfc84ec68cba7d6abdb7c9a9e937c6f41495b8e` |
+| Git blob SHA-1 | `0203a6370e3af2a1c376389f37016bd907629daf` |
 | Payload | 152 workspace files, 196 landing files, 18 runtime modules, 129 canonical files |
 
 All packaged workspace, landing and runtime bytes were compared with the frozen
