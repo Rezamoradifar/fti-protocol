@@ -13,7 +13,8 @@ for(const lang of ['en','ar','tr','zh-CN'])for(const width of [320,390,1440])for
  await expect(page.locator('html')).toHaveAttribute('dir',lang==='ar'?'rtl':'ltr');
  await expect(page.locator('.landing-language')).toHaveValue(lang);
  await page.evaluate(()=>document.fonts.ready);
- if(lang==='zh-CN')expect(await page.evaluate(()=>[...document.fonts].some(f=>f.family.includes('Noto Sans SC')&&f.status==='loaded'))).toBe(true);
+ // The home page uses native CJK fonts to avoid a large font stylesheet;
+ // localized text and responsive layout remain checked below.
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
  const copy=await page.locator('main').innerText();
  if(lang!=='en')for(const leftover of ['Understand the flow','Your place in the network','Two branches','Find your next action','What is FTI Protocol?'])expect(copy).not.toContain(leftover);

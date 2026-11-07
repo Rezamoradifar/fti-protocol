@@ -72,10 +72,10 @@ test('a blocked boot guard leaves a native retry that starts a fresh document', 
   await context.route('**/app/boot-guard.js', route => route.abort('failed'));
   const path = '/app/?lang=en&ref=0x1111111111111111111111111111111111111111#network';
   await page.goto(path);
-  await expect(page.locator('[data-fti-boot-title]')).toHaveText('در حال بازشدن پنل FTI');
+  await expect(page.locator('[data-fti-boot-title]')).toHaveText('Opening your FTI workspace');
   await expect(page.locator('[data-fti-boot-help]')).toBeVisible();
   const retry = page.locator('[data-fti-boot-retry]');
-  await expect(retry).toHaveText('بازکردن دوباره در برگهٔ جدید');
+  await expect(retry).toHaveText('Reopen in a new tab');
   await expect(retry).toHaveAttribute('target', '_blank');
   expect(requests).toBe(1);
   const popupPromise = page.waitForEvent('popup');

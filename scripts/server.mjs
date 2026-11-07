@@ -8,6 +8,8 @@ import {HISTORY_SERVER_TIMEOUT_MS} from '../core/history-read-policy.mjs';
 import {createEventHistoryReader,PUBLIC_EVENT_RPC} from './event-history-source.mjs';
 import {createMemberHistoryReader} from './member-history.mjs';
 import {createSupportService} from './support-tickets.mjs';
+import {CUSTOMER_API,createCustomerServices,handleCustomerServicesHttp} from './customer-services.mjs';
+import {sendStaticResponse} from './static-response.mjs';
 import {networkPlacementIndexer,detectGenesisPlacementLayout} from './referral-placement-index.mjs';
 import {readHourlyCapFlushVersion} from '../core/hourly-cap-policy.mjs';
 import {readPoolDistributionVersion} from '../core/pool-distribution-policy.mjs';
@@ -51,12 +53,13 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
  publicConfig.eventHistoryTimeoutMs=HISTORY_SERVER_TIMEOUT_MS;
  publicConfig.memberHistoryVersion=Number.isSafeInteger(cfg.deployedBlock)&&cfg.deployedBlock>=0?1:0;
  publicConfig.supportTicketVersion=1;
+ publicConfig.customerServicesVersion=1;
  const readState=createStateReader({provider,contracts,cfg,publicConfig});
  let fallbackProvider;
  if(cfg.chainId===56){const fallbackTransport=new FetchRequest(PUBLIC_EVENT_RPC);fallbackTransport.timeout=8000;fallbackProvider=new JsonRpcProvider(fallbackTransport,undefined,{cacheTimeout:-1,batchMaxCount:1});}
  const readHistory=createEventHistoryReader({primary:provider,eventProvider,fallbackProvider,contracts,cfg});
  const readMemberHistory=publicConfig.memberHistoryVersion?createMemberHistoryReader({provider,eventProvider,contracts,cfg}):null;
- let supportService;
+ let supportService,customerServices,customerOrigin;
  const marketRead=historyCache(signal=>readHistory('market',signal));
  const eventsRead=historyCache(signal=>readHistory('events',signal),{ttlMs:15000});
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data,(_,v)=>typeof v==='bigint'?v.toString():v));};
@@ -66,6 +69,7 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Content-Security-Policy',contentSecurityPolicy(walletConnectProjectId));
   const url=new URL(req.url,'http://localhost');
+  if(url.pathname.startsWith(CUSTOMER_API+'/'))return handleCustomerServicesHttp({service:customerServices,req,res,origin:customerOrigin,trustLoopbackProxy:process.env.FTI_CUSTOMER_TRUST_PROXY==='loopback'});
   if(url.pathname.startsWith('/api/support/')){
    if(!supportService)return json(res,503,{error:'SUPPORT_UNAVAILABLE'});
    if(req.headers.origin&&new URL(req.headers.origin).host!==req.headers.host)return json(res,403,{error:'SUPPORT_ORIGIN_DENIED'});
@@ -136,13 +140,16 @@ export async function startWeb(configPath=process.env.DEPLOYMENT_FILE||'deployme
   }
   if(url.pathname.startsWith('/abi/')){const name=url.pathname.slice(5);if(name==='Collateral')return json(res,200,COLLATERAL_ABI);if(!network.testAssets&&name==='MockUSD')return json(res,404,{error:'Test ABI unavailable on mainnet'});if(!['BinaryPlan','FundedBinaryPlan','FTIToken','FTIReserveToken','FTIReserveTokenV3','MockUSD','Council','SevenGuardianCouncil','FTITimelock','FundedBinaryPlanUpgradeable','FTIReserveTokenUpgradeable'].includes(name))throw Error('Unknown ABI');return json(res,200,artifact(name).abi);}
   let file;if(url.pathname==='/vendor/ethers.js')file=path.join(root,'node_modules/ethers/dist/ethers.min.js');else {const entry=url.pathname.match(/^\/(app|token|admin)$/);if(entry){res.writeHead(301,{Location:url.pathname+'/'+url.search});return res.end();}const landingReady=fs.existsSync(path.join(root,'landing/dist/index.html'));const landingRoute=landingReady&&(url.pathname.startsWith('/assets/')||['/','/app.js','/app.css','/protocol-ring.webp',...PUBLIC_ROUTES].includes(url.pathname));const staticRoot=path.join(root,landingRoute?'landing/dist':'web');const staticPath=url.pathname.replace(/^\/(app|token|admin)\//,'/');const route=PUBLIC_ROUTES.includes(url.pathname)?url.pathname.slice(1)+'index.html':staticPath==='/'?'index.html':staticPath.slice(1);file=path.resolve(staticRoot,route);if(!file.startsWith(staticRoot+path.sep))return json(res,403,{error:'Denied'});}
-  if(!fs.existsSync(file)||!fs.statSync(file).isFile())return json(res,404,{error:'Not found'});const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.webp':'image/webp','.woff2':'font/woff2'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
+  if(!sendStaticResponse(req,res,file,url.pathname))return json(res,404,{error:'Not found'});
  }catch(e){json(res,400,{error:e.shortMessage||e.message});}});
- server.once('close',()=>{provider.destroy();if(eventProvider!==provider)eventProvider.destroy();fallbackProvider?.destroy();});
+ server.once('close',()=>{provider.destroy();if(eventProvider!==provider)eventProvider.destroy();fallbackProvider?.destroy();customerServices?.close().catch(()=>{});});
  await new Promise((resolve,reject)=>server.once('error',reject).listen(port,host,resolve));
  const supportOrigin=cfg.mode==='local'?'http://'+host+':'+server.address().port:'https://ftiprotocol.com';
  const supportDataDir=process.env.FTI_SUPPORT_DATA_DIR||(cfg.mode==='local'?path.resolve(path.dirname(configPath),'support-'+cfg.binary.toLowerCase()):'/var/lib/fti-support/'+cfg.chainId+'-'+cfg.binary.toLowerCase());
  supportService=createSupportService({cfg,council:{isGuardian:address=>v3Model?contracts.council.isGuardian(address):contracts.council.isOwner(address)},dataDir:supportDataDir,origin:supportOrigin});
+ customerOrigin=supportOrigin;
+ const customerDataDir=process.env.FTI_CUSTOMER_DATA_DIR||(cfg.mode==='local'?path.resolve(path.dirname(configPath),'customer-services-'+cfg.binary.toLowerCase()):'/var/lib/fti-customer-services/'+cfg.chainId+'-'+cfg.binary.toLowerCase());
+ customerServices=createCustomerServices({origin:customerOrigin,dataDir:customerDataDir,authorizeTeam:supportService.authorizeTeam,env:process.env});
  console.log(`FTI ${cfg.mode}: http://${host}:${port}`);return server;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url))startWeb().catch(e=>{console.error(e.message);process.exit(1);});

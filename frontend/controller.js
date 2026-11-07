@@ -680,7 +680,7 @@ if(cfg.supportTicketVersion===1){
   if(selectedProvider)await readWalletIdentity(selectedProvider,identity,cfg.chainId);
   return signature;
  };
- const supportOptions={document,getAddress:()=>address,translate:t,request:panelService,signMessage:signSupportMessage,origin:location.origin};
+  const supportOptions={document,getAddress:()=>address,translate:t,language,request:panelService,signMessage:signSupportMessage,origin:location.origin};
  if(surface==='member'){$('#member-support-panel').hidden=false;memberSupport=createSupportTickets({...supportOptions,container:$('#member-support-tickets'),isAdmin:()=>false});}
  if(surface==='admin'){$('#admin-support-panel').hidden=false;adminSupport=createSupportTickets({...supportOptions,container:$('#admin-support-tickets'),isAdmin:()=>councilOwner});}
 }

@@ -1,0 +1,244 @@
+/* Clear, touch-friendly navigation. Keep all controller IDs and wallet guards. */
+body[data-surface] .sidebar nav {
+  gap: 9px;
+}
+body[data-surface] .sidebar nav button {
+  min-height: 56px;
+  padding: 14px 16px;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: start;
+  transition: background-color .15s, border-color .15s;
+}
+body[data-surface] .sidebar nav button > svg {
+  display: block;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+}
+body[data-surface] .sidebar nav button:is(:hover, :focus-visible) {
+  border-color: var(--accent);
+}
+body[data-surface] .sidebar nav button.active {
+  color: var(--ink, #142016) !important;
+  background: var(--accent, #c9fca2) !important;
+  border-color: var(--accent, #c9fca2) !important;
+}
+body[data-surface] .sidebar nav button.active > svg {
+  color: inherit;
+}
+body[data-surface] .sidebar nav button:focus-visible,
+body[data-surface] .priority-actions > :focus-visible,
+body[data-surface] .member-shortcuts > :focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+body[data-surface] .connection #connect {
+  min-height: 52px;
+  padding: 13px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 14px;
+}
+body[data-surface] .priority-actions {
+  gap: 12px;
+}
+body[data-surface] .priority-actions :is(a, button) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 56px;
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+body[data-surface="member"] .member-command-actions :is(button, a) {
+  min-height: 54px;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 650;
+  gap: 18px;
+}
+body[data-surface="member"] .member-shortcuts {
+  gap: 14px;
+  margin-block: 22px 28px;
+}
+body[data-surface="member"] .member-shortcuts > button {
+  --action-color: var(--accent, #c9fca2);
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 112px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  border-block-start: 3px solid var(--action-color);
+  color: var(--text);
+  background: var(--panel) !important;
+  text-align: start;
+  box-shadow: none;
+  transition: background-color .15s, border-color .15s;
+}
+body[data-surface="member"] .member-shortcuts > button[data-shortcut="trade"] {
+  --action-color: #8dd9e3;
+}
+body[data-surface="member"] .member-shortcuts > button[data-shortcut="rewards"] {
+  --action-color: #ecd09c;
+}
+body[data-surface="member"] .member-shortcuts > button[data-shortcut="support"] {
+  --action-color: #c2b2ee;
+}
+body[data-surface="member"].light .member-shortcuts > button[data-shortcut="trade"] {
+  --action-color: #276c78;
+}
+body[data-surface="member"].light .member-shortcuts > button[data-shortcut="rewards"] {
+  --action-color: #8b651b;
+}
+body[data-surface="member"].light .member-shortcuts > button[data-shortcut="support"] {
+  --action-color: #7353a3;
+}
+body[data-surface="member"] .member-shortcuts > button > svg {
+  width: 30px;
+  height: 30px;
+  color: var(--action-color);
+}
+body[data-surface="member"] .member-shortcuts b {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+body[data-surface="member"] .member-shortcuts small {
+  font-size: 11px;
+  line-height: 1.6;
+  margin-top: 6px;
+}
+body[data-surface="member"] .member-shortcuts > button > span[aria-hidden] {
+  display: inline;
+  color: var(--action-color);
+  font-size: 20px;
+}
+body[data-surface="member"] .member-shortcuts > button:hover {
+  background: var(--panel2) !important;
+  border-color: var(--action-color);
+}
+body[data-surface="member"] .member-trade-action {
+  min-height: 56px;
+  padding: 15px 20px;
+  font-size: 15px;
+  font-weight: 650;
+}
+@media (min-width: 901px) {
+  body[data-surface="member"] .sidebar {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  body[data-surface="member"] .sidebar .side-label {
+    font-size: 11px;
+    margin-block: 25px 12px;
+  }
+}
+@media (max-width: 1200px) {
+  body[data-surface="member"] .member-shortcuts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  body[data-surface="member"] .sidebar nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px !important;
+    border-radius: 18px;
+    background: var(--panel) !important;
+    box-shadow: 0 4px 20px #0002;
+  }
+  body[data-surface="member"] .sidebar nav button {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    min-height: 64px;
+    padding: 8px 2px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    font: 600 11px/1.35 var(--member-font, sans-serif) !important;
+    text-align: center;
+  }
+  body[data-surface="member"] .sidebar nav button > svg {
+    display: block;
+    width: 21px;
+    height: 21px;
+  }
+  body[data-surface="member"] .sidebar nav button.active {
+    color: var(--ink, #142016) !important;
+    background: var(--accent, #c9fca2) !important;
+    border-color: var(--accent, #c9fca2) !important;
+  }
+  body[data-surface="token"] .sidebar nav button,
+  body[data-surface="admin"] .sidebar nav button {
+    min-height: 54px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  body[data-surface="member"] .connection #connect {
+    min-height: 52px;
+    font-size: 14px;
+  }
+}
+@media (max-width: 650px) {
+  body[data-surface="member"] .member-command-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  body[data-surface="member"] .member-command-actions :is(button, a) {
+    width: 100%;
+    min-width: 0;
+    min-height: 52px;
+    font-size: 14px;
+    padding: 14px 16px;
+  }
+  body[data-surface="member"] .member-shortcuts {
+    gap: 12px;
+    margin-block: 18px 22px;
+  }
+  body[data-surface="member"] .member-shortcuts > button {
+    grid-template-columns: minmax(0, 1fr) 20px;
+    gap: 12px;
+    min-height: 142px;
+    padding: 16px;
+  }
+  body[data-surface="member"] .member-shortcuts > button > svg {
+    grid-column: 1;
+    grid-row: 1;
+    width: 28px;
+    height: 28px;
+  }
+  body[data-surface="member"] .member-shortcuts > button > span:not([aria-hidden]) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  body[data-surface="member"] .member-shortcuts > button > span[aria-hidden] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  body[data-surface] .priority-actions :is(a, button) {
+    padding: 12px;
+    font-size: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-surface] .sidebar nav button,
+  body[data-surface="member"] .member-shortcuts > button {
+    transition: none;
+  }
+}

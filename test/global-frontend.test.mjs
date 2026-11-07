@@ -16,20 +16,36 @@ const row=(block,overrides={})=>({block,hash:H(block),time:1000+block,cycle:'1',
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
 test('exactly seven languages, native names, Persian/Arabic RTL and all others LTR',()=>{
- assert.deepEqual(LANGUAGES.map(l=>l.code),['fa','en','ar','tr','zh-CN','ru','es']);
- assert.deepEqual(LANGUAGES.filter(l=>l.dir==='rtl').map(l=>l.code),['fa','ar']);
+ assert.deepEqual(LANGUAGES.map(l=>l.code),['en','ar','tr','zh-CN','ru','es','fa']);
+ assert.deepEqual(LANGUAGES.filter(l=>l.dir==='rtl').map(l=>l.code),['ar','fa']);
  assert.equal(normalizeLanguage('zh-Hans'),'zh-CN');assert.equal(normalizeLanguage('zh'),'zh-CN');
  assert.equal(normalizeLanguage('de'),null);assert.equal(normalizeLanguage('__proto__'),null);
 });
 test('URL language wins across subdomains, invalid preferences are not accepted',()=>{
  assert.equal(languageFrom('https://app.ftiprotocol.com/app/?lang=ar','fa'),'ar');
  assert.equal(languageFrom('https://app.ftiprotocol.com/app/?lang=evil','es'),'es');
- assert.equal(languageFrom('invalid',null),'fa');
+ assert.equal(languageFrom('invalid',null),'en');
 });
 test('language changes preserve route, existing query, referral and fragment',()=>{
  const result=new URL(withLanguage('https://app.ftiprotocol.com/app/?sponsor=0x123&view=tree#network','ru'));
  assert.equal(result.pathname,'/app/');assert.equal(result.searchParams.get('sponsor'),'0x123');assert.equal(result.searchParams.get('view'),'tree');assert.equal(result.hash,'#network');
  assert.equal(result.searchParams.get('lang'),'ru');assert.throws(()=>withLanguage('javascript:alert(1)','fa'));assert.throws(()=>withLanguage(result.href,'xx'));
+});
+test('initializing a shared language URL remembers it for a later direct visit',async()=>{
+ const values=new Map([['fti-language','en']]);
+ const storage={getItem:key=>values.get(key),setItem:(key,value)=>values.set(key,value)};
+ const location={href:'https://ftiprotocol.com/?lang=fa&sponsor=0x123#protocol'};
+ const document={documentElement:{dataset:{}},addEventListener:()=>{}};
+ const result=await build({entryPoints:['frontend/language-policy.js'],bundle:true,platform:'node',format:'cjs',write:false});
+ const module={exports:{}};
+ new Function('module','exports','globalThis','document','localStorage','location',result.outputFiles[0].text)(module,module.exports,{location,localStorage:storage},document,storage,location);
+ module.exports.initializeLanguage();
+ assert.equal(values.get('fti-language'),'fa');
+ assert.equal(module.exports.languageFrom('https://ftiprotocol.com/',values.get('fti-language')),'fa');
+ assert.equal(document.documentElement.lang,'fa');assert.equal(document.documentElement.dir,'rtl');
+ assert.equal(location.href,'https://ftiprotocol.com/?lang=fa&sponsor=0x123#protocol');
+ storage.setItem=()=>{throw Error('Storage blocked');};
+ assert.doesNotThrow(()=>module.exports.initializeLanguage());
 });
 test('all core copy keys have nonempty translations in all six non-English languages',()=>{
  assert(coreKeys.length>=250);
@@ -146,6 +162,19 @@ function source({failure=false,reorg=false,chain=97n}={}){
 test('historical prices use explicit block tags and a bounded read budget',async()=>{
  const f=source(),rows=await historicalObservations(f.token,f.rpc,{chainId:97,deployedBlock:1},{count:4,lookback:9});
  assert.deepEqual(rows.map(r=>r.block),[1,4,7,10]);assert.equal(f.calls.length,12);assert(f.calls.every(c=>Number.isInteger(c.blockTag)));
+});
+test('leaving a chart cancels its history before scheduling the next batch and never returns partial samples',async()=>{
+ const controller=new AbortController(),f=source();let completed=0;
+ for(const name of ['price','totalSupply','cycle']){
+  const read=f.token[name];f.token[name]=async options=>{const value=await read(options);if(++completed===6)controller.abort(Error('Chart hidden'));return value;};
+ }
+ await assert.rejects(historicalObservations(f.token,f.rpc,{chainId:97,deployedBlock:1},{count:16,lookback:9,signal:controller.signal}),/Chart hidden/);
+ assert.equal(f.calls.length,6);
+});
+test('an already canceled historical read makes no RPC call',async()=>{
+ const controller=new AbortController();controller.abort();const f=source();f.rpc.getNetwork=()=>assert.fail('No network call after cancellation');
+ await assert.rejects(historicalObservations(f.token,f.rpc,{chainId:97,deployedBlock:1},{signal:controller.signal}),{name:'AbortError'});
+ assert.equal(f.calls.length,0);
 });
 test('missing historical state fails instead of substituting zero or latest',async()=>{
  const f=source({failure:true});await assert.rejects(()=>historicalObservations(f.token,f.rpc,{chainId:97,deployedBlock:1},{count:10,lookback:9}),/pruned/);

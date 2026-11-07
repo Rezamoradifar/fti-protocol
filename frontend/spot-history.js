@@ -1,6 +1,7 @@
 // Observed prices are never built from USD/token execution averages or localStorage.
 const uint=/^(0|[1-9][0-9]*)$/;
 function check(ok,message){if(!ok)throw Error(message);}
+function checkActive(signal){if(signal?.aborted)throw signal.reason||Object.assign(Error('Historical read canceled'),{name:'AbortError'});}
 export function validObservation(row){
  check(row&&Number.isSafeInteger(row.block)&&row.block>=0&&Number.isSafeInteger(row.time)&&row.time>=0,'Invalid observation block/time');
  check(/^0x[\da-f]{64}$/i.test(row.hash),'Missing observation block hash');
@@ -47,27 +48,34 @@ export function curveGeometry(series){
  const path=xy.map(([x,y],i)=>{if(!i)return `M${x} ${y}`;const [px,py]=xy[i-1],mid=(px+x)/2;return `C${mid} ${py} ${mid} ${y} ${x} ${y}`;}).join(' ');
  return {xy,path,min,max,change:series[0].price>0?(series.at(-1).price/series[0].price-1)*100:null};
 }
-export async function readObservation(token,rpc,block){
+export async function readObservation(token,rpc,block,{signal}={}){
+ checkActive(signal);
  check(block&&Number.isSafeInteger(block.number),'Missing price block');
  const at={blockTag:block.number};
  const [price,supply,cycle]=await Promise.all([token.price(at),token.totalSupply(at),token.cycle(at)]);
- const again=await rpc.getBlock(block.number);check(again?.hash===block.hash,'Price block reorganized');
+ checkActive(signal);
+ const again=await rpc.getBlock(block.number);checkActive(signal);check(again?.hash===block.hash,'Price block reorganized');
  return validObservation({block:block.number,hash:block.hash,time:block.timestamp,priceWei:String(price),supplyWei:String(supply),cycle:String(cycle)});
 }
-export async function historicalObservations(token,rpc,cfg,{count=16,lookback=300}={}){
+export async function historicalObservations(token,rpc,cfg,{count=16,lookback=300,signal}={}){
+ checkActive(signal);
  check(Number.isSafeInteger(count)&&count>=2&&count<=24&&Number.isSafeInteger(lookback)&&lookback>=1&&lookback<=5000,'Historical budget exceeded');
  check(Number.isSafeInteger(cfg.deployedBlock)&&cfg.deployedBlock>=0,'Unknown deployment block');
  check(String((await rpc.getNetwork()).chainId)===String(cfg.chainId),'Wrong history network');
+ checkActive(signal);
  const tip=await rpc.getBlock('latest');check(tip&&tip.number>=cfg.deployedBlock,'Missing history tip');
+ checkActive(signal);
  const first=Math.max(cfg.deployedBlock,tip.number-lookback);
  const numbers=[...new Set(Array.from({length:count},(_,i)=>first+Math.floor((tip.number-first)*i/(count-1))))];
  const rows=[];
  // Bound concurrency and work. Any missing historical call fails the WHOLE
  // history read; callers may still show separately verified current samples.
  for(let i=0;i<numbers.length;i+=2){
-  const batch=await Promise.all(numbers.slice(i,i+2).map(async n=>readObservation(token,rpc,await rpc.getBlock(n))));rows.push(...batch);
+  checkActive(signal);
+  const batch=await Promise.all(numbers.slice(i,i+2).map(async n=>readObservation(token,rpc,await rpc.getBlock(n),{signal})));checkActive(signal);rows.push(...batch);
  }
  check((await rpc.getBlock(tip.number))?.hash===tip.hash,'History tip reorganized');
+ checkActive(signal);
  return mergeObservations([],rows);
 }
 export function tradeHistory(payload){

@@ -181,6 +181,8 @@ export function createMemberActivity({container, document, explorer, translate =
   paint();
   return {
     render(next) { const verified = normalizeRows(next); rows = verified; loaded = true; paint(); },
-    refresh() { paint(); },
+    // Account balance/status updates do not change this event snapshot. Keep
+    // its cards (and the user's expanded details) until the wallet changes.
+    refresh() { if (address() !== previousAddress) paint(); },
   };
 }

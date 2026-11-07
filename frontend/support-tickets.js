@@ -1,5 +1,6 @@
 // Ticket sessions stay in memory and are discarded on wallet/role changes.
 // Every signature starts from an explicit click; no transaction is submitted.
+import {mountCustomerLeadInbox} from './customer-services.js';
 const ADDRESS=/^0x[0-9a-fA-F]{40}$/;
 const ID=/^[a-f0-9]{32}$/;
 const TOPICS=['Wallet connection','Membership and referral','Rewards and auto-buy','Token transaction','Other'];
@@ -7,9 +8,9 @@ const COPIES={
  'Wallet connection':'اتصال ولت','Membership and referral':'عضویت و معرف','Rewards and auto-buy':'پاداش و خرید خودکار','Token transaction':'تراکنش توکن','Other':'سایر',
  open:'باز',answered:'پاسخ داده‌شده',closed:'بسته',
 };
-export function createSupportTickets({container,getAddress,signMessage,request,translate=value=>value,isAdmin=()=>false,document=container.ownerDocument,origin=globalThis.location?.origin}){
+export function createSupportTickets({container,getAddress,signMessage,request,translate=value=>value,language='en',isAdmin=()=>false,document=container.ownerDocument,origin=globalThis.location?.origin}){
  const t=(en,fa=COPIES[en])=>translate(en,fa),make=(tag,copy,cls)=>{const e=document.createElement(tag);if(copy!==undefined)e.textContent=copy;if(cls)e.className=cls;return e;};
- let identity='',generation=0,session=null,busy=false,controller=null,rows=[],selected=null,nextOffset=null,destroyed=false;
+ let identity='',generation=0,session=null,busy=false,controller=null,rows=[],selected=null,nextOffset=null,destroyed=false,leadInbox=null;
  const seen=new Map();
  const address=()=>{try{const a=getAddress();return typeof a==='string'&&ADDRESS.test(a)&&!/^0x0{40}$/i.test(a)?a:null;}catch{return null;}};
  const admin=()=>{try{return isAdmin()===true;}catch{return false;}};
@@ -29,7 +30,10 @@ export function createSupportTickets({container,getAddress,signMessage,request,t
  form.append(field(t('Topic','موضوع'),topic),field(t('Transaction hash · optional','هش تراکنش · اختیاری'),hash),field(t('What happened?','چه اتفاقی افتاد؟'),message),submit);
  head.append(title,auth);container.replaceChildren(head,intro,status,actions,listing,thread,form);
  const key=()=>`${address()?.toLowerCase()||''}/${admin()}`;
- function sync(){auth.disabled=busy||!address();auth.hidden=!!session;reload.disabled=busy||!session;more.disabled=busy||!session||nextOffset===null;more.hidden=nextOffset===null;form.hidden=!session||admin();submit.disabled=busy;for(const button of thread.querySelectorAll?.('button')||[])button.disabled=busy;}
+ function sync(){auth.disabled=busy||!address();auth.hidden=!!session;reload.disabled=busy||!session;more.disabled=busy||!session||nextOffset===null;more.hidden=nextOffset===null;form.hidden=!session||admin();submit.disabled=busy;for(const button of thread.querySelectorAll?.('button')||[])button.disabled=busy;
+  if(admin()&&!leadInbox){const host=make('div');container.append(host);leadInbox=mountCustomerLeadInbox({container:host,document,language,getAuthorization:()=>admin()&&session?'Bearer '+session.token:'',request});}
+  leadInbox?.refresh();
+ }
  function clear(){generation++;controller?.abort();controller=null;session=null;busy=false;rows=[];selected=null;nextOffset=null;seen.clear();listing.replaceChildren();thread.replaceChildren();message.value='';hash.value='';status.textContent=address()?t('Verify your wallet to open private support.','برای ورود به پشتیبانی خصوصی، ولت را تأیید کنید.'):t('Connect a wallet to use support tickets.','برای استفاده از تیکت، ولت خود را متصل کنید.');sync();}
  function refresh(){if(destroyed)return;const next=key();if(identity!==next){identity=next;clear();}sync();}
  function reset(){identity=key();clear();}
@@ -62,5 +66,5 @@ export function createSupportTickets({container,getAddress,signMessage,request,t
  more.onclick=()=>run(({signal,live})=>load(signal,live,nextOffset??0));
  form.onsubmit=event=>{event.preventDefault();if(message.value.trim().length<15||hash.value&&!/^0x[0-9a-fA-F]{64}$/.test(hash.value))return;run(async({signal,live})=>{const data=await call('/api/support/tickets',{method:'POST',body:{topic:topic.value||TOPICS[0],message:message.value,hash:hash.value},signal});if(!live())return;selected=validateTicket(data.ticket);message.value='';hash.value='';seen.set(selected.id,selected.messages.length);paintThread(selected);await load(signal,live);status.textContent=t('Ticket created. Keep the reference shown below.','تیکت ثبت شد؛ شماره پیگیری نمایش‌داده‌شده را نگه دارید.');});};
  refresh();
- return {refresh,reset,destroy(){destroyed=true;generation++;controller?.abort();session=null;rows=[];selected=null;seen.clear();container.replaceChildren();}};
+ return {refresh,reset,destroy(){destroyed=true;generation++;controller?.abort();leadInbox?.destroy();session=null;rows=[];selected=null;seen.clear();container.replaceChildren();}};
 }

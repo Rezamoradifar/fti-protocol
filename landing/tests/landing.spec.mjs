@@ -13,8 +13,9 @@ for(const width of [320,390,768,1440]){
         page.on('response',r=>{if(r.status()>=400)failed.push(`${r.status()} ${r.url()}`)});
         await page.goto('/');
         await expect(page.locator('h1')).toBeVisible();
-        await expect(page.locator('.hero-hud .fti-header-mark')).toBeVisible();
-        expect(await page.locator('.hero-hud image').evaluate(el=>new Promise(resolve=>{const img=new Image();img.onload=()=>resolve(img.naturalWidth===1254);img.onerror=()=>resolve(false);img.src=el.getAttribute('href')}))).toBe(true);
+        await expect(page.locator('.protocol-visual')).toBeVisible();
+        expect(await page.locator('.brand-image img').first().evaluate(img=>img.complete&&img.naturalWidth===1254)).toBe(true);
+        await expect(page.locator('.quick-actions > a')).toHaveCount(4);
         await expect(page.locator('html')).toHaveAttribute('lang',lang);
         await expect(page.locator('html')).toHaveAttribute('dir',lang==='fa'?'rtl':'ltr');
         await expect(page.locator('html')).toHaveAttribute('data-theme',theme);
@@ -37,6 +38,7 @@ for(const width of [320,390,768,1440]){
 
 test('language/theme persistence, mobile menu, anchors, tabs and FAQ',async({page})=>{
   await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>localStorage.setItem('fti-theme','dark'));
   await page.goto('/?lang=en');
   await page.locator('.landing-language').selectOption('fa');
   await expect(page.locator('html')).toHaveAttribute('dir','rtl');
@@ -49,8 +51,8 @@ test('language/theme persistence, mobile menu, anchors, tabs and FAQ',async({pag
   await expect(page.locator('#navigation')).toBeHidden();
   await menu.click();await expect(menu).toHaveAttribute('aria-expanded','true');
   await page.keyboard.press('Escape');await expect(menu).toHaveAttribute('aria-expanded','false');
-  await menu.click();await page.locator('#navigation a[href="#token"]').click();
-  await expect(page).toHaveURL(/#token$/);await expect(menu).toHaveAttribute('aria-expanded','false');
+  await menu.click();await page.locator('#navigation a[href="#protocol"]').click();
+  await expect(page).toHaveURL(/#protocol$/);await expect(menu).toHaveAttribute('aria-expanded','false');
   await page.getByRole('tab',{name:'فروش',exact:true}).click();
   await expect(page.locator('#flow-content')).toContainText('بازخرید FTI');
   await page.getByRole('tab',{name:'فروش',exact:true}).press('ArrowRight');
@@ -69,7 +71,7 @@ test('font files are local and static paths fail honestly',async({page,request})
 
 test('mainnet badge follows verified runtime config and failed JS leaves a readable fallback',async({page})=>{
   await page.route('**/api/config',route=>route.fulfill({json:{chainId:56,mode:'bnb-mainnet'}}));
-  await page.goto('/?lang=en');await expect(page.locator('.status')).toContainText('BNB Mainnet · 56');
+  await page.goto('/?lang=en');await page.locator('#live-data').scrollIntoViewIfNeeded();await expect(page.locator('.status')).toContainText('BNB Mainnet · 56');
   await page.route('**/assets/*.js',route=>route.abort());
   await page.reload();await expect(page.locator('#fti-boot')).toBeVisible();
   await expect(page.locator('#fti-boot a')).toHaveAttribute('href','/app/');
@@ -83,22 +85,16 @@ for(const route of ['token-site','whitepaper','roadmap'])test(`preserves public 
   expect(await page.locator('body').innerText()).toContain('FTI');expect(errors).toEqual([]);
 });
 
-test('3D controls, reduced motion and educational binary calculations',async({page})=>{
+test('static hero respects reduced motion and keeps primary destinations',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto('/?lang=en');
- await expect(page.locator('.token-solid')).toHaveCSS('animation-name','none');
- const initial=await page.locator('.token-axis').getAttribute('style');
- await page.getByRole('button',{name:'Rotate token',exact:true}).click();
- expect(await page.locator('.token-axis').getAttribute('style')).not.toBe(initial);
- await page.getByRole('button',{name:'Pause motion',exact:true}).click();
- await expect(page.getByRole('button',{name:'Resume motion',exact:true})).toHaveAttribute('aria-pressed','true');
- await page.getByLabel('Left points',{exact:true}).fill('15');
- await page.getByLabel('Right points',{exact:true}).fill('20');
- await page.getByLabel('Hourly point cap',{exact:true}).fill('5');
- await expect(page.locator('.lab-results strong')).toHaveText(['5','10','5']);
- await page.getByLabel('Hourly point cap',{exact:true}).fill('0');
- await expect(page.locator('.lab-results strong')).toHaveText(['0','15','5']);
- for(const id of ['binary','architecture','roadmap','resources'])await expect(page.locator('#'+id)).toHaveCount(1);
- for(const route of ['/whitepaper/','/roadmap/','/token-site/'])await expect(page.locator('.resource-links a[href="'+route+'"]').first()).toBeAttached();
+ await expect(page.locator('.protocol-coin')).toHaveCSS('animation-name','none');
+ await expect(page.locator('.visual-members')).toHaveAttribute('href','/app/#network');
+ await expect(page.locator('.visual-token')).toHaveAttribute('href','/token/#trade');
+ await page.getByRole('tab',{name:'Transfer',exact:true}).click();
+ await expect(page.locator('.flow-illustration > span')).toHaveText(['FTI','FTI']);
+ await page.getByRole('tab',{name:'Sell',exact:true}).click();
+ await expect(page.locator('.flow-illustration > span')).toHaveText(['FTI','USDT']);
+ for(const route of ['/whitepaper/','/roadmap/','/support/','/vpn/'])await expect(page.locator('a[href="'+route+'"]').first()).toBeAttached();
 });

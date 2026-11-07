@@ -1,4 +1,5 @@
 import React, {useEffect,useState,createContext,useContext} from 'react';
+import './workspace-navigation.css';
 import {t,language,initializeLanguage} from './locale.js';
 import {LanguageSelect,SocialLinks,TranslationNotice} from './global-components.jsx';
 import {BrandMark,TokenSeal} from './brand.jsx';

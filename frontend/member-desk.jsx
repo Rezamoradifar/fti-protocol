@@ -8,13 +8,13 @@ import social from '../config/social-links.json';
 const links=siteLinks(location.href);
 const number=value=>value==null?'—':displayNumber(BigInt(value));
 const smallAddress=value=>value?value.slice(0,7)+'…'+value.slice(-5):'—';
+const decimalSeparator=new Intl.NumberFormat(languageInfo.locale).formatToParts(1.1).find(part=>part.type==='decimal')?.value||'.';
 const money=value=>{
  if(value==null)return '—';
  const raw=BigInt(value);
  if(raw>0n&&raw<10n**16n)return '< '+displayNumber(.01,{minimumFractionDigits:2,maximumFractionDigits:2});
  const cents=(raw+5n*10n**15n)/10n**16n;
- const decimal=new Intl.NumberFormat(languageInfo.locale).formatToParts(1.1).find(part=>part.type==='decimal')?.value||'.';
- return number((cents/100n).toString())+decimal+displayNumber(cents%100n,{minimumIntegerDigits:2,useGrouping:false});
+ return number((cents/100n).toString())+decimalSeparator+displayNumber(cents%100n,{minimumIntegerDigits:2,useGrouping:false});
 };
 const minimum=(a,b)=>a==null||b==null?null:(BigInt(a)<BigInt(b)?a:b);
 function jump(page){location.hash=page;document.getElementById('page-title')?.focus({preventScroll:true});document.getElementById('main')?.scrollIntoView({behavior:'instant'});}
@@ -41,10 +41,10 @@ export function MemberMetrics(){const view=useMemberView();const matched=minimum
 
 export function MemberQuickActions(){return <nav className="member-shortcuts" aria-label={t('Account shortcuts','دسترسی سریع حساب')}>{[
  ['network','network',t('Membership','عضویت و شبکه'),t('Join or add units','ثبت‌نام یا افزایش یونیت')],
+ ['trade','trade',t('Buy & sell FTI','خرید و فروش FTI'),t('Get a live quote','دریافت برآورد زنده')],
  ['rewards','reward',t('Your rewards','پاداش‌های شما'),t('Claim and manage auto-buy','دریافت و تنظیم خرید خودکار')],
- ['activity','trade',t('Recent activity','فعالیت‌های اخیر'),t('Review on-chain records','بررسی رویدادهای شبکه')],
  ['support','help',t('Help center','مرکز راهنما'),t('Guides and official support','آموزش و پشتیبانی رسمی')]
- ].map(([page,icon,title,description])=><button type="button" key={page} onClick={()=>jump(page)}><Glyph name={icon}/><span><b>{title}</b><small>{description}</small></span><Arrow/></button>)}</nav>;}
+ ].map(([page,icon,title,description])=><button type="button" key={page} data-shortcut={page} onClick={()=>jump(page)}><Glyph name={icon}/><span><b>{title}</b><small>{description}</small></span><Arrow/></button>)}</nav>;}
 
 export function MemberAccountSummary(){
  const view=useMemberView();const [copied,setCopied]=useState(false);
