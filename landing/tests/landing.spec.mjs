@@ -38,15 +38,17 @@ for(const width of [320,390,768,1440]){
 
 test('language/theme persistence, mobile menu, anchors, tabs and FAQ',async({page})=>{
   await page.setViewportSize({width:390,height:844});
-  await page.addInitScript(()=>localStorage.setItem('fti-theme','dark'));
+  await page.addInitScript(()=>{if(!localStorage.getItem('fti-theme'))localStorage.setItem('fti-theme','dark')});
   await page.goto('/?lang=en');
   await page.locator('.landing-language').selectOption('fa');
   await expect(page.locator('html')).toHaveAttribute('dir','rtl');
+  const before=await page.locator('html').getAttribute('data-theme');
+  const selected=before==='light'?'dark':'light';
   await page.getByRole('button',{name:'تغییر حالت رنگ'}).click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme',selected);
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('lang','fa');
-  await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme',selected);
   const menu=page.getByRole('button',{name:'منو',exact:true});
   await expect(page.locator('#navigation')).toBeHidden();
   await menu.click();await expect(menu).toHaveAttribute('aria-expanded','true');
