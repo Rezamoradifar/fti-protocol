@@ -77,5 +77,5 @@ export function createMemberHistory({container,document,getAddress=()=>null,requ
   const url=URL.createObjectURL(new Blob([content],{type:'text/csv;charset=utf-8'}));const link=make('a');link.href=url;link.download=filename;link.click();URL.revokeObjectURL(url);
  };
  syncIdentity();paint();
- return {load,refresh(){if(!disposed){syncIdentity();paint();}},cancel(){if(!disposed)cancel.onclick();},destroy(){disposed=true;generation++;controller?.abort();controller=null;rows=[];container.replaceChildren();}};
+ return {load,refresh(){if(!disposed&&syncIdentity())paint();},cancel(){if(!disposed)cancel.onclick();},destroy(){disposed=true;generation++;controller?.abort();controller=null;rows=[];container.replaceChildren();}};
 }

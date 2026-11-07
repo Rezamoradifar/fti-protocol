@@ -14,7 +14,7 @@ for(const lang of ['ar','tr','zh-CN'])test(`${lang}: complete catalog and transa
 test('language continuity preserves referrals and hashes',()=>{
  const url=withLanguage('https://ftiprotocol.com/app/?sponsor=0x123#membership','ar');
  assert.equal(new URL(url).searchParams.get('sponsor'),'0x123');assert.equal(new URL(url).hash,'#membership');assert.equal(languageFrom(url,'en'),'ar');
- assert.equal(normalizeLanguage('zh-Hans'),'zh-CN');assert.equal(LANGUAGES.find(x=>x.code==='ar').dir,'rtl');assert.equal(languageFrom('https://ftiprotocol.com',null),'fa');
+ assert.equal(normalizeLanguage('zh-Hans'),'zh-CN');assert.equal(LANGUAGES.find(x=>x.code==='ar').dir,'rtl');assert.equal(languageFrom('https://ftiprotocol.com',null),'en');
 });
 
 test('all mainnet NetworkText copy is localized, including when real API data arrives',async()=>{

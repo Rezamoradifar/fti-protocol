@@ -127,5 +127,15 @@ export function createSupportService({cfg,council,dataDir,origin,allowedOrigins,
    });
   }catch(e){return result(e.status||503,{error:typeof e.code==='string'&&/^(SUPPORT_|INVALID_)/.test(e.code)?e.code:'SUPPORT_UNAVAILABLE'});}
  }
- return {handle};
+ // Customer-intake inbox uses the same short-lived support identity. A fresh
+ // on-chain guardian check is still required on every privileged read/write.
+ async function authorizeTeam({authorization,origin:requestOrigin}){
+  if(!origins.has(requestOrigin))throw fault(403,'SUPPORT_ORIGIN_DENIED');
+  const session=authenticate(authorization);
+  if(session.origin!==requestOrigin)throw fault(403,'SUPPORT_ORIGIN_DENIED');
+  rate('team:'+session.wallet,120);
+  await guardian(session.wallet);
+  return {wallet:session.wallet};
+ }
+ return {handle,authorizeTeam};
 }

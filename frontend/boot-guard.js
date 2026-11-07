@@ -28,7 +28,10 @@
     try { stored = localStorage.getItem('fti-language'); } catch {}
     let requested;
     try { requested = new URL(location.href).searchParams.get('lang'); } catch {}
-    const lang = (requested || stored || 'fa') === 'fa' ? 'fa' : 'en';
+    const supported = value => typeof value === 'string' &&
+      ['en', 'ar', 'tr', 'zh', 'zh-cn', 'zh-hans', 'ru', 'es', 'fa'].includes(value.toLowerCase())
+      ? value.toLowerCase() : null;
+    const lang = (supported(requested) || supported(stored) || 'en') === 'fa' ? 'fa' : 'en';
     const text = copy[lang];
     fallback.lang = lang;
     fallback.dir = lang === 'fa' ? 'rtl' : 'ltr';

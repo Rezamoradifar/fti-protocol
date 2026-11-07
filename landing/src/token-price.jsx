@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {translate} from '../../frontend/locale.js';
+import {translate} from './public-locale.js';
 import {readTokenPrice} from './token-price-data.mjs';
 import {exactPoolAmount,poolAmount,poolInteger,poolTime} from './hourly-pool-view.mjs';
 import {tokenPriceAmount,tokenPriceFreshness} from './token-price-view.mjs';

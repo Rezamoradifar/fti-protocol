@@ -147,6 +147,15 @@ class InstallerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'missing'):self.install()
         self.assertEqual(self.snapshot(),self.old)
 
+    def test_unapproved_manifest_route_rejected(self):
+        candidate=self.source/'private'/'index.html';candidate.parent.mkdir()
+        candidate.write_bytes((self.source/'index.html').read_bytes())
+        manifest=json.loads((self.source/'release.json').read_text())
+        manifest['files']['private/index.html']=hashlib.sha256(candidate.read_bytes()).hexdigest()
+        (self.source/'release.json').write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError,'Unsafe manifest path'):installer.validate(self.source)
+        self.assertEqual(self.snapshot(),self.old)
+
     def test_unsupported_exchange_preserves_target(self):
         with patch.object(installer,'exchange',side_effect=OSError('unsupported')):
             with self.assertRaises(OSError):self.install()

@@ -22,13 +22,14 @@ export function initLiveMarket(token,rpc,cfg){
   const toolbar=make('div',undefined,'candle-toolbar'),readout=make('p','—','candle-readout');readout.id='price-readout-'+i;
   const chart=svg('svg',{viewBox:'0 0 780 300',class:'market-chart',role:'img',tabindex:0,'aria-label':t('Observed price curve'),'aria-describedby':readout.id});
   const note=make('p',t('The curve connects observed contract prices, not trade execution prices or a forecast. Only the displayed observations are covered.'),'market-note');
-  let data=[],windowSeconds=0,selected=null;
+  let data=[],windowSeconds=0,selected=null,series=[],geometry=null;
+  const recalculate=()=>{series=observedSeries(data,windowSeconds);geometry=curveGeometry(series);};
   const controls=[];
   for(const[seconds,label]of [[0,'All observations'],[60,'One minute'],[300,'Five minutes'],[900,'Fifteen minutes']]){
-   const b=make('button',t(label),'secondary');b.type='button';b.setAttribute('aria-pressed',String(seconds===windowSeconds));b.onclick=()=>{windowSeconds=seconds;selected=null;controls.forEach(([s,e])=>e.setAttribute('aria-pressed',String(s===seconds)));draw();};controls.push([seconds,b]);toolbar.append(b);
+   const b=make('button',t(label),'secondary');b.type='button';b.setAttribute('aria-pressed',String(seconds===windowSeconds));b.onclick=()=>{windowSeconds=seconds;selected=null;controls.forEach(([s,e])=>e.setAttribute('aria-pressed',String(s===seconds)));recalculate();draw();};controls.push([seconds,b]);toolbar.append(b);
   }
   function draw(){
-   const series=observedSeries(data,windowSeconds),geometry=curveGeometry(series);chart.replaceChildren();
+   chart.replaceChildren();
    change.textContent=percent(geometry?.change??null);change.classList.toggle('negative',geometry?.change<0);
    if(!geometry){readout.textContent=t(data.length&&BigInt(data.at(-1).supplyWei)===0n?'No price exists while token supply is zero.':'Waiting for observed prices');return;}
    for(let j=0;j<5;j++){
@@ -45,13 +46,15 @@ export function initLiveMarket(token,rpc,cfg){
    readout.textContent=t('Price')+': '+number(sample.price)+' '+currency+' · '+displayUTC(sample.time)+' · '+t('Block')+' '+sample.block+' · '+t('Observations')+': '+series.length;
   }
   chart.addEventListener('pointermove',event=>{
-   const series=observedSeries(data,windowSeconds),g=curveGeometry(series);if(!g)return;
+   const g=geometry;if(!g)return;
    const box=chart.getBoundingClientRect();if(!box.width)return;const x=(event.clientX-box.left)/box.width*780;
-   selected=g.xy.reduce((best,p,index)=>Math.abs(p[0]-x)<Math.abs(g.xy[best][0]-x)?index:best,0);draw();
+   const next=g.xy.reduce((best,p,index)=>Math.abs(p[0]-x)<Math.abs(g.xy[best][0]-x)?index:best,0);
+   if(next===(selected??series.length-1))return;
+   selected=next;draw();
   });
-  chart.addEventListener('pointerleave',()=>{selected=null;draw();});
+  chart.addEventListener('pointerleave',()=>{if(selected===null)return;selected=null;draw();});
   chart.addEventListener('keydown',event=>{
-   const length=observedSeries(data,windowSeconds).length;if(!length)return;
+   const length=series.length;if(!length)return;
    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();
    selected=event.key==='Home'?0:event.key==='End'?length-1:Math.max(0,Math.min(length-1,(selected??length-1)+(event.key==='ArrowLeft'?-1:1)));draw();
   });
@@ -61,7 +64,7 @@ export function initLiveMarket(token,rpc,cfg){
   }
   const historyNote=make('p','', 'market-note'),volume=make('p','—','market-volume'),tradeList=make('div',undefined,'market-trades');
   host.append(head,summary,indicator,toolbar,readout,chart,metrics,historyNote,volume,tradeList,note);
-  return {price,growth,indicator,values,render(samples){data=samples;draw();},historyNote,
+  return {price,growth,indicator,values,render(samples){data=samples;recalculate();draw();},historyNote,
    history(payload){const verified=tradeHistory(payload);volume.textContent=t('Executed volume · recent blocks')+': '+number(Number(formatEther(verified.volumeWei)))+' '+currency+' · '+payload.fromBlock+'–'+payload.toBlock;
     tradeList.replaceChildren(make('h3',t('Recent trades')));
     for(const r of verified.rows.slice(-8).reverse()){
@@ -72,15 +75,21 @@ export function initLiveMarket(token,rpc,cfg){
   };
  });
  let observations=[],fetching=false,historyFlight=false,historyAttempted=false,stopped=false;
- const hidden=()=>document.hidden||hosts.every(h=>h.closest('section')?.hidden);
+ let samplesController=null,historyController=null;
+ const visibleHosts=new Set(),observeViewport=typeof IntersectionObserver==='function';
+ const hidden=()=>document.hidden||hosts.every(h=>h.closest('section')?.hidden||(observeViewport&&!visibleHosts.has(h)));
  async function loadSamples(){
-  try{const samples=await historicalObservations(token,rpc,cfg);if(stopped)return;
+  if(stopped||hidden()||samplesController)return;
+  const controller=new AbortController();samplesController=controller;historyAttempted=true;
+  try{const samples=await historicalObservations(token,rpc,cfg,{signal:controller.signal});if(stopped||controller.signal.aborted||hidden())return;
    // Do not replace a newer observation with a slower historical response.
    let newer=observations.filter(r=>r.block>samples.at(-1).block);
    if(newer.length&&(await rpc.getBlock(newer.at(-1).block))?.hash!==newer.at(-1).hash)newer=[];
+   if(stopped||controller.signal.aborted||hidden())return;
    observations=mergeObservations(samples,newer);
    widgets.forEach(w=>w.render(observations));
-  }catch{widgets.forEach(w=>w.historyNote.textContent=t("Historical samples unavailable. Only this session's verified observations are shown."));}
+  }catch{if(!controller.signal.aborted&&!stopped)widgets.forEach(w=>w.historyNote.textContent=t("Historical samples unavailable. Only this session's verified observations are shown."));}
+  finally{if(controller.signal.aborted)historyAttempted=false;if(samplesController===controller)samplesController=null;}
  }
  async function update(){
   if(fetching||stopped||hidden())return;fetching=true;
@@ -88,7 +97,7 @@ export function initLiveMarket(token,rpc,cfg){
    if(String((await rpc.getNetwork()).chainId)!==String(cfg.chainId))throw Error('Wrong price network');
    const block=await rpc.getBlock('latest'),sample=await readObservation(token,rpc,block),at={blockTag:block.number};
    const [reserve,support,startPrice]=await Promise.all([token.reserve(at),token.supportReserve(at),token.cycleStartPrice(at)]);
-   if((await rpc.getBlock(block.number))?.hash!==block.hash)throw Error('Price block changed');if(stopped)return;
+   if((await rpc.getBlock(block.number))?.hash!==block.hash)throw Error('Price block changed');if(stopped||hidden())return;
    if(observations.at(-1)?.block>sample.block)observations=observations.filter(r=>r.block<=sample.block);
    observations=mergeObservations(observations,[sample]);
    const price=Number(formatEther(sample.priceWei)),base=Number(formatEther(startPrice)),hasPrice=BigInt(sample.supplyWei)>0n;
@@ -99,18 +108,25 @@ export function initLiveMarket(token,rpc,cfg){
     for(const[key,raw]of Object.entries({reserve,support,supply:sample.supplyWei}))w.values[key].textContent=number(Number(formatEther(raw)));
     w.render(observations);
    }
-   if(!historyAttempted){historyAttempted=true;void loadSamples();}
-  }catch{widgets.forEach(w=>{w.indicator.textContent=t('Price feed unavailable · last observed data retained');w.indicator.classList.add('stale');});}
+   if(!historyAttempted)void loadSamples();
+  }catch{if(!stopped&&!hidden())widgets.forEach(w=>{w.indicator.textContent=t('Price feed unavailable · last observed data retained');w.indicator.classList.add('stale');});}
   finally{fetching=false;}
  }
  async function history(){
   if(historyFlight||stopped||hidden())return;historyFlight=true;
-  try{const response=await fetch('/api/market',{signal:AbortSignal.timeout(20000),cache:'no-store'});if(!response.ok)throw Error('Unavailable history');const payload=await response.json();tradeHistory(payload);if(!stopped)widgets.forEach(w=>w.history(payload));}
-  catch{if(!stopped)widgets.forEach(w=>w.historyError());}finally{historyFlight=false;}
+  const controller=new AbortController();historyController=controller;let timedOut=false;
+  const timeout=setTimeout(()=>{timedOut=true;controller.abort();},20000);
+  try{const response=await fetch('/api/market',{signal:controller.signal,cache:'no-store'});if(!response.ok)throw Error('Unavailable history');const payload=await response.json();tradeHistory(payload);if(!stopped&&!controller.signal.aborted&&!hidden())widgets.forEach(w=>w.history(payload));}
+  catch{if(!stopped&&!hidden()&&(!controller.signal.aborted||timedOut))widgets.forEach(w=>w.historyError());}finally{clearTimeout(timeout);historyFlight=false;if(historyController===controller)historyController=null;}
  }
- const wake=()=>{void update();void history();};
+ const wake=()=>{if(hidden()){samplesController?.abort();historyController?.abort();return;}void update();void history();};
  const poll=setInterval(update,10000),tradePoll=setInterval(history,30000);
+ // Do not ask every visitor for archival RPC reads for charts below the fold.
+ // Hiding a chart stops the next history batch; prices still have their own
+ // canonical, wallet-independent snapshot in the main controller.
+ const observer=observeViewport?new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting)visibleHosts.add(entry.target);else visibleHosts.delete(entry.target);}wake();},{rootMargin:'120px 0px'}):null;
+ hosts.forEach(host=>observer?.observe(host));
  document.addEventListener('visibilitychange',wake);window.addEventListener('hashchange',wake);wake();
- const stop=()=>{stopped=true;clearInterval(poll);clearInterval(tradePoll);document.removeEventListener('visibilitychange',wake);window.removeEventListener('hashchange',wake);};
+ const stop=()=>{stopped=true;samplesController?.abort();historyController?.abort();observer?.disconnect();clearInterval(poll);clearInterval(tradePoll);document.removeEventListener('visibilitychange',wake);window.removeEventListener('hashchange',wake);};
  window.addEventListener('pagehide',stop,{once:true});return stop;
 }

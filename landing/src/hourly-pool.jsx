@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {translate} from '../../frontend/locale.js';
+import {translate} from './public-locale.js';
 import {readHourlyPool} from '../../frontend/hourly-pool-data.js';
 import {exactPoolAmount,hourlyPoolView,poolTime} from './hourly-pool-view.mjs';
 import './hourly-pool.css';

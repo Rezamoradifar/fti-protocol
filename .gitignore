@@ -13,6 +13,13 @@ deployments/testnet-input.json
 # Rebuilt from frontend sources
 /web/app.js
 /web/app.js.LEGAL.txt
+/web/app.css
+/web/customer-widget.js
+/web/customer-widget.css
+/web/customer-chunk-*.js
+/web/**/*.gz
+/web/**/*.br
+/landing/build-performance.json
 /web/member-landing-theme.css
 
 # Local browser QA output

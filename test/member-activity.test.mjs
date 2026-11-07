@@ -43,6 +43,10 @@ test('recent event cards expose readable titles, exact contract fields and a val
   assert.equal(link.href, 'https://bscscan.com/tx/0x' + 'a'.repeat(64));
   assert.equal(link.rel, 'noopener noreferrer');
   assert.equal(f.count().textContent, 'Matching events: 1 / 1');
+  // A balance/status refresh must not rebuild unchanged history cards or close
+  // the details that the user is currently reading.
+  f.view.refresh();
+  assert.strictEqual(f.cards()[0], card);
 });
 
 test('wallet filtering matches complete address arguments, ignores embedded addresses and tracks account changes', () => {

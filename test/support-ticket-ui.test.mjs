@@ -12,9 +12,9 @@ class Node{
 }
 const walk=n=>[n,...n.children.flatMap(walk)];
 const A='0x'+'a1'.repeat(20),B='0x'+'b2'.repeat(20),ID='1'.repeat(32),origin='https://ftiprotocol.com';
-function fixture(requestImpl){let wallet=A,signatures=0,admin=false;const container=new Node('div'),calls=[];const message=()=>['FTI Protocol support access','',`Origin: ${origin}`,'Chain ID: 56','Binary contract: '+B,`Wallet: ${wallet}`,'Nonce: '+ID,'','Sign only to access private support tickets. This does not authorize a transaction or spending.'].join('\n');
+function fixture(requestImpl,{language='en',translate=value=>value}={}){let wallet=A,signatures=0,admin=false;const container=new Node('div'),calls=[];const message=()=>['FTI Protocol support access','',`Origin: ${origin}`,'Chain ID: 56','Binary contract: '+B,`Wallet: ${wallet}`,'Nonce: '+ID,'','Sign only to access private support tickets. This does not authorize a transaction or spending.'].join('\n');
  const request=async(path,options={})=>{calls.push({path,options});if(requestImpl)return requestImpl(path,options);if(path.endsWith('/challenge'))return {nonce:ID,message:message(),expiresAt:Date.now()+300_000};if(path.endsWith('/session'))return {token:'a'.repeat(64),wallet,expiresAt:Date.now()+1_800_000};if(path.includes('/tickets/'+ID))return {ticket:record()};return {tickets:[],nextOffset:null};};
- const view=createSupportTickets({container,document:{createElement:t=>new Node(t)},getAddress:()=>wallet,isAdmin:()=>admin,signMessage:async()=>{signatures++;return '0x'+'12'.repeat(65);},request,origin});
+ const view=createSupportTickets({container,document:{createElement:t=>new Node(t)},getAddress:()=>wallet,isAdmin:()=>admin,signMessage:async()=>{signatures++;return '0x'+'12'.repeat(65);},request,origin,language,translate});
  return {container,view,calls,setWallet:v=>{wallet=v;},setAdmin:v=>{admin=v;},signatures:()=>signatures,auth:()=>walk(container).find(n=>n.tag==='button'&&n.textContent==='Verify wallet for support'),reload:()=>walk(container).find(n=>n.tag==='button'&&n.textContent==='Refresh tickets')};}
 const record=()=>({id:ID,wallet:A,topic:'Wallet connection',status:'open',createdAt:Date.now(),updatedAt:Date.now(),messages:[{id:'2'.repeat(32),role:'member',wallet:A,text:'<img src=x onerror=alert(1)>',createdAt:Date.now()}]});
 
@@ -40,4 +40,31 @@ test('failed ticket submission preserves the entered message and never retries a
  // The normal fixture returns a list in place of a create response: validation
  // must reject it while retaining the user's unsent text and allowing review.
  await form.onsubmit({preventDefault(){}});await new Promise(resolve=>setImmediate(resolve));assert.equal(input.value,'This carefully written support report remains available.');assert.equal(f.calls.filter(c=>c.path==='/api/support/tickets'&&c.options.method==='POST').length,1);
+});
+
+const leadRecord=()=>({id:ID,name:'Visitor',interest:'support',channel:'email',contact:'private-inbox@example.org',message:'<img src=x onerror=alert(1)> Help with this request.',source:'/support/',campaign:'',status:'new',createdAt:Date.now(),updatedAt:Date.now()});
+function inboxFixture(readLeads,options){
+ return fixture(async(path)=>{
+  if(path.endsWith('/challenge'))return {nonce:ID,message:['FTI Protocol support access','',`Origin: ${origin}`,`Wallet: ${A}`,`Nonce: ${ID}`,'','Sign only to access private support tickets. This does not authorize a transaction or spending.'].join('\n'),expiresAt:Date.now()+300_000};
+  if(path.endsWith('/session'))return {token:'a'.repeat(64),wallet:A,expiresAt:Date.now()+1_800_000};
+  if(path.startsWith('/api/customer-services/leads'))return readLeads();
+  return {tickets:[],nextOffset:null};
+ },options);
+}
+test('guardian lead inbox uses explicit refresh, renders plain text and clears on wallet change',async()=>{
+ const f=inboxFixture(()=>({leads:[leadRecord()],nextOffset:null}));f.setAdmin(true);f.view.refresh();
+ assert.equal(f.calls.filter(call=>call.path.startsWith('/api/customer-services/')).length,0);
+ await f.auth().onclick();const refresh=walk(f.container).find(node=>node.tag==='button'&&node.textContent==='Refresh customer requests');assert(refresh);await refresh.onclick();
+ assert.match(f.container.textContent,/private-inbox@example.org/);assert.match(f.container.textContent,/<img src=x/);assert.equal(walk(f.container).some(node=>node.tag==='img'),false);assert(!f.container.textContent.includes('a'.repeat(64)));
+ const call=f.calls.find(call=>call.path.startsWith('/api/customer-services/leads'));assert.equal(call.options.authorization,'Bearer '+'a'.repeat(64));
+ f.setWallet(B);f.view.refresh();assert(!f.container.textContent.includes('private-inbox@example.org'));assert(!f.container.textContent.includes('<img'));f.view.destroy();
+});
+test('guardian lead inbox keeps the active locale and Arabic right-to-left direction',async()=>{
+ const f=inboxFixture(()=>({leads:[],nextOffset:null}),{language:'ar'});f.setAdmin(true);f.view.refresh();await f.auth().onclick();
+ const inbox=walk(f.container).find(node=>String(node.className||'').includes('fti-services-inbox'));
+ assert(inbox);assert.equal(inbox.lang,'ar');assert.equal(inbox.dir,'rtl');f.view.destroy();
+});
+test('a late private inbox response cannot repopulate a changed wallet session',async()=>{
+ let resolve;const f=inboxFixture(()=>new Promise(done=>{resolve=done;}));f.setAdmin(true);f.view.refresh();await f.auth().onclick();const refresh=walk(f.container).find(node=>node.tag==='button'&&node.textContent==='Refresh customer requests'),running=refresh.onclick();
+ await Promise.resolve();f.setWallet(B);f.view.refresh();resolve({leads:[leadRecord()],nextOffset:null});await running;assert(!f.container.textContent.includes('private-inbox@example.org'));assert.equal(f.auth().hidden,false);f.view.destroy();
 });

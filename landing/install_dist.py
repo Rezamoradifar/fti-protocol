@@ -39,7 +39,7 @@ def validate(source):
     if 'index.html' not in files or not any(p.endswith('.js') for p in files) or not any(p.endswith('.css') for p in files):
         raise ValueError('Incomplete release manifest')
     for name, digest in files.items():
-        if not re.fullmatch(r'(index\.html|(?:token-site|whitepaper|roadmap)/index\.html|assets/[A-Za-z0-9_.-]+)', name):
+        if not re.fullmatch(r'(?:(?:index\.html|(?:token-site|whitepaper|roadmap|support|vpn)/index\.html)|assets/[A-Za-z0-9_.-]+)(?:\.(?:gz|br))?', name):
             raise ValueError('Unsafe manifest path')
         if hashlib.sha256((source / name).read_bytes()).hexdigest() != digest:
             raise ValueError('Build checksum mismatch: ' + name)
@@ -68,6 +68,11 @@ def exchange(a, b):
 def verify(target, files, origin, resolve):
     with tempfile.TemporaryDirectory(prefix='.landing-http-', dir=target.parent) as tmp:
         for name in files:
+            # The build checksum covers pre-compressed sidecars. Verify the
+            # canonical response instead: Nginx chooses gzip/Brotli based on
+            # the client request and does not need to expose sidecar URLs.
+            if name.endswith(('.gz', '.br')) and name.rsplit('.', 1)[0] in files:
+                continue
             output = Path(tmp) / 'body'
             cmd = ['curl', '--fail', '--silent', '--show-error', '--noproxy', '*',
                    '--connect-timeout', '5', '--max-time', '20', '--header', 'Cache-Control: no-cache',
@@ -78,7 +83,7 @@ def verify(target, files, origin, resolve):
             url = origin.rstrip('/') + '/' + route
             status, content_type = subprocess.check_output(cmd + [url + '?release=' + str(time.time_ns())], text=True).split(' ', 1)
             mime = content_type.split(';')[0].strip()
-            allowed = {'text/html'} if name.endswith('.html') else {'text/css'} if name.endswith('.css') else {'text/javascript', 'application/javascript'} if name.endswith('.js') else {'image/webp'} if name.endswith('.webp') else {'font/woff2', 'application/font-woff2', 'application/octet-stream'}
+            allowed = {'text/html'} if name.endswith('.html') else {'text/css'} if name.endswith('.css') else {'text/javascript', 'application/javascript'} if name.endswith('.js') else {'image/webp'} if name.endswith('.webp') else {'image/jpeg'} if name.endswith(('.jpg', '.jpeg')) else {'font/woff2', 'application/font-woff2', 'application/octet-stream'}
             if status != '200' or mime not in allowed or output.read_bytes() != (target / name).read_bytes():
                 raise RuntimeError('HTTP content/type mismatch: ' + name)
 

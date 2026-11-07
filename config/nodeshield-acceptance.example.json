@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "provider": "NodeShield",
+  "portalUrl": "https://vpn.example.org/shop/",
+  "healthUrl": "https://vpn.example.org/api/fti-health",
+  "releaseId": "REPLACE_WITH_VERIFIED_PROVIDER_RELEASE",
+  "deliveryVerifiedAt": "",
+  "evidenceReference": "",
+  "deliveryChecks": []
+}

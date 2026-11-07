@@ -1,4 +1,4 @@
-import {translate} from '../../frontend/locale.js';
+import {translate} from './public-locale.js';
 import React,{useState} from 'react';
 import './experience.css';
 import {HeaderMark} from '../../frontend/header-mark.jsx';
