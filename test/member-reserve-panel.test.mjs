@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {formatEther, parseEther, ZeroAddress} from 'ethers';
+import {formatAssetAmount,exactAssetAmount,tokenValuation} from '../frontend/asset-display.js';
 
 const jsx = fs.readFileSync(new URL('../frontend/main.jsx', import.meta.url), 'utf8');
 const controller = fs.readFileSync(new URL('../frontend/controller.js', import.meta.url), 'utf8');
-const start = controller.indexOf('function renderWallet(){');
+const start = controller.indexOf('function renderWalletValues(){');
 const end = controller.indexOf("\n$('#reward-all-panel')", start);
 assert(start > 0 && end > start);
 const mountedIds = new Set([...jsx.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
@@ -33,7 +34,7 @@ function fixture() {
     thresholds: [100n, 200n, 500n, 1000n], ZeroAddress, sites: {member: 'https://example.invalid/app/'},
     wallet: () => context.state?.wallet,
     $: selector => node(selector.slice(1)), text: (id, value) => {node(id).textContent = value;},
-    t: value => value, fmt: (value, digits = 2) => value === undefined ? '—' : new Intl.NumberFormat('en-US', {maximumFractionDigits: digits}).format(Number(formatEther(value))),
+    t: value => value, fmt: (value, digits = 2) => formatAssetAmount(value,{digits}), exactAssetAmount, tokenValuation,
     integer: value => String(value), formatEther, utc: value => String(value), withLanguage: value => value,
     settledPoints: () => ({raw: null, paid: null, count: null}),
     document: {createElement: () => ({textContent: '', append() {}})},
