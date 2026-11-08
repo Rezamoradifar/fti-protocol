@@ -28,6 +28,8 @@ import signal
 
 import stat
 
+import posixpath
+
 import subprocess
 
 import sys
@@ -1147,6 +1149,15 @@ def canonical_sources(root):
     return result
 
 
+def validate_packaging_entry_imports(server, required_names):
+    """Refuse to package entrypoints whose local imports cannot be staged or pinned."""
+    allowed = set(RUNTIME_FILES) | set(required_names)
+    imports = re.findall(rb"(?:\bfrom\s*|\bimport\s*\(?\s*)([\"'])(\.\.?/[^\"']+\.mjs)\1", server)
+    for _, relative in imports:
+        target = posixpath.normpath(posixpath.join('scripts', relative.decode('utf8')))
+        require(target in allowed, 'UNPACKAGED_SERVER_IMPORT: ' + target)
+
+
 def package_completion(root, output):
     app = regular(root / 'web/app.js')[0]
     require(sha(regular(root / 'web/app.js.LEGAL.txt')[0]) == LEGAL, 'LEGAL_NOTICE_CHANGED')
@@ -1167,6 +1178,7 @@ def package_completion(root, output):
         'scripts/approved-genesis-layout.mjs', 'scripts/operational-release.mjs',
         'scripts/continuity-release.mjs', 'scripts/lib.mjs', 'core/deployment-network.mjs',
         'core/hourly-cap-policy.mjs', 'core/pool-distribution-policy.mjs', 'core/referral-placement.mjs')
+    validate_packaging_entry_imports(unpack(runtime[ENTRY]), names)
     canonical_bytes = canonical_sources(root)
     required = {name: sorted({sha(regular(root / name)[0]), sha(canonical_bytes[name])}) for name in names}
     import importlib.util

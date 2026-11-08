@@ -1,15 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import http from 'node:http';
 import {spawnSync} from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
+import {gunzipSync,brotliDecompressSync} from 'node:zlib';
 import ganache from 'ganache';
 import {JsonRpcProvider,Wallet,MaxUint256,parseEther as E,keccak256} from 'ethers';
 import {deployOne} from '../scripts/lib.mjs';
 import {startWeb} from '../scripts/server.mjs';
 import {RELEASE,releaseManifest} from '../scripts/v3-release.mjs';
+
+function rawResponse(url,encoding){
+ return new Promise((resolve,reject)=>{
+  const req=http.get(url,{headers:{'Accept-Encoding':encoding}},res=>{
+   const chunks=[];res.on('data',chunk=>chunks.push(chunk));
+   res.on('end',()=>resolve({status:res.statusCode,headers:res.headers,body:Buffer.concat(chunks)}));
+   res.on('error',reject);
+  });req.on('error',reject);
+ });
+}
 
 test('new V3 deployment is readable by the panel API without legacy locks or timelock',async()=>{
  const chain=ganache.server({logging:{quiet:true},wallet:{totalAccounts:40},chain:{chainId:31337},miner:{blockGasLimit:30000000}});
@@ -50,10 +62,25 @@ test('new V3 deployment is readable by the panel API without legacy locks or tim
     const release=JSON.parse(fs.readFileSync('landing/dist/release.json','utf8'));
     assert(Object.keys(release.files).some(name=>name.endsWith('.js')));
     assert(Object.keys(release.files).some(name=>name.endsWith('.css')));
+    for(const file of Object.keys(release.files))if(file.endsWith('.gz')||file.endsWith('.br')){
+      assert(file.replace(/\.(?:gz|br)$/,'') in release.files,'Orphan sidecar: '+file);
+    }
     for(const file of Object.keys(release.files)){
+      // Compression sidecars are representations, not standalone routes.
+      if(file.endsWith('.gz')||file.endsWith('.br'))continue;
       const route=file==='index.html'?'/':'/'+(file.endsWith('/index.html')?file.slice(0,-10):file);
       const asset=await fetch(origin+route);assert.equal(asset.status,200,'Built asset: '+file);
-      assert.deepEqual(Buffer.from(await asset.arrayBuffer()),fs.readFileSync('landing/dist/'+file));
+      const original=fs.readFileSync('landing/dist/'+file);
+      assert.deepEqual(Buffer.from(await asset.arrayBuffer()),original,'Built asset: '+file);
+      for(const [suffix,encoding,decompress] of [['.gz','gzip',gunzipSync],['.br','br',brotliDecompressSync]]){
+        const sidecar='landing/dist/'+file+suffix;if(!fs.existsSync(sidecar))continue;
+        const compressed=fs.readFileSync(sidecar);
+        assert.deepEqual(decompress(compressed),original,'Sidecar: '+file+suffix);
+        const encoded=await rawResponse(origin+route,encoding);
+        assert.equal(encoded.status,200,'Encoded asset: '+file);
+        assert.equal(encoded.headers['content-encoding'],encoding,'Encoding: '+file);
+        assert.deepEqual(encoded.body,compressed,'Encoded asset: '+file);
+      }
       if(file.endsWith('.js'))assert.match(asset.headers.get('content-type'),/javascript/);
       if(file.endsWith('.css'))assert.match(asset.headers.get('content-type'),/text\/css/);
       if(file.endsWith('.woff2'))assert.equal(asset.headers.get('content-type'),'font/woff2');

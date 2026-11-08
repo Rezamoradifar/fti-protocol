@@ -46,6 +46,14 @@ def fixture_release():
 
 
 class CompletionTests(unittest.TestCase):
+    def test_packaging_rejects_unstaged_server_dependencies(self):
+        m.validate_packaging_entry_imports(
+            b"import './member-history.mjs';import './operational-release.mjs';",
+            ('scripts/operational-release.mjs',))
+        with self.assertRaisesRegex(RuntimeError, 'UNPACKAGED_SERVER_IMPORT: scripts/customer-services.mjs'):
+            m.validate_packaging_entry_imports(
+                b"import {x} from './customer-services.mjs';", ('scripts/operational-release.mjs',))
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
