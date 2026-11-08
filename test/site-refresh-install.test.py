@@ -6,6 +6,7 @@ import importlib.util
 import json
 import lzma
 import os
+import subprocess
 from pathlib import Path
 import tempfile
 import types
@@ -267,6 +268,98 @@ class TransactionTests(unittest.TestCase):
         self.assertEqual(self.private_calls, [False, False])
         self.assert_original_untouched()
 
+    def test_large_existing_public_tree_is_counted_and_copied(self):
+        folder = self.root / 'web/old-immutable'
+        for i in range(27):
+            (folder / f'large-{i:02}.js').write_bytes(b'x' * 3_900_000)
+        m.install(self.h, self.release, True)
+        self.assertEqual((self.stage / 'web/old-immutable/large-26.js').stat().st_size, 3_900_000)
+        self.assertEqual(self.restarts, 1)
+
+    def test_more_than_5000_historical_files_are_copied(self):
+        folder = self.root / 'web/old-immutable'
+        for i in range(5001):
+            (folder / f'old-{i:04}.js').write_bytes(b'x')
+        m.install(self.h, self.release, True)
+        self.assertEqual((self.stage / 'web/old-immutable/old-5000.js').read_bytes(), b'x')
+        self.assertEqual(self.restarts, 1)
+
+    def test_aggregate_public_budget_rejects_before_mutation(self):
+        with patch.object(self.h, 'PUBLIC_COPY_MAX_BYTES', 100):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED'):
+                m.install(self.h, self.release, True)
+        self.assertEqual(self.restarts, 0)
+        self.assertFalse(self.drop.exists())
+
+    def test_aggregate_entry_budget_rejects_before_mutation(self):
+        with patch.object(self.h, 'PUBLIC_COPY_MAX_ENTRIES', 10):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_COPY_BUDGET_EXCEEDED'):
+                m.install(self.h, self.release, True)
+        self.assertEqual(self.restarts, 0)
+        self.assertFalse(self.drop.exists())
+
+    def test_preflight_checks_space_and_inodes_without_mutation(self):
+        for space in (types.SimpleNamespace(f_bavail=1, f_frsize=4096, f_favail=100_000),
+                      types.SimpleNamespace(f_bavail=1_000_000, f_frsize=4096, f_favail=1)):
+            with self.subTest(space=space), patch.object(m.os, 'statvfs', return_value=space):
+                with self.assertRaisesRegex(RuntimeError, 'INSUFFICIENT_SPACE_OR_INODES'):
+                    m.install(self.h, self.release)
+        self.assertEqual(self.restarts, 0)
+        self.assertFalse(self.drop.exists())
+
+    def test_changed_public_tree_between_preflight_and_copy_is_rejected(self):
+        original = self.h.copy_public_tree
+        def mutate(source, destination, expected=None):
+            (source / 'new.js').write_bytes(b'concurrent change')
+            return original(source, destination, expected)
+        with patch.object(self.h, 'copy_public_tree', side_effect=mutate):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_CHANGED_DURING_COPY'):
+                m.install(self.h, self.release, True)
+        self.assertEqual(self.restarts, 0)
+        self.assertFalse(self.drop.exists())
+
+    def test_preexisting_unverified_stage_fails_closed(self):
+        self.stage.mkdir()
+        with self.assertRaisesRegex(RuntimeError, 'PREEXISTING_STAGE_REQUIRES_REVIEW'):
+            m.install(self.h, self.release, True)
+        self.assertEqual(self.restarts, 0)
+        self.assertFalse(self.drop.exists())
+
+    def test_source_change_after_all_public_copies_fails_before_switch(self):
+        original = self.h.fingerprint_preflight
+        def mutate(root, *args):
+            result = original(root, *args)
+            if Path(root) == self.stage:
+                (self.root / 'web/old-immutable/late.js').write_bytes(b'late change')
+            return result
+        with patch.object(self.h, 'fingerprint_preflight', side_effect=mutate):
+            with self.assertRaisesRegex(RuntimeError, 'PUBLIC_RUNTIME_CHANGED_BEFORE_SWITCH'):
+                m.install(self.h, self.release, True)
+        self.assertEqual(self.restarts, 0)
+        self.assertFalse(self.drop.exists())
+
+    def test_deep_new_paths_increase_inode_reservation(self):
+        # The base 14,000-inode threshold is insufficient for these deep
+        # paths when conservative parent-directory counts are included.
+        original = m.candidate_content
+        def with_deep_assets(payload):
+            index, assets, landing = original(payload)
+            assets.update({f'/new/a/b/c/d/item-{i}.js': b'x' for i in range(2200)})
+            return index, assets, landing
+        with patch.object(m.os, 'statvfs', return_value=types.SimpleNamespace(
+                f_bavail=1_000_000, f_frsize=4096, f_favail=14_000)), \
+             patch.object(m, 'candidate_content', side_effect=with_deep_assets):
+                with self.assertRaisesRegex(RuntimeError, 'INSUFFICIENT_SPACE_OR_INODES'):
+                    m.install(self.h, self.release)
+        self.assertEqual(self.restarts, 0)
+
+    def test_hardlinked_public_file_is_rejected(self):
+        os.link(self.root / 'web/app.js', self.root / 'web/hardlink.js')
+        with self.assertRaisesRegex(RuntimeError, 'UNSAFE_FILE'):
+            m.install(self.h, self.release, True)
+        self.assertEqual(self.restarts, 0)
+        self.assertFalse(self.drop.exists())
+
     def test_public_static_root_mismatch_stops_before_any_mutation(self):
         original = self.fetch
         def mismatched(_h, url, **kwargs):
@@ -293,6 +386,24 @@ class TransactionTests(unittest.TestCase):
         self.assertEqual((self.stage / 'web/old-immutable/app.js').read_bytes(), b'open browser tab still needs this')
         self.assertFalse((self.stage / 'landing/dist/index.html.gz').exists())
         self.assert_original_untouched()
+
+    def test_private_umask_keeps_landing_accessible_to_service_user(self):
+        os.chmod(self.base, 0o755)
+        before = os.umask(0o077)
+        try:
+            m.install(self.h, self.release, True)
+        finally:
+            os.umask(before)
+        for directory in (self.stage, self.stage / 'landing', self.stage / 'landing/dist'):
+            self.assertEqual(directory.stat().st_mode & 0o777, 0o755, str(directory))
+        if os.environ.get('FTI_REQUIRE_SERVICE_UID_HTTP_TEST') == '1':
+            self.assertEqual(os.geteuid(), 0, 'The service UID acceptance test requires root')
+        if os.geteuid() == 0:
+            result = subprocess.run(['setpriv', '--reuid=65534', '--regid=65534', '--clear-groups',
+                                     'cat', str(self.stage / 'landing/dist/index.html')],
+                                    capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
+            print('FTI_UNPRIVILEGED_LANDING_READ_OK', flush=True)
 
     def test_health_failure_restores_original_configuration_and_preserves_failed_stage(self):
         self.fail_health = True

@@ -46,6 +46,11 @@ BACKUP_SCHEMA = 'FTI_SITE_REFRESH_BACKUP_V1'
 MAX_FILES = 5000
 MAX_BYTES = 100_000_000
 MAX_FILE = 4_000_000
+# The new build retains its smaller package bounds. Historical public trees
+# have accumulated immutable assets and use the helper's separately bounded
+# 1 GiB / 12,000 entry aggregate plan.
+MAX_STAGE_BYTES = 1024 ** 3 + 200_000_000
+MAX_STAGE_FILES = 20_000
 MAINNET_REVISION = 'ba82373a83d63fba0643332371cfb6d62903c849'
 EXPECTED = {
     'chainId': 56, 'mode': 'bnb-mainnet', 'release': 'FTI_CONTINUITY_MAINNET_20261013',
@@ -446,7 +451,7 @@ def inventory(h, root):
             data, _ = h.regular(file)
             total += len(data)
             result[file.relative_to(root).as_posix()] = sha(data)
-            require(len(result) <= 13_000 and total <= 320_000_000, 'STAGED_COPY_LIMIT')
+            require(len(result) <= MAX_STAGE_FILES and total <= MAX_STAGE_BYTES, 'STAGED_COPY_LIMIT')
     return result
 
 
@@ -478,13 +483,18 @@ def immutable_write(h, path, data):
     h.create(path, data, 0o644)
 
 
-def stage_release(h, source, stage, dependency_root, payload, index, assets, landing, overlay):
+def stage_release(h, source, stage, dependency_root, payload, index, assets, landing, overlay, public_plan):
     require(stage.parent == RELEASES and stage != source and stage.is_dir() and not os.listdir(stage),
             'UNSAFE_STAGE')
     os.chmod(stage, 0o755)
+    # A private operator umask must not hide the landing tree from the web
+    # service. This parent is a new directory inside our empty stage.
+    landing_parent = stage / 'landing'
+    h.safe_path(landing_parent)
+    landing_parent.mkdir(mode=0o755)
+    os.chmod(landing_parent, 0o755)
     for name in ('web', 'landing/dist', 'artifacts'):
-        for child, data in public_build_files(h, source / name).items():
-            immutable_write(h, stage / name / child, data)
+        h.copy_public_tree(source / name, stage / name, expected=public_plan[name])
     for name, data in payload['canonical'].items():
         immutable_write(h, stage / name, data)
     (stage / 'node_modules').symlink_to(dependency_root / 'node_modules', target_is_directory=True)
@@ -843,34 +853,53 @@ def install(h, release, apply=False):
         print(json.dumps({'publicDeliveryObserved': delivery}, sort_keys=True), flush=True)
         print('FTI_SITE_REFRESH_ALREADY_INSTALLED_AND_HTTP_VERIFIED', flush=True)
         return
-    copy_bytes = 0
-    for folder in ('web', 'landing/dist', 'artifacts'):
-        current = public_build_files(h, root / folder)
-        copy_bytes += sum(map(len, current.values()))
-        if folder == 'landing/dist':
-            for name, data in landing.items():
-                if name in current and not name.endswith('.html') and name != 'release.json':
-                    require(current[name] == data, 'IMMUTABLE_ASSET_COLLISION: ' + name)
+    # A previously staged directory has no recorded identity for today's
+    # source public trees. Do not reuse it across a retry without that proof.
+    require(not stage.exists(), 'PREEXISTING_STAGE_REQUIRES_REVIEW')
+    public_plan = previous_public_plan(h, root)
+    for folder, current in public_plan.items():
+        print(json.dumps({'publicTree': folder, 'bytes': current['bytes'],
+                          'entries': current['entries']}, sort_keys=True), flush=True)
+    copy_bytes = sum(item['bytes'] for item in public_plan.values())
+    current_landing = public_plan['landing/dist']['files']
+    for name, data in landing.items():
+        if name in current_landing and not name.endswith('.html') and name != 'release.json':
+            path = root / 'landing/dist' / name
+            require(h.public_entry_identity(path) == current_landing[name], 'PUBLIC_RUNTIME_CHANGED')
+            current, _ = h.regular(path)
+            require(h.public_entry_identity(path) == current_landing[name], 'PUBLIC_RUNTIME_CHANGED')
+            require(current == data, 'IMMUTABLE_ASSET_COLLISION: ' + name)
     copy_bytes += sum(map(len, payload['canonical'].values())) + sum(map(len, assets.values()))
     copy_bytes += sum(map(len, landing.values())) + sum(map(len, overlay.values()))
-    require(copy_bytes <= 320_000_000, 'STAGED_COPY_ESTIMATE_LIMIT')
+    require(copy_bytes <= MAX_STAGE_BYTES, 'STAGED_COPY_ESTIMATE_LIMIT')
+    # Each segment may require a distinct directory; counting shared parents
+    # repeatedly is intentionally conservative when reserving free inodes.
+    extra_entries = sum(len(PurePosixPath(name).parts) for group in
+                        (payload['canonical'], assets, landing, overlay) for name in group)
+    estimated_entries = sum(item['entries'] for item in public_plan.values()) + extra_entries
+    require(estimated_entries <= MAX_STAGE_FILES, 'STAGED_FILE_ESTIMATE_LIMIT')
     syntax_and_import(h, settings, overlay)
     compressed_assets_check(settings['node'], payload['web'])
     compressed_assets_check(settings['node'], payload['landing'])
     check_before(h, saved, pins, root, payload['canonical'], deployment_pin)
+    space = os.statvfs(root)
+    required_bytes = max(400 * 1024 * 1024, copy_bytes + 100 * 1024 * 1024)
+    required_inodes = max(14_000, estimated_entries + 1000)
+    require(space.f_bavail * space.f_frsize >= required_bytes and space.f_favail >= required_inodes,
+            'INSUFFICIENT_SPACE_OR_INODES: requiredBytes=' + str(required_bytes) +
+            ' availableBytes=' + str(space.f_bavail * space.f_frsize) +
+            ' requiredInodes=' + str(required_inodes) + ' availableInodes=' + str(space.f_favail))
     print(json.dumps({'status': 'FTI_SITE_REFRESH_PREFLIGHT_OK', 'apply': apply,
         'activeRoot': str(root), 'candidateRoot': str(stage), 'publicOrigin': PUBLIC,
         'localOrigin': settings['local'], 'deploymentRevision': cfg['sourceRevision'],
         'workspaceFiles': len(payload['web']), 'landingFiles': len(payload['landing']),
         'runtimeModules': len(overlay), 'webServiceRestarts': 1,
-        'maximumStagedBytes': copy_bytes,
+        'maximumStagedBytes': copy_bytes, 'requiredFreeBytes': required_bytes,
+        'requiredFreeInodes': required_inodes,
         'contractsChanged': False, 'keeperChanged': False, 'providerEnabledByInstaller': False},
         sort_keys=True), flush=True)
     if not apply:
         return
-    space = os.statvfs(root)
-    require(space.f_bavail * space.f_frsize >= max(400 * 1024 * 1024, copy_bytes + 100 * 1024 * 1024) and space.f_favail >= 14_000,
-            'INSUFFICIENT_SPACE_OR_INODES')
     for key in ('support', 'customer'):
         private_directory(h, Path(settings[key]), account.pw_uid, account.pw_gid)
     directory = backup(h, root, stage, saved, pins, settings, cfg, new_drop)
@@ -880,20 +909,17 @@ def install(h, release, apply=False):
     switched = False
     temporary = None
     try:
-        if stage.exists():
-            marker = read_stage(h, stage)
-            require(marker['originalRoot'] == str(root) and marker['release'] == payload['name'],
-                    'PREEXISTING_STAGE_REQUIRES_REVIEW')
-        else:
-            temporary = Path(tempfile.mkdtemp(prefix='.site-refresh-', dir=RELEASES))
-            stage_release(h, root, temporary, dependencies, payload, index, assets, landing, overlay)
-            h.publish_stage(temporary, stage)
-            temporary = None
+        require(not stage.exists(), 'PREEXISTING_STAGE_REQUIRES_REVIEW')
+        temporary = Path(tempfile.mkdtemp(prefix='.site-refresh-', dir=RELEASES))
+        stage_release(h, root, temporary, dependencies, payload, index, assets, landing, overlay, public_plan)
+        h.publish_stage(temporary, stage)
+        temporary = None
         read_stage(h, stage)
         syntax_and_import(h, settings, overlay, stage)
         h.fingerprint_preflight(stage, settings['node'], cfg, account)
         h.fingerprint_preflight(root, settings['node'], cfg, account)
         check_before(h, saved, pins, root, payload['canonical'], deployment_pin)
+        require(previous_public_plan(h, root) == public_plan, 'PUBLIC_RUNTIME_CHANGED_BEFORE_SWITCH')
         h.safe_path(DROP.parent)
         DROP.parent.mkdir(mode=0o755, exist_ok=True)
         require(DROP.parent.stat().st_uid == 0 and not DROP.parent.stat().st_mode & 0o022,
@@ -951,6 +977,21 @@ def public_build_files(h, directory):
             result[name] = h.regular(file)[0]
     require(len(result) <= MAX_FILES and sum(map(len, result.values())) <= MAX_BYTES, 'BUILD_SIZE_LIMIT')
     return result
+
+
+def previous_public_plan(h, root):
+    # The reviewed helper already verifies aggregate bytes, inode identities,
+    # hidden entries, symlinks and hardlinks without reading all assets into RAM.
+    # Permit only the existing, explicitly reviewed compressed representations.
+    h.PUBLIC_FILE_SUFFIXES = tuple(set(h.PUBLIC_FILE_SUFFIXES) | {'.br', '.gz'})
+    plan = h.public_runtime_plan(root)
+    for group in plan.values():
+        for name in group['directories']:
+            if name != '.':
+                relative_name(name)
+        for name in group['files']:
+            relative_name(name, True)
+    return plan
 
 
 def package(root, output):
