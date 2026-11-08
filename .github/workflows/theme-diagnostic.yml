@@ -1,0 +1,23 @@
+name: Theme WebKit diagnosis
+on:
+  push:
+    branches: [codex/fti-theme-diagnostic-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnosis:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix landing --ignore-scripts
+      - run: npm run build:web
+      - run: npm --prefix landing run build
+      - run: cd landing && npx playwright install --with-deps webkit
+      - run: cd landing && FTI_BROWSER=webkit npx playwright test tests/theme-diagnostic.spec.mjs --workers=2
