@@ -26,7 +26,7 @@ test('frozen canonical source boots completion overlay and rejects changed sourc
  const keys=Object.values(engine.provider.getInitialAccounts()).map(a=>a.secretKey);
  const dao=path.join(directory,'dao.json'),config=path.join(directory,'deployment.json');
  fs.writeFileSync(dao,JSON.stringify({threshold:5,partners:keys.slice(1,8).map(key=>new Wallet(key).address)}));
- const baseline=path.join(directory,'frozen'),overlayData=path.join(directory,'overlay.json');
+ const baseline=path.join(directory,'frozen'),overlayData=path.join(directory,'overlays.json');
  try{
   // Canonical source comes from the exact approved revision. The two generated
   // public bundles are fixture inputs; their actual frozen fingerprint is bound
@@ -44,16 +44,23 @@ for name in ['web','artifacts']:
  shutil.copytree(root/name,dest/name)
 (dest/'web/vendor/ethers.js').unlink(missing_ok=True)
 (dest/'node_modules').symlink_to(root/'node_modules',target_is_directory=True)
-runtime={name:(root/name).read_bytes() for name in m.RUNTIME_FILES}
-name,files=m.overlay_files(runtime)
-out.write_text(json.dumps({'folder':name,'files':{key:value.decode() for key,value in files.items()}}))
+# Test the exact published completion payload, not a hybrid of that
+# installer's manifest and today's server. Test the new refresh separately.
+spec=importlib.util.spec_from_file_location('published_completion',root/'tools/install-panel-completion-release.py');published=importlib.util.module_from_spec(spec);spec.loader.exec_module(published)
+runtime=published.completion_payload(published.RELEASE)[5]
+name,files=published.overlay_files(runtime)
+spec=importlib.util.spec_from_file_location('refresh',root/'tools/install-site-refresh.py');refresh=importlib.util.module_from_spec(spec);spec.loader.exec_module(refresh)
+current={name:(root/name).read_bytes() for name in refresh.RUNTIME_FILES}
+newfiles=refresh.overlay_files(current,canonical)
+out.write_text(json.dumps([{'kind':'completion','folder':name,'files':{key:value.decode() for key,value in files.items()}},
+ {'kind':'refresh','folder':'site-refresh-runtime-test','files':{key:value.decode() for key,value in newfiles.items()}}]))
 `;
   await child('python3',['-c',python,root,baseline,overlayData]);
   await child(process.execPath,['scripts/deploy-continuity-testnet.mjs'],{cwd:baseline,env:{...process.env,RPC_URL:rpc,FTI_SOURCE_REVISION:'ba82373a83d63fba0643332371cfb6d62903c849',
    DEPLOYER_PRIVATE_KEY:keys[0],DAO_CONFIG:dao,V3_TESTNET_SECRETS:path.join(directory,'genesis.json'),V3_DEPLOYMENT_FILE:config}});
   const proof=String.raw`
 import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';
-const config=process.argv[1],data=JSON.parse(fs.readFileSync(process.argv[2]));
+const config=process.argv[1],data=JSON.parse(fs.readFileSync(process.argv[2]))[Number(process.argv[3])];
 const {releaseManifest}=await import('./scripts/continuity-release.mjs');
 const before=releaseManifest();
 const folder=path.resolve(data.folder);fs.mkdirSync(folder);
@@ -76,18 +83,28 @@ try{
  assert.equal((await fetch(base+'/api/support/challenge',{method:'POST',headers:{Origin:'https://invalid.example','Content-Type':'application/json'},body:'{}'})).status,403);
  assert.equal((await fetch(base+'/api/member-history?wallet=invalid')).status,400);
  const history=await fetch(base+'/api/member-history?wallet='+cfg.genesis[0]);assert.equal(history.status,200,await history.text());
+ if(data.kind==='refresh'){
+  assert.equal(publicCfg.customerServicesVersion,1);
+  const customer=await fetch(base+'/api/customer-services/config');assert.equal(customer.status,200);
+  const status=await customer.json();assert.equal(status.version,1);assert.equal(status.vpn.state,'not-configured');assert.equal(status.vpn.checkoutUrl,null);
+  assert.equal((await fetch(base+'/api/customer-services/leads')).status,401);
+ }
  const blocked=await fetch(base+'/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_sendRawTransaction',params:['0x']})});assert.equal(blocked.status,400);
  assert.deepEqual(releaseManifest(),before,'serving the new APIs must not change frozen source identity');
 }finally{if(web)await new Promise(resolve=>web.close(resolve));}
 const wrong=structuredClone(cfg);wrong.tokenImplementation=cfg.binaryImplementation;const bad=path.resolve('../bad-deployment.json');fs.writeFileSync(bad,JSON.stringify(wrong));
 await assert.rejects(()=>startWeb(bad),/Implementation mismatch/);
-fs.appendFileSync('./scripts/site-routing.mjs','\n// invalid source fixture\n');
-await assert.rejects(()=>startWeb(config),/Deployment\/build release mismatch/);
+const routing=fs.readFileSync('./scripts/site-routing.mjs');
+try{fs.appendFileSync('./scripts/site-routing.mjs','\n// invalid source fixture\n');
+ await assert.rejects(()=>startWeb(config),/Deployment\/build release mismatch/);
+}finally{fs.writeFileSync('./scripts/site-routing.mjs',routing);}
 console.log('FTI_COMPLETION_FROZEN_RUNTIME_BOOT_PASS');
 `;
-  const result=await child(process.execPath,['--input-type=module','--eval',proof,config,overlayData],
-   {cwd:baseline,env:{...process.env,RPC_URL:rpc,PORT:'0',HOST:'127.0.0.1',FTI_SOURCE_REVISION:'ba82373a83d63fba0643332371cfb6d62903c849',WALLETCONNECT_PROJECT_ID:''}});
-  assert.match(result,/FTI_COMPLETION_FROZEN_RUNTIME_BOOT_PASS/);
+  for(const index of [0,1]){
+   const result=await child(process.execPath,['--input-type=module','--eval',proof,config,overlayData,String(index)],
+    {cwd:baseline,env:{...process.env,RPC_URL:rpc,PORT:'0',HOST:'127.0.0.1',FTI_SOURCE_REVISION:'ba82373a83d63fba0643332371cfb6d62903c849',WALLETCONNECT_PROJECT_ID:'',FTI_VPN_MANIFEST_FILE:'',FTI_VPN_ALLOWED_HOSTS:'',FTI_SUPPORT_DATA_DIR:'',FTI_CUSTOMER_DATA_DIR:''}});
+   assert.match(result,/FTI_COMPLETION_FROZEN_RUNTIME_BOOT_PASS/);
+  }
  }finally{
   await engine.close();fs.rmSync(directory,{recursive:true,force:true});
  }

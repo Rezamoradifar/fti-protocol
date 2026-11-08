@@ -413,6 +413,81 @@ body[data-surface="member"].light .member-volume-track span { background: linear
 .member-history-event :is(code,a),.member-ticket-thread code,.member-ticket-row small { overflow-wrap: anywhere; word-break: break-word; }
 .member-ticket-row { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 10px; width: 100%; text-align: start; min-height: 64px; }
 .member-ticket-row time,.member-ticket-message time { color: var(--muted); font-size: 12px; }
+
+body[data-surface="member"] .member-token-estimate { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: baseline; gap: 6px 12px; margin: 12px 0 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+body[data-surface="member"] .member-token-estimate > span { color: var(--muted); font-size: 11px; line-height: 1.8; }
+body[data-surface="member"] .member-token-estimate > strong { color: var(--accent); font-size: 19px; font-weight: 550; line-height: 1.6; direction: ltr; unicode-bidi: isolate; text-align: end; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 0; }
+body[data-surface="member"] .member-token-estimate > small { grid-column: 1 / -1; color: var(--muted); font-size: 10px; line-height: 1.9; overflow-wrap: anywhere; }
+.token-wallet-import { min-width: 0; }
+.token-wallet-import .panel-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.token-wallet-import > p { color: var(--muted); font-size: 12px; line-height: 1.9; max-width: 75ch; overflow-wrap: anywhere; }
+.token-wallet-import > button { min-height: 44px; margin-block: 8px 12px; }
+.token-wallet-import #token-import-status:empty { display: none; }
+.token-wallet-import details { margin-top: 12px; padding: 0 16px; border: 1px solid var(--line); border-radius: 12px; }
+.token-wallet-import summary { display: flex; align-items: center; min-height: 48px; cursor: pointer; color: var(--muted); font-size: 12px; line-height: 1.8; }
+.token-wallet-import details > p { font-size: 12px; line-height: 1.9; overflow-wrap: anywhere; }
+.token-wallet-import #token-import-address { direction: ltr; text-align: start; font-family: ui-monospace,monospace; font-size: 12px; word-break: break-all; unicode-bidi: isolate; padding: 12px; background: var(--bg); border-radius: 10px; }
+.token-wallet-import details > button { min-height: 44px; margin-bottom: 16px; }
+.token-wallet-import :is(summary,button):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+@media(max-width:900px) {
+ body[data-surface="member"] .workspace-header .connection { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ body[data-surface="member"] .workspace-header .connection #connect { grid-column: 1 / -1 !important; grid-row: 1; }
+ body[data-surface="member"] .workspace-header .connection #change-wallet { grid-column: 1; grid-row: 2; }
+ body[data-surface="member"] .workspace-header .connection #disconnect { grid-column: 2 !important; grid-row: 2; }
+ body[data-surface="member"] .workspace-header .connection :is(#change-wallet,#disconnect) { width: 100%; min-width: 0; min-height: 42px; padding: 9px 10px; border-radius: 12px; font-size: 11px; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
+ body[data-surface="member"] .member-token-estimate > strong { font-size: 18px; }
+ .token-wallet-import > button,.token-wallet-import details > button { width: 100%; }
+}
+@media(max-width:360px) { body[data-surface="member"] .member-token-estimate { grid-template-columns: minmax(0,1fr); } body[data-surface="member"] .member-token-estimate > strong { text-align: start; } }
+
+/* Appearance applies to the account workspace too, including mobile. The
+   member skin previously reset the shared glass background with !important. */
+html[data-appearance="glass"] body[data-surface="member"] {
+  --member-glass: rgba(13, 31, 23, .74);
+  --member-glass-line: rgba(161, 213, 176, .27);
+  background: radial-gradient(ellipse at 90% 0, #4b9d6655, transparent 44%), radial-gradient(ellipse at 0 70%, #245e5233, transparent 50%), var(--bg) !important;
+  background-attachment: fixed !important;
+}
+html[data-appearance="glass"] body[data-surface="member"].light {
+  --member-glass: rgba(255, 255, 255, .76);
+  --member-glass-line: rgba(67, 112, 74, .27);
+  background: radial-gradient(ellipse at 90% 0, #9ad7ad77, transparent 45%), radial-gradient(ellipse at 0 70%, #a2d2c355, transparent 50%), var(--bg) !important;
+}
+html[data-appearance="solid"] body[data-surface="member"] { background: var(--bg) !important; }
+html[data-appearance="glass"] body[data-surface="member"] :is(.panel,.member-balance-card,.member-rank-card,.member-readiness,.member-personal-metrics article,.member-resource-grid a,.member-shortcuts button,.member-settings-panel,.member-history-event,.member-ticket-message) {
+  background: var(--member-glass) !important;
+  border-color: var(--member-glass-line);
+  box-shadow: inset 0 1px 0 #ffffff0d, 0 12px 30px #0000000c;
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
+  backdrop-filter: blur(16px) saturate(125%);
+}
+html[data-appearance="solid"] body[data-surface="member"] :is(.panel,.member-balance-card,.member-rank-card,.member-readiness,.member-personal-metrics article,.member-resource-grid a,.member-shortcuts button,.member-settings-panel,.member-history-event,.member-ticket-message) {
+  background: var(--panel) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+html[data-appearance="glass"] body[data-surface="member"] #network-explorer :is(.tree-details,.binary-node) {
+  background: var(--member-glass) !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+html[data-appearance="glass"] body[data-surface="member"] .fti-appearance[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb,var(--accent) 9%,var(--panel)); }
+/* Old shared production CSS hid price and timestamp axis text on phones. */
+body[data-surface="member"] .market-chart text { display: block; }
+@media(prefers-reduced-transparency:reduce) {
+  html[data-appearance="glass"] body[data-surface="member"] { background: var(--bg) !important; }
+  html[data-appearance="glass"] body[data-surface="member"] :is(.panel,.member-balance-card,.member-rank-card,.member-readiness,.member-personal-metrics article,.member-resource-grid a,.member-shortcuts button,.member-settings-panel,.member-history-event,.member-ticket-message,#network-explorer .tree-details,#network-explorer .binary-node) {
+    background: var(--panel) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none;
+  }
+}
+@media print {
+  html[data-appearance="glass"] body[data-surface="member"],html[data-appearance="solid"] body[data-surface="member"] { background: white !important; }
+  html[data-appearance="glass"] body[data-surface="member"] :is(.panel,.member-balance-card,.member-rank-card,.member-readiness,.member-personal-metrics article,.member-resource-grid a,.member-shortcuts button,.member-history-event,.member-ticket-message,#network-explorer .tree-details,#network-explorer .binary-node) { background: white !important; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+}
 .member-ticket-message { display: grid; gap: 8px; }
 .member-ticket-message p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .member-ticket-create,.member-ticket-thread form { margin-top: 20px; display: grid; gap: 14px; }

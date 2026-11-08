@@ -1,0 +1,44 @@
+name: Customer services browser checks
+
+on:
+  push:
+    paths:
+      - 'landing/**'
+      - 'frontend/customer-*.js'
+      - 'frontend/customer-*.css'
+      - 'scripts/customer-*.mjs'
+      - 'scripts/static-response.mjs'
+      - '.github/workflows/customer-services-browser.yml'
+  pull_request:
+    paths:
+      - 'landing/**'
+      - 'frontend/customer-*.js'
+      - 'frontend/customer-*.css'
+      - 'scripts/customer-*.mjs'
+      - 'scripts/static-response.mjs'
+      - '.github/workflows/customer-services-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  customer-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npm ci --prefix landing
+      - run: npm run build --prefix landing
+      - run: cd landing && npx playwright install --with-deps chromium
+      - run: cd landing && npx playwright test --config=playwright.customer.config.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: customer-services-browser-results
+          path: landing/test-results
+          if-no-files-found: ignore

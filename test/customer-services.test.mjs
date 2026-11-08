@@ -92,6 +92,16 @@ test('AI is opt-in and limited to approved topic selection; malformed output and
  assert.equal(await bad.route('join','en'),null);
 });
 
+test('AI opt-in redacts common contact identifiers without removing short prices',async()=>{
+ let payload;
+ const ai=createCustomerAi({env:{FTI_ASSISTANT_PROVIDER:'openai',FTI_ASSISTANT_MODEL:'test-model',OPENAI_API_KEY:'test-only-key-not-a-secret'},fetcher:async(url,options)=>{payload=JSON.parse(options.body);return new Response(JSON.stringify({status:'completed',output:[{type:'message',role:'assistant',content:[{type:'output_text',text:JSON.stringify({topic:'token',needsHuman:false})}]}]}));}});
+ const question='Buy 10 FTI. Call +1 (415) 555-0123 or ۰۹۱۲-۳۴۵-۶۷۸۹, @mytelegram, mail user@example.com, https://example.com/path and wallet 0x'+'ab'.repeat(20);
+ assert.deepEqual(await ai.route(question,'en'),{topic:'token',needsHuman:false});
+ const sent=JSON.parse(payload.input).question;
+ for(const identity of ['415','۰۹۱۲','@mytelegram','user@example.com','https://example.com','0x'+ 'ab'.repeat(20)])assert(!sent.includes(identity),identity);
+ assert.match(sent,/Buy 10 FTI/);assert.match(sent,/\[phone number\]/);assert.match(sent,/\[username\]/);
+});
+
 test('an unsafe store or competing writer fails closed and never exposes filesystem details',async t=>{
  const f=await fixture(t,{prepareDataDir:async({dir,dataDir})=>{await fs.mkdir(dataDir,{mode:0o700});await fs.writeFile(path.join(dir,'private.txt'),'unrelated private data');await fs.symlink(path.join(dir,'private.txt'),path.join(dataDir,'d'.repeat(32)+'.json'));}});
  const result=await f.api('POST','/leads',lead());assert.equal(result.status,503);assert.deepEqual(result.data,{error:'CUSTOMER_UNAVAILABLE'});

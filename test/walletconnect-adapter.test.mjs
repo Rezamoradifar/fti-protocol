@@ -158,3 +158,26 @@ test('pairing URI validation rejects non-WalletConnect links, missing keys and d
 test('mobile wallet links use fixed official hosts and encode the complete pairing URI',()=>{
  const links=pairingLinks(URI);assert.deepEqual(links.map(x=>new URL(x.href).origin),['https://link.trustwallet.com','https://metamask.app.link']);for(const link of links)assert.equal(new URL(link.href).searchParams.get('uri'),URI);
 });
+
+test('FTI asset import is optional in the connection proposal and still needs wallet approval',async()=>{
+ const {provider,calls}=fixture();await provider.enable();const proposal=calls.find(c=>c[0]==='connect')[1];
+ assert(proposal.optionalNamespaces.eip155.methods.includes('wallet_watchAsset'));assert(!proposal.namespaces.eip155.methods.includes('wallet_watchAsset'));
+ const count=calls.length;await assert.rejects(provider.request({method:'wallet_watchAsset',params:{type:'ERC20',options:{address:B,symbol:'FTI',decimals:18}}}),e=>e.code===4100);assert.equal(calls.length,count);
+});
+
+test('approved FTI asset import forwards metadata only on the active BNB chain',async()=>{
+ const initial=session();initial.namespaces.eip155.methods.push('wallet_watchAsset');const {provider,client,calls}=fixture({initial});
+ const request={method:'wallet_watchAsset',params:{type:'ERC20',options:{address:B,symbol:'FTI',decimals:18}}};
+ assert.equal(await provider.request(request),'wallet-result');assert.deepEqual(calls.at(-1),['request',request,'eip155:56']);
+ const count=calls.length;client.emit('chainChanged',97);await assert.rejects(provider.request(request),e=>e.code===4901);assert.equal(calls.length,count);
+ client.emit('chainChanged',56);client.emit('accountsChanged',[]);await assert.rejects(provider.request(request),e=>e.code===4900);assert.equal(calls.length,count);
+});
+
+test('asset import rejects other standards, malformed metadata and price or image injection',async()=>{
+ const initial=session();initial.namespaces.eip155.methods.push('wallet_watchAsset');const {provider,calls}=fixture({initial});
+ const valid={address:B,symbol:'FTI',decimals:18};
+ for(const params of [null,[],{type:'ERC721',options:valid},{type:'ERC20',options:null},{type:'ERC20',options:[]},
+  ...[{address:'bad'},{address:'0x'+'0'.repeat(40)},{symbol:'OTHER'},{decimals:6},{decimals:'18'},{price:'100'},{image:'javascript:alert(1)'}].map(patch=>({type:'ERC20',options:{...valid,...patch}})),
+  {type:'ERC20',options:valid,chainId:97}])await assert.rejects(provider.request({method:'wallet_watchAsset',params}),e=>e.code===-32602);
+ assert.equal(calls.length,0);
+});

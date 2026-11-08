@@ -34,7 +34,18 @@ function beginAuthorization(selected){
  authorizations.set(provider,request);
  const cleanup=()=>{if(authorizations.get(provider)===request)authorizations.delete(provider);};
  request.then(cleanup,cleanup);
- try{Promise.resolve(selected.remote?provider.enable():provider.request({method:'eth_requestAccounts'})).then(resolve,reject);}
+ try{
+  let authorization;
+  if(selected.remote)authorization=provider.enable();
+  else if(selected.changeAccount){
+   let permission;try{permission=provider.request({method:'wallet_requestPermissions',params:[{eth_accounts:{}}]});}catch(error){permission=Promise.reject(error);}
+   authorization=Promise.resolve(permission).then(permissions=>{
+    if(!Array.isArray(permissions)||!permissions.some(permission=>permission?.parentCapability==='eth_accounts'))throw Error('Wallet account permission was not granted.');
+    return provider.request({method:'eth_accounts'});
+   },error=>{if([4200,-32601].includes(Number(error?.code)))return provider.request({method:'eth_requestAccounts'});throw error;});
+  }else authorization=provider.request({method:'eth_requestAccounts'});
+  Promise.resolve(authorization).then(resolve,reject);
+ }
  catch(error){reject(error);}
  return request;
 }
@@ -47,7 +58,7 @@ export async function requestWalletAccounts(selected,silent=false,timeoutMs=sile
  const request=silent?selected.provider.request({method:'eth_accounts'}):selected.authorization||beginAuthorization(selected);
  return accountDeadline(request,silent,timeoutMs);
 }
-export function chooseWallet({silent=false,projectId,chainId,authorize=false}={}) {
+export function chooseWallet({silent=false,projectId,chainId,authorize=false,forceChoose=false}={}) {
  const configured=/^[a-f0-9]{32}$/i.test(projectId||'')&&[56,97].includes(chainId);
  const wc=async()=>{const {walletConnectProvider}=await import('/vendor/walletconnect.js');return {provider:await walletConnectProvider(projectId,chainId),name:'WalletConnect',id:'walletconnect',remote:true};};
  discovery.request();
@@ -55,9 +66,9 @@ export function chooseWallet({silent=false,projectId,chainId,authorize=false}={}
  if(silent){if(saved==='walletconnect'&&configured)return wc().then(w=>w.provider.session?w:null);return Promise.resolve(discovery.list().find(w=>w.id===saved)||null);}
  if(pending)return pending;
  const remember=wallet=>{try{sessionStorage.setItem('fti-selected-wallet',wallet.id);}catch{}};
- const selectedWallet=wallet=>authorize?{...wallet,authorization:beginAuthorization(wallet)}:wallet;
+ const selectedWallet=wallet=>{const selected={...wallet,changeAccount:forceChoose&&!wallet.remote};return authorize?{...selected,authorization:beginAuthorization(selected)}:selected;};
  const initial=discovery.list();
- if(authorize&&initial.length===1&&(initial[0].id==='safepal'||initial[0].provider===window.safepalProvider||initial[0].provider.isSafePal===true)){
+ if(authorize&&!forceChoose&&initial.length===1&&(initial[0].id==='safepal'||initial[0].provider===window.safepalProvider||initial[0].provider.isSafePal===true)){
   const selected=selectedWallet(initial[0]);remember(selected);return Promise.resolve(selected);
  }
  pending=new Promise(resolve=>{
