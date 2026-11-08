@@ -1,0 +1,26 @@
+name: Site refresh installer safety
+on:
+  push:
+    branches: ['codex/fti-size-*']
+  pull_request:
+    paths: ['tools/install-site-refresh.py', 'tools/install-panel-completion.py', 'test/site-refresh-install.test.py', '.github/workflows/site-refresh-installer.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  installer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix landing --ignore-scripts
+      - name: Verify installer including real unprivileged service access
+        run: sudo env PYTHONDONTWRITEBYTECODE=1 FTI_REQUIRE_SERVICE_UID_HTTP_TEST=1 python3 test/site-refresh-install.test.py -q
