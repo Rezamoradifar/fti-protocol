@@ -20,6 +20,10 @@ test('unconfigured VPN has no checkout and routes an availability request to VPN
 test('Persian mobile support remains usable without horizontal overflow',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/support/?lang=fa');await expect(page.locator('.fti-services')).toHaveAttribute('dir','rtl');await expect(page.getByRole('heading',{name:'قدم بعدی، روشن.'})).toBeVisible();
  await page.getByRole('button',{name:'اتصال کیف‌پول',exact:true}).click();await expect(page.locator('.fti-services-message-assistant').last()).toContainText('عبارت بازیابی');
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+ for(const width of [390,320]){
+  await page.setViewportSize({width,height:844});
+  const layout=await page.evaluate(()=>({width:window.innerWidth,scroll:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('body *')].map(el=>({tag:el.tagName,cls:el.className,left:Math.round(el.getBoundingClientRect().left),right:Math.round(el.getBoundingClientRect().right)})).filter(el=>el.right>window.innerWidth+1||el.left< -1).slice(0,30)}));
+  expect(layout.scroll,JSON.stringify(layout)).toBeLessThanOrEqual(layout.width+1);
+ }
  await page.screenshot({path:'test-results/customer-support-fa-mobile.png',fullPage:true});
 });
