@@ -12,7 +12,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # The frozen installer was reproduced on this runner family; retain the
+    # byte-comparison while ubuntu-latest changes operating-system releases.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
