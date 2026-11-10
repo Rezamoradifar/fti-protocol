@@ -16,3 +16,22 @@ html[dir=rtl] body{font-family:'Vazirmatn Variable',Tahoma,sans-serif}html[dir=r
 @media(max-width:360px){.container{width:calc(100% - 28px)}.nav-tools{gap:4px}.landing-language{max-width:78px;font-size:10px}.nav .icon-button{width:32px}.brand>span:last-child{font-size:19px}.hero h1{font-size:37px}.hero .actions .button{padding:12px 13px;font-size:11px}.quick-action{padding:15px 12px}.quick-action h3{font-size:16px}.protocol-visual{min-height:325px}.visual-card>svg{display:none}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}.button:hover,.quick-action:hover,.visual-card:hover{transform:none}}
 @media print{.header,.actions,.nav-tools,.footer,.protocol-visual,.support-section{display:none}.container{width:100%}body{background:white;color:black}.quick-actions,.protocol-cards{break-inside:avoid}.hero,.token-grid,.faq-section{display:block}}
+
+/* FTI's emerald-and-gold landing visual. Existing theme and navigation remain usable. */
+html[data-theme=dark]{--bg:#06110f;--surface:#0c1d18;--surface2:#10271f;--text:#f2f7f3;--muted:#b8cbc1;--accent:#35e5a6;--line:#25483a;--gold:#d9b875}
+html[data-theme=dark] .header{background:#07110feF}
+html[data-theme=dark] .button.primary{background:#37e6aa;border-color:#37e6aa;color:#031812}
+html[data-theme=dark] .button.outline{border-color:#a98e5e;background:#0a1713;color:#f3f6ed}
+html[data-theme=dark] .quick-action{background:#0c1d18;border-color:#2b5843}
+.hero{position:relative;isolation:isolate;grid-template-columns:1fr 1.08fr;column-gap:0;padding-top:26px;overflow:hidden}
+.hero-copy{position:relative;z-index:1;padding-block:44px}
+.hero h1{font-weight:850;line-height:1.06;letter-spacing:-.045em;font-size:clamp(40px,4.3vw,66px)}
+.hero h1 em{color:var(--accent)}
+.hero-art{min-width:0;align-self:stretch;display:flex;align-items:center;overflow:hidden;direction:ltr}
+.hero-art img{width:100%;height:auto;min-height:390px;object-fit:cover;object-position:68% center;border-radius:26px}
+html[data-theme=dark] .hero-art img{mix-blend-mode:screen}
+.hero-bottom{position:relative;margin-top:24px}
+html[dir=rtl] .hero-art{direction:ltr}
+@media(max-width:850px){.hero{grid-template-columns:1fr}.hero-copy{padding-block:16px}.hero-art{min-height:260px}.hero-art img{min-height:260px;max-height:380px;object-position:65% center}.hero-bottom{grid-column:1}}
+@media(max-width:540px){.hero{padding-top:24px;gap:8px}.hero-copy{padding-block:8px}.hero h1{font-size:clamp(34px,10vw,42px);line-height:1.1}.hero-art{min-height:210px}.hero-art img{min-height:210px;max-height:290px;border-radius:16px}.hero-bottom{margin-top:6px}}
+@media print{.hero-art{display:none}}
