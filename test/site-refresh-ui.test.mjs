@@ -20,7 +20,7 @@ async function landingBundle(){
    resolveDir:root,loader:'jsx'},
   bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',minify:true,
   define:{'process.env.NODE_ENV':'"production"','__FTI_APP_URL__':'"/app/"'},
-  loader:{'.css':'empty','.jpg':'dataurl'},
+  loader:{'.css':'empty','.jpg':'dataurl','.webp':'dataurl'},
   alias:{react:path.join(root,'node_modules/react'),'react-dom':path.join(root,'node_modules/react-dom')},
   plugins:[{name:'nonbrowser-render',setup(builder){
    // Capture the real entrypoint's root element, then render it with React's

@@ -124,3 +124,13 @@ snapshot rendering, disconnect clearing, reduced motion and broader languages.
 - [x] Fix actionable layout/settings findings and capture their corrected states.
 - [x] Check mobile/desktop, day/night and the primary account interactions.
 - [x] Keep production installation separate from preview and CI verification.
+
+# Public landing design QA — emerald and gold
+
+Reference: the approved emerald-and-gold FTI landing mockup from the user.
+
+- Landing and workspace production builds passed.
+- Global frontend and customer services regression suites: 48 passed.
+- Browser visual comparison and interaction review: blocked. The cloud preview returned an upstream connection termination at `http://terminal.local:4173/`; a reload did not recover it. Screenshot comparison and responsive browser acceptance remain required.
+
+final result: blocked

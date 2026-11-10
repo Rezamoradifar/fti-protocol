@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs';
 const cfg=JSON.parse(fs.readFileSync(new URL('../../deployments/mainnet-20261016.json',import.meta.url)));
-const titles={en:'A new perspective',ar:'رؤية جديدة',tr:'Yeni bir bakış','zh-CN':'全新视角'};
+const titles={en:'THE FUTURE OF FINANCE',ar:'رؤية جديدة',tr:'Yeni bir bakış','zh-CN':'全新视角'};
 for(const lang of ['en','ar','tr','zh-CN'])for(const width of [320,390,1440])for(const theme of ['dark','light'])test(`${lang} ${width} ${theme}: landing and workspace language continuity`,async({page})=>{
  await page.setViewportSize({width,height:850});
  await page.addInitScript(theme=>localStorage.setItem('fti-theme',theme),theme);

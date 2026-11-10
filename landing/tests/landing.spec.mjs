@@ -13,7 +13,7 @@ for(const width of [320,390,768,1440]){
         page.on('response',r=>{if(r.status()>=400)failed.push(`${r.status()} ${r.url()}`)});
         await page.goto('/');
         await expect(page.locator('h1')).toBeVisible();
-        await expect(page.locator('.protocol-visual')).toBeVisible();
+        await expect(page.locator('.hero-art img')).toBeVisible();
         expect(await page.locator('.brand-image img').first().evaluate(img=>img.complete&&img.naturalWidth===1254)).toBe(true);
         await expect(page.locator('.quick-actions > a')).toHaveCount(4);
         await expect(page.locator('html')).toHaveAttribute('lang',lang);
@@ -91,9 +91,9 @@ test('static hero respects reduced motion and keeps primary destinations',async(
  await page.setViewportSize({width:390,height:844});
  await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto('/?lang=en');
- await expect(page.locator('.protocol-coin')).toHaveCSS('animation-name','none');
- await expect(page.locator('.visual-members')).toHaveAttribute('href','/app/#network');
- await expect(page.locator('.visual-token')).toHaveAttribute('href','/token/#trade');
+ await expect(page.locator('.hero-art img')).toHaveCSS('animation-name','none');
+ await expect(page.locator('.quick-actions a[href="/app/#network"]')).toBeVisible();
+ await expect(page.locator('.quick-actions a[href="/token/#trade"]')).toBeVisible();
  await page.getByRole('tab',{name:'Transfer',exact:true}).click();
  await expect(page.locator('.flow-illustration > span')).toHaveText(['FTI','FTI']);
  await page.getByRole('tab',{name:'Sell',exact:true}).click();

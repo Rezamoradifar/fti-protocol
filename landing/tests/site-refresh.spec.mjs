@@ -8,7 +8,7 @@ test('a first visit starts in English, Persian is last, and live reads wait for 
  await expect(page.locator('.landing-language')).toHaveValue('en');
  await expect(page.locator('.landing-language option').first()).toHaveAttribute('value','en');
  await expect(page.locator('.landing-language option').last()).toHaveAttribute('value','fa');
- await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+ await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
  await expect(page.locator('.quick-actions>a')).toHaveCount(4);
  expect(calls).toEqual([]);
  await page.locator('#live-data').scrollIntoViewIfNeeded();

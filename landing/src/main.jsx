@@ -5,6 +5,7 @@ import {content} from './home-content.js';
 import {homeMessage} from './home-messages.js';
 import {LiveDataBoundary} from './live-boundary.jsx';
 import mark from './assets/fti-mark.jpg';
+import heroArtwork from './assets/fti-emerald-orbit.webp';
 import '@fontsource-variable/manrope';
 import '@fontsource-variable/vazirmatn';
 import './premium.css';
@@ -18,16 +19,6 @@ function Icon({kind='arrow',...props}){
 }
 function Logo(){return <a href="/" className="brand" aria-label="FTI Protocol"><span className="brand-image"><img src={mark} width="48" height="48" alt="" fetchPriority="high"/></span><span>FTI<small>PROTOCOL</small></span></a>}
 function preference(key,fallback){try{return localStorage.getItem(key)||fallback}catch{return fallback}}
-function ProtocolVisual({m}){
- return <div className="protocol-visual" aria-label="FTI protocol workspaces">
-  <div className="visual-grid" aria-hidden="true"/><div className="orbit orbit-one" aria-hidden="true"/><div className="orbit orbit-two" aria-hidden="true"/>
-  <div className="visual-topline"><span><i/> FTI PROTOCOL</span><span>BNB CHAIN</span></div>
-  <a className="visual-card visual-members" href={app+'#network'}><span className="visual-icon"><Icon kind="member"/></span><span>{m('members')}<small>{m('workspace')}</small></span><Icon/></a>
-  <div className="protocol-coin" aria-hidden="true"><div className="coin-rim"><span className="coin-inscription">FTI · PROTOCOL · FTI · PROTOCOL</span><div className="coin-core"><img src={mark} width="160" height="160" alt=""/><span>FTI</span></div></div></div>
-  <a className="visual-card visual-token" href="/token/#trade"><span className="visual-icon token-icon"><Icon kind="token"/></span><span>{m('trade')}<small>FTI / USDT</small></span><Icon/></a>
-  <div className="visual-footnote"><Icon kind="shield"/><span>{m('wallet')}</span></div>
- </div>;
-}
 function LiveSection({lang,m}){
  const holder=useRef(null),[active,setActive]=useState(false);
  useEffect(()=>{
@@ -38,10 +29,11 @@ function LiveSection({lang,m}){
  return <div ref={holder} className="live-section" id="live-data"><div className="container live-section-intro"><div><p className="eyebrow">{m('live')}</p><h2>{m('review')}</h2><p>{m('dataNote')}</p></div><a className="text-link" href="/token/#trade">{m('trade')} <Icon/></a></div>{active?<LiveDataBoundary lang={lang}><Suspense fallback={<p className="container loading-data" role="status">{m('loading')}</p>}><LiveData lang={lang}/></Suspense></LiveDataBoundary>:<div className="container"><button className="button outline" onClick={()=>setActive(true)}>{m('loadData')} <Icon/></button></div>}</div>;
 }
 function App(){
- const [lang]=useState(language),[light,setLight]=useState(()=>preference('fti-theme','light')==='light'),[menu,setMenu]=useState(false),[tab,setTab]=useState(0);
+ const [lang]=useState(language),[light,setLight]=useState(()=>preference('fti-theme','dark')==='light'),[menu,setMenu]=useState(false),[tab,setTab]=useState(0);
  const m=key=>homeMessage(key,lang);
  const localize=value=>typeof value==='string'?translate(value,lang):Array.isArray(value)?value.map(localize):Object.fromEntries(Object.entries(value).map(([key,item])=>[key,localize(item)]));
  const t=lang==='fa'?content.fa:localize(content.en);
+ const heroTitle=lang==='en'?['THE FUTURE OF FINANCE,','REIMAGINED']:t.hero;
  useEffect(()=>{
   document.documentElement.dataset.theme=light?'light':'dark';
   try{localStorage.setItem('fti-theme',light?'light':'dark')}catch{}
@@ -53,7 +45,7 @@ function App(){
  <header className="header" id="top"><div className="container nav"><Logo/><nav id="navigation" className={menu?'navigation is-open':'navigation'} aria-label={t.menu}>
   {[[app,m('members')],['/token/#trade',m('trade')],['#protocol',m('how')],['/support/',m('support')]].map(([url,label])=><a key={url} href={url} onClick={()=>setMenu(false)}>{label}</a>)}
  </nav><div className="nav-tools"><select className="landing-language" aria-label={translate('Choose language',lang)} value={lang} onChange={event=>changeLanguage(event.target.value)}>{LANGUAGES.map(item=><option key={item.code} value={item.code} lang={item.code}>{item.label}</option>)}</select><button className="icon-button" onClick={()=>setLight(!light)} aria-label={t.theme} aria-pressed={light}>{light?'☾':'☀'}</button><a className="button primary nav-launch" href={app}>{m('workspace')} <Icon/></a><button className="icon-button mobile-menu" onClick={()=>setMenu(!menu)} aria-expanded={menu} aria-controls="navigation" aria-label={t.menu}>{menu?'×':'☰'}</button></div></div></header>
- <main id="main"><section className="hero container"><div className="hero-copy"><div className="eyebrow"><i/>{t.tag}</div><h1>{t.hero[0]}<br/><em>{t.hero[1]}</em></h1><p className="lead">{t.intro}</p><div className="actions"><a className="button primary" href={app}>{m('workspace')} <Icon/></a><a className="button outline" href="/token/">{t.cards[1][4]} <Icon/></a></div><div className="hero-reassurance"><span><Icon kind="shield"/>{m('wallet')}</span><a href="#resources">{t.faqTitle} <Icon/></a></div></div><ProtocolVisual m={m}/><div className="hero-bottom"><span>MEMBERSHIP · TOKEN · GOVERNANCE</span><div>{['connect','inspect','confirm'].map((key,index)=><span key={key}><b>0{index+1}</b>{m(key)}</span>)}</div></div></section>
+ <main id="main"><section className="hero container"><div className="hero-copy"><div className="eyebrow"><i/>{t.tag}</div><h1>{heroTitle[0]}<br/><em>{heroTitle[1]}</em></h1><p className="lead">{t.intro}</p><div className="actions"><a className="button primary" href={app}>{m('workspace')} <Icon/></a><a className="button outline" href="/token/">{t.cards[1][4]} <Icon/></a></div><div className="hero-reassurance"><span><Icon kind="shield"/>{m('wallet')}</span><a href="#resources">{t.faqTitle} <Icon/></a></div></div><div className="hero-art" aria-hidden="true"><img src={heroArtwork} alt="" fetchPriority="high" width="1672" height="941"/></div><div className="hero-bottom"><span>MEMBERSHIP · TOKEN · GOVERNANCE</span><div>{['connect','inspect','confirm'].map((key,index)=><span key={key}><b>0{index+1}</b>{m(key)}</span>)}</div></div></section>
  <section className="container shortcuts-section" aria-labelledby="start-title"><div className="section-heading"><div><p className="eyebrow">FTI / {m('services')}</p><h2 id="start-title">{m('start')}</h2></div><p>{m('choose')}</p></div><div className="quick-actions">{actions.map(([icon,title,body,url],index)=><a className={'quick-action action-'+index} href={url} key={title}><div className="quick-action-top"><span className="action-icon"><Icon kind={icon}/></span><span className="action-number">0{index+1}</span></div><h3>{m(title)}</h3><p>{m(body)}</p><span className="action-open">{m('explore')}<Icon/></span></a>)}</div></section>
  <section className="protocol-section container" id="protocol"><div className="section-heading"><div><p className="eyebrow">{t.eyebrow}</p><h2>{t.title}</h2></div><p>{t.desc}</p></div><div className="protocol-cards">{t.cards.map(([number,label,title,body,cta,url],index)=><article key={number}><div className="protocol-card-head"><Icon kind={['member','token','shield'][index]}/><span>{label}</span><small>{number}</small></div><h3>{title}</h3><p>{body}</p><a className="text-link" href={url}>{cta}<Icon/></a></article>)}</div></section>
  <section className="token-section" id="token"><div className="container token-grid"><div><p className="eyebrow">{t.tokenTag}</p><h2>{t.tokenTitle}</h2><p className="section-copy">{t.tokenBody}</p><a className="text-link" href="/token/">{t.quote}<Icon/></a></div><div className="flow-panel"><div className="flow-heading"><span>FTI / TOKEN MECHANICS</span><Icon kind="token"/></div><div className="tabs" role="tablist" aria-label={t.nav[1]}>{t.tabs.map((label,index)=><button key={label} role="tab" aria-selected={tab===index} tabIndex={tab===index?0:-1} id={'tab-'+index} aria-controls="flow-content" onClick={()=>setTab(index)} onKeyDown={event=>{let next;if(event.key==='ArrowRight')next=(index+1)%3;if(event.key==='ArrowLeft')next=(index+2)%3;if(event.key==='Home')next=0;if(event.key==='End')next=2;if(next!==undefined){event.preventDefault();setTab(next);document.getElementById('tab-'+next)?.focus()}}}>{label}</button>)}</div><div className="flow-content" role="tabpanel" id="flow-content" aria-labelledby={'tab-'+tab}><div className="flow-illustration" aria-hidden="true"><span>{tab===0?'USDT':'FTI'}</span><svg viewBox="0 0 100 24"><path d="M0 12h96m-8-8 8 8-8 8"/></svg><span>{tab===1?'USDT':'FTI'}</span></div><h3>{t.flows[tab][0]}</h3><p>{t.flows[tab][1]}</p><a className="button primary" href={'/token/#trade'}>{m('trade')}<Icon/></a></div></div></div></section>
