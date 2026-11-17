@@ -1,0 +1,29 @@
+name: FTI Telegram channel
+on:
+  schedule:
+    # 09:00, 13:00, 17:00 and 21:00 in Tehran.
+    - cron: '30 5 * * *'
+    - cron: '30 9 * * *'
+    - cron: '30 13 * * *'
+    - cron: '30 17 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: fti-official-telegram-publisher
+  cancel-in-progress: false
+jobs:
+  post:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install image and HTTP libraries
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends python3-pil python3-requests fonts-dejavu-core
+      - name: Publish the scheduled card
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          GITHUB_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: /usr/bin/python3 marketing/telegram/publish-mainnet-card.py
