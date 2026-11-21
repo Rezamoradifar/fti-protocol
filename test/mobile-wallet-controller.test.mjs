@@ -27,7 +27,8 @@ function fixture(){
   getNetwork:async()=>({chainId:56n}),getCode:async()=>'0x',getTransactionCount:async()=>3,
   waitForTransaction:async()=>receipt,getTransaction:async()=>({hash,from:address,to:address,nonce:3,value:0n,data:'0x',chainId:56n,type:0,gasLimit:21000n,blockNumber:10,blockHash}),getBlock:async()=>({number:10,hash:blockHash})};
  const signer={getAddress:async()=>address,sendTransaction:()=>assert.fail('BrowserProvider signer sends are forbidden')};
- const context={$,address,signer,transactionAddress:address,walletProvider:wallet,rpc,review,activeTransaction:tracker,cfg:{chainId:56},read:{binary:{addUnits:{populateTransaction:async()=>({to:contract,data:'0x1234'})}}},
+ const guides=[];
+ const context={guidance:{waiting(){},resolved(){},show(message){guides.push(message);}},$,address,signer,transactionAddress:address,walletProvider:wallet,rpc,review,activeTransaction:tracker,cfg:{chainId:56},read:{binary:{addUnits:{populateTransaction:async()=>({to:contract,data:'0x1234'})}}},
   prepareContractRequest,preparedWalletSend,submitTracked,confirmedReceipt,transactionState,prepareUnknownCancellation,submitUnknownCancellation,readWalletIdentity,preparationDeadline,localStorage:storage,integer:value=>String(value),
   hashView:{show:value=>assert.equal(value,hash),hide(){}},status(){},short:value=>value,t:key=>key,reason:error=>error.message,busy:false,syncActions(){},stopPendingChecks(){},startPendingChecks(){},refresh:async()=>{},refreshMembershipState:async()=>{},v3Model:false,surface:'member',location:{hash:'#network'},recoveryOptions:{},recoveryFor:()=>({}),transactionStage:'',explorer:'https://bscscan.com',window:{confirm:()=>assert.fail('native confirmation must not be used')}};
  function $(selector){return nodes[selector.slice(1)];}

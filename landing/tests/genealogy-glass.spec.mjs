@@ -79,3 +79,18 @@ for(const light of [false,true])test(`glass and solid visibly change mobile surf
   await page.evaluate(()=>{document.documentElement.dataset.appearance='glass';});
   await expect(surface).toHaveCSS('background-color',glass.background);
 });
+
+for(const lang of ['en','fa'])test('rotating the phone keeps physical left and right branches visible · '+lang,async({page})=>{
+ await setup(page,{width:390,lang});
+ for(const width of [667,844]){
+  await page.setViewportSize({width,height:375});
+  const left=page.locator('.binary-node[data-branch="L"]'),right=page.locator('.binary-node[data-branch="R"]');
+  await left.scrollIntoViewIfNeeded();
+  await expect(left).toBeInViewport({ratio:1});
+  await expect(right).toBeInViewport({ratio:1});
+  const a=await left.boundingBox(),b=await right.boundingBox();
+  expect(Math.abs(a.y-b.y)).toBeLessThan(2);
+  expect(a.x+a.width).toBeLessThanOrEqual(b.x);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+ }
+});

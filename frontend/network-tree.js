@@ -11,8 +11,12 @@ export function initNetworkTree(binary,rpc,hourlyCapFlushVersion=null,poolDistri
  const load=make('button',t('Show tree','نمایش درخت'),'primary');form.append(label,depthLabel,load);
  const actions=make('div',null,'actions binary-tree-actions'),back=make('button',t('Back','بازگشت'),'secondary'),up=make('button',t('Binary parent','جایگاه بالاتر'),'secondary'),refresh=make('button',t('Refresh tree','به‌روزرسانی درخت'),'secondary');for(const b of [back,up,refresh])b.type='button';actions.append(back,up,refresh);
  const details=make('div',null,'tree-details');
- const status=make('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');const view=make('div',null,'binary-tree-scroll');view.tabIndex=0;view.setAttribute('role','region');view.setAttribute('aria-label',t('Binary genealogy','ژنولوژی باینری'));
+ const status=make('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');const view=make('div',null,'binary-tree-scroll');view.dir='ltr';view.tabIndex=0;view.setAttribute('role','region');view.setAttribute('aria-label',t('Binary genealogy','ژنولوژی باینری'));
  host.append(title,make('p',t('Select any wallet to explore its children. No wallet connection is required.','روی هر ولت بزنید تا زیرمجموعه‌اش نمایش داده شود. اتصال ولت لازم نیست.')),form,actions,status,details,view);
+ // Scroll coordinates stay physical in both Persian and English.
+ const landscape=window.matchMedia('(orientation: landscape) and (max-height: 650px)');
+ function centerRoot(){if(view.clientWidth&&landscape.matches)view.scrollLeft=Math.max(0,(view.scrollWidth-view.clientWidth)/2);}
+ const resize=new ResizeObserver(centerRoot);resize.observe(view);
  back.disabled=true;up.disabled=true;
  async function show(value,push=true){
   const ticket=++sequence;
@@ -22,7 +26,10 @@ export function initNetworkTree(binary,rpc,hourlyCapFlushVersion=null,poolDistri
    const blockTag=await rpc.getBlockNumber(),context={blockTag,approximate:false},cache=new Map();
    async function node(a,depth,branch){
     if(ticket!==sequence)throw Error('Tree request superseded');
-    const empty=a===ZeroAddress;if(empty){const li=make('li',null,'binary-empty-branch');li.append(make('span',t('Empty position','جایگاه خالی'),'binary-empty'));return li;}
+    const empty=a===ZeroAddress;if(empty){const li=make('li',null,'binary-empty-branch');
+     const slot=make('span',null,'binary-empty');
+     slot.append(make('b',branch==='L'?t('Left','چپ'):t('Right','راست')),make('span',t('Empty position','جایگاه خالی')));
+     li.append(slot);return li;}
     if(cache.has(a.toLowerCase()))throw Error(t('Invalid repeated tree node','گره تکراری نامعتبر در درخت'));
     const m=await readTreeMember(binary,a,context);cache.set(a.toLowerCase(),m);if(!m.exists)throw Error(t('This wallet is not registered.','این ولت ثبت‌نام نکرده است.'));
     const li=make('li'),b=make('button',null,'binary-node');b.type='button';b.title=a;b.dataset.branch=branch||'root';b.dataset.active=String(BigInt(m.units)>0n);
@@ -37,7 +44,7 @@ export function initNetworkTree(binary,rpc,hourlyCapFlushVersion=null,poolDistri
     if(depth<maxDepth-1){const ul=make('ul');ul.append(await node(m.left,depth+1,'L'),await node(m.right,depth+1,'R'));li.append(ul);}return li;
    }
    const tree=make('ul',null,'binary-tree');tree.dir='ltr';tree.append(await node(root,0));if(ticket!==sequence)return;
-   if(push&&current&&current!==root)history.push(current);current=root;parent=cache.get(root.toLowerCase()).parent;input.value=root;back.disabled=!history.length;up.disabled=parent===ZeroAddress;view.replaceChildren(tree);
+   if(push&&current&&current!==root)history.push(current);current=root;parent=cache.get(root.toLowerCase()).parent;input.value=root;back.disabled=!history.length;up.disabled=parent===ZeroAddress;view.replaceChildren(tree);centerRoot();
    const metrics=memberMetrics(cache.get(root.toLowerCase()));
    const rankNames=[t('Member','عضو'),t('Builder I','بیلدر ۱'),t('Builder II','بیلدر ۲'),t('Builder III','بیلدر ۳'),t('Builder IV','بیلدر ۴')];
    const dl=make('dl');

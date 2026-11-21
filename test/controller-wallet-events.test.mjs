@@ -22,7 +22,7 @@ function fixture({connected=true,onIdentity,fa=false}={}){
   return input.method==='eth_accounts'?[A]:'0x38';
  }};
  const storage={getItem:key=>store.get(key)||null,setItem:(key,value)=>store.set(key,value),removeItem:key=>store.delete(key)};
- const context={address:connected?A:null,signer:connected?{}:null,state:{},busy:false,connecting:false,refreshSequence:0,autoDirty:false,councilOwner:false,
+ const context={guidance:{clear(){}},address:connected?A:null,signer:connected?{}:null,state:{},busy:false,connecting:false,refreshSequence:0,autoDirty:false,councilOwner:false,
   cfg:{mode:'bnb-mainnet',chainId:56,tokenContract:'FTIReserveTokenUpgradeable'},v3Model:true,surface:'token',location:{hash:'#trade',reload:()=>counts.reload++},networkProfile:{name:'BNB Smart Chain'},
   sessionStorage:storage,localStorage:storage,review,isAddress,preparationDeadline,readWalletIdentity,
   $:selector=>node(selector.slice(1)),t:translate,text(){},short:value=>value,status:(...args)=>messages.push(args),reason:error=>error.message,

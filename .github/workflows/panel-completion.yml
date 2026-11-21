@@ -49,6 +49,10 @@ jobs:
         with:
           ref: 5f82f09a519ead7ec03263ba47cfa15dcfbcf28e
           path: historical-completion
+      - name: Use the Python version that produced the published gzip headers
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Reproduce the exact published completion installer
         run: |
           cd historical-completion

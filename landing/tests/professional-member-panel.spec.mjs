@@ -29,7 +29,7 @@ async function previewScreenshot(page, path, options = {}) {
 
 // Deliberately simulated UI data, not an assertion about a production wallet.
 // The provider authorizes only this synthetic account and rejects every write.
-async function setup(page, {width = 390, lang = 'en', theme = 'dark', healthy = false, pendingAuto = '3.45'} = {}) {
+async function setup(page, {width = 390, lang = 'en', theme = 'dark', healthy = false, pendingAuto = '3.45', path = '/app/'} = {}) {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.setViewportSize({width, height: width === 390 ? 844 : 1000});
@@ -75,7 +75,7 @@ async function setup(page, {width = 390, lang = 'en', theme = 'dark', healthy = 
       ? {result: '0x38'} : {error: {code: -32000, message: 'Contract capability reads intentionally unavailable in UI fixture'}})});
     return route.fulfill({json: Array.isArray(calls) ? calls.map(answer) : answer(calls)});
   });
-  await page.goto('/app/');
+  await page.goto(path);
   await expect(page.locator('#connect')).toBeEnabled();
   await page.evaluate(() => document.fonts.ready);
   return {errors, outage: value => {outage = value;}};
@@ -93,7 +93,8 @@ for (const width of [390, 1440]) for (const lang of ['fa', 'en']) for (const the
     const fixture = await setup(page, {width, lang, theme});
     await expect(page.locator('.member-personal-metrics article')).toHaveCount(4);
     await expect(page.locator('.member-personal-metrics strong')).toHaveText(['—', '—', '—', '—']);
-    await expect(page.locator('.member-invite-card button')).toBeDisabled();
+    await expect(page.locator('#copy-dashboard-invitation')).toBeDisabled();
+    await expect(page.locator('#copy-dashboard-wallet')).toBeDisabled();
     await expect(page.locator('#claim')).toBeDisabled();
     for (const id of ['network', 'rewards', 'activity', 'support', 'overview']) {
       await page.locator(`.sidebar [data-page="${id}"]`).click();
@@ -128,16 +129,20 @@ for (const width of [390, 1440]) test(`verified account metrics, invitation and 
   await expect(page.locator('#usd-balance')).toHaveText('500');
   await expect(page.locator('#claimable')).toHaveText('2.5');
   await expect(page.locator('#dashboard-invitation')).toHaveValue(new RegExp('sponsor=' + account));
-  await expect(page.locator('.member-invite-card button')).toBeEnabled();
+  await expect(page.locator('.member-current-volume dd')).toHaveText(['4 units','4 units','8 units']);
+  await expect(page.locator('#dashboard-wallet')).toHaveValue(account);
+  await expect(page.locator('#copy-dashboard-invitation')).toBeEnabled();
   await previewScreenshot(page, test.info().outputPath('verified-account-' + width + '.png'));
   if (browserName === 'chromium') await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
-  await page.locator('.member-invite-card button').click();
+  await page.locator('#copy-dashboard-invitation').click();
   await expect.poll(async () => {
-    const copied = (await page.locator('.member-invite-card button').innerText()).includes('Link copied');
-    const selected = await page.locator('#referral-link').evaluate(el => el.value.length > 0 && el.selectionStart === 0 && el.selectionEnd === el.value.length && document.activeElement === el);
+    const copied = (await page.locator('#copy-dashboard-invitation').innerText()).includes('Link copied');
+    const selected = await page.locator('#dashboard-invitation').evaluate(el => el.value.length > 0 && el.selectionStart === 0 && el.selectionEnd === el.value.length && document.activeElement === el);
     return copied || selected;
   }).toBe(true);
   if (browserName === 'chromium') expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('sponsor=' + account);
+  await page.locator('#copy-dashboard-wallet').click();
+  if (browserName === 'chromium') expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe(account);
   await page.locator('.sidebar [data-page="activity"]').click();
   await expect(page.locator('.member-activity-results article')).toHaveCount(3);
   await page.locator('.member-activity-search').fill('Bought');
@@ -230,4 +235,23 @@ test('an authorized wallet with every account read failing stays connected and v
   await expect(page.locator('#disconnect')).toBeVisible();
   expect(await page.evaluate(() => window.__qaWalletMethods.filter(method => /sendTransaction|sign/i.test(method)))).toEqual([]);
   expect(fixture.errors).toEqual([]);
+});
+
+
+test('no-inviter is explicit and keeps the selected root through reload',async({page})=>{
+ const linked='/app/?sponsor='+other+'&lang=fa#network';
+ const fixture=await setup(page,{healthy:true,lang:'fa',path:linked});
+ const field=page.locator('#register-form [name=sponsor]');
+ await expect(field).toHaveValue(other);
+ await expect(page.locator('#use-root-sponsor')).toHaveText('معرف ندارم');
+ await page.locator('#use-root-sponsor').click();
+ await expect(field).toHaveValue(cfg.genesis[0]);
+ const url=new URL(page.url());
+ expect(url.searchParams.get('sponsor')).toBe(cfg.genesis[0]);
+ expect(url.searchParams.get('lang')).toBe('fa');
+ expect(url.hash).toBe('#network');
+ await page.reload();
+ await expect(field).toHaveValue(cfg.genesis[0]);
+ expect(fixture.errors).toEqual([]);
+ expect(await page.evaluate(()=>window.__qaWalletMethods.filter(m=>/sendTransaction|sign/i.test(m)))).toEqual([]);
 });
