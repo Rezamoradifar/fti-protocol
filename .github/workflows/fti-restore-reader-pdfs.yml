@@ -1,0 +1,27 @@
+name: FTI restore four channel PDFs
+on:
+  push:
+    branches: ['delivery/fti-user-pdfs-20261121']
+    paths:
+      - '.github/workflows/fti-restore-reader-pdfs.yml'
+      - 'marketing/telegram/restore-reader-pdfs.py'
+permissions:
+  contents: write
+concurrency:
+  group: fti-restore-four-channel-pdfs-20261121
+  cancel-in-progress: false
+jobs:
+  restore:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install PDF and Telegram dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends poppler-utils python3-pil python3-requests
+      - name: Restore the PDFs and update their channel buttons
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: /usr/bin/python3 marketing/telegram/restore-reader-pdfs.py
