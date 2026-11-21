@@ -5,7 +5,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -19,10 +19,11 @@ ART_HASH = "81e5d3c955dc67dcaf0b45bddd25c15270ed8aeb307334f8ba0cf694a8937903"
 CHANNEL = -1003941034086
 HANDLE = "FTIProtocol_Official"
 SLOTS = {"30 5 * * *": 9, "30 9 * * *": 13, "30 13 * * *": 17, "30 17 * * *": 21}
+TEHRAN = ZoneInfo("Asia/Tehran")
 
 
-def get(url):
-    response = requests.get(url, timeout=35)
+def get(url, *, headers=None):
+    response = requests.get(url, headers=headers, timeout=35)
     response.raise_for_status()
     return response
 
@@ -98,6 +99,17 @@ def verify_bot():
         raise RuntimeError("Channel identity or publishing permission mismatch")
 
 
+def scheduled_day(hour, run_created_at, now):
+    # GitHub may start an evening run after midnight. Anchor retries to the original run.
+    created = run_created_at.astimezone(TEHRAN)
+    slot = created.replace(hour=hour, minute=0, second=0, microsecond=0)
+    if slot > created:
+        slot -= timedelta(days=1)
+    if timedelta(0) <= now - slot < timedelta(days=1):
+        return slot.date()
+    return None
+
+
 def claim_slot(day, hour):
     repo = os.environ["GITHUB_REPOSITORY"]
     if repo.lower() != "rezamoradifar/fti-protocol":
@@ -116,13 +128,18 @@ def claim_slot(day, hour):
 
 def main():
     preview = sys.argv[1:2] == ["--preview"]
-    now = datetime.now(ZoneInfo("Asia/Tehran"))
+    now = datetime.now(TEHRAN)
     hour = int(sys.argv[2]) if preview else SLOTS[os.environ["SCHEDULE"]]
     if not preview:
-        if not hour <= now.hour < hour + 4:
-            raise RuntimeError("Stale schedule slot")
         if not os.environ.get("TELEGRAM_BOT_TOKEN"):
             raise RuntimeError("Set the TELEGRAM_BOT_TOKEN Actions secret for the official channel bot")
+        run_url = f"https://api.github.com/repos/Rezamoradifar/fti-protocol/actions/runs/{int(os.environ['GITHUB_RUN_ID'])}"
+        headers = {"Authorization": "Bearer " + os.environ["GITHUB_TOKEN"]}
+        created_at = get(run_url, headers=headers).json()["created_at"]
+        day = scheduled_day(hour, datetime.fromisoformat(created_at.replace("Z", "+00:00")), now)
+        if day is None:
+            print("The next daily occurrence has arrived. Skipping the expired slot.")
+            return
         verify_bot()
     state = get(SITE + "/api/state").json()
     config = get(SITE + "/api/config").json()
@@ -137,7 +154,7 @@ def main():
         Path(sys.argv[3]).write_bytes(photo)
         print(caption)
         return
-    if not claim_slot(now.date(), hour):
+    if not claim_slot(day, hour):
         print("Slot already claimed. No duplicate send.")
         return
     buttons = {"inline_keyboard": [[{"text": "Open FTI workspace", "url": SITE + "/app/"}]]}

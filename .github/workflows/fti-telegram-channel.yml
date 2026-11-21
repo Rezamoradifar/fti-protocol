@@ -3,7 +3,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/fti-telegram-channel.yml']
+    paths:
+      - '.github/workflows/fti-telegram-channel.yml'
+      - 'marketing/telegram/**'
   schedule:
     # 09:00, 13:00, 17:00 and 21:00 in Tehran.
     - cron: '30 5 * * *'
@@ -11,9 +13,10 @@ on:
     - cron: '30 13 * * *'
     - cron: '30 17 * * *'
 permissions:
+  actions: read
   contents: write
 concurrency:
-  group: fti-official-telegram-publisher
+  group: fti-official-telegram-publisher-${{ github.event.schedule || github.event_name }}
   cancel-in-progress: false
 jobs:
   post:
@@ -25,8 +28,13 @@ jobs:
           persist-credentials: false
       - name: Install image and HTTP libraries
         run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends python3-pil python3-requests fonts-dejavu-core
-      - name: Verify bot and channel access
+      - name: Test publisher timing
+        run: /usr/bin/python3 -m unittest discover -s marketing/telegram -p 'test_*.py'
+      - name: Render a live card without sending
         if: github.event_name != 'schedule'
+        run: /usr/bin/python3 marketing/telegram/publish-mainnet-card.py --preview 9 "$RUNNER_TEMP/fti-preview.jpg"
+      - name: Verify bot and channel access
+        if: ${{ !cancelled() && github.event_name != 'schedule' }}
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: |
