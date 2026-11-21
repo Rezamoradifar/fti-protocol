@@ -1,25 +1,32 @@
-"""Publish one block-stamped FTI channel card for the scheduled Tehran slot."""
+"""Publish block-stamped photo and GIF editions in the official FTI channel."""
+import argparse
 import hashlib
 import io
 import json
 import os
 import re
-import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import requests
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 SITE = "https://ftiprotocol.com"
-ART = "https://raw.githubusercontent.com/Rezamoradifar/fti-protocol/1d3e831f01a0ae4bf14722864361ca85626b86a1/landing/src/assets/fti-emerald-orbit.webp"
-ART_HASH = "81e5d3c955dc67dcaf0b45bddd25c15270ed8aeb307334f8ba0cf694a8937903"
+ART_ROOT = "https://raw.githubusercontent.com/Rezamoradifar/fti-protocol/1d3e831f01a0ae4bf14722864361ca85626b86a1/landing/src/assets"
+ARTWORK = {
+    9: ("fti-emerald-orbit.webp", "81e5d3c955dc67dcaf0b45bddd25c15270ed8aeb307334f8ba0cf694a8937903"),
+    13: ("token.webp", "10a1e690dd26afe2b23d4e5e557183d2695b72e3ca29e61ff73abfc033fa56bb"),
+    17: ("orbital-hero.webp", "7a5368c9dff3b349bc4ffbeeac39233a17eb988781477ac3461fd93bf84a5cc8"),
+    21: ("network.webp", "5aa9b022684ca02b464e949c8d11b5f8aee268f4af9e0c58e03ab70935394a6e"),
+}
 CHANNEL = -1003941034086
 HANDLE = "FTIProtocol_Official"
 SLOTS = {"30 5 * * *": 9, "30 9 * * *": 13, "30 13 * * *": 17, "30 17 * * *": 21}
 TEHRAN = ZoneInfo("Asia/Tehran")
+FIRST_EDITION = date(2026, 11, 21)
+COPY = json.loads(Path(__file__).with_name("editions.en.json").read_text(encoding="utf-8"))
 
 
 def get(url, *, headers=None):
@@ -32,49 +39,102 @@ def amount(value, places):
     return f"{Decimal(int(value)).scaleb(-18):,.{places}f}"
 
 
-def content(hour, state, config):
+def edition(hour, day, state, config, observed):
     genesis = {address.lower() for address in config["genesis"]}
     count = int(state["count"])
     if config["chainId"] != 56 or len(genesis) != 31 or count < len(genesis):
         raise ValueError("Unexpected mainnet membership configuration")
     if not all(re.fullmatch(r"0x[0-9a-f]{40}", address) for address in genesis):
         raise ValueError("Invalid genesis address")
+    variants = COPY[str(hour)]
+    title, note, topic = variants[(day - FIRST_EDITION).days % len(variants)]
+    block = int(state["block"])
     if hour == 9:
-        return ("Membership", f"{count:,} wallets", f"The membership contract records {count:,} wallets. The initial tree contains {len(genesis)} and {count-len(genesis):,} joined after launch. A person may control more than one wallet.", "Membership")
-    if hour == 13:
+        added = count - len(genesis)
+        panels = [("Registered wallets", f"{count:,}"), ("Wallets in the starting tree", str(len(genesis))),
+                  ("Wallets added since launch", f"{added:,}")]
+        reading = (f"FTI’s membership contract records {count:,} wallet addresses. "
+                   f"The initial tree contained {len(genesis)} wallets. Another {added:,} joined after launch.")
+        category, button, path = "Membership", "Open member workspace", "/app/"
+    elif hour == 13:
         price = amount(state["price"], 6)
-        return ("Token price", f"{price} USDT", f"The protocol reported a price of {price} USDT per FTI at the block below. Open the token market to check the latest quote before placing an order.", "TokenMarket")
-    if hour == 17:
+        panels = [("Protocol quote per 1 FTI", f"{price} USDT"), ("Source block", f"{block:,}"),
+                  ("Observed on chain", observed.strftime("%H:%M UTC"))]
+        reading = (f"At block {block:,}, the FTI protocol reported {price} USDT per FTI. "
+                   "The token workspace displays the latest protocol quote.")
+        category, button, path = "TokenMarket", "Open token workspace", "/token/"
+    elif hour == 17:
         reserve = amount(state["reserve"], 2)
         supply = amount(state["supply"], 2)
-        return ("Reserve update", f"{reserve} USDT", f"The contract reported a reserve of {reserve} USDT and a token supply of {supply} FTI. Both figures are taken from the same block.", "Reserve")
-    def status(key):
-        if type(state[key]) is not bool:
+        panels = [("Contract reserve", f"{reserve} USDT"), ("Token supply", f"{supply} FTI"),
+                  ("Source block", f"{block:,}")]
+        reading = f"The contract reported {reserve} USDT in reserve and {supply} FTI in token supply at the same block."
+        category, button, path = "Reserve", "Open token workspace", "/token/"
+    else:
+        if type(state["tokenPaused"]) is not bool or type(state["paused"]) is not bool:
             raise ValueError("Unknown contract pause flag")
-        return "paused" if state[key] else "unpaused"
-    return ("Network check", "BNB Smart Chain", f"The token contract was {status('tokenPaused')} and the membership contract was {status('paused')} at the block below. The workspace uses BNB Smart Chain (chain ID 56).", "NetworkUpdate")
+        token = "paused" if state["tokenPaused"] else "unpaused"
+        membership = "paused" if state["paused"] else "unpaused"
+        panels = [("BNB Smart Chain", "Chain ID 56"), ("Token contract", token.title()),
+                  ("Membership contract", membership.title())]
+        reading = (f"On BNB Smart Chain, the token contract was {token} and the membership contract was "
+                   f"{membership} at block {block:,}.")
+        category, button, path = "NetworkUpdate", "Open FTI workspace", "/app/"
+    stamp = observed.strftime("%d %b %Y · %H:%M UTC")
+    caption = f"{title}\n\n{reading}\n\n{note}\n\nBlock {block:,} · {stamp}\n\n#FTIProtocol #BNBChain #{category} #{topic}"
+    if len(caption.encode("utf-16-le")) // 2 > 1024:
+        raise ValueError("Telegram caption is too long")
+    buttons = {"inline_keyboard": [[{"text": button, "url": SITE + path},
+                                    {"text": "View source block", "url": f"https://bscscan.com/block/{block}"}]]}
+    return title, panels, caption, buttons
 
 
-def card(art, title, value, stamp):
-    if hashlib.sha256(art).hexdigest() != ART_HASH:
-        raise ValueError("Editorial artwork checksum mismatch")
-    image = Image.open(io.BytesIO(art)).convert("RGB").resize((1600, 900), Image.Resampling.LANCZOS)
-    draw = ImageDraw.Draw(image)
-    def label(y, text, size, color, bold=False):
+def render_media(art, title, panels, block, stamp, animated):
+    width = 800
+    background = Image.new("RGB", (width, width), "#091310")
+    source = Image.open(io.BytesIO(art)).convert("RGB")
+    hero = ImageOps.contain(source, (width, 403), method=Image.Resampling.LANCZOS)
+    background.paste("#020604", (0, 66, width, 469))
+    background.paste(hero, ((width - hero.width) // 2, 66 + (403 - hero.height) // 2))
+
+    def label(draw, x, y, text, size, color, bold=False, limit=716):
         face = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
-        while size > 16:
+        while True:
             font = ImageFont.truetype(face, size)
-            if draw.textlength(text, font=font) <= 645:
+            if draw.textlength(text, font=font) <= limit or size <= 14:
                 break
             size -= 1
-        draw.text((72, y), text, font=font, fill=color)
-    label(175, "FTI PROTOCOL", 32, "#e8cc8b", True)
-    label(311, title, 73, "#f5f5ef", True)
-    label(421, value, 56, "#9ef2cd")
-    label(551, stamp, 25, "#d3ddd6")
+        draw.text((x, y), text, font=font, fill=color)
+
+    draw = ImageDraw.Draw(background)
+    label(draw, 40, 16, "FTI PROTOCOL", 23, "#e7cb8d", True)
+    label(draw, 535, 19, "ON-CHAIN EDITION", 19, "#b1c8bb", limit=225)
+    draw.rectangle((0, 466, width, 469), fill="#9c8752")
+    label(draw, 40, 486, title, 44, "#eff5ee", True)
+    draw.line((40, 716, 760, 716), fill="#34483d", width=2)
+    label(draw, 40, 736, f"Block {block:,}", 21, "#c1d4c6", limit=300)
+    label(draw, 442, 736, stamp, 20, "#c1d4c6", limit=318)
+    frames = []
+    for index, (field, value) in enumerate(panels if animated else panels[:1]):
+        frame = background.copy()
+        draw = ImageDraw.Draw(frame)
+        label(draw, 40, 560, field, 26, "#adcbba")
+        label(draw, 37, 600, value, 76, "#9ff1ca", True)
+        if animated:
+            for step in range(len(panels)):
+                x = 672 + step * 31
+                draw.rectangle((x, 579, x + 21, 583), fill="#d9bc77" if step == index else "#3d4f44")
+        frames.append(frame)
     output = io.BytesIO()
-    image.save(output, "JPEG", quality=90)
+    if animated:
+        frames[0].save(output, "GIF", save_all=True, append_images=frames[1:], duration=2200, loop=0)
+    else:
+        frames[0].save(output, "JPEG", quality=90)
     return output.getvalue()
+
+
+class TelegramRejected(RuntimeError):
+    """Telegram confirmed that the request was rejected before delivery."""
 
 
 def telegram(method, data=None, files=None):
@@ -85,6 +145,8 @@ def telegram(method, data=None, files=None):
     except (requests.RequestException, ValueError):
         raise RuntimeError(f"Telegram {method} did not return a confirmed result") from None
     if not response.ok or result.get("ok") is not True:
+        if 400 <= response.status_code < 500 and result.get("ok") is False:
+            raise TelegramRejected(f"Telegram rejected {method} (HTTP {response.status_code})")
         raise RuntimeError(f"Telegram rejected {method} (HTTP {response.status_code})")
     return result["result"]
 
@@ -110,13 +172,18 @@ def scheduled_day(hour, run_created_at, now):
     return None
 
 
-def claim_slot(day, hour):
+def slot_api(day, hour):
     repo = os.environ["GITHUB_REPOSITORY"]
     if repo.lower() != "rezamoradifar/fti-protocol":
         raise RuntimeError("Unexpected repository")
     name = f"refs/tags/fti-channel/{day}/{hour:02d}"
     base = f"https://api.github.com/repos/{repo}/git"
     headers = {"Authorization": "Bearer " + os.environ["GITHUB_TOKEN"]}
+    return base, name, headers
+
+
+def claim_slot(day, hour):
+    base, name, headers = slot_api(day, hour)
     result = requests.post(base + "/refs", headers=headers, json={"ref": name, "sha": os.environ["GITHUB_SHA"]}, timeout=20)
     if result.status_code == 422:
         existing = requests.get(base + "/ref/" + name.removeprefix("refs/"), headers=headers, timeout=20)
@@ -126,13 +193,67 @@ def claim_slot(day, hour):
     return True
 
 
+def release_rejected_slot(day, hour):
+    base, name, headers = slot_api(day, hour)
+    path = name.removeprefix("refs/")
+    existing = get(base + "/ref/" + path, headers=headers).json()
+    if existing.get("ref") != name or existing["object"]["sha"] != os.environ["GITHUB_SHA"]:
+        raise RuntimeError("The slot claim changed before cleanup")
+    requests.delete(base + "/refs/" + path, headers=headers, timeout=20).raise_for_status()
+
+
+def requested_slots(specification, today):
+    match = re.fullmatch(r"(\d{4}-\d{2}-\d{2}) ((?:09|13|17|21)(?:,(?:09|13|17|21))*)", specification)
+    if not match:
+        raise ValueError("Use a Tehran date and comma-separated slots, for example YYYY-MM-DD 09,13")
+    day = date.fromisoformat(match[1])
+    hours = [int(hour) for hour in match[2].split(",")]
+    if len(hours) != len(set(hours)):
+        raise ValueError("An early request contains a repeated slot")
+    if day > today:
+        raise ValueError("Early publication must be requested on the intended Tehran date")
+    return sorted(hours) if day == today else []
+
+
+def deliver(day, hour, media, animated, caption, buttons):
+    if not claim_slot(day, hour):
+        print(f"Slot {day} {hour:02d}:00 already claimed. Skipping duplicate.")
+        return
+    kind, method, file_name, mime = (("animation", "sendAnimation", "FTI.gif", "image/gif") if animated
+                                     else ("photo", "sendPhoto", "FTI.jpg", "image/jpeg"))
+    payload = {"chat_id": CHANNEL, "caption": caption, "reply_markup": json.dumps(buttons)}
+    try:
+        sent = telegram(method, payload, {kind: (file_name, media, mime)})
+    except TelegramRejected:
+        release_rejected_slot(day, hour)
+        raise
+    if (sent.get("chat", {}).get("id") != CHANNEL or not sent.get(kind)
+            or not sent.get("message_id") or sent.get("caption") != caption):
+        raise RuntimeError(f"Could not confirm the {kind} post")
+    print(f"PUBLISHED {kind} {day} {hour:02d}:00 https://t.me/{HANDLE}/{sent['message_id']}", flush=True)
+
+
 def main():
-    preview = sys.argv[1:2] == ["--preview"]
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--preview", nargs=2, metavar=("HOUR", "FILE"))
+    mode.add_argument("--publish-request", metavar="DATE_AND_SLOTS")
+    args = parser.parse_args()
     now = datetime.now(TEHRAN)
-    hour = int(sys.argv[2]) if preview else SLOTS[os.environ["SCHEDULE"]]
-    if not preview:
-        if not os.environ.get("TELEGRAM_BOT_TOKEN"):
-            raise RuntimeError("Set the TELEGRAM_BOT_TOKEN Actions secret for the official channel bot")
+    day = now.date()
+    if args.preview:
+        hours = [int(args.preview[0])]
+        if hours[0] not in ARTWORK:
+            parser.error("Unknown channel slot")
+    elif args.publish_request is not None:
+        if os.environ.get("GITHUB_REF") != "refs/heads/main":
+            raise RuntimeError("Early publication requires the default branch")
+        hours = requested_slots(args.publish_request, day)
+        if not hours:
+            print("The dated publication request has expired.")
+            return
+    else:
+        hour = SLOTS[os.environ["SCHEDULE"]]
         run_url = f"https://api.github.com/repos/Rezamoradifar/fti-protocol/actions/runs/{int(os.environ['GITHUB_RUN_ID'])}"
         headers = {"Authorization": "Bearer " + os.environ["GITHUB_TOKEN"]}
         created_at = get(run_url, headers=headers).json()["created_at"]
@@ -140,28 +261,37 @@ def main():
         if day is None:
             print("The next daily occurrence has arrived. Skipping the expired slot.")
             return
+        hours = [hour]
+    if not args.preview:
+        if not os.environ.get("TELEGRAM_BOT_TOKEN"):
+            raise RuntimeError("Set the TELEGRAM_BOT_TOKEN Actions secret for the official channel bot")
         verify_bot()
     state = get(SITE + "/api/state").json()
     config = get(SITE + "/api/config").json()
     observed = datetime.fromtimestamp(int(state["timestamp"]), timezone.utc)
     if not -60 <= (now - observed).total_seconds() <= 3600:
         raise RuntimeError("Current FTI snapshot is unavailable")
-    stamp = observed.strftime("%d %b %Y  ·  %H:%M UTC")
-    title, value, copy, tag = content(hour, state, config)
-    caption = f"{title}\n\n{copy}\n\nBlock {int(state['block']):,} · {stamp}\n\n#FTIProtocol #BNBChain #{tag}"
-    photo = card(get(ART).content, title, value, stamp)
-    if preview:
-        Path(sys.argv[3]).write_bytes(photo)
-        print(caption)
-        return
-    if not claim_slot(day, hour):
-        print("Slot already claimed. No duplicate send.")
-        return
-    buttons = {"inline_keyboard": [[{"text": "Open FTI workspace", "url": SITE + "/app/"}]]}
-    sent = telegram("sendPhoto", {"chat_id": CHANNEL, "caption": caption, "reply_markup": json.dumps(buttons)}, {"photo": ("FTI.jpg", photo, "image/jpeg")})
-    if sent["chat"]["id"] != CHANNEL or not sent.get("photo") or not sent.get("message_id"):
-        raise RuntimeError("Could not confirm the photo post")
-    print(f"https://t.me/{HANDLE}/{sent['message_id']}")
+    block = int(state["block"])
+    if block <= 0:
+        raise ValueError("Invalid source block")
+    stamp = observed.strftime("%d %b %Y · %H:%M UTC")
+    for hour in hours:
+        title, panels, caption, buttons = edition(hour, day, state, config, observed)
+        art_name, digest = ARTWORK[hour]
+        art = get(f"{ART_ROOT}/{art_name}").content
+        if hashlib.sha256(art).hexdigest() != digest:
+            raise ValueError("Editorial artwork checksum mismatch")
+        animated = hour in (13, 21)
+        if args.preview:
+            output = Path(args.preview[1])
+            if output.suffix.lower() in (".jpg", ".jpeg", ".gif"):
+                animated = output.suffix.lower() == ".gif"
+        media = render_media(art, title, panels, block, stamp, animated)
+        if args.preview:
+            output.write_bytes(media)
+            print(caption)
+        else:
+            deliver(day, hour, media, animated, caption, buttons)
 
 
 if __name__ == "__main__":

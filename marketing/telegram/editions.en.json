@@ -1,0 +1,26 @@
+{
+  "9": [
+    ["Inside the member count", "The next time you open the workspace, compare its wallet total and block number with this snapshot. One person can control several wallets.", "Wallets"],
+    ["Where the tree began", "The starting wallets are part of the total. Subtracting the starting tree gives the number of wallet addresses added since launch.", "MemberTree"],
+    ["Reading two snapshots", "Keep this block number alongside the next membership update. The difference between the two totals shows how the recorded wallet count changed over that interval.", "OnChainData"],
+    ["What counts as a member?", "The contract records wallet addresses. To check your own membership, open the member workspace with the address you used to register.", "MemberGuide"]
+  ],
+  "13": [
+    ["Reading an FTI quote", "This is the value of one FTI in USDT. The animation pairs the quote with its block and observation time so you can compare it with a fresh reading.", "QuoteGuide"],
+    ["When was that price read?", "A block number puts a quote in sequence. The UTC timestamp tells you when it was observed. Keep both when comparing two quotes.", "BlockTime"],
+    ["One token as a unit", "A unit quote lets you compare different snapshots on the same basis. Open the token workspace to see the current quote and the details for a particular amount.", "TokenUnits"],
+    ["A quote you can trace", "Save the unit, block and time together. When the workspace refreshes, you can tell whether you are comparing readings from the same point on the chain.", "OnChainData"]
+  ],
+  "17": [
+    ["Inside the reserve", "Reserve is expressed in USDT and supply in FTI. Read their units alongside the figures when following how the protocol changes over time.", "ReserveBasics"],
+    ["Two readings, one block", "These two readings share a block number. Taking them from the same block keeps a later change in one figure from distorting the comparison.", "BlockSnapshot"],
+    ["Following the supply", "To track a change in supply, keep the FTI figure and block number from each update. The separate USDT figure records the reserve at that same block.", "TokenSupply"],
+    ["Read the units first", "The two quantities measure different things. Label your figures with USDT and FTI when you compare this snapshot with an earlier one.", "ProtocolData"]
+  ],
+  "21": [
+    ["Tonight’s network check", "The animation shows each contract separately. Open the workspace for the latest state before starting an action that depends on either contract.", "NetworkStatus"],
+    ["Two contract switches", "Membership and token operations have separate pause flags. Check the flag for the specific action you plan to use.", "ContractStatus"],
+    ["Which network is this?", "Check that the wallet shows BNB Smart Chain and chain ID 56. Then compare the relevant contract flag with the latest reading in the workspace.", "NetworkGuide"],
+    ["Checking a status change", "If the workspace status changes, note the block and the affected contract. Those details make it easier to compare readings and describe what you saw.", "WorkspaceGuide"]
+  ]
+}
