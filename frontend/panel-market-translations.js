@@ -45,6 +45,8 @@ Type|نوع|النوع|Tür|类型|Тип|Tipo
 Price · USD|قیمت · USD|السعر · USD|Fiyat · USD|价格 · USD|Цена · USD|Precio · USD
 Price · tUSD|قیمت · tUSD|السعر · tUSD|Fiyat · tUSD|价格 · tUSD|Цена · tUSD|Precio · tUSD
 Date and time · UTC|تاریخ و ساعت · UTC|التاريخ والوقت · UTC|Tarih ve saat · UTC|日期和时间 · UTC|Дата и время · UTC|Fecha y hora · UTC
+USDT / FTI|USDT برای هر FTI|USDT لكل FTI|FTI başına USDT|每枚 FTI 的 USDT 价格|USDT за FTI|USDT por FTI
+tUSD / FTI|tUSD برای هر FTI|tUSD لكل FTI|FTI başına tUSD|每枚 FTI 的 tUSD 价格|tUSD за FTI|tUSD por FTI
 I have no inviter|معرف ندارم|ليس لديّ داعٍ|Davet edenim yok|我没有邀请人|У меня нет пригласившего|No tengo invitante
 Root inviter selected. Review your units, then continue.|ولت ریشه به‌عنوان معرف انتخاب شد. تعداد یونیت‌ها را بررسی کنید و ادامه دهید.|تم اختيار محفظة الجذر للدعوة. راجع عدد الوحدات ثم تابع.|Kök cüzdan davet eden olarak seçildi. Birim sayısını kontrol edip devam edin.|已选择根钱包为邀请人。请核对份数后继续。|Выбран корневой кошелёк. Проверьте количество единиц и продолжите.|Se eligió la cartera raíz. Revisa las unidades y continúa.
 Current matched volume|تعادل جاری|الحجم المتطابق الحالي|Güncel eşleşen hacim|当前匹配量|Текущий парный объём|Volumen emparejado actual
@@ -53,6 +55,7 @@ Right remaining volume|ماندهٔ دست راست|الحجم المتبقي ي
 Matches use the smaller remaining branch.|تعادل جاری برابر با ماندهٔ دست کوچک‌تر است.|يُحسب التطابق من أقل الرصيدين المتبقيين.|Eşleşme iki koldaki kalan hacmin küçüğüdür.|匹配量取两支剩余量中的较小值。|Парный объём равен меньшему из остатков ветвей.|Se toma el menor saldo de las dos ramas.
 Last account snapshot|آخرین اطلاعات ثبت‌شدهٔ حساب|آخر قراءة للحساب|Son hesap kaydı|最近一次账户快照|Последний снимок счёта|Última lectura de la cuenta
 Your wallet address|آدرس ولت شما|عنوان محفظتك|Cüzdan adresiniz|您的钱包地址|Адрес вашего кошелька|Dirección de tu cartera
+Copy wallet address|کپی آدرس ولت|نسخ عنوان المحفظة|Cüzdan adresini kopyala|复制钱包地址|Скопировать адрес кошелька|Copiar dirección de la cartera
 Address copied|آدرس کپی شد|تم نسخ العنوان|Adres kopyalandı|地址已复制|Адрес скопирован|Dirección copiada
 Selected. Use your device’s Copy command.|متن انتخاب شد. گزینهٔ کپی گوشی را بزنید.|تم تحديد النص. استخدم أمر النسخ على جهازك.|Metin seçildi. Cihazınızdan Kopyala’yı seçin.|文本已选中，请使用设备的复制命令。|Текст выделен. Нажмите «Копировать» на устройстве.|Texto seleccionado. Usa la opción Copiar de tu dispositivo.
 Checking the wallet and balance. Next we check the spending allowance.|ابتدا کیف‌پول و موجودی را بررسی می‌کنیم. مرحلهٔ بعد بررسی مجوز برداشت برای این خرید است.|نفحص المحفظة والرصيد، ثم نتحقق من إذن الإنفاق.|Cüzdan ve bakiye kontrol ediliyor. Sırada harcama izni var.|正在核对钱包与余额，接着检查支出授权。|Проверяем кошелёк и баланс. Затем проверим разрешение на списание.|Comprobamos la cartera y el saldo. Después revisaremos el permiso de gasto.

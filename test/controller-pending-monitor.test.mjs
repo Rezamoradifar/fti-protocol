@@ -18,7 +18,8 @@ function fixture({record=hash,recoverPending=async()=>null,rpc={}}={}){
  else if(record)tracker.save(record);
  const monitors=[],shown=[],statuses=[],nodes={'unknown-send-form':{hidden:false},'retry-pending-check':{},'find-transaction-hash':{},'hash-lookup-result':{textContent:''}};
  let refreshed=0;
- const context={pendingWatch:null,busy:false,connecting:false,address:account,signer:{},
+ const shownGuidance=[];
+ const context={guidance:{resolved(message){shownGuidance.push(message);}},pendingWatch:null,busy:false,connecting:false,address:account,signer:{},
   walletProvider:{request(){assert.fail('background verification must never invoke a wallet');}},
   localStorage,transactionState,cfg:{chainId:56},document:{},recoveryOptions:{},recoveryFor:()=>({}),recoverPending,v3Model:false,surface:'member',location:{hash:'#network'},
   rpc:{getNetwork:async()=>({chainId:56n}),getTransactionReceipt:async()=>receipt(),
@@ -29,7 +30,7 @@ function fixture({record=hash,recoverPending=async()=>null,rpc={}}={}){
   refreshMembershipState:async()=>{refreshed++;},refresh:async()=>{},syncActions(){},reason:error=>error.message,
   status:(value,error)=>statuses.push({value,error}),t:value=>value};
  vm.runInNewContext(source.slice(start,end),context);
- return {context,tracker,monitors,shown,statuses,nodes,refreshed:()=>refreshed,
+ return {context,tracker,monitors,shown,statuses,shownGuidance,nodes,refreshed:()=>refreshed,
   start(){context.startPendingChecks();return monitors.at(-1);}};
 }
 function deferred(){let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};}
@@ -40,6 +41,7 @@ test('known canonical receipt resolves the saved hash and updates membership wit
  assert.equal(f.tracker.read(),null);assert.equal(f.tracker.last(),hash);
  assert.equal(f.shown[0].value,hash);assert.equal(f.nodes['unknown-send-form'].hidden,true);
  assert.equal(f.refreshed(),1);assert.equal(f.statuses.at(-1).error,false);
+ assert.equal(f.shownGuidance.at(-1),'Previous transaction confirmed.');
 });
 
 test('known canonical reverted receipt resolves the nonce but reports a failed transaction',async()=>{

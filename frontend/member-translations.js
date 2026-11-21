@@ -1,3 +1,4 @@
+import {panelMarketTranslations} from './panel-market-translations.js';
 // Local product copy for the professional member workspace and event view.
 // English event names, hashes, addresses and FTI remain unchanged identifiers.
 export const memberTranslations = {
@@ -419,3 +420,14 @@ export const memberTranslations = {
     "Protocol": "协议"
   }
 };
+
+// The overview uses the same branch and wallet labels as the market workspace.
+const sharedOverviewLabels = [
+  'Current matched volume', 'Left remaining volume', 'Right remaining volume',
+  'Last account snapshot', 'Matches use the smaller remaining branch.',
+  'Your wallet address', 'Copy wallet address', 'Address copied',
+  'Selected. Use your device’s Copy command.'
+];
+for (const [language, catalog] of Object.entries(memberTranslations)) {
+  for (const key of sharedOverviewLabels) catalog[key] = panelMarketTranslations[language][key];
+}
