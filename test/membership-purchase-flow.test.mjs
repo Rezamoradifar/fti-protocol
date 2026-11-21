@@ -8,7 +8,8 @@ const approve=source.slice(source.indexOf('async function approve('),source.inde
 const sponsor='0x'+'3'.repeat(40),member='0x'+'1'.repeat(40),unit=100n*10n**18n;
 function fixture({allowance=0n,units='1',exists=true,approvalError,unverified=false,balanceFailure=false,blockedAfterApproval=false,membershipChanged=false,automaticReferral=false}={}){
  const calls=[],form={elements:{units:{value:units},sponsor:{value:sponsor}}};let currentAllowance=allowance,snapshot=0,operation;
- const context={$:()=>form,transaction:fn=>{operation=fn();return operation;},state:{},transactionStage:'',transactionAddress:member,address:member,cfg:{binary:'binary'},automaticReferral,
+ const guides=[];
+ const context={guidance:{show(message){guides.push(message);}},$:()=>form,transaction:fn=>{operation=fn();return operation;},state:{},transactionStage:'',transactionAddress:member,address:member,cfg:{binary:'binary'},automaticReferral,
   membershipBlock:()=>snapshot&&blockedAfterApproval?'Settlement is processing.':'',wallet:()=>({exists:snapshot&&membershipChanged?!exists:exists}),
   isAddress:value=>/^0x[0-9a-f]{40}$/i.test(value),ZeroAddress:'0x'+'0'.repeat(40),parseEther:value=>BigInt(value)*10n**18n,t:(key,fa)=>key,status(){},networkProfile:{testAssets:false},
   checkCollateral:async amount=>{calls.push(['balance',amount]);if(balanceFailure&&snapshot)throw Error('Collateral changed.');},
@@ -16,7 +17,7 @@ function fixture({allowance=0n,units='1',exists=true,approvalError,unverified=fa
   read:{usd:{allowance:async()=>currentAllowance}},sendContract:async(key,method,...args)=>{calls.push([key,method,...args]);if(method==='approve'){if(approvalError)throw approvalError;if(!unverified)currentAllowance=args[1];}},
  };
  vm.runInNewContext(approve+handler,context);
- return {calls,context,start(){form.onsubmit({preventDefault(){},target:form});return operation;}};
+ return {calls,context,guides,start(){form.onsubmit({preventDefault(){},target:form});return operation;}};
 }
 test('one purchase action skips an already sufficient approval and buys the captured units once',async()=>{
  const f=fixture({allowance:unit*3n,units:'2'});await f.start();
@@ -52,4 +53,14 @@ test('new membership uses its sponsor and optional automatic placement in the sa
 });
 test('invalid unit counts cannot approve collateral or request a purchase',async()=>{
  for(const units of ['0','-1','1.5','']){const f=fixture({units});await assert.rejects(f.start());assert.equal(f.calls.filter(x=>['usd','binary'].includes(x[0])).length,0);}
+});
+
+test('new registration explains placement, the allowance check and the final review in order',async()=>{
+ const f=fixture({exists:false,automaticReferral:true});
+ await f.start();
+ assert.deepEqual(f.guides,[
+  'Finding a free position under your inviter. Next we check the spending allowance.',
+  'Checking the spending allowance. Your wallet opens only if approval is needed.',
+  'Checking the final amount and balance before the purchase.'
+ ]);
 });

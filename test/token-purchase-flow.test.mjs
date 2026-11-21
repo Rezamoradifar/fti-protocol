@@ -15,7 +15,7 @@ function fixture(options={}){
  const calls=[],form={elements:{amount:{value:options.amount||'5'},slippage:{value:options.slippage||'1'}}},sell={elements:{amount:{value:'1'},slippage:{value:'1'}}};
  let approved=options.allowance??5n*UNIT,action,snapshots=0;
  const state={timestamp:1000,tokenPaused:false,tokenRecoveryFrozen:false,emergencyUnwind:false,wallet:{exists:true,units:1n,usdBalance:41n*UNIT,remaining:500n*UNIT,unlocked:0n,...options.initialWallet},...options.initialState};
- const context={state,parseEther,cfg:{token:tokenAddress,tokenContract:'FTIReserveTokenUpgradeable'},address:account,transactionAddress:account,transactionStage:'',v3Model:true,
+ const context={guidance:{waiting(){},resolved(){},start(){},show(){},finish(){}},state,parseEther,cfg:{token:tokenAddress,tokenContract:'FTIReserveTokenUpgradeable'},address:account,transactionAddress:account,transactionStage:'',v3Model:true,
   $:selector=>selector==='#buy-form'?form:sell,t:value=>value,text(){},fmt:String,networkProfile:{testAssets:false,currency:'USDT'},status(){},clearTimeout,setTimeout,
   transaction(fn,flags){calls.push(['transaction',flags]);action=fn();return action;},
   wallet:()=>context.state.wallet,
@@ -96,7 +96,7 @@ test('invalid amounts, slippage and above-contract step limit prevent wallet req
 
 function transactionFixture(record=null){
  const counters={snapshot:0,dashboard:0,run:0,monitor:0},messages=[],tracker={read:()=>record};
- const context={busy:false,signer:{},address:account,connecting:false,transactionStage:'',transactionAddress:null,activeTransaction:null,v3Model:true,
+ const context={guidance:{waiting(){},resolved(){},start(){},show(){},finish(){}},busy:false,signer:{},address:account,connecting:false,transactionStage:'',transactionAddress:null,activeTransaction:null,v3Model:true,
   cfg:{mode:'mainnet',chainId:56},walletProvider:{},localStorage:{},rpc:{},explorer:'',
   stopPendingChecks(){},startPendingChecks(){counters.monitor++;},syncActions(){},status:(...args)=>messages.push(args),t:value=>value,
   readWalletIdentity:async()=>{},transactionState:()=>tracker,hashView:{restore(){}},resolvePending:async()=>null,

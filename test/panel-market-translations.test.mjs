@@ -18,6 +18,9 @@ const critical=[
  'Copy the token contract address shown below.','FTI was added to your wallet.','Review the token import in your wallet.',
  'The previous WalletConnect session is still open. Choose another browser wallet, or close that session in your wallet before reconnecting.',
  'Token address copied.','Token import was declined.',
+ 'I have no inviter','Current matched volume','Left remaining volume','Right remaining volume','Your wallet address',
+ 'Checking the previous request. Wait for its result before starting another purchase.',
+ 'Purchase submitted. Wait for its receipt before placing another order.',
  // Chart axis labels are generated in loops, so they are explicit here.
  'Price range · USD','Price range · tUSD','From · UTC','To · UTC','Type','Price · USD','Price · tUSD','Date and time · UTC',
 ];
@@ -27,7 +30,7 @@ for(const name of ['live-market.js','network-tree.js']){
  for(const match of source.matchAll(/\bt\(\s*(['"])((?:\\.|(?!\1).)*?)\1/g))chartTree.add(match[2].replace(/\\'/g,"'").replace(/\\"/g,'"'));
 }
 for(const language of ['fa','ar','tr','zh-CN','ru','es'])test(language+': price, wallet-value and token-import copy is complete and preserves financial identifiers',()=>{
- const catalog=panelMarketTranslations[language];assert.equal(Object.keys(catalog).length,43);
+ const catalog=panelMarketTranslations[language];assert.equal(Object.keys(catalog).length,66);
  assert.deepEqual(Object.keys(catalog).sort(),Object.keys(panelMarketTranslations.fa).sort());
  for(const [key,value]of Object.entries(catalog)){
   assert.equal(typeof value,'string',key);assert(value.trim(),key);assert.notEqual(value,key,key);assert(!/[<>]|undefined|\[object Object\]/.test(value),key);

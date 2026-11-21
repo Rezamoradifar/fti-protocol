@@ -35,7 +35,7 @@ function fixture(options={}){
   send:async method=>{assert.ok(['eth_getTransactionCount','eth_gasPrice'].includes(method));return method==='eth_gasPrice'?'0x64':'0x12';},
   getRpcTransaction:request=>Object.fromEntries(Object.entries(request).map(([key,value])=>[key==='gasLimit'?'gas':key,typeof value==='number'||typeof value==='bigint'?'0x'+value.toString(16):value])),
   waitForTransaction:async()=>receipt,getTransactionReceipt:async()=>null};
- const context={address:A,signer:{getAddress:async()=>A},transactionAddress:null,transactionStage:'',activeTransaction:null,busy:false,connecting:false,
+ const context={guidance:{waiting(){},resolved(){},start(){},show(){},finish(){}},rootSponsor:null,address:A,signer:{getAddress:async()=>A},transactionAddress:null,transactionStage:'',activeTransaction:null,busy:false,connecting:false,
   state:{timestamp:1000,tokenStateVerified:true,tokenPaused:false,tokenRecoveryFrozen:false,emergencyUnwind:false,wallet:{address:A,exists:false,units:0n,unlocked:10n*UNIT,ftiBalance:10n*UNIT,usdBalance:0n}},
   cfg:{mode:'bnb-mainnet',chainId:56,tokenContract:'FTIReserveTokenUpgradeable'},v3Model:true,walletProvider,rpc,review,localStorage:storage,
   $:selector=>node(selector.slice(1)),status:(...message)=>messages.push(message),t:translate,text(){},short:value=>value,integer:String,formatEther,parseEther,
@@ -124,7 +124,7 @@ test('actual action gates freeze sale fields while busy and allow a funded nonme
   form.querySelectorAll=selector=>selector==='input,select'?form.elements:writeButton?[writeButton]:[];
  }
  node('unknown-send-form').elements.hash={};
- const context={busy:true,connecting:false,importingToken:null,signer:{},address:A,state:{tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,phase:0},
+ const context={guidance:{waiting(){},resolved(){},start(){},show(){},finish(){}},rootSponsor:null,busy:true,connecting:false,importingToken:null,signer:{},address:A,state:{tokenStateVerified:true,tokenPaused:false,emergencyUnwind:false,phase:0},
   wallet:()=>({exists:false,units:0n,ftiBalance:UNIT,unlocked:UNIT}),councilOwner:false,lockOffset:0,selectableAuto:false,builderMode:'legacy',cfg:{},
   $:selector=>node(selector.slice(1)),document:{querySelectorAll:()=>[buy,sell]},membershipBlock:()=>null,t:value=>value,builderMonthState:()=>({canBegin:false,canProcess:false})};
  context.publishMemberPanel=()=>{};
