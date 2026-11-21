@@ -5,6 +5,7 @@ import io
 import json
 import os
 import re
+import sys
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -12,6 +13,11 @@ from zoneinfo import ZoneInfo
 
 import requests
 from PIL import Image, ImageDraw, ImageFont, ImageOps
+
+# Verification also loads this entry point using runpy from the repository root.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from channel_languages import translations
+from price_digest import daily_history, table
 
 SITE = "https://ftiprotocol.com"
 ART_ROOT = "https://raw.githubusercontent.com/Rezamoradifar/fti-protocol/1d3e831f01a0ae4bf14722864361ca85626b86a1/landing/src/assets"
@@ -39,7 +45,7 @@ def amount(value, places):
     return f"{Decimal(int(value)).scaleb(-18):,.{places}f}"
 
 
-def edition(hour, day, state, config, observed):
+def edition(hour, day, state, config, observed, history=None):
     genesis = {address.lower() for address in config["genesis"]}
     count = int(state["count"])
     if config["chainId"] != 56 or len(genesis) != 31 or count < len(genesis):
@@ -55,6 +61,7 @@ def edition(hour, day, state, config, observed):
                   ("Wallets added since launch", f"{added:,}")]
         reading = (f"FTI’s membership contract records {count:,} wallet addresses. "
                    f"The initial tree contained {len(genesis)} wallets. Another {added:,} joined after launch.")
+        localized = translations(hour, count=count, added=added)
         category, button, path = "Membership", "Open member workspace", "/app/"
     elif hour == 13:
         price = amount(state["price"], 6)
@@ -62,6 +69,7 @@ def edition(hour, day, state, config, observed):
                   ("Observed on chain", observed.strftime("%H:%M UTC"))]
         reading = (f"At block {block:,}, the FTI protocol reported {price} USDT per FTI. "
                    "The token workspace displays the latest protocol quote.")
+        localized = translations(hour, price=price)
         category, button, path = "TokenMarket", "Open token workspace", "/token/"
     elif hour == 17:
         reserve = amount(state["reserve"], 2)
@@ -69,7 +77,15 @@ def edition(hour, day, state, config, observed):
         panels = [("Contract reserve", f"{reserve} USDT"), ("Token supply", f"{supply} FTI"),
                   ("Source block", f"{block:,}")]
         reading = f"The contract reported {reserve} USDT in reserve and {supply} FTI in token supply at the same block."
+        localized = translations(hour)
+        if history is not None:
+            title = "FTI daily contract price"
+            reading = table(history)
+            note = "00:00 Tehran · USDT per FTI · Δ vs previous day · — unavailable"
+            panels = [("Protocol quote per 1 FTI", amount(state["price"], 8) + " USDT"), *panels[:2]]
         category, button, path = "Reserve", "Open token workspace", "/token/"
+        if history is not None:
+            category, topic = "TokenPrice", "DailyPrices"
     else:
         if type(state["tokenPaused"]) is not bool or type(state["paused"]) is not bool:
             raise ValueError("Unknown contract pause flag")
@@ -79,13 +95,19 @@ def edition(hour, day, state, config, observed):
                   ("Membership contract", membership.title())]
         reading = (f"On BNB Smart Chain, the token contract was {token} and the membership contract was "
                    f"{membership} at block {block:,}.")
+        localized = translations(hour, token=state["tokenPaused"], member=state["paused"])
         category, button, path = "NetworkUpdate", "Open FTI workspace", "/app/"
     stamp = observed.strftime("%d %b %Y · %H:%M UTC")
-    caption = f"{title}\n\n{reading}\n\n{note}\n\nBlock {block:,} · {stamp}\n\n#FTIProtocol #BNBChain #{category} #{topic}"
+    caption = f"{title}\n\n{reading}\n\n{localized}\n\n{note}\n\nBlock {block:,} · {stamp}\n\n#FTIProtocol #BNBChain #{category} #{topic}"
     if len(caption.encode("utf-16-le")) // 2 > 1024:
         raise ValueError("Telegram caption is too long")
     buttons = {"inline_keyboard": [[{"text": button, "url": SITE + path},
                                     {"text": "View source block", "url": f"https://bscscan.com/block/{block}"}]]}
+    if history:
+        latest = history[max(history)]
+        if latest:
+            buttons["inline_keyboard"].append([{"text": "00:00 Tehran · price source",
+                "url": f"https://bscscan.com/block/{latest['block']}"}])
     return title, panels, caption, buttons
 
 
@@ -222,6 +244,13 @@ def deliver(day, hour, media, animated, caption, buttons):
     kind, method, file_name, mime = (("animation", "sendAnimation", "FTI.gif", "image/gif") if animated
                                      else ("photo", "sendPhoto", "FTI.jpg", "image/jpeg"))
     payload = {"chat_id": CHANNEL, "caption": caption, "reply_markup": json.dumps(buttons)}
+    if "Date        USDT / FTI" in caption:
+        start = caption.index("Date        USDT / FTI")
+        end = caption.index("\n\n", start)
+        utf16 = lambda text: len(text.encode("utf-16-le")) // 2
+        payload["caption_entities"] = json.dumps([{
+            "type": "pre", "offset": utf16(caption[:start]), "length": utf16(caption[start:end])
+        }])
     try:
         sent = telegram(method, payload, {kind: (file_name, media, mime)})
     except TelegramRejected:
@@ -276,7 +305,10 @@ def main():
         raise ValueError("Invalid source block")
     stamp = observed.strftime("%d %b %Y · %H:%M UTC")
     for hour in hours:
-        title, panels, caption, buttons = edition(hour, day, state, config, observed)
+        history = None
+        if hour == 17:
+            history = daily_history(config, state)
+        title, panels, caption, buttons = edition(hour, day, state, config, observed, history)
         art_name, digest = ARTWORK[hour]
         art = get(f"{ART_ROOT}/{art_name}").content
         if hashlib.sha256(art).hexdigest() != digest:
