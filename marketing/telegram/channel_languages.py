@@ -20,7 +20,7 @@ def translations(hour, *, count=None, added=None, price=None, token=None, member
             f"Español · Precio del contrato: {price} USDT por FTI."])
     if hour == 17:
         return "\n".join([
-            "فارسی · قیمت هر FTI به تتر در ساعت ۰۰:۰۰ تهران و تغییر نسبت به روز قبل",
+            "فارسی · قیمت هر FTI به تتر و تغییر نسبت به روز قبل، به وقت تهران",
             "العربية · سعر العقد والتغيّر اليومي",
             "Türkçe · Sözleşme fiyatı ve günlük değişim",
             "中文 · 合约价格及每日变动",

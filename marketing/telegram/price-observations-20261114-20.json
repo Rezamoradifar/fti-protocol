@@ -1,0 +1,65 @@
+{
+  "2026-11-14": {
+    "chainId": 56,
+    "token": "0x43755b1e813b2d41f669ea08bcf859de07195ea1",
+    "quote": "0x55d398326f99059ff775485246999027b3197955",
+    "block": 133551930,
+    "blockHash": "0xfd71cd0dd40fddf6f8f36f989d24e87ff572e9a1f96626c5c5ab538ca88fdec2",
+    "timestamp": 1794663000,
+    "priceWei": "114338523885614303"
+  },
+  "2026-11-15": {
+    "chainId": 56,
+    "token": "0x43755b1e813b2d41f669ea08bcf859de07195ea1",
+    "quote": "0x55d398326f99059ff775485246999027b3197955",
+    "block": 133743864,
+    "blockHash": "0x21a7db48e44d42e69d047cf3c8ffb6e031fe541c8e0cd25711bf77f615932993",
+    "timestamp": 1794749400,
+    "priceWei": "114338523885614303"
+  },
+  "2026-11-16": {
+    "chainId": 56,
+    "token": "0x43755b1e813b2d41f669ea08bcf859de07195ea1",
+    "quote": "0x55d398326f99059ff775485246999027b3197955",
+    "block": 133935812,
+    "blockHash": "0x04f1f09bfeb60f207c6cb3596c9b48af9a7063afc28143b5e04dad636662ab26",
+    "timestamp": 1794835800,
+    "priceWei": "114338523885614303"
+  },
+  "2026-11-17": {
+    "chainId": 56,
+    "token": "0x43755b1e813b2d41f669ea08bcf859de07195ea1",
+    "quote": "0x55d398326f99059ff775485246999027b3197955",
+    "block": 134127752,
+    "blockHash": "0x598aac6f7b7426695a99a5a27dac80aa0b914fb6c1cc7c0930c84e7d4b57ad11",
+    "timestamp": 1794922200,
+    "priceWei": "114338523885614303"
+  },
+  "2026-11-18": {
+    "chainId": 56,
+    "token": "0x43755b1e813b2d41f669ea08bcf859de07195ea1",
+    "quote": "0x55d398326f99059ff775485246999027b3197955",
+    "block": 134319607,
+    "blockHash": "0x518dc12286bf735bd3fbeaa6586eb1e70dfaa7db34edd00557e9d997eb9e10bb",
+    "timestamp": 1795008600,
+    "priceWei": "114999308925757443"
+  },
+  "2026-11-19": {
+    "chainId": 56,
+    "token": "0x43755b1e813b2d41f669ea08bcf859de07195ea1",
+    "quote": "0x55d398326f99059ff775485246999027b3197955",
+    "block": 134511520,
+    "blockHash": "0xc4a5ea0f27371735c95c1c53ae4f67236c03d0f4ac6a8bc47602c8c9d1e7396c",
+    "timestamp": 1795095000,
+    "priceWei": "115008060874360409"
+  },
+  "2026-11-20": {
+    "chainId": 56,
+    "token": "0x43755b1e813b2d41f669ea08bcf859de07195ea1",
+    "quote": "0x55d398326f99059ff775485246999027b3197955",
+    "block": 134703449,
+    "blockHash": "0xfe44dc6c1f07be32b664d49986eadfabff37c808ec79eb74310ac29f1ce40ddc",
+    "timestamp": 1795181400,
+    "priceWei": "115008060874360409"
+  }
+}

@@ -81,7 +81,7 @@ def edition(hour, day, state, config, observed, history=None):
         if history is not None:
             title = "FTI daily contract price"
             reading = table(history)
-            note = "00:00 Tehran · USDT per FTI · Δ vs previous day · — unavailable"
+            note = "Tehran observation times · Δ vs previous day · — unavailable"
             panels = [("Protocol quote per 1 FTI", amount(state["price"], 8) + " USDT"), *panels[:2]]
         category, button, path = "Reserve", "Open token workspace", "/token/"
         if history is not None:
@@ -106,7 +106,7 @@ def edition(hour, day, state, config, observed, history=None):
     if history:
         latest = history[max(history)]
         if latest:
-            buttons["inline_keyboard"].append([{"text": "00:00 Tehran · price source",
+            buttons["inline_keyboard"].append([{"text": "Latest daily sample · source block",
                 "url": f"https://bscscan.com/block/{latest['block']}"}])
     return title, panels, caption, buttons
 
@@ -237,6 +237,28 @@ def requested_slots(specification, today):
     return sorted(hours) if day == today else []
 
 
+def caption_format(caption):
+    payload = {}
+    if "Date · Tehran" in caption:
+        start = caption.index("Date · Tehran")
+        end = caption.index("\n\n", start)
+        utf16 = lambda text: len(text.encode("utf-16-le")) // 2
+        payload["caption_entities"] = json.dumps([{
+            "type": "pre", "offset": utf16(caption[:start]), "length": utf16(caption[start:end])
+        }])
+    return payload
+
+
+def update_table(message_id, caption, buttons):
+    message = telegram("editMessageCaption", {
+        "chat_id": CHANNEL, "message_id": message_id, "caption": caption,
+        "reply_markup": json.dumps(buttons), **caption_format(caption)})
+    if (message.get("message_id") != message_id or message.get("caption") != caption
+            or message.get("chat", {}).get("id") != CHANNEL or not message.get("photo")):
+        raise RuntimeError("The edited daily table was not confirmed")
+    print(f"UPDATED price table https://t.me/{HANDLE}/{message_id}", flush=True)
+
+
 def deliver(day, hour, media, animated, caption, buttons):
     if not claim_slot(day, hour):
         print(f"Slot {day} {hour:02d}:00 already claimed. Skipping duplicate.")
@@ -244,13 +266,7 @@ def deliver(day, hour, media, animated, caption, buttons):
     kind, method, file_name, mime = (("animation", "sendAnimation", "FTI.gif", "image/gif") if animated
                                      else ("photo", "sendPhoto", "FTI.jpg", "image/jpeg"))
     payload = {"chat_id": CHANNEL, "caption": caption, "reply_markup": json.dumps(buttons)}
-    if "Date        USDT / FTI" in caption:
-        start = caption.index("Date        USDT / FTI")
-        end = caption.index("\n\n", start)
-        utf16 = lambda text: len(text.encode("utf-16-le")) // 2
-        payload["caption_entities"] = json.dumps([{
-            "type": "pre", "offset": utf16(caption[:start]), "length": utf16(caption[start:end])
-        }])
+    payload.update(caption_format(caption))
     try:
         sent = telegram(method, payload, {kind: (file_name, media, mime)})
     except TelegramRejected:
@@ -270,6 +286,7 @@ def main():
     args = parser.parse_args()
     now = datetime.now(TEHRAN)
     day = now.date()
+    update_message = None
     if args.preview:
         hours = [int(args.preview[0])]
         if hours[0] not in ARTWORK:
@@ -277,7 +294,11 @@ def main():
     elif args.publish_request is not None:
         if os.environ.get("GITHUB_REF") != "refs/heads/main":
             raise RuntimeError("Early publication requires the default branch")
-        hours = requested_slots(args.publish_request, day)
+        # The dated form edits an explicitly identified existing daily photo in place.
+        correction = re.fullmatch(r"(\d{4}-\d{2}-\d{2}) 17=([1-9]\d*)", args.publish_request)
+        if correction:
+            update_message = int(correction[2])
+        hours = requested_slots(correction[1] + " 17" if correction else args.publish_request, day)
         if not hours:
             print("The dated publication request has expired.")
             return
@@ -307,8 +328,13 @@ def main():
     for hour in hours:
         history = None
         if hour == 17:
-            history = daily_history(config, state)
+            credential = os.environ.get("GITHUB_TOKEN")
+            headers = {"Authorization": "Bearer " + credential} if credential else {}
+            history = daily_history(config, state, headers, None if args.preview else os.environ["GITHUB_SHA"])
         title, panels, caption, buttons = edition(hour, day, state, config, observed, history)
+        if update_message:
+            update_table(update_message, caption, buttons)
+            continue
         art_name, digest = ARTWORK[hour]
         art = get(f"{ART_ROOT}/{art_name}").content
         if hashlib.sha256(art).hexdigest() != digest:
